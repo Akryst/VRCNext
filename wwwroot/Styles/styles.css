@@ -36,7 +36,7 @@ body {
     height: 100vh;
     overflow: hidden;
     user-select: none;
-    border-radius: 12px;
+    border-radius: 18px;
 }
 
 ::placeholder {

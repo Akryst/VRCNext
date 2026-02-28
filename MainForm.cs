@@ -14,6 +14,7 @@ public class MainForm : Form
     [DllImport("user32.dll")] private static extern bool ReleaseCapture();
     [DllImport("user32.dll")] private static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
     [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    [DllImport("Gdi32.dll")]  private static extern IntPtr CreateRoundRectRgn(int l, int t, int r, int b, int w, int h);
 
     private WebView2 _webView = null!;
     private readonly AppSettings _settings;
@@ -101,6 +102,13 @@ public class MainForm : Form
         _fileWatcher.NewFile += OnNewFile;
         Load += async (s, e) => await InitWebView();
     }
+
+    protected override void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+        Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Width, Height, 18, 18));
+    }
+
 
 
     private async Task InitWebView()
@@ -4683,26 +4691,6 @@ public class MainForm : Form
         return t.ToString();
     }
 
-    // Borderless window: resize via edge drag
-    private const int RESIZE_BORDER = 6;
-    protected override void WndProc(ref Message m)
-    {
-        if (m.Msg == 0x0084 && WindowState != FormWindowState.Maximized) // WM_NCHITTEST
-        {
-            var screenPt = new Point(m.LParam.ToInt32());
-            var pt = PointToClient(screenPt);
-            int b = RESIZE_BORDER;
-            bool top = pt.Y < b, bottom = pt.Y > ClientSize.Height - b;
-            bool left = pt.X < b, right = pt.X > ClientSize.Width - b;
-            if (top && left)     { m.Result = (IntPtr)13; return; } // HTTOPLEFT
-            if (top && right)    { m.Result = (IntPtr)14; return; } // HTTOPRIGHT
-            if (bottom && left)  { m.Result = (IntPtr)16; return; } // HTBOTTOMLEFT
-            if (bottom && right) { m.Result = (IntPtr)17; return; } // HTBOTTOMRIGHT
-            if (top)             { m.Result = (IntPtr)12; return; } // HTTOP
-            if (bottom)          { m.Result = (IntPtr)15; return; } // HTBOTTOM
-            if (left)            { m.Result = (IntPtr)10; return; } // HTLEFT
-            if (right)           { m.Result = (IntPtr)11; return; } // HTRIGHT
-        }
-        base.WndProc(ref m);
-    }
 }
+
+// Intercepts WebView2 mouse messages so edge-drag resize works on a borderless form
