@@ -895,6 +895,55 @@ public class VRChatApiService
         return (new JArray(), false);
     }
 
+    public async Task<JArray> GetPlayerModerationsAsync(string type)
+    {
+        if (!IsLoggedIn) return new JArray();
+        try
+        {
+            var resp = await _http.GetAsync($"{BASE}/auth/user/playermoderations?type={Uri.EscapeDataString(type)}");
+            var body = await resp.Content.ReadAsStringAsync();
+            Log($"GetPlayerModerations({type}): status={(int)resp.StatusCode}, bodyLen={body.Length}");
+            if (resp.IsSuccessStatusCode)
+            {
+                var token = Newtonsoft.Json.Linq.JToken.Parse(body);
+                if (token is JArray arr) return arr;
+            }
+            else Log($"GetPlayerModerations({type}): error body={body[..Math.Min(200, body.Length)]}");
+        }
+        catch (Exception ex) { Log($"GetPlayerModerations({type}) exception: {ex.Message}"); }
+        return new JArray();
+    }
+
+    public async Task<bool> ModerateUserAsync(string userId, string type)
+    {
+        if (!IsLoggedIn) return false;
+        try
+        {
+            var body = new StringContent(
+                $"{{\"moderated\":\"{userId}\",\"type\":\"{type}\"}}",
+                Encoding.UTF8, "application/json");
+            var resp = await _http.PostAsync($"{BASE}/auth/user/playermoderations", body);
+            Log($"ModerateUser({userId},{type}): {(int)resp.StatusCode}");
+            return resp.IsSuccessStatusCode;
+        }
+        catch (Exception ex) { Log($"ModerateUser({userId},{type}) exception: {ex.Message}"); return false; }
+    }
+
+    public async Task<bool> UnmoderateUserAsync(string userId, string type)
+    {
+        if (!IsLoggedIn) return false;
+        try
+        {
+            var body = new StringContent(
+                $"{{\"moderated\":\"{userId}\",\"type\":\"{type}\"}}",
+                Encoding.UTF8, "application/json");
+            var resp = await _http.PutAsync($"{BASE}/auth/user/unplayermoderate", body);
+            Log($"UnmoderateUser({userId},{type}): {(int)resp.StatusCode}");
+            return resp.IsSuccessStatusCode;
+        }
+        catch (Exception ex) { Log($"UnmoderateUser({userId},{type}) exception: {ex.Message}"); return false; }
+    }
+
     public async Task<JObject?> GetGroupAsync(string groupId)
     {
         if (!IsLoggedIn) return null;

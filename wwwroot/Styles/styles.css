@@ -3373,6 +3373,26 @@ body {
     color: var(--tx0) !important;
 }
 
+/* Mute / Block icon-only buttons */
+.fd-btn-mod {
+    background: var(--bg-hover) !important;
+    color: var(--tx3) !important;
+    padding: 6px 9px !important;
+}
+.fd-btn-mod:hover {
+    background: var(--err) !important;
+    color: #fff !important;
+}
+.fd-btn-mod.active {
+    background: var(--err) !important;
+    color: #fff !important;
+}
+.fd-btn-mod.active:hover {
+    background: var(--err) !important;
+    color: #fff !important;
+    opacity: .85;
+}
+
 /* People Favorites grid */
 .fav-friend-card {
     display: flex;

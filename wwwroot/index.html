@@ -111,11 +111,13 @@
                 <div class="dash-section-label" id="searchGroupsLabel" style="display:none;">SEARCH RESULTS</div>
                 <div id="searchGroupsResults" class="search-grid"></div>
             </div>
-            <!-- Tab 3: People (Favorites + Search) -->
+            <!-- Tab 3: People (Favorites + Search + Blocked + Muted) -->
             <div class="tab" id="tab3">
                 <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
                     <button class="btn-fav avatar-filter-btn active" id="peopleFilterFav" onclick="setPeopleFilter('favorites')"><span class="msi" style="font-size:16px;">star</span> Favorites</button>
                     <button class="btn-fav avatar-filter-btn" id="peopleFilterSearch" onclick="setPeopleFilter('search')"><span class="msi" style="font-size:16px;">search</span> Search</button>
+                    <button class="btn-fav avatar-filter-btn" id="peopleFilterBlocked" onclick="setPeopleFilter('blocked')"><span class="msi" style="font-size:16px;">block</span> Blocked</button>
+                    <button class="btn-fav avatar-filter-btn" id="peopleFilterMuted" onclick="setPeopleFilter('muted')"><span class="msi" style="font-size:16px;">volume_off</span> Muted</button>
                 </div>
                 <div id="peopleFavArea">
                     <div class="search-bar-row" style="margin-bottom:12px;"><span class="msi search-ico">search</span><input type="text" id="favFriendSearchInput" class="search-input" placeholder="Filter favorite friends..." oninput="filterFavFriends()"></div>
@@ -124,6 +126,12 @@
                 <div id="peopleSearchArea" style="display:none;">
                     <div class="search-bar-row"><span class="msi search-ico">search</span><input type="text" id="searchPeopleInput" class="search-input" placeholder="Search people..." onkeydown="if(event.key==='Enter')doSearch('people')"><button class="btn-f" onclick="doSearch('people')">Search</button></div>
                     <div id="searchPeopleResults" class="search-grid"><div class="empty-msg">Search for VRChat users</div></div>
+                </div>
+                <div id="peopleBlockedArea" style="display:none;">
+                    <div id="blockedList"><div class="empty-msg">Loading...</div></div>
+                </div>
+                <div id="peopleMutedArea" style="display:none;">
+                    <div id="mutedList"><div class="empty-msg">Loading...</div></div>
                 </div>
             </div>
             <!-- Tab 4: Avatars -->

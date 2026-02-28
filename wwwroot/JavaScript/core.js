@@ -36,9 +36,11 @@ let worldFilter = 'favorites';
 let favWorldsData = [];
 let favWorldGroups = [];
 let favWorldGroupFilter = '';
-/* === People Tab: Favorites / Search filter === */
+/* === People Tab: Favorites / Search / Blocked / Muted filter === */
 let peopleFilter = 'favorites';
 let favFriendsData = []; // [{ fvrtId, favoriteId }]
+let blockedData = null; // null = not yet loaded
+let mutedData = null;
 /* === VRChat API === */
 let vrc2faType = 'totp';
 let vrcFriendsData = [];

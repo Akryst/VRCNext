@@ -751,6 +751,8 @@ function renderFriendDetail(d) {
     let actionsHtml = '<div class="fd-actions">';
     const loc = (d.location || '').replace(/'/g, "\\'");
     const uid = (d.id || '').replace(/'/g, "\\'");
+    const isBlocked = Array.isArray(blockedData) && blockedData.some(e => e.targetUserId === d.id);
+    const isMuted   = Array.isArray(mutedData)   && mutedData.some(e => e.targetUserId === d.id);
     if (d.isFriend) {
         if (d.canJoin) actionsHtml += `<button class="fd-btn fd-btn-join" onclick="friendAction('join','${loc}','${uid}')">Join</button>`;
         if (d.canRequestInvite) actionsHtml += `<button class="fd-btn" onclick="friendAction('requestInvite','${loc}','${uid}')">Request Invite</button>`;
@@ -762,6 +764,8 @@ function renderFriendDetail(d) {
     } else {
         actionsHtml += `<button class="fd-btn fd-btn-accent" id="fdAddFriend" onclick="sendToCS({action:'vrcSendFriendRequest',userId:'${uid}'});this.disabled=true;this.textContent='Request Sent';">Add Friend</button>`;
     }
+    actionsHtml += `<button class="fd-btn fd-btn-mod${isMuted ? ' active' : ''}" id="fdMuteBtn" onclick="toggleMod('${uid}','mute',this)" title="${isMuted ? 'Unmute' : 'Mute'}"><span class="msi" style="font-size:16px;">mic${isMuted ? '_off' : ''}</span></button>`;
+    actionsHtml += `<button class="fd-btn fd-btn-mod${isBlocked ? ' active' : ''}" id="fdBlockBtn" onclick="toggleMod('${uid}','block',this)" title="${isBlocked ? 'Unblock' : 'Block'}"><span class="msi" style="font-size:16px;">${isBlocked ? 'block' : 'shield'}</span></button>`;
     actionsHtml += '</div>';
 
     // Badges
@@ -984,16 +988,71 @@ function handleFavFriendToggled(payload) {
     filterFavFriends();
 }
 
-// People Tab: Favorites / Search
+// People Tab: Favorites / Search / Blocked / Muted
 
 function setPeopleFilter(filter) {
     peopleFilter = filter;
     document.getElementById('peopleFilterFav').classList.toggle('active', filter === 'favorites');
     document.getElementById('peopleFilterSearch').classList.toggle('active', filter === 'search');
-    document.getElementById('peopleFavArea').style.display    = filter === 'favorites' ? '' : 'none';
-    document.getElementById('peopleSearchArea').style.display = filter === 'search'    ? '' : 'none';
+    document.getElementById('peopleFilterBlocked').classList.toggle('active', filter === 'blocked');
+    document.getElementById('peopleFilterMuted').classList.toggle('active', filter === 'muted');
+    document.getElementById('peopleFavArea').style.display     = filter === 'favorites' ? '' : 'none';
+    document.getElementById('peopleSearchArea').style.display  = filter === 'search'    ? '' : 'none';
+    document.getElementById('peopleBlockedArea').style.display = filter === 'blocked'   ? '' : 'none';
+    document.getElementById('peopleMutedArea').style.display   = filter === 'muted'     ? '' : 'none';
     if (filter === 'favorites' && favFriendsData.length === 0)
         sendToCS({ action: 'vrcGetFavoriteFriends' });
+    if (filter === 'blocked' && blockedData === null)
+        sendToCS({ action: 'vrcGetBlocked' });
+    if (filter === 'muted' && mutedData === null)
+        sendToCS({ action: 'vrcGetMuted' });
+}
+
+function renderModList(containerId, list, actionType) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    if (!list || list.length === 0) {
+        el.innerHTML = `<div class="empty-msg">${actionType === 'block' ? 'No blocked users' : 'No muted users'}</div>`;
+        return;
+    }
+    const btnLabel = actionType === 'block' ? 'Unblock' : 'Unmute';
+    const btnClass = actionType === 'block' ? 'fd-btn fd-btn-danger' : 'fd-btn';
+    el.innerHTML = list.map(entry => {
+        const uid = jsq(entry.targetUserId || '');
+        const displayName = entry.targetDisplayName || entry.targetUserId || '?';
+        // Use enriched image from API; fall back to friends cache, then letter
+        const friend = vrcFriendsData.find(f => f.id === entry.targetUserId);
+        const imageUrl = entry.image || (friend && friend.image) || '';
+        const img = imageUrl
+            ? `<div class="fav-friend-av" style="background-image:url('${imageUrl}')"></div>`
+            : `<div class="fav-friend-av fav-friend-av-letter">${esc(displayName[0].toUpperCase())}</div>`;
+        const status = friend ? friend.status : null;
+        const presence = friend ? friend.presence : null;
+        const dotCls = presence === 'web' ? 'vrc-status-ring' : 'vrc-status-dot';
+        const statusLine = friend
+            ? `<span class="${dotCls} ${statusDotClass(status)}" style="width:6px;height:6px;flex-shrink:0;"></span>${statusLabel(status)}${friend.statusDescription ? ' — ' + esc(friend.statusDescription) : ''}`
+            : `<span class="vrc-status-dot s-offline" style="width:6px;height:6px;flex-shrink:0;"></span>Offline`;
+        return `<div class="fav-friend-card" onclick="openFriendDetail('${uid}')">
+            ${img}
+            <div class="fav-friend-info">
+                <div class="fav-friend-name">${esc(displayName)}</div>
+                <div class="fav-friend-status">${statusLine}</div>
+            </div>
+            <button class="${btnClass}" style="margin-left:auto;flex-shrink:0;" onclick="event.stopPropagation();doUnmod('${uid}','${actionType}')">${btnLabel}</button>
+        </div>`;
+    }).join('');
+}
+
+function doUnmod(userId, type) {
+    sendToCS({ action: type === 'block' ? 'vrcUnblock' : 'vrcUnmute', userId });
+}
+
+function toggleMod(userId, type, btn) {
+    const isActive = btn.classList.contains('active');
+    sendToCS({ action: isActive
+        ? (type === 'block' ? 'vrcUnblock' : 'vrcUnmute')
+        : (type === 'block' ? 'vrcBlock'   : 'vrcMute'),
+        userId });
 }
 
 function renderFavFriends(list) {

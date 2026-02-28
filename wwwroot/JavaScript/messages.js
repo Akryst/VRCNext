@@ -129,6 +129,50 @@ if (window.chrome?.webview) {
                 closeFriendDetail();
                 sendToCS({ action: 'vrcRefreshFriends' });
                 break;
+            case 'vrcBlockedList':
+                blockedData = Array.isArray(payload) ? payload : [];
+                renderModList('blockedList', blockedData, 'block');
+                break;
+            case 'vrcMutedList':
+                mutedData = Array.isArray(payload) ? payload : [];
+                renderModList('mutedList', mutedData, 'mute');
+                break;
+            case 'vrcModDone': {
+                const { userId: modUid, type: modType, active: modActive } = payload;
+                const modName = (currentFriendDetail && currentFriendDetail.id === modUid)
+                    ? (currentFriendDetail.displayName || modUid)
+                    : modUid;
+                const modImage = (currentFriendDetail && currentFriendDetail.id === modUid)
+                    ? (currentFriendDetail.image || '') : '';
+                if (modType === 'block') {
+                    if (modActive) {
+                        if (!Array.isArray(blockedData)) blockedData = [];
+                        if (!blockedData.some(e => e.targetUserId === modUid))
+                            blockedData.push({ targetUserId: modUid, targetDisplayName: modName, image: modImage });
+                    } else {
+                        blockedData = (blockedData || []).filter(e => e.targetUserId !== modUid);
+                    }
+                    renderModList('blockedList', blockedData, 'block');
+                } else {
+                    if (modActive) {
+                        if (!Array.isArray(mutedData)) mutedData = [];
+                        if (!mutedData.some(e => e.targetUserId === modUid))
+                            mutedData.push({ targetUserId: modUid, targetDisplayName: modName, image: modImage });
+                    } else {
+                        mutedData = (mutedData || []).filter(e => e.targetUserId !== modUid);
+                    }
+                    renderModList('mutedList', mutedData, 'mute');
+                }
+                // Update buttons in open detail modal
+                const btn = document.getElementById(modType === 'block' ? 'fdBlockBtn' : 'fdMuteBtn');
+                if (btn) {
+                    btn.classList.toggle('active', modActive);
+                    btn.title = modActive ? (modType === 'block' ? 'Unblock' : 'Unmute') : (modType === 'block' ? 'Block' : 'Mute');
+                    const icon = btn.querySelector('.msi');
+                    if (icon) icon.textContent = modType === 'block' ? (modActive ? 'block' : 'shield') : (modActive ? 'mic_off' : 'mic');
+                }
+                break;
+            }
             case 'vrcAvatars':
                 if (payload.filter === 'own') avatarsData = payload.avatars || [];
                 else avatarFavData = payload.avatars || [];

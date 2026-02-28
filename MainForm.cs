@@ -1556,6 +1556,82 @@ public class MainForm : Form
                     }
                     break;
 
+                case "vrcGetBlocked":
+                    _ = Task.Run(async () => {
+                        var arr = await _vrcApi.GetPlayerModerationsAsync("block");
+                        await EnrichModerationsWithImagesAsync(arr);
+                        Invoke(() => SendToJS("vrcBlockedList", arr));
+                    });
+                    break;
+
+                case "vrcGetMuted":
+                    _ = Task.Run(async () => {
+                        var arr = await _vrcApi.GetPlayerModerationsAsync("mute");
+                        await EnrichModerationsWithImagesAsync(arr);
+                        Invoke(() => SendToJS("vrcMutedList", arr));
+                    });
+                    break;
+
+                case "vrcBlock":
+                    var blUid = msg["userId"]?.ToString();
+                    if (!string.IsNullOrEmpty(blUid))
+                    {
+                        _ = Task.Run(async () => {
+                            var ok = await _vrcApi.ModerateUserAsync(blUid, "block");
+                            Invoke(() => {
+                                SendToJS("vrcActionResult", new { action = "block", success = ok,
+                                    message = ok ? "Blocked" : "Failed to block" });
+                                if (ok) SendToJS("vrcModDone", new { userId = blUid, type = "block", active = true });
+                            });
+                        });
+                    }
+                    break;
+
+                case "vrcMute":
+                    var muteUid = msg["userId"]?.ToString();
+                    if (!string.IsNullOrEmpty(muteUid))
+                    {
+                        _ = Task.Run(async () => {
+                            var ok = await _vrcApi.ModerateUserAsync(muteUid, "mute");
+                            Invoke(() => {
+                                SendToJS("vrcActionResult", new { action = "mute", success = ok,
+                                    message = ok ? "Muted" : "Failed to mute" });
+                                if (ok) SendToJS("vrcModDone", new { userId = muteUid, type = "mute", active = true });
+                            });
+                        });
+                    }
+                    break;
+
+                case "vrcUnblock":
+                    var ubUid = msg["userId"]?.ToString();
+                    if (!string.IsNullOrEmpty(ubUid))
+                    {
+                        _ = Task.Run(async () => {
+                            var ok = await _vrcApi.UnmoderateUserAsync(ubUid, "block");
+                            Invoke(() => {
+                                SendToJS("vrcActionResult", new { action = "unblock", success = ok,
+                                    message = ok ? "Unblocked" : "Failed to unblock" });
+                                if (ok) SendToJS("vrcModDone", new { userId = ubUid, type = "block", active = false });
+                            });
+                        });
+                    }
+                    break;
+
+                case "vrcUnmute":
+                    var umUid = msg["userId"]?.ToString();
+                    if (!string.IsNullOrEmpty(umUid))
+                    {
+                        _ = Task.Run(async () => {
+                            var ok = await _vrcApi.UnmoderateUserAsync(umUid, "mute");
+                            Invoke(() => {
+                                SendToJS("vrcActionResult", new { action = "unmute", success = ok,
+                                    message = ok ? "Unmuted" : "Failed to unmute" });
+                                if (ok) SendToJS("vrcModDone", new { userId = umUid, type = "mute", active = false });
+                            });
+                        });
+                    }
+                    break;
+
                 // Notifications
                 case "vrcGetNotifications":
                     _ = VrcGetNotificationsAsync();
@@ -3306,6 +3382,19 @@ public class MainForm : Form
         {
             SendToJS("log", new { msg = "VRChat: Failed to update status", color = "err" });
         }
+    }
+
+    private async Task EnrichModerationsWithImagesAsync(JArray entries)
+    {
+        var tasks = entries.OfType<JObject>().Select(async entry =>
+        {
+            var uid = entry["targetUserId"]?.ToString();
+            if (string.IsNullOrEmpty(uid)) return;
+            var user = await _vrcApi.GetUserAsync(uid);
+            if (user != null)
+                entry["image"] = VRChatApiService.GetUserImage(user);
+        });
+        await Task.WhenAll(tasks);
     }
 
     private async Task VrcGetFriendDetailAsync(string userId)
