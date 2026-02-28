@@ -291,6 +291,7 @@ function renderWorldSearchDetail(w) {
             <div class="ci-group-list" id="wdFavGroupList"><div style="font-size:11px;color:var(--tx3);padding:8px 0;">Loading groups…</div></div>
         </div>
         ${w.worldTimeSeconds > 0 ? `<div class="wd-your-time"><span class="msi" style="font-size:15px;">schedule</span><div><div style="font-size:12px;font-weight:600;color:var(--tx1);">Your Time Spent</div><div style="font-size:11px;color:var(--tx3);">${formatDuration(w.worldTimeSeconds)}${w.worldVisitCount > 0 ? ' · ' + w.worldVisitCount + ' visit' + (w.worldVisitCount > 1 ? 's' : '') : ''}</div></div></div>` : ''}
+        <div style="margin-bottom:10px;">${idBadge(wid)}</div>
         ${desc ? `<div style="font-size:12px;color:var(--tx2);margin-bottom:14px;max-height:150px;overflow-y:auto;line-height:1.5;white-space:pre-wrap;">${esc(desc)}</div>` : ''}
         ${tagsHtml}
         <div class="fd-meta" style="margin-bottom:14px;">
@@ -596,6 +597,7 @@ function openWorldDetail(worldId) {
 
     c.innerHTML = `${bannerHtml}<div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:16px;">
         <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(worldName)}</h2>
+        <div style="margin-bottom:8px;">${idBadge(worldId)}</div>
         <div class="fd-badges-row">${multiInstance ? '' : `<span class="fd-instance-badge ${instClass}">${instLabel}</span>`}</div>
         ${friendsHtml}${actionsHtml}</div>`;
     m.style.display = 'flex';

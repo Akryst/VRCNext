@@ -199,3 +199,82 @@ function renderDashFriendsFeed() {
 function browseDashBg() {
     sendToCS({ action: 'browseDashBg' });
 }
+
+/* === Discovery Section === */
+const DISCOVERY_URL = 'https://vrcn.shinyflvres.com/Dashboard_Discovery.json';
+
+const DISCOVERY_TAG_COLORS = {
+    'Hangout':    { bg: '#3b82f6', tx: '#fff' },
+    'Photography':{ bg: '#8b5cf6', tx: '#fff' },
+    'Game':       { bg: '#ef4444', tx: '#fff' },
+    'Events':     { bg: '#f59e0b', tx: '#000' },
+    'Abstract':   { bg: '#6366f1', tx: '#fff' },
+    'Lovely':     { bg: '#ec4899', tx: '#fff' },
+    'Cozy':       { bg: '#f97316', tx: '#fff' },
+    'Open World': { bg: '#22c55e', tx: '#fff' },
+    'Home':       { bg: '#14b8a6', tx: '#fff' },
+    'Outdoor':    { bg: '#84cc16', tx: '#000' },
+    'Indoor':     { bg: '#a78bfa', tx: '#fff' },
+    'Brainrot':   { bg: '#f43f5e', tx: '#fff' },
+};
+
+let discoveryWorlds = [];
+
+function fetchDiscovery() {
+    sendToCS({ action: 'fetchDiscoveryFeed', url: DISCOVERY_URL });
+}
+
+function onDiscoveryFeed(json) {
+    try {
+        const data = JSON.parse(json);
+        if (!Array.isArray(data) || data.length === 0) return;
+        discoveryWorlds = data.slice(0, 8);
+        const unresolvedIds = discoveryWorlds
+            .map(w => w.WorldID || w.worldId || '')
+            .filter(id => id.startsWith('wrld_') && !dashWorldCache[id]);
+        if (unresolvedIds.length > 0) {
+            sendToCS({ action: 'vrcResolveWorlds', worldIds: unresolvedIds });
+        }
+        renderDiscovery();
+    } catch (_) {}
+}
+
+function renderDiscovery() {
+    const label = document.getElementById('dashDiscoveryLabel');
+    const grid  = document.getElementById('dashDiscoveryGrid');
+    if (!label || !grid) return;
+
+    if (!discoveryWorlds.length) {
+        label.style.display = 'none';
+        grid.style.display  = 'none';
+        return;
+    }
+
+    label.style.display = '';
+    grid.style.display  = '';
+
+    grid.innerHTML = discoveryWorlds.map(w => {
+        const wid  = (w.WorldID || w.worldId || '').trim();
+        const desc = w.Description || w.description || '';
+        const tags = Array.isArray(w.Tags || w.tags) ? (w.Tags || w.tags) : [];
+        const cached = dashWorldCache[wid];
+        const name  = cached?.name || wid;
+        const thumb = cached?.thumbnailImageUrl || cached?.imageUrl || '';
+        const thumbStyle = thumb ? `background-image:url('${thumb}')` : '';
+        const safeWid = wid.replace(/'/g, "\\'");
+
+        const tagHtml = tags.map(t => {
+            const col = DISCOVERY_TAG_COLORS[t] || { bg: 'var(--bg3)', tx: 'var(--tx2)' };
+            return `<span class="disc-tag" style="background:${col.bg};color:${col.tx}">${esc(t)}</span>`;
+        }).join('');
+
+        return `<div class="dash-world-card disc-card" onclick="openWorldDetail('${safeWid}')">
+            <div class="dash-world-thumb" style="${thumbStyle}"><div class="dash-world-thumb-overlay"></div></div>
+            <div class="dash-world-info">
+                <div class="dash-world-name">${esc(name)}</div>
+                ${desc ? `<div class="disc-desc">${esc(desc)}</div>` : ''}
+                ${tagHtml ? `<div class="disc-tags-row">${tagHtml}</div>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}

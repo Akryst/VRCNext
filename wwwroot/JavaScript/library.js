@@ -178,6 +178,7 @@ function onWorldsResolved(dict) {
     // Update dashboard world cache + re-render
     Object.assign(dashWorldCache, dict);
     renderDashboard();
+    renderDiscovery();
     // Update existing library world badges in the DOM
     document.querySelectorAll('.lib-world-badge[data-wid]').forEach(btn => {
         const wid = btn.getAttribute('data-wid');

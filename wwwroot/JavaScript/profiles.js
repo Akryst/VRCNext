@@ -860,7 +860,8 @@ function renderFriendDetail(d) {
 
     // Info tab content
     const tlPreviewHtml = buildFdTimelinePreview(d.id || '');
-    const infoContent = `${repGroupInfoHtml}${bioHtml}${bioLinksHtml}${langsHtml}${worldHtml}${metaHtml ? '<div style="margin-bottom:14px;">' + metaHtml + '</div>' : ''}${noteHtml}${tlPreviewHtml}`;
+    const userIdBadge = d.id ? `<div style="margin-bottom:10px;">${idBadge(d.id)}</div>` : '';
+    const infoContent = `${repGroupInfoHtml}${userIdBadge}${bioHtml}${bioLinksHtml}${langsHtml}${worldHtml}${metaHtml ? '<div style="margin-bottom:14px;">' + metaHtml + '</div>' : ''}${noteHtml}${tlPreviewHtml}`;
 
     // Banner
     const bannerSrc = d.profilePicOverride || d.currentAvatarImageUrl || d.image || '';

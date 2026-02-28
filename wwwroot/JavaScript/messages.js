@@ -237,6 +237,9 @@ if (window.chrome?.webview) {
             case 'vrcWorldsResolved':
                 onWorldsResolved(payload);
                 break;
+            case 'discoveryFeed':
+                onDiscoveryFeed(payload.json);
+                break;
             case 'vrcWorldDetailError':
                 document.getElementById('detailModalContent').innerHTML = `<div style="padding:30px;text-align:center;color:var(--err);">${esc(payload.error || 'Error loading world')}</div><div style="text-align:center;margin-top:10px;"><button class="fd-btn" onclick="document.getElementById('modalDetail').style.display='none'">Close</button></div>`;
                 break;

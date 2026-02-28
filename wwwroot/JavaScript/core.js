@@ -415,6 +415,18 @@ function jsq(s) {
     return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r/g, '\\r').replace(/\n/g, '\\n');
 }
 
+function copyIdBadge(el, id) {
+    navigator.clipboard.writeText(id).catch(() => {});
+    const orig = el.innerHTML;
+    el.innerHTML = '<span class="msi" style="font-size:12px;">check</span>Copied!';
+    setTimeout(() => { el.innerHTML = orig; }, 1500);
+}
+
+function idBadge(id) {
+    const safe = jsq(id);
+    return `<span class="id-copy-badge" onclick="copyIdBadge(this,'${safe}')"><span class="msi" style="font-size:12px;">link</span>${esc(id)}</span>`;
+}
+
 /* ── Custom Dropdown (vn-select) ─────────────────────────────────────────── */
 function initVnSelect(el) {
     if (!el || el._vnSelect) return;
