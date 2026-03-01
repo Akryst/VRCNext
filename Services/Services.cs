@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Security.Cryptography;
 
 namespace VRCNext.Services;
 
@@ -195,9 +196,39 @@ public class AppSettings
     public int DashOpacity { get; set; } = 40;
     public bool RandomDashBg { get; set; } = false;
     public string VrcUsername { get; set; } = "";
-    public string VrcPassword { get; set; } = ""; // stored locally only
-    public string VrcAuthCookie { get; set; } = ""; // session cookie
-    public string VrcTwoFactorCookie { get; set; } = ""; // 2FA cookie
+
+    // Encrypted on disk via DPAPI — use VrcPassword/VrcAuthCookie/VrcTwoFactorCookie at runtime
+    public string VrcPasswordEnc { get; set; } = "";
+    public string VrcAuthCookieEnc { get; set; } = "";
+    public string VrcTwoFactorCookieEnc { get; set; } = "";
+
+    [JsonIgnore] public string VrcPassword { get; set; } = "";
+    [JsonIgnore] public string VrcAuthCookie { get; set; } = "";
+    [JsonIgnore] public string VrcTwoFactorCookie { get; set; } = "";
+
+    private static string Protect(string plain)
+    {
+        if (string.IsNullOrEmpty(plain)) return "";
+        try
+        {
+            var enc = ProtectedData.Protect(
+                System.Text.Encoding.UTF8.GetBytes(plain), null, DataProtectionScope.CurrentUser);
+            return Convert.ToBase64String(enc);
+        }
+        catch { return ""; }
+    }
+
+    private static string Unprotect(string cipher)
+    {
+        if (string.IsNullOrEmpty(cipher)) return "";
+        try
+        {
+            var dec = ProtectedData.Unprotect(
+                Convert.FromBase64String(cipher), null, DataProtectionScope.CurrentUser);
+            return System.Text.Encoding.UTF8.GetString(dec);
+        }
+        catch { return ""; }
+    }
 
     // Custom Chatbox settings
     public bool CbShowTime { get; set; } = true;
@@ -263,6 +294,10 @@ public class AppSettings
                 if (s.Webhooks == null) s.Webhooks = new();
                 if (s.Webhooks.Count > 4) s.Webhooks = s.Webhooks.Take(4).ToList();
                 while (s.Webhooks.Count < 4) s.Webhooks.Add(new() { Name = $"Channel {s.Webhooks.Count + 1}" });
+                // Decrypt credentials
+                s.VrcPassword        = Unprotect(s.VrcPasswordEnc);
+                s.VrcAuthCookie      = Unprotect(s.VrcAuthCookieEnc);
+                s.VrcTwoFactorCookie = Unprotect(s.VrcTwoFactorCookieEnc);
                 return s;
             }
         }
@@ -274,6 +309,10 @@ public class AppSettings
     {
         try
         {
+            // Encrypt credentials before writing to disk
+            VrcPasswordEnc        = Protect(VrcPassword);
+            VrcAuthCookieEnc      = Protect(VrcAuthCookie);
+            VrcTwoFactorCookieEnc = Protect(VrcTwoFactorCookie);
             var dir = Path.GetDirectoryName(FilePath)!;
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
             File.WriteAllText(FilePath, JsonConvert.SerializeObject(this, Formatting.Indented));

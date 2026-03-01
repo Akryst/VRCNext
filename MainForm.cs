@@ -415,12 +415,23 @@ public class MainForm : Form
                     {
                         try
                         {
-                            if (File.Exists(delPath))
+                            var fullDelPath = Path.GetFullPath(delPath);
+                            bool inAllowedFolder = _settings.WatchFolders.Any(f =>
+                                !string.IsNullOrEmpty(f) &&
+                                fullDelPath.StartsWith(
+                                    Path.GetFullPath(f).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar,
+                                    StringComparison.OrdinalIgnoreCase));
+                            if (!inAllowedFolder)
                             {
-                                File.Delete(delPath);
+                                SendToJS("log", new { msg = "Delete blocked: path outside watch folders.", color = "err" });
+                                break;
+                            }
+                            if (File.Exists(fullDelPath))
+                            {
+                                File.Delete(fullDelPath);
                                 _settings.Favorites.Remove(delPath);
                                 _settings.Save();
-                                SendToJS("log", new { msg = $"Deleted: {Path.GetFileName(delPath)}", color = "ok" });
+                                SendToJS("log", new { msg = $"Deleted: {Path.GetFileName(fullDelPath)}", color = "ok" });
                                 SendToJS("libraryFileDeleted", new { path = delPath });
                             }
                             else
