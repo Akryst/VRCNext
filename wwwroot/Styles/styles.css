@@ -5234,10 +5234,22 @@ body {
     flex: 1;
 }
 
+.tl-time-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    flex-shrink: 0;
+}
+
 .tl-time {
     font-size: 10px;
     color: var(--tx3);
-    flex-shrink: 0;
+}
+
+.tl-date {
+    font-size: 9px;
+    color: var(--tx3);
+    opacity: .7;
 }
 
 /* ── Card body ────────────────────────────────────────────────────── */

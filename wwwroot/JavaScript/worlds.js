@@ -302,6 +302,8 @@ function renderWorldSearchDetail(w) {
         ${createHtml}
         <div style="margin-top:14px;text-align:right;"><button class="fd-btn" onclick="document.getElementById('modalDetail').style.display='none'">Close</button></div>
         </div>`;
+
+    document.querySelectorAll('#ciType, #ciRegion').forEach(initVnSelect);
 }
 
 function toggleWorldFavPicker(worldId) {

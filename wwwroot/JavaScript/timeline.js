@@ -195,7 +195,9 @@ function renderTlRow(ev, side) {
 }
 
 function renderTlCard(ev) {
-    const time  = new Date(ev.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const d     = new Date(ev.timestamp);
+    const time  = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const date  = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const meta  = TL_TYPE_META[ev.type] ?? { icon: 'circle', label: ev.type };
     const color = TL_TYPE_COLOR[ev.type] ?? 'var(--tx3)';
     const ei    = jsq(ev.id);
@@ -203,7 +205,7 @@ function renderTlCard(ev) {
     const header = `<div class="tl-card-header">
         <span class="msi tl-type-icon" style="color:${color}">${meta.icon}</span>
         <span class="tl-type-label">${esc(meta.label)}</span>
-        <span class="tl-time">${esc(time)}</span>
+        <div class="tl-time-col"><span class="tl-time">${esc(time)}</span><span class="tl-date">${esc(date)}</span></div>
     </div>`;
 
     let body = '';
@@ -650,7 +652,9 @@ function renderFtRow(ev, side) {
 }
 
 function renderFtCard(ev) {
-    const time  = new Date(ev.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const d     = new Date(ev.timestamp);
+    const time  = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const date  = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const meta  = FT_TYPE_META[ev.type] ?? { icon: 'circle', label: ev.type };
     const color = FT_TYPE_COLOR[ev.type] ?? 'var(--tx3)';
     const ei    = jsq(ev.id);
@@ -658,7 +662,7 @@ function renderFtCard(ev) {
     const header = `<div class="tl-card-header">
         <span class="msi tl-type-icon" style="color:${color}">${meta.icon}</span>
         <span class="tl-type-label">${esc(meta.label)}</span>
-        <span class="tl-time">${esc(time)}</span>
+        <div class="tl-time-col"><span class="tl-time">${esc(time)}</span><span class="tl-date">${esc(date)}</span></div>
     </div>`;
 
     let body = '';
