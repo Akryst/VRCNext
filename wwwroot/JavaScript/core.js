@@ -418,6 +418,10 @@ function jsq(s) {
     return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r/g, '\\r').replace(/\n/g, '\\n');
 }
 
+function cssUrl(s) {
+    return (s || '').replace(/'/g, '%27').replace(/\)/g, '%29');
+}
+
 function copyIdBadge(el, id) {
     navigator.clipboard.writeText(id).catch(() => {});
     const orig = el.innerHTML;

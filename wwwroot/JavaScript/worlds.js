@@ -127,7 +127,7 @@ function renderWorldCard(w) {
     const ts = w.worldTimeSeconds || 0;
     const timeBadge = ts > 0 ? `<div class="s-card-time-badge"><span class="msi" style="font-size:11px;">schedule</span> ${formatDuration(ts)}</div>` : '';
     return `<div class="s-card" onclick="openWorldSearchDetail('${wid}')">
-        <div class="s-card-img" style="background-image:url('${thumb}')">${timeBadge}</div>
+        <div class="s-card-img" style="background-image:url('${cssUrl(thumb)}')">${timeBadge}</div>
         <div class="s-card-body"><div class="s-card-title">${esc(w.name)}</div>
         <div class="s-card-sub">${esc(w.authorName)} · <span class="msi" style="font-size:11px;">person</span> ${w.occupants} · <span class="msi" style="font-size:11px;">star</span> ${w.favorites}</div>
         ${desc ? `<div class="s-card-desc">${esc(desc)}</div>` : ''}

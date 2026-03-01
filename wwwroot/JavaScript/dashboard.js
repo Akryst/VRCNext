@@ -141,7 +141,7 @@ function renderDashWorlds() {
                 : `<div class="dash-world-friend-av" title="${esc(f.displayName)}" style="display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--tx3)">${esc((f.displayName||'?')[0])}</div>`;
         }).join('');
         const extra = w.friends.length > 5 ? `<span class="dash-world-extra">+${w.friends.length - 5}</span>` : '';
-        const thumbStyle = w.thumb ? `background-image:url('${w.thumb}')` : '';
+        const thumbStyle = w.thumb ? `background-image:url('${cssUrl(w.thumb)}')` : '';
         const wid = (w.worldId || '').replace(/'/g, "\\'");
         const displayName = w.name || w.worldId;
         const instCount = w.instances ? w.instances.size : 1;
@@ -260,7 +260,7 @@ function renderDiscovery() {
         const cached = dashWorldCache[wid];
         const name  = cached?.name || wid;
         const thumb = cached?.thumbnailImageUrl || cached?.imageUrl || '';
-        const thumbStyle = thumb ? `background-image:url('${thumb}')` : '';
+        const thumbStyle = thumb ? `background-image:url('${cssUrl(thumb)}')` : '';
         const safeWid = wid.replace(/'/g, "\\'");
 
         const tagHtml = tags.map(t => {

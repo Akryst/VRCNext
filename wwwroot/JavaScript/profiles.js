@@ -1040,7 +1040,7 @@ function renderModList(containerId, list, actionType) {
         const friend = vrcFriendsData.find(f => f.id === entry.targetUserId);
         const imageUrl = entry.image || (friend && friend.image) || '';
         const img = imageUrl
-            ? `<div class="fav-friend-av" style="background-image:url('${imageUrl}')"></div>`
+            ? `<div class="fav-friend-av" style="background-image:url('${cssUrl(imageUrl)}')"></div>`
             : `<div class="fav-friend-av fav-friend-av-letter">${esc(displayName[0].toUpperCase())}</div>`;
         const status = friend ? friend.status : null;
         const presence = friend ? friend.presence : null;
@@ -1088,7 +1088,7 @@ function filterFavFriends() {
         return;
     }
     el.innerHTML = friends.map(f => {
-        const img = f.image ? `<div class="fav-friend-av" style="background-image:url('${f.image}')"></div>`
+        const img = f.image ? `<div class="fav-friend-av" style="background-image:url('${cssUrl(f.image)}')"></div>`
                             : `<div class="fav-friend-av fav-friend-av-letter">${esc((f.displayName || '?')[0].toUpperCase())}</div>`;
         const dotCls = f.presence === 'web' ? 'vrc-status-ring' : 'vrc-status-dot';
         const uid = jsq(f.id);

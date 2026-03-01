@@ -150,7 +150,7 @@ function renderCurrentInstance(data) {
                 const hasImg = u.image && u.image.length > 5;
                 const initial = (u.displayName || '?')[0].toUpperCase();
                 const avatar = hasImg
-                    ? `<div class="inst-user-av" style="background-image:url('${u.image}')"></div>`
+                    ? `<div class="inst-user-av" style="background-image:url('${cssUrl(u.image)}')"></div>`
                     : `<div class="inst-user-av inst-user-av-letter">${esc(initial)}</div>`;
                 const click = u.id ? ` onclick="openFriendDetail('${esc(u.id)}')"` : '';
                 return `<div class="inst-user-row"${click}>${avatar}<span class="inst-user-name">${esc(u.displayName)}</span></div>`;
@@ -161,7 +161,7 @@ function renderCurrentInstance(data) {
     }
 
     el.innerHTML = `<div class="inst-card">
-        <div class="inst-header" style="background-image:url('${data.worldThumb || ''}');cursor:pointer;" onclick="openWorldSearchDetail('${esc(data.worldId || '')}')">
+        <div class="inst-header" style="background-image:url('${cssUrl(data.worldThumb || '')}');cursor:pointer;" onclick="openWorldSearchDetail('${esc(data.worldId || '')}')">
             <div class="inst-header-fade"></div>
             ${typeBadge}
             <div class="inst-header-info">

@@ -113,7 +113,7 @@ function _buildLibCard(x) {
             const wInfo = worldInfoCache[x.worldId];
             const wName = wInfo ? esc(wInfo.name) : 'View World';
             const wThumb = wInfo?.thumbnailImageUrl || '';
-            worldBadge = `<button class="lib-world-badge" data-wid="${esc(x.worldId)}" onclick="event.stopPropagation();openWorldSearchDetail('${esc(x.worldId)}')" title="${wName}"><span class="lib-world-badge-thumb" style="${wThumb ? 'background-image:url(\''+wThumb+'\')' : ''}"></span><span class="lib-world-badge-text">${wName}</span></button>`;
+            worldBadge = `<button class="lib-world-badge" data-wid="${esc(x.worldId)}" onclick="event.stopPropagation();openWorldSearchDetail('${esc(x.worldId)}')" title="${wName}"><span class="lib-world-badge-thumb" style="${wThumb ? `background-image:url('${cssUrl(wThumb)}')` : ''}"></span><span class="lib-world-badge-text">${wName}</span></button>`;
         }
         let playersOverlay = '';
         const players = x.players || [];
@@ -124,7 +124,7 @@ function _buildLibCard(x) {
                 show.map(p => {
                     const fr = vrcFriendsData.find(f => f.id === p.userId);
                     const img = p.image || fr?.image || '';
-                    return img ? `<div class="lib-player-av" style="background-image:url('${img}')" title="${esc(p.displayName)}"></div>`
+                    return img ? `<div class="lib-player-av" style="background-image:url('${cssUrl(img)}')" title="${esc(p.displayName)}"></div>`
                                : `<div class="lib-player-av lib-player-av-letter" title="${esc(p.displayName)}">${esc((p.displayName||'?')[0])}</div>`;
                 }).join('') +
                 (remaining > 0 ? `<div class="lib-player-av lib-player-av-more">+${remaining}</div>` : '') +
@@ -323,7 +323,7 @@ function openPhotoDetail(idx) {
             const fr = vrcFriendsData.find(f => f.id === p.userId);
             const img = p.image || fr?.image || '';
             const imgTag = img
-                ? `<div class="inst-user-av" style="background-image:url('${img}')"></div>`
+                ? `<div class="inst-user-av" style="background-image:url('${cssUrl(img)}')"></div>`
                 : `<div class="inst-user-av inst-user-av-letter">${esc((p.displayName||'?')[0].toUpperCase())}</div>`;
             const click = p.userId ? ` onclick="document.getElementById('modalDetail').style.display='none';openFriendDetail('${esc(p.userId)}')"` : '';
             const isFriend = fr ? '<span style="font-size:9px;color:var(--ok);margin-left:auto;">Friend</span>' : '';

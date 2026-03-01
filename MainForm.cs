@@ -3133,12 +3133,13 @@ public class MainForm : Form
         // Fallback: refresh every 30 s in case a WebSocket event was missed or the
         // connection is temporarily down between the watchdog cycles.
         _wsFallbackTimer?.Dispose();
+        var jitter = TimeSpan.FromSeconds(Random.Shared.Next(0, 15));
         _wsFallbackTimer = new System.Threading.Timer(_ =>
         {
             if (!_vrcApi.IsLoggedIn) return;
             _ = VrcRefreshFriendsAsync(true);
             _ = VrcGetNotificationsAsync();
-        }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+        }, null, TimeSpan.FromSeconds(30) + jitter, TimeSpan.FromSeconds(30));
     }
 
     // Favorite Friends

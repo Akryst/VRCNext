@@ -40,11 +40,11 @@ function renderSearchResults(type, results, offset, hasMore) {
         html = state.results.map(w => renderWorldCard(w)).join('');
     } else if (type === 'groups') {
         html = state.results.map(g => `<div class="s-card" onclick="openGroupDetail('${esc(g.id)}')">
-            <div class="s-card-img" style="background-image:url('${g.bannerUrl||g.iconUrl||''}')"><div class="s-card-icon" style="background-image:url('${g.iconUrl||''}')"></div></div>
+            <div class="s-card-img" style="background-image:url('${cssUrl(g.bannerUrl||g.iconUrl||'')}')"><div class="s-card-icon" style="background-image:url('${cssUrl(g.iconUrl||'')}')"></div></div>
             <div class="s-card-body"><div class="s-card-title">${esc(g.name)}</div><div class="s-card-sub">${esc(g.shortCode)} · <span class="msi" style="font-size:11px;">group</span> ${g.memberCount} members</div></div></div>`).join('');
     } else if (type === 'users') {
         html = state.results.map(u => `<div class="s-card s-card-h" onclick="openFriendDetail('${esc(u.id)}')">
-            <div class="s-card-avatar" style="background-image:url('${u.image}')"></div>
+            <div class="s-card-avatar" style="background-image:url('${cssUrl(u.image)}')"></div>
             <div class="s-card-body"><div class="s-card-title">${esc(u.displayName)}</div><div class="s-card-sub"><span class="status-dot-sm st-${u.status}"></span> ${esc(u.statusDescription||u.status)}${u.isFriend?' · <span style="color:var(--ok)">Friend</span>':''}</div></div></div>`).join('');
     }
 

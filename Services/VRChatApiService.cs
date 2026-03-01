@@ -10,7 +10,7 @@ public class VRChatApiService
     private readonly HttpClient _http;
     private readonly CookieContainer _cookies = new();
     private const string BASE = "https://api.vrchat.cloud/api/1";
-    private const string UA = "VRCNext/1.01.0 contact@vrcnext.app";
+    private const string UA = "VRCNext/2026.1.0 contact@vrcnext.app";
 
     public bool IsLoggedIn { get; private set; }
     public JObject? CurrentUserRaw { get; private set; }
@@ -636,7 +636,7 @@ public class VRChatApiService
 
         using var client = new HttpClient();
         client.Timeout = TimeSpan.FromSeconds(15);
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("VRCX/2025.03.01");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("VRCNext/2026.1.0 contact@vrcnext.app");
         client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
 
         foreach (var url in providers)

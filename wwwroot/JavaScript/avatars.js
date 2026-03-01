@@ -42,7 +42,7 @@ function renderAvatarGrid() {
             : '<span class="av-badge private"><span class="msi" style="font-size:10px;">lock</span> Private</span>';
         const activeBadge = isActive ? '<span class="av-badge current">Current</span>' : '';
         const aid = (a.id || '').replace(/'/g, "\\'");
-        const thumbStyle = thumb ? `background-image:url('${thumb}')` : '';
+        const thumbStyle = thumb ? `background-image:url('${cssUrl(thumb)}')` : '';
         return `<div class="av-card ${isActive ? 'av-active' : ''}" onclick="selectAvatar('${aid}')">
             <div class="av-thumb" style="${thumbStyle}">
                 <div class="av-thumb-overlay"></div>

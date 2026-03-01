@@ -11,7 +11,7 @@ function renderMyGroups(list) {
     if (myGroups.length === 0) { el.innerHTML = ''; label.style.display = 'none'; return; }
     label.style.display = '';
     el.innerHTML = myGroups.map(g => `<div class="s-card" onclick="openGroupDetail('${esc(g.id)}')">
-        <div class="s-card-img" style="background-image:url('${g.bannerUrl||g.iconUrl||''}')"><div class="s-card-icon" style="background-image:url('${g.iconUrl||''}')"></div></div>
+        <div class="s-card-img" style="background-image:url('${cssUrl(g.bannerUrl||g.iconUrl||'')}')"><div class="s-card-icon" style="background-image:url('${cssUrl(g.iconUrl||'')}')"></div></div>
         <div class="s-card-body"><div class="s-card-title">${esc(g.name)}</div><div class="s-card-sub">${esc(g.shortCode)} · <span class="msi" style="font-size:11px;">group</span> ${g.memberCount}</div></div></div>`).join('');
 }
 
@@ -303,9 +303,10 @@ function renderGpLibraryPhotos(files) {
     }
     grid.innerHTML = files.map(f => {
         const url = f.fileUrl || '';
-        const fid = (f.id || '').replace(/'/g, "\\'");
+        const fid = jsq(f.id || '');
         const fname = esc(f.name || f.id || '');
-        return `<img src="${url}" title="${fname}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;opacity:0.85;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.85" onclick="gpSelectLibraryPhoto('${fid}','${url}','${fname}')" onerror="this.parentElement?.remove()">`;
+        const fnameJs = jsq(f.name || f.id || '');
+        return `<img src="${esc(url)}" title="${fname}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;opacity:0.85;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.85" onclick="gpSelectLibraryPhoto('${fid}','${jsq(url)}','${fnameJs}')" onerror="this.parentElement?.remove()">`;
     }).join('');
 }
 
