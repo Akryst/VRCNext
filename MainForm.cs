@@ -4063,14 +4063,16 @@ var list = avatars.Select(a => new
 
     private async Task<object?> BuildUserDetailPayloadAsync(string userId)
     {
-        // Use live store data if available (already up-to-date from WebSocket events).
-        // Fall back to REST only for non-friends or when the store has no entry yet.
+        // Use live store data if available for location/status (kept fresh by WebSocket events).
+        // Always fetch the full user object via REST when store data lacks badges, since the
+        // friends-list endpoints (/auth/user/friends) do not include the badges array.
         JObject? user;
         lock (_friendStore) _friendStore.TryGetValue(userId, out user);
-        if (user == null)
+        if (user == null || user["badges"] == null)
         {
-            user = await _vrcApi.GetUserAsync(userId);
-            if (user == null) return null;
+            var fresh = await _vrcApi.GetUserAsync(userId);
+            if (fresh != null) user = fresh;
+            else if (user == null) return null;
         }
 
         var location = user["location"]?.ToString() ?? "private";
@@ -4098,7 +4100,7 @@ var list = avatars.Select(a => new
         var worlds   = worldsTask.IsCompletedSuccessfully  ? worldsTask.Result  : new JArray();
         var (mutualsArr, mutualsOptedOut) = mutualsTask.IsCompletedSuccessfully
             ? mutualsTask.Result : (new JArray(), false);
-        // Badges are embedded directly in the user object from GET /users/{userId}
+        // Badges come from the full user object via GET /users/{userId} (ensured above)
         var badgesArr = user["badges"] as JArray ?? new JArray();
 
         string worldName     = world?["name"]?.ToString() ?? "";
