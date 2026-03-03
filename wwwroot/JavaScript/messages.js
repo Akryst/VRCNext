@@ -379,6 +379,12 @@ if (window.chrome?.webview) {
             case 'invDeleteResult': handleInvDeleteResult(payload); break;
             case 'invPrintDeleteResult': handleInvPrintDeleteResult(payload); break;
             case 'invInventory': handleInvInventoryResult(payload); break;
+            case 'vrcMutualsForNetwork':
+                if (typeof networkAddMutuals === 'function') networkAddMutuals(payload);
+                break;
+            case 'vrcMutualCacheLoaded':
+                if (typeof networkCacheLoaded === 'function') networkCacheLoaded(payload.json);
+                break;
         }
     });
     sendToCS({ action: 'ready' });

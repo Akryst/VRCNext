@@ -1534,6 +1534,70 @@ public class MainForm : Form
                     break;
                 }
 
+                case "vrcGetMutualsForNetwork":
+                {
+                    var mnUid = msg["userId"]?.ToString() ?? "";
+                    if (!string.IsNullOrEmpty(mnUid))
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            var (arr, optedOut) = await _vrcApi.GetUserMutualsAsync(mnUid);
+                            var ids = optedOut ? Array.Empty<string>()
+                                               : arr.Select(m => m["id"]?.ToString() ?? "").Where(s => s != "").ToArray();
+                            Invoke(() => SendToJS("vrcMutualsForNetwork", new { userId = mnUid, mutualIds = ids, optedOut }));
+                        });
+                    }
+                    break;
+                }
+
+                case "vrcSaveMutualCache":
+                {
+                    var mcJson = msg["cache"]?.ToString() ?? "{}";
+                    _ = Task.Run(() =>
+                    {
+                        try
+                        {
+                            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VRCNext");
+                            Directory.CreateDirectory(dir);
+                            File.WriteAllText(Path.Combine(dir, "mutual_cache.json"), mcJson, System.Text.Encoding.UTF8);
+                        }
+                        catch { /* non-critical */ }
+                    });
+                    break;
+                }
+
+                case "vrcLoadMutualCache":
+                {
+                    _ = Task.Run(() =>
+                    {
+                        try
+                        {
+                            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VRCNext", "mutual_cache.json");
+                            var json = File.Exists(path) ? File.ReadAllText(path, System.Text.Encoding.UTF8) : "{}";
+                            Invoke(() => SendToJS("vrcMutualCacheLoaded", new { json }));
+                        }
+                        catch
+                        {
+                            Invoke(() => SendToJS("vrcMutualCacheLoaded", new { json = "{}" }));
+                        }
+                    });
+                    break;
+                }
+
+                case "vrcClearMutualCache":
+                {
+                    _ = Task.Run(() =>
+                    {
+                        try
+                        {
+                            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VRCNext", "mutual_cache.json");
+                            if (File.Exists(path)) File.Delete(path);
+                        }
+                        catch { /* non-critical */ }
+                    });
+                    break;
+                }
+
                 case "vrcCreateGroupInstance":
                 {
                     var cgiWorldId = msg["worldId"]?.ToString() ?? "";

@@ -28,6 +28,7 @@
                     <button class="nav-btn nav-sub" onclick="showTab(11)"><span class="ni msi">tune</span><span class="nl">OSC Tool</span></button>
                     <button class="nav-btn nav-sub" onclick="showTab(14)"><span class="ni msi">smart_display</span><span class="nl">YouTube Fix</span></button>
                     <button class="nav-btn nav-sub" onclick="showTab(8)"><span class="ni msi">article</span><span class="nl">Activity Log</span></button>
+                    <button class="nav-btn nav-sub" onclick="showTab(15)"><span class="ni msi">hub</span><span class="nl">Mutual Network</span></button>
                 </div>
             </div>
             <button class="nav-btn" onclick="showTab(9)"><span class="ni msi">settings</span><span class="nl">Settings</span></button>
@@ -638,6 +639,22 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Tab 15: Mutual Network -->
+            <div class="tab" id="tab15">
+                <div class="net-root">
+                    <canvas id="netCanvas"></canvas>
+                    <div class="net-toolbar">
+                        <button class="net-toolbar-btn" onclick="networkReFetch()" title="Clear cache and re-fetch all connections"><span class="msi" style="font-size:14px;">cloud_sync</span> Re-Fetch</button>
+                        <button class="net-toolbar-btn" onclick="networkResetView()" title="Reset zoom/pan"><span class="msi" style="font-size:14px;">center_focus_strong</span> Reset</button>
+                    </div>
+                    <div class="net-progress" id="netProgress" style="display:none;">
+                        <span class="msi" style="font-size:14px;">sync</span>
+                        <span id="netProgressText">Loading connections: 0 / 0</span>
+                        <button class="net-progress-cancel" id="netProgressCancel" onclick="networkCancel()">&#x2715;</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -737,6 +754,7 @@
     <script src="JavaScript/inventory.js"></script>
     <script src="JavaScript/messages.js"></script>
     <script src="JavaScript/context_menu.js"></script>
+    <script src="JavaScript/network.js"></script>
     <script src="JavaScript/init.js"></script>
 </body>
 </html>

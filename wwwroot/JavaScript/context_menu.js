@@ -193,6 +193,19 @@
     function getMenuConfig(e) {
         const el = e.target;
 
+        // Network graph canvas — hit-test against the current graph
+        if (el.id === 'netCanvas' && typeof _netGraph !== 'undefined' && _netGraph) {
+            const rect = el.getBoundingClientRect();
+            const wx = (e.clientX - rect.left  - _netGraph.tx) / _netGraph.scale;
+            const wy = (e.clientY - rect.top   - _netGraph.ty) / _netGraph.scale;
+            const hit = _netGraph._hitTest(wx, wy);
+            if (hit >= 0) {
+                const nd = _netGraph.nodes[hit];
+                if (nd?.id) return buildFriendItems(nd.id);
+            }
+            return null; // right-click on empty canvas space — no menu
+        }
+
         if (el.closest('#vrcProfileArea') && (typeof currentVrcUser !== 'undefined') && currentVrcUser) {
             return buildSelfItems();
         }
