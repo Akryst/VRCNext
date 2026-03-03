@@ -1665,16 +1665,23 @@ public class MainForm : Form
                                           : tl?.DisplayName ?? "";
                                 var image = !string.IsNullOrEmpty(kv.Value.Image) ? kv.Value.Image
                                           : tl?.Image ?? "";
-                                if (string.IsNullOrEmpty(name))
+                                if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(image))
                                 {
                                     lock (_friendStore)
                                     {
                                         if (_friendStore.TryGetValue(kv.Key, out var fj))
                                         {
-                                            name  = fj["displayName"]?.ToString() ?? "";
-                                            image = VRChatApiService.GetUserImage(fj);
+                                            if (string.IsNullOrEmpty(name))  name  = fj["displayName"]?.ToString() ?? "";
+                                            if (string.IsNullOrEmpty(image)) image = VRChatApiService.GetUserImage(fj);
                                         }
                                     }
+                                }
+                                if (string.IsNullOrEmpty(image))
+                                {
+                                    if (_playerImageCache.TryGetValue(kv.Key, out var pic) && !string.IsNullOrEmpty(pic.image))
+                                        image = pic.image;
+                                    else if (_friendNameImg.TryGetValue(kv.Key, out var fni) && !string.IsNullOrEmpty(fni.image))
+                                        image = fni.image;
                                 }
                                 if (string.IsNullOrEmpty(name)) return default; // truly unknown, skip
                                 return (UserId: kv.Key, DisplayName: name, Image: image,
