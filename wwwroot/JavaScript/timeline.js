@@ -1079,9 +1079,8 @@ function renderFtCard(ev) {
         case 'friend_bio':        body = renderFtBioBody(ev);        break;
     }
 
-    // GPS cards open the dashboard world modal directly — no intermediate detail modal
-    const clickAction = (ev.type === 'friend_gps' && ev.worldId)
-        ? `openWorldDetail('${jsq(ev.worldId)}')`
+    const clickAction = ev.type === 'friend_gps'
+        ? `openFtGpsDetail('${ei}')`
         : `openFtDetail('${ei}')`;
 
     return `<div class="tl-card" data-ftid="${esc(ev.id)}" onclick="${clickAction}">${header}${body}</div>`;
@@ -1158,6 +1157,96 @@ function renderFtBioBody(ev) {
 }
 
 // Detail modals
+
+/* === Friend GPS Instance Log Modal === */
+function openFtGpsDetail(evId) {
+    const ev = friendTimelineEvents.find(e => e.id === evId);
+    if (!ev) return;
+    renderFtGpsDetailModal(ev);
+    document.getElementById('modalFtGpsDetail').style.display = 'flex';
+}
+
+function closeFtGpsDetail() {
+    document.getElementById('modalFtGpsDetail').style.display = 'none';
+}
+
+function switchFtGpsTab(tab) {
+    document.getElementById('ftGpsTabInfo').style.display = tab === 'info' ? '' : 'none';
+    document.getElementById('ftGpsTabAlso').style.display = tab === 'also' ? '' : 'none';
+    document.querySelectorAll('#ftGpsDetailContent .ftgps-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+}
+
+function renderFtGpsDetailModal(ev) {
+    const loc = ev.location || '';
+    const { instanceType } = parseFriendLocation(loc);
+    const { cls: instCls, label: instLabel } = getInstanceBadge(instanceType);
+
+    const instIdMatch = loc.match(/:(\d+)/);
+    const instanceId = instIdMatch ? instIdMatch[1] : '';
+
+    const { dateStr, timeStr } = ftDetailDatetime(ev);
+
+    const banner = ev.worldThumb
+        ? `<div class="fd-banner"><img src="${ev.worldThumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>`
+        : '';
+    const worldName = ev.worldName || ev.worldId || 'Unknown World';
+
+    // Was Also Here: other friends who were logged in the same instance
+    const stripNonce = l => (l || '').replace(/~nonce\([^)]*\)/g, '');
+    const evLocStripped = stripNonce(loc);
+    const alsoMap = {};
+    friendTimelineEvents.forEach(e => {
+        if (e.type !== 'friend_gps' || e.id === ev.id || !e.friendId || !e.location) return;
+        if (evLocStripped && stripNonce(e.location) === evLocStripped) {
+            if (!alsoMap[e.friendId]) alsoMap[e.friendId] = e;
+        }
+    });
+    const alsoList = Object.values(alsoMap);
+
+    const infoHtml = `<div class="fd-meta">
+        <div class="fd-meta-row"><span class="fd-meta-label">Date</span><span>${esc(dateStr)}</span></div>
+        <div class="fd-meta-row"><span class="fd-meta-label">Time</span><span>${esc(timeStr)}</span></div>
+        <div class="fd-meta-row"><span class="fd-meta-label">Instance Type</span><span class="fd-instance-badge ${instCls}">${instLabel}</span></div>
+        ${instanceId ? `<div class="fd-meta-row"><span class="fd-meta-label">Instance ID</span><span style="font-family:monospace;font-size:12px;color:var(--tx2);">#${esc(instanceId)}</span></div>` : ''}
+        <div class="fd-meta-row"><span class="fd-meta-label">Event</span><span style="color:var(--tx2);">${esc(ev.friendName || 'Unknown')} joined this world</span></div>
+    </div>`;
+
+    let alsoHtml;
+    if (alsoList.length === 0) {
+        alsoHtml = '<div style="font-size:12px;color:var(--tx3);padding:12px 0;">No other friends tracked in this instance.</div>';
+    } else {
+        alsoHtml = alsoList.map(e => {
+            const img = e.friendImage
+                ? `<img class="wd-friend-avatar" src="${e.friendImage}" onerror="this.style.display='none'">`
+                : `<div class="wd-friend-avatar" style="display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--tx3);">${esc((e.friendName||'?')[0])}</div>`;
+            const { timeStr: fTime } = ftDetailDatetime(e);
+            return `<div class="wd-friend-row" style="cursor:pointer;" onclick="closeFtGpsDetail();openFriendDetail('${jsq(e.friendId)}')">
+                ${img}
+                <div class="wd-friend-info">
+                    <div class="wd-friend-name">${esc(e.friendName || 'Unknown')}</div>
+                    ${fTime ? `<div class="wd-friend-status">${esc(fTime)}</div>` : ''}
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    const alsoCount = alsoList.length > 0 ? ` (${alsoList.length})` : '';
+    const el = document.getElementById('ftGpsDetailContent');
+    el.innerHTML = `${banner}<div class="fd-content${banner ? ' fd-has-banner' : ''}" style="padding:16px;">
+        <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(worldName)}</h2>
+        <div style="margin-bottom:12px;">${idBadge(ev.worldId || '')}</div>
+        <div class="fd-tabs" style="margin-bottom:14px;">
+            <button class="fd-tab active ftgps-tab-btn" data-tab="info" onclick="switchFtGpsTab('info')">Info</button>
+            <button class="fd-tab ftgps-tab-btn" data-tab="also" onclick="switchFtGpsTab('also')">Was also here${esc(alsoCount)}</button>
+        </div>
+        <div id="ftGpsTabInfo">${infoHtml}</div>
+        <div id="ftGpsTabAlso" style="display:none;">${alsoHtml}</div>
+        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+            ${ev.worldId ? `<button class="fd-btn fd-btn-join" onclick="closeFtGpsDetail();openWorldSearchDetail('${esc(ev.worldId)}')"><span class="msi" style="font-size:14px;">travel_explore</span> Open World</button>` : ''}
+            <button class="fd-btn" onclick="closeFtGpsDetail()">Close</button>
+        </div>
+    </div>`;
+}
 
 function openFtDetail(id) {
     const ev = friendTimelineEvents.find(e => e.id === id);
