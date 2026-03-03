@@ -636,7 +636,7 @@ function renderTlDetailJoin(ev, el) {
         playersHtml = `<div class="tl-detail-sect">PLAYERS IN INSTANCE (${players.length})</div><div class="photo-players-list">`;
         players.forEach(p => {
             const fr    = vrcFriendsData.find(f => f.id === p.userId);
-            const img   = p.image || fr?.image || '';
+            const img   = fr?.image || p.image || '';
             const imgEl = img
                 ? `<div class="inst-user-av" style="background-image:url('${cssUrl(img)}')"></div>`
                 : `<div class="inst-user-av inst-user-av-letter">${esc((p.displayName || '?')[0].toUpperCase())}</div>`;
@@ -682,7 +682,7 @@ function renderTlDetailPhoto(ev, el) {
         playersHtml = `<div class="tl-detail-sect">PLAYERS IN INSTANCE (${players.length})</div><div class="photo-players-list">`;
         players.forEach(p => {
             const fr    = vrcFriendsData.find(f => f.id === p.userId);
-            const img   = p.image || fr?.image || '';
+            const img   = fr?.image || p.image || '';
             const imgEl = img
                 ? `<div class="inst-user-av" style="background-image:url('${cssUrl(img)}')"></div>`
                 : `<div class="inst-user-av inst-user-av-letter">${esc((p.displayName || '?')[0].toUpperCase())}</div>`;

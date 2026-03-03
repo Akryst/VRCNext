@@ -1672,10 +1672,8 @@ public class VRChatApiService
     // Helper to extract user image with fallback chain
     public static string GetUserImage(JObject user)
     {
-        return user["profilePicOverrideThumbnail"]?.ToString() is string s1 && !string.IsNullOrEmpty(s1) ? s1 :
-               user["profilePicOverride"]?.ToString() is string s2 && !string.IsNullOrEmpty(s2) ? s2 :
-               user["currentAvatarThumbnailImageUrl"]?.ToString() is string s3 && !string.IsNullOrEmpty(s3) ? s3 :
-               user["userIcon"]?.ToString() is string s4 && !string.IsNullOrEmpty(s4) ? s4 : "";
+        return user["userIcon"]?.ToString() is string s1 && !string.IsNullOrEmpty(s1) ? s1 :
+               user["currentAvatarThumbnailImageUrl"]?.ToString() is string s2 && !string.IsNullOrEmpty(s2) ? s2 : "";
     }
 
     // Helper to parse location string

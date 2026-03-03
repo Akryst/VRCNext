@@ -1424,7 +1424,9 @@ public class MainForm : Form
                                     groupMembers = members.Select(m => new {
                                         id = m["userId"]?.ToString() ?? "",
                                         displayName = m["user"]?["displayName"]?.ToString() ?? m["displayName"]?.ToString() ?? "",
-                                        image = m["user"]?["thumbnailUrl"]?.ToString() ?? m["user"]?["currentAvatarThumbnailImageUrl"]?.ToString() ?? "",
+                                        image = m["user"] is JObject gmu
+                                            ? (VRChatApiService.GetUserImage(gmu) is var gi && gi.Length > 0 ? gi : gmu["thumbnailUrl"]?.ToString() ?? "")
+                                            : "",
                                         role = m["roleIds"]?.FirstOrDefault()?.ToString() ?? "",
                                         joinedAt = m["joinedAt"]?.ToString() ?? "",
                                     }),
@@ -1460,7 +1462,9 @@ public class MainForm : Form
                             var list = members.Select(m => new {
                                 id = m["userId"]?.ToString() ?? "",
                                 displayName = m["user"]?["displayName"]?.ToString() ?? m["displayName"]?.ToString() ?? "",
-                                image = m["user"]?["thumbnailUrl"]?.ToString() ?? m["user"]?["currentAvatarThumbnailImageUrl"]?.ToString() ?? "",
+                                image = m["user"] is JObject gmu2
+                                    ? (VRChatApiService.GetUserImage(gmu2) is var gi2 && gi2.Length > 0 ? gi2 : gmu2["thumbnailUrl"]?.ToString() ?? "")
+                                    : "",
                                 role = m["roleIds"]?.FirstOrDefault()?.ToString() ?? "",
                                 joinedAt = m["joinedAt"]?.ToString() ?? "",
                             }).ToList();
@@ -1660,11 +1664,15 @@ public class MainForm : Form
                                 if (effectiveSec <= 0) return default; // skip zero-time entries
 
                                 tlPersons.TryGetValue(kv.Key, out var tl);
-                                // Priority: UserRecord → timeline → friendStore
+                                // Priority: live caches (correct) → UserRecord → timeline → friendStore
                                 var name  = !string.IsNullOrEmpty(kv.Value.DisplayName) ? kv.Value.DisplayName
                                           : tl?.DisplayName ?? "";
-                                var image = !string.IsNullOrEmpty(kv.Value.Image) ? kv.Value.Image
+                                var image = ResolvePlayerImage(kv.Key, null);
+                                if (string.IsNullOrEmpty(image))
+                                {
+                                    image = !string.IsNullOrEmpty(kv.Value.Image) ? kv.Value.Image
                                           : tl?.Image ?? "";
+                                }
                                 if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(image))
                                 {
                                     lock (_friendStore)
@@ -1675,13 +1683,6 @@ public class MainForm : Form
                                             if (string.IsNullOrEmpty(image)) image = VRChatApiService.GetUserImage(fj);
                                         }
                                     }
-                                }
-                                if (string.IsNullOrEmpty(image))
-                                {
-                                    if (_playerImageCache.TryGetValue(kv.Key, out var pic) && !string.IsNullOrEmpty(pic.image))
-                                        image = pic.image;
-                                    else if (_friendNameImg.TryGetValue(kv.Key, out var fni) && !string.IsNullOrEmpty(fni.image))
-                                        image = fni.image;
                                 }
                                 if (string.IsNullOrEmpty(name)) return default; // truly unknown, skip
                                 return (UserId: kv.Key, DisplayName: name, Image: image,
@@ -3697,8 +3698,7 @@ var list = avatars.Select(a => new
                             if (_playerImageCache.TryGetValue(uid, out var cached) && !string.IsNullOrEmpty(cached.image))
                             {
                                 var existing = _cumulativeInstancePlayers[uid];
-                                if (string.IsNullOrEmpty(existing.image))
-                                    _cumulativeInstancePlayers[uid] = (existing.displayName, cached.image);
+                                _cumulativeInstancePlayers[uid] = (existing.displayName, cached.image);
                             }
                         }
                     });
@@ -4219,7 +4219,12 @@ var list = avatars.Select(a => new
             if (!_friendStore.TryGetValue(userId, out var entry))
             { entry = new JObject(); _friendStore[userId] = entry; }
             if (userObj != null)
+            {
                 foreach (var prop in userObj.Properties()) entry[prop.Name] = prop.Value;
+                var img = VRChatApiService.GetUserImage(userObj);
+                if (!string.IsNullOrEmpty(img))
+                    _friendNameImg[userId] = (userObj["displayName"]?.ToString() ?? _friendNameImg.GetValueOrDefault(userId).name ?? "", img);
+            }
             if (location != null)  entry["location"]      = location;
             if (platform != null)  entry["last_platform"] = platform;
             if (wentOffline)
@@ -4242,7 +4247,7 @@ var list = avatars.Select(a => new
         var list = snapshot.Select(f =>
         {
             var location  = f["location"]?.ToString() ?? "";
-            var platform  = f["platform"]?.ToString() ?? f["last_platform"]?.ToString() ?? "";
+            var platform  = f["last_platform"]?.ToString() ?? f["platform"]?.ToString() ?? "";
             bool isWebPlatform = platform.Equals("web", StringComparison.OrdinalIgnoreCase);
             bool isInGame = !string.IsNullOrEmpty(location)
                 && location != "offline"
@@ -4471,7 +4476,10 @@ var list = avatars.Select(a => new
         {
             var muObj = mu as JObject;
             if (muObj == null) continue;
-            var muImage    = VRChatApiService.GetUserImage(muObj);
+            var muId       = muObj["id"]?.ToString() ?? "";
+            var muImage    = (_friendNameImg.TryGetValue(muId, out var muFi) && !string.IsNullOrEmpty(muFi.image))
+                                ? muFi.image
+                                : VRChatApiService.GetUserImage(muObj);
             var muLocation = muObj["location"]?.ToString() ?? "";
             var muStatus   = muObj["status"]?.ToString() ?? "offline";
             bool muIsInGame  = !string.IsNullOrEmpty(muLocation)
@@ -4571,8 +4579,7 @@ var list = avatars.Select(a => new
                 if (_playerImageCache.TryGetValue(uid, out var cached) && !string.IsNullOrEmpty(cached.image))
                 {
                     var existing = _cumulativeInstancePlayers[uid];
-                    if (string.IsNullOrEmpty(existing.image))
-                        _cumulativeInstancePlayers[uid] = (existing.displayName, cached.image);
+                    _cumulativeInstancePlayers[uid] = (existing.displayName, cached.image);
                 }
             }
 
@@ -4580,7 +4587,7 @@ var list = avatars.Select(a => new
             {
                 UserId      = kv.Key,
                 DisplayName = kv.Value.displayName,
-                Image       = kv.Value.image
+                Image       = ResolvePlayerImage(kv.Key, kv.Value.image)
             }).ToList();
             var prevId = _pendingInstanceEventId;
             _timeline.UpdateEvent(prevId, ev => ev.Players = finalPlayers);
@@ -4631,8 +4638,7 @@ var list = avatars.Select(a => new
                             if (_playerImageCache.TryGetValue(uid, out var cached) && !string.IsNullOrEmpty(cached.image))
                             {
                                 var existing = _cumulativeInstancePlayers[uid];
-                                if (string.IsNullOrEmpty(existing.image))
-                                    _cumulativeInstancePlayers[uid] = (existing.displayName, cached.image);
+                                _cumulativeInstancePlayers[uid] = (existing.displayName, cached.image);
                             }
                         }
 
@@ -4640,7 +4646,7 @@ var list = avatars.Select(a => new
                         {
                             UserId      = kv.Key,
                             DisplayName = kv.Value.displayName,
-                            Image       = kv.Value.image
+                            Image       = ResolvePlayerImage(kv.Key, kv.Value.image)
                         }).ToList();
 
                         string wName = "", wThumb = "";
@@ -4698,7 +4704,7 @@ var list = avatars.Select(a => new
                 {
                     UserId      = kv.Key,
                     DisplayName = kv.Value.displayName,
-                    Image       = kv.Value.image
+                    Image       = ResolvePlayerImage(kv.Key, kv.Value.image)
                 }).ToList();
                 _timeline.UpdateEvent(evId, ev => ev.Players = snap);
                 var updated = _timeline.GetEvents().FirstOrDefault(e => e.Id == evId);
@@ -4799,7 +4805,8 @@ var list = avatars.Select(a => new
         if (string.IsNullOrEmpty(e.UserId) || !_friendStateSeeded) return;
 
         // Update live store and push to JS — no REST call needed
-        MergeFriendStore(e.UserId, e.User, location: e.Location);
+        MergeFriendStore(e.UserId, e.User, location: e.Location,
+            platform: string.IsNullOrEmpty(e.Platform) ? null : e.Platform);
         PushFriendsFromStore();
 
         // Update name/image cache
@@ -5025,17 +5032,17 @@ var list = avatars.Select(a => new
         worldName   = ev.WorldName,
         worldThumb  = ev.WorldThumb,
         location    = ev.Location,
-        players     = ev.Players.Select(p => new { userId = p.UserId, displayName = p.DisplayName, image = p.Image }).ToList(),
+        players     = ev.Players.Select(p => new { userId = p.UserId, displayName = p.DisplayName, image = ResolvePlayerImage(p.UserId, p.Image) }).ToList(),
         photoPath   = ev.PhotoPath,
         photoUrl    = ev.PhotoUrl,
         userId      = ev.UserId,
         userName    = ev.UserName,
-        userImage   = ev.UserImage,
+        userImage   = ResolvePlayerImage(ev.UserId, ev.UserImage),
         notifId     = ev.NotifId,
         notifType   = ev.NotifType,
         senderName  = ev.SenderName,
         senderId    = ev.SenderId,
-        senderImage = ev.SenderImage,
+        senderImage = ResolvePlayerImage(ev.SenderId, ev.SenderImage),
         message     = ev.Message,
     };
 
@@ -5046,7 +5053,7 @@ var list = avatars.Select(a => new
         timestamp   = ev.Timestamp,
         friendId    = ev.FriendId,
         friendName  = ev.FriendName,
-        friendImage = ev.FriendImage,
+        friendImage = ResolvePlayerImage(ev.FriendId, ev.FriendImage),
         worldId     = ev.WorldId,
         worldName   = ev.WorldName,
         worldThumb  = ev.WorldThumb,
@@ -5054,6 +5061,22 @@ var list = avatars.Select(a => new
         oldValue    = ev.OldValue,
         newValue    = ev.NewValue,
     };
+
+    /// <summary>
+    /// Returns the best available profile image for a user: prefers the live friend/player
+    /// image caches (which use the corrected GetUserImage chain) over anything stored in the DB.
+    /// </summary>
+    private string ResolvePlayerImage(string? userId, string? storedImage)
+    {
+        if (!string.IsNullOrEmpty(userId))
+        {
+            if (_friendNameImg.TryGetValue(userId, out var fi) && !string.IsNullOrEmpty(fi.image))
+                return fi.image;
+            if (_playerImageCache.TryGetValue(userId, out var pi) && !string.IsNullOrEmpty(pi.image))
+                return pi.image;
+        }
+        return storedImage ?? "";
+    }
 
     /// <summary>Converts a local file path to a virtual-host URL usable in WebView2.</summary>
     private string GetVirtualMediaUrl(string filePath)
@@ -5157,7 +5180,7 @@ var list = avatars.Select(a => new
                     {
                         UserId      = p.UserId,
                         DisplayName = p.DisplayName,
-                        Image       = p.Image
+                        Image       = ResolvePlayerImage(p.UserId, p.Image)
                     }).ToList()
                 };
                 _timeline.AddEvent(ev);
@@ -5463,7 +5486,7 @@ var list = avatars.Select(a => new
                 {
                     if (string.IsNullOrEmpty(photoWorldId) && !string.IsNullOrEmpty(rec.WorldId))
                         photoWorldId = rec.WorldId;
-                    photoPlayers = rec.Players.Select(p => (object)new { userId = p.UserId, displayName = p.DisplayName, image = p.Image }).ToList();
+                    photoPlayers = rec.Players.Select(p => (object)new { userId = p.UserId, displayName = p.DisplayName, image = ResolvePlayerImage(p.UserId, p.Image) }).ToList();
                 }
             }
 

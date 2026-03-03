@@ -253,7 +253,8 @@ internal sealed class VRChatWebSocketService : IDisposable
                         var loc = c["location"]?.Value<string>() ?? "";
                         var wid = c["worldId"]?.Value<string>() ?? (loc.Contains(':') ? loc.Split(':')[0] : "");
                         var usr = c["user"] as JObject;
-                        FriendLocationChanged?.Invoke(this, new FriendEventArgs { UserId = uid, User = usr, Location = loc, WorldId = wid });
+                        var plt = c["platform"]?.Value<string>() ?? usr?["platform"]?.Value<string>() ?? "";
+                        FriendLocationChanged?.Invoke(this, new FriendEventArgs { UserId = uid, User = usr, Location = loc, WorldId = wid, Platform = plt });
                     }
                     catch { }
                     break;

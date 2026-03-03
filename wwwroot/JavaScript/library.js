@@ -123,7 +123,7 @@ function _buildLibCard(x) {
             playersOverlay = `<div class="lib-players-overlay" onclick="event.stopPropagation();openPhotoDetail(${idx})">` +
                 show.map(p => {
                     const fr = vrcFriendsData.find(f => f.id === p.userId);
-                    const img = p.image || fr?.image || '';
+                    const img = fr?.image || p.image || '';
                     return img ? `<div class="lib-player-av" style="background-image:url('${cssUrl(img)}')" title="${esc(p.displayName)}"></div>`
                                : `<div class="lib-player-av lib-player-av-letter" title="${esc(p.displayName)}">${esc((p.displayName||'?')[0])}</div>`;
                 }).join('') +
@@ -321,7 +321,7 @@ function openPhotoDetail(idx) {
         playersHtml = `<div style="font-size:10px;font-weight:700;color:var(--tx3);padding:8px 0 4px;letter-spacing:.05em;">PLAYERS IN INSTANCE (${players.length})</div><div class="photo-players-list">`;
         players.forEach(p => {
             const fr = vrcFriendsData.find(f => f.id === p.userId);
-            const img = p.image || fr?.image || '';
+            const img = fr?.image || p.image || '';
             const imgTag = img
                 ? `<div class="inst-user-av" style="background-image:url('${cssUrl(img)}')"></div>`
                 : `<div class="inst-user-av inst-user-av-letter">${esc((p.displayName||'?')[0].toUpperCase())}</div>`;

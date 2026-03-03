@@ -335,6 +335,24 @@ function renderVrcFriends(friends, counts) {
     if (lp) lp.style.display = 'none';
     vrcFriendsData = friends || [];
 
+    // Live-update open friend detail modal if the displayed friend is in this update
+    if (currentFriendDetail && friends) {
+        const lf = friends.find(f => f.id === currentFriendDetail.id);
+        if (lf) {
+            const statusEl = document.getElementById('fd-live-status');
+            if (statusEl) {
+                const isWeb = lf.presence === 'web';
+                const dotClass = isWeb ? 'vrc-status-ring' : 'vrc-status-dot';
+                statusEl.innerHTML = `<span class="${dotClass} ${statusDotClass(lf.status)}" style="width:8px;height:8px;"></span>${statusLabel(lf.status)}${isWeb ? ' (Web)' : ''}${lf.statusDescription ? ' — ' + esc(lf.statusDescription) : ''}`;
+            }
+            // Merge live status fields into currentFriendDetail so subsequent re-renders are accurate
+            currentFriendDetail.status = lf.status;
+            currentFriendDetail.statusDescription = lf.statusDescription;
+            currentFriendDetail.location = lf.location;
+            currentFriendDetail.presence = lf.presence;
+        }
+    }
+
     // Show/hide search bar
     const searchBar = document.getElementById('vrcFriendSearch');
     if (searchBar) searchBar.style.display = vrcFriendsData.length > 0 ? '' : 'none';
@@ -910,7 +928,7 @@ function renderFriendDetail(d) {
     });
     worldsContent += `</div>`;
 
-    c.innerHTML = `${bannerHtml}<div class="fd-content${bannerSrc ? ' fd-has-banner' : ''}"><div class="fd-header">${imgTag}<div><div class="fd-name">${esc(d.displayName)}</div>${pronounsHtml}<div class="fd-status"><span class="${fdDotClass} ${statusDotClass(d.status)}" style="width:8px;height:8px;"></span>${statusLabel(d.status)}${fdIsWeb ? ' (Web)' : ''}${d.statusDescription ? ' — ' + esc(d.statusDescription) : ''}</div></div></div>${badgesHtml}${actionsHtml}${tabsHtml}<div id="fdTabInfo">${infoContent}</div><div id="fdTabGroups" style="display:none;">${groupsContent}</div><div id="fdTabMutuals" style="display:none;">${mutualsContent}</div><div id="fdTabWorlds" style="display:none;">${worldsContent}</div><div style="margin-top:10px;text-align:right;"><button class="fd-btn" onclick="closeFriendDetail()">Close</button></div></div>`;
+    c.innerHTML = `${bannerHtml}<div class="fd-content${bannerSrc ? ' fd-has-banner' : ''}"><div class="fd-header">${imgTag}<div><div class="fd-name">${esc(d.displayName)}</div>${pronounsHtml}<div class="fd-status" id="fd-live-status"><span class="${fdDotClass} ${statusDotClass(d.status)}" style="width:8px;height:8px;"></span>${statusLabel(d.status)}${fdIsWeb ? ' (Web)' : ''}${d.statusDescription ? ' — ' + esc(d.statusDescription) : ''}</div></div></div>${badgesHtml}${actionsHtml}${tabsHtml}<div id="fdTabInfo">${infoContent}</div><div id="fdTabGroups" style="display:none;">${groupsContent}</div><div id="fdTabMutuals" style="display:none;">${mutualsContent}</div><div id="fdTabWorlds" style="display:none;">${worldsContent}</div><div style="margin-top:10px;text-align:right;"><button class="fd-btn" onclick="closeFriendDetail()">Close</button></div></div>`;
 
     // Live ticker - only when friend is confirmed in same instance
     if (_fdLiveTimer) { clearInterval(_fdLiveTimer); _fdLiveTimer = null; }
