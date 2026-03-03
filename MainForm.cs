@@ -1091,6 +1091,9 @@ public class MainForm : Form
                     {
                         _ = Task.Run(async () =>
                         {
+                            static string StripNonce(string l) =>
+                                System.Text.RegularExpressions.Regex.Replace(l ?? "", @"~nonce\([^)]*\)", "");
+
                             var world = await _vrcApi.GetWorldAsync(wdId);
                             if (world == null)
                             {
@@ -1099,6 +1102,7 @@ public class MainForm : Form
                             }
                             // Parse instances array: [[instanceId, userCount], ...]
                             var instances = new List<object>();
+                            var knownLocations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                             var instArr = world["instances"] as JArray;
                             if (instArr != null)
                             {
@@ -1109,11 +1113,39 @@ public class MainForm : Form
                                         var instId = pair[0]?.ToString() ?? "";
                                         var users = pair[1]?.Value<int>() ?? 0;
                                         var (_, _, instType) = VRChatApiService.ParseLocation($"{wdId}:{instId}");
-                                        // Parse region from instance ID
                                         var regionMatch = System.Text.RegularExpressions.Regex.Match(instId, @"region\(([^)]+)\)");
                                         var region = regionMatch.Success ? regionMatch.Groups[1].Value : "us";
-                                        instances.Add(new { instanceId = instId, users, type = instType, region, location = $"{wdId}:{instId}" });
+                                        var loc = $"{wdId}:{instId}";
+                                        instances.Add(new { instanceId = instId, users, type = instType, region, location = loc });
+                                        knownLocations.Add(loc);
                                     }
+                                }
+                            }
+                            // Find friend locations in this world not covered by the world API instances
+                            List<string> friendLocs;
+                            lock (_friendStore)
+                            {
+                                friendLocs = _friendStore.Values
+                                    .Select(f => f["location"]?.ToString() ?? "")
+                                    .Where(loc => loc.StartsWith(wdId + ":"))
+                                    .Distinct()
+                                    .Where(loc => !knownLocations.Contains(StripNonce(loc)))
+                                    .ToList();
+                            }
+                            // Fetch real user counts for friend-inferred instances in parallel
+                            if (friendLocs.Count > 0)
+                            {
+                                var instTasks = friendLocs.Select(loc => _vrcApi.GetInstanceAsync(loc)).ToArray();
+                                var instResults = await Task.WhenAll(instTasks);
+                                for (int i = 0; i < friendLocs.Count; i++)
+                                {
+                                    var loc = friendLocs[i];
+                                    var instData = instResults[i];
+                                    var nUsers = instData?["n_users"]?.Value<int>() ?? instData?["userCount"]?.Value<int>() ?? 0;
+                                    var (_, instId2, instType2) = VRChatApiService.ParseLocation(loc);
+                                    var regionMatch2 = System.Text.RegularExpressions.Regex.Match(instId2, @"region\(([^)]+)\)");
+                                    var region2 = regionMatch2.Success ? regionMatch2.Groups[1].Value : "us";
+                                    instances.Add(new { instanceId = instId2, users = nUsers, type = instType2, region = region2, location = loc });
                                 }
                             }
                             var tags = world["tags"]?.ToObject<List<string>>() ?? new();
@@ -1605,22 +1637,77 @@ public class MainForm : Form
                     {
                         var stats = _timeline.GetTimeSpentStats(tsMyId);
 
-                        // For persons: replace estimated seconds with accurate UserTimeTracker values
-                        // (UserTimeTracker ticks every 45 s when co-present — same source as the profile modal)
-                        var personList = stats.Persons
-                            .Select(p =>
+                        // Build name/image/meets lookup from timeline (covers historical data)
+                        var tlPersons = stats.Persons.ToDictionary(p => p.UserId);
+                        var tlWorlds  = stats.Worlds.ToDictionary(w => w.WorldId);
+
+                        // PERSONS: start from ALL UserTimeTracker users so nobody is missed.
+                        // liveElapsed: time since last Tick not yet counted for co-present users
+                        var logPlayerIds = new HashSet<string>(
+                            _logWatcher.GetCurrentPlayers()
+                                .Where(p => !string.IsNullOrEmpty(p.UserId))
+                                .Select(p => p.UserId));
+                        var rawLiveElapsed = (long)(DateTime.UtcNow - _timeTracker.LastTick).TotalSeconds;
+                        var liveElapsed = rawLiveElapsed > 0 && rawLiveElapsed <= 3600 ? rawLiveElapsed : 0;
+
+                        var personList = _timeTracker.Users
+                            .Where(kv => kv.Key != tsMyId)
+                            .Select(kv =>
                             {
-                                var accurate = _timeTracker.Users.TryGetValue(p.UserId, out var rec)
-                                    ? rec.TotalSeconds : p.Seconds;
-                                return (p.UserId, p.DisplayName, p.Image, Seconds: accurate, p.Meets);
+                                var isCoPresent = logPlayerIds.Contains(kv.Key);
+                                // Effective seconds = stored + live pending (if currently in same instance)
+                                var effectiveSec = kv.Value.TotalSeconds + (isCoPresent ? liveElapsed : 0);
+                                if (effectiveSec <= 0) return default; // skip zero-time entries
+
+                                tlPersons.TryGetValue(kv.Key, out var tl);
+                                // Priority: UserRecord → timeline → friendStore
+                                var name  = !string.IsNullOrEmpty(kv.Value.DisplayName) ? kv.Value.DisplayName
+                                          : tl?.DisplayName ?? "";
+                                var image = !string.IsNullOrEmpty(kv.Value.Image) ? kv.Value.Image
+                                          : tl?.Image ?? "";
+                                if (string.IsNullOrEmpty(name))
+                                {
+                                    lock (_friendStore)
+                                    {
+                                        if (_friendStore.TryGetValue(kv.Key, out var fj))
+                                        {
+                                            name  = fj["displayName"]?.ToString() ?? "";
+                                            image = VRChatApiService.GetUserImage(fj);
+                                        }
+                                    }
+                                }
+                                if (string.IsNullOrEmpty(name)) return default; // truly unknown, skip
+                                return (UserId: kv.Key, DisplayName: name, Image: image,
+                                        Seconds: effectiveSec, Meets: tl?.Meets ?? 0);
                             })
+                            .Where(p => p.UserId != null)
                             .OrderByDescending(p => p.Seconds)
+                            .Take(200)
+                            .ToList();
+
+                        // WORLDS: start from ALL WorldTimeTracker worlds.
+                        // Same issue — timeline top-200 could miss recently visited worlds.
+                        var worldList = _worldTimeTracker.Worlds
+                            .Select(kv =>
+                            {
+                                tlWorlds.TryGetValue(kv.Key, out var tl);
+                                // WorldTimeTracker now stores name/thumb (updated after 15s API call)
+                                // Fall back to timeline lookup for older entries
+                                var name  = !string.IsNullOrEmpty(kv.Value.WorldName)  ? kv.Value.WorldName  : (tl?.WorldName  ?? "");
+                                var thumb = !string.IsNullOrEmpty(kv.Value.WorldThumb) ? kv.Value.WorldThumb : (tl?.WorldThumb ?? "");
+                                var visits = kv.Value.VisitCount > 0 ? kv.Value.VisitCount : (tl?.Visits ?? 0);
+                                return (WorldId: kv.Key, WorldName: name, WorldThumb: thumb,
+                                        Seconds: kv.Value.TotalSeconds, Visits: visits);
+                            })
+                            .Where(w => !string.IsNullOrEmpty(w.WorldName)) // skip worlds with no name yet
+                            .OrderByDescending(w => w.Seconds)
+                            .Take(200)
                             .ToList();
 
                         Invoke(() => SendToJS("vrcTimeSpentData", new
                         {
                             totalSeconds = stats.TotalSeconds,
-                            worlds = stats.Worlds.Select(w => new
+                            worlds = worldList.Select(w => new
                             {
                                 worldId    = w.WorldId,
                                 worldName  = w.WorldName,
@@ -2275,6 +2362,36 @@ public class MainForm : Form
                             var (events, hasMore) = _timeline.GetEventsPaged(100, pageOffset);
                             var payload = events.Select(e => BuildTimelinePayload(e)).ToList();
                             Invoke(() => SendToJS("timelineData", new { events = payload, hasMore, offset = pageOffset }));
+                        }
+                        catch { }
+                    });
+                    break;
+
+                case "searchTimeline":
+                    _ = Task.Run(() =>
+                    {
+                        try
+                        {
+                            var srchQuery = msg["query"]?.ToString() ?? "";
+                            var srchDate  = msg["date"]?.ToString() ?? "";
+                            var events    = _timeline.SearchEvents(srchQuery, "", srchDate);
+                            var payload   = events.Select(e => BuildTimelinePayload(e)).ToList();
+                            Invoke(() => SendToJS("timelineSearchResults", new { events = payload, query = srchQuery, date = srchDate }));
+                        }
+                        catch { }
+                    });
+                    break;
+
+                case "searchFriendTimeline":
+                    _ = Task.Run(() =>
+                    {
+                        try
+                        {
+                            var srchQuery = msg["query"]?.ToString() ?? "";
+                            var srchDate  = msg["date"]?.ToString() ?? "";
+                            var events    = _timeline.SearchFriendEvents(srchQuery, srchDate);
+                            var payload   = events.Select(e => BuildFriendTimelinePayload(e)).ToList();
+                            Invoke(() => SendToJS("friendTimelineSearchResults", new { events = payload, query = srchQuery, date = srchDate }));
                         }
                         catch { }
                     });
@@ -3743,6 +3860,9 @@ var list = avatars.Select(a => new
                                 _cumulativeInstancePlayers[p.UserId] = (p.DisplayName, p.Image ?? "");
                         }
                     }
+                    // Resume world tracking without counting an extra visit (app restart in same world)
+                    _worldTimeTracker.ResumeWorld(_logWatcher.CurrentWorldId);
+                    _lastTrackedWorldId = _logWatcher.CurrentWorldId;
                 }
                 else
                 {
@@ -3753,6 +3873,9 @@ var list = avatars.Select(a => new
                 {
                     if (!string.IsNullOrEmpty(p.UserId) && !_cumulativeInstancePlayers.ContainsKey(p.UserId))
                         _cumulativeInstancePlayers[p.UserId] = (p.DisplayName, "");
+                    // Also store name in UserTimeTracker for players already in instance on startup
+                    if (!string.IsNullOrEmpty(p.UserId) && !string.IsNullOrEmpty(p.DisplayName))
+                        _timeTracker.UpdateUserInfo(p.UserId, p.DisplayName, "");
                 }
             }
         }
@@ -3969,22 +4092,15 @@ var list = avatars.Select(a => new
                     }
                 }
 
-                _timeTracker.Tick(trackData, 45);
+                _timeTracker.Tick(trackData);
                 _timeTracker.Save();
 
-                // World time tracking
+                // World time tracking – visit detection is handled by the log watcher (HandleWorldChangedOnUiThread).
+                // Here we only accumulate elapsed time for the current world.
                 var (myWorldId, _, _) = VRChatApiService.ParseLocation(myLoc);
                 if (!string.IsNullOrEmpty(myWorldId) && myWorldId.StartsWith("wrld_"))
                 {
-                    if (_lastTrackedWorldId != myWorldId)
-                    {
-                        if (string.IsNullOrEmpty(_lastTrackedWorldId))
-                            _worldTimeTracker.ResumeWorld(myWorldId);   // app restart, don't count as new visit
-                        else
-                            _worldTimeTracker.SetCurrentWorld(myWorldId); // actual world change, count visit
-                        _lastTrackedWorldId = myWorldId;
-                    }
-                    _worldTimeTracker.Tick(45);
+                    _worldTimeTracker.Tick();
                     _worldTimeTracker.Save();
                 }
                 else if (!string.IsNullOrEmpty(_lastTrackedWorldId))
@@ -4331,7 +4447,9 @@ var list = avatars.Select(a => new
             });
         }
 
-        var (totalSeconds, lastSeenLocal) = _timeTracker.GetUserStats(userId);
+        // Check via log watcher (reliable) rather than API location (often "private")
+        var isCoPresent = _logWatcher.GetCurrentPlayers().Any(p => p.UserId == userId);
+        var (totalSeconds, lastSeenLocal) = _timeTracker.GetUserStats(userId, isCoPresent);
         var lastLogin = user["last_login"]?.ToString() ?? "";
 
         return new
@@ -4433,6 +4551,10 @@ var list = avatars.Select(a => new
         SendToJS("timelineEvent", BuildTimelinePayload(instEv));
         SendToJS("log", new { msg = $"[TIMELINE] Instance join: {worldId}", color = "sec" });
 
+        // Track world visit immediately (log watcher fires on every actual world change)
+        _worldTimeTracker.SetCurrentWorld(worldId);
+        _lastTrackedWorldId = worldId;
+
         // Immediately refresh instance panel so sidebar doesn't wait for the 60s poll
         SendToJS("vrcWorldJoined", new { worldId });
 
@@ -4481,6 +4603,11 @@ var list = avatars.Select(a => new
                             ev.Players    = snap;
                         });
 
+                        // Store name/thumb in WorldTimeTracker so Time Spent tab can show it
+                        // even for worlds that aren't in the timeline top-200
+                        if (!string.IsNullOrEmpty(wName))
+                            _worldTimeTracker.UpdateWorldInfo(worldId, wName, wThumb);
+
                         var updated = _timeline.GetEvents().FirstOrDefault(e => e.Id == evId);
                         if (updated != null) SendToJS("timelineEvent", BuildTimelinePayload(updated));
                     }
@@ -4501,6 +4628,9 @@ var list = avatars.Select(a => new
         {
             var img = _playerImageCache.TryGetValue(userId, out var c) ? c.image : "";
             _cumulativeInstancePlayers[userId] = (displayName, img);
+            // Store name in UserTimeTracker so this player appears in Time Spent list
+            // even when they are not a friend and not in the timeline top-200
+            _timeTracker.UpdateUserInfo(userId, displayName, img);
 
             // Live-update the instance_join timeline event so the UI shows players immediately
             if (_pendingInstanceEventId != null)

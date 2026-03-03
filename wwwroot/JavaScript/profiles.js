@@ -698,7 +698,7 @@ function renderFriendDetail(d) {
         const { cls: instClass, label: instLabel } = getInstanceBadge(d.instanceType);
         const users = d.userCount > 0 ? (d.worldCapacity > 0 ? `${d.userCount}/${d.worldCapacity}` : d.userCount + ' users') : '';
         const { worldId: fdWorldId } = parseFriendLocation(d.location);
-        const clickAttr = fdWorldId ? ` onclick="openWorldSearchDetail('${esc(fdWorldId)}')" style="cursor:pointer;"` : '';
+        const clickAttr = fdWorldId ? ` onclick="closeFriendDetail();openWorldSearchDetail('${esc(fdWorldId)}')" style="cursor:pointer;"` : '';
         worldHtml = `<div class="fd-world-card"${clickAttr}>${thumbTag}<div class="fd-world-info"><div class="fd-world-name">${esc(d.worldName)}</div><div class="fd-world-meta">${users ? esc(users) : ''}</div><span class="fd-instance-badge ${instClass}">${instLabel}</span></div></div>`;
     } else if (d.location === 'private') {
         worldHtml = `<div style="padding:12px;background:var(--bg-input);border-radius:10px;margin-bottom:14px;font-size:12px;color:var(--tx3);text-align:center;">Private Instance</div>`;

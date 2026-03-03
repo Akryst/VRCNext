@@ -341,14 +341,19 @@ public class UserTimeTracker : IDisposable
         public long TotalSeconds { get; set; }
         public string LastSeen { get; set; } = "";
         public string LastSeenLocation { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string Image { get; set; } = "";
     }
 
     // In-memory cache, same access pattern as before
     public Dictionary<string, UserRecord> Users { get; } = new();
+    public DateTime LastTick => _lastTick;
 
     private readonly SqliteConnection _db;
     private bool _disposed;
     private string _myCurrentLocation = "";
+    private DateTime _lastTick = DateTime.UtcNow;
+    private HashSet<string> _lastCoPresentIds = new();
 
     private static readonly string LegacyFilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -369,16 +374,30 @@ public class UserTimeTracker : IDisposable
     private void InitSchema()
     {
         using var cmd = _db.CreateCommand();
-        cmd.CommandText = @"
-            CREATE TABLE IF NOT EXISTS user_tracking (
-                user_id            TEXT PRIMARY KEY,
-                total_seconds      INTEGER NOT NULL DEFAULT 0,
-                last_seen          TEXT    NOT NULL DEFAULT '',
-                last_seen_location TEXT    NOT NULL DEFAULT ''
-            );
-            CREATE INDEX IF NOT EXISTS idx_ut_lastseen ON user_tracking(last_seen DESC);
-        ";
+        cmd.CommandText = @"CREATE TABLE IF NOT EXISTS user_tracking (
+            user_id            TEXT    PRIMARY KEY,
+            total_seconds      INTEGER NOT NULL DEFAULT 0,
+            last_seen          TEXT    NOT NULL DEFAULT '',
+            last_seen_location TEXT    NOT NULL DEFAULT '',
+            display_name       TEXT    NOT NULL DEFAULT '',
+            image              TEXT    NOT NULL DEFAULT ''
+        )";
         cmd.ExecuteNonQuery();
+
+        using var idx = _db.CreateCommand();
+        idx.CommandText = "CREATE INDEX IF NOT EXISTS idx_ut_lastseen ON user_tracking(last_seen DESC)";
+        try { idx.ExecuteNonQuery(); } catch { }
+
+        foreach (var col in new[] { "display_name TEXT NOT NULL DEFAULT ''", "image TEXT NOT NULL DEFAULT ''" })
+        {
+            try
+            {
+                using var ac = _db.CreateCommand();
+                ac.CommandText = $"ALTER TABLE user_tracking ADD COLUMN {col}";
+                ac.ExecuteNonQuery();
+            }
+            catch { }
+        }
     }
 
     private void MigrateFromJson()
@@ -417,7 +436,7 @@ public class UserTimeTracker : IDisposable
     private void LoadFromDb()
     {
         using var cmd = _db.CreateCommand();
-        cmd.CommandText = "SELECT user_id,total_seconds,last_seen,last_seen_location FROM user_tracking";
+        cmd.CommandText = "SELECT user_id,total_seconds,last_seen,last_seen_location,display_name,image FROM user_tracking";
         using var r = cmd.ExecuteReader();
         while (r.Read())
             Users[r.GetString(0)] = new UserRecord
@@ -425,7 +444,38 @@ public class UserTimeTracker : IDisposable
                 TotalSeconds     = r.GetInt64(1),
                 LastSeen         = r.GetString(2),
                 LastSeenLocation = r.GetString(3),
+                DisplayName      = r.GetString(4),
+                Image            = r.GetString(5),
             };
+    }
+
+    /// <summary>Stores display name and image for a user so they appear in the Time Spent list
+    /// even when they are not friends and not in the timeline top-200.</summary>
+    public void UpdateUserInfo(string userId, string displayName, string image)
+    {
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(displayName)) return;
+        if (!Users.TryGetValue(userId, out var rec))
+        {
+            rec = new UserRecord();
+            Users[userId] = rec;
+        }
+        if (rec.DisplayName == displayName && rec.Image == image) return;
+        rec.DisplayName = displayName;
+        if (!string.IsNullOrEmpty(image)) rec.Image = image;
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"INSERT INTO user_tracking(user_id,total_seconds,last_seen,last_seen_location,display_name,image)
+                VALUES($uid,0,'','', $dn,$img)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    display_name=CASE WHEN excluded.display_name!='' THEN excluded.display_name ELSE user_tracking.display_name END,
+                    image=CASE WHEN excluded.image!='' THEN excluded.image ELSE user_tracking.image END";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            cmd.Parameters.AddWithValue("$dn",  rec.DisplayName);
+            cmd.Parameters.AddWithValue("$img", rec.Image);
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
     }
 
     public void SetMyLocation(string location) => _myCurrentLocation = location ?? "";
@@ -433,9 +483,14 @@ public class UserTimeTracker : IDisposable
     /// <summary>
     /// Called every poll tick. Updates in-memory cache and persists changed records to SQLite.
     /// </summary>
-    public void Tick(IEnumerable<(string userId, string location, string presence)> onlineFriends, int elapsedSeconds = 45)
+    public void Tick(IEnumerable<(string userId, string location, string presence)> onlineFriends)
     {
+        var now = DateTime.UtcNow;
+        var elapsed = (long)(now - _lastTick).TotalSeconds;
+        _lastTick = now;
+
         var changed = new List<(string userId, UserRecord rec)>();
+        var newCoPresentIds = new HashSet<string>();
 
         foreach (var (userId, location, presence) in onlineFriends)
         {
@@ -449,24 +504,108 @@ public class UserTimeTracker : IDisposable
 
             if (presence != "offline")
             {
-                rec.LastSeen = DateTime.UtcNow.ToString("o");
+                rec.LastSeen = now.ToString("o");
                 if (!string.IsNullOrEmpty(location) && location != "offline" && location != "private")
                     rec.LastSeenLocation = location;
             }
 
-            if (!string.IsNullOrEmpty(_myCurrentLocation)
+            if (elapsed > 0 && elapsed <= 3600 // cap at 1h to handle sleep/pause
+                && !string.IsNullOrEmpty(_myCurrentLocation)
                 && _myCurrentLocation != "offline"
                 && _myCurrentLocation != "private"
                 && _myCurrentLocation != "traveling"
                 && location == _myCurrentLocation)
             {
-                rec.TotalSeconds += elapsedSeconds;
+                rec.TotalSeconds += elapsed;
+                newCoPresentIds.Add(userId);
             }
 
             changed.Add((userId, rec));
         }
 
+        // Only update the co-present set when elapsed was valid.
+        // If elapsed was 0 or >cap (e.g. rapid WS-triggered tick), the set would be empty
+        // and the previous co-present state is still the correct one for flush-on-close.
+        if (elapsed > 0 && elapsed <= 3600)
+            _lastCoPresentIds = newCoPresentIds;
+
         if (changed.Count == 0) return;
+        try
+        {
+            using var tx = _db.BeginTransaction();
+            using var cmd = _db.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"INSERT INTO user_tracking(user_id,total_seconds,last_seen,last_seen_location,display_name,image)
+                VALUES($uid,$ts,$ls,$lsl,$dn,$img)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    total_seconds=excluded.total_seconds,
+                    last_seen=excluded.last_seen,
+                    last_seen_location=excluded.last_seen_location,
+                    display_name=CASE WHEN excluded.display_name!='' THEN excluded.display_name ELSE user_tracking.display_name END,
+                    image=CASE WHEN excluded.image!='' THEN excluded.image ELSE user_tracking.image END";
+            var pUid = cmd.Parameters.Add("$uid", SqliteType.Text);
+            var pTs  = cmd.Parameters.Add("$ts",  SqliteType.Integer);
+            var pLs  = cmd.Parameters.Add("$ls",  SqliteType.Text);
+            var pLsl = cmd.Parameters.Add("$lsl", SqliteType.Text);
+            var pDn  = cmd.Parameters.Add("$dn",  SqliteType.Text);
+            var pImg = cmd.Parameters.Add("$img", SqliteType.Text);
+            foreach (var (userId, rec) in changed)
+            {
+                pUid.Value = userId;
+                pTs.Value  = rec.TotalSeconds;
+                pLs.Value  = rec.LastSeen;
+                pLsl.Value = rec.LastSeenLocation;
+                pDn.Value  = rec.DisplayName;
+                pImg.Value = rec.Image;
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+        }
+        catch { }
+    }
+
+    public (long totalSeconds, string lastSeen) GetUserStats(string userId, bool isCoPresent = false)
+    {
+        if (!Users.TryGetValue(userId, out var rec))
+            return (0, "");
+
+        var total = rec.TotalSeconds;
+
+        // Add live pending time if currently co-present (time since last Tick not yet counted).
+        // isCoPresent is determined by the log watcher (reliable), not the VRC API location
+        // (which often returns "private" even for players in the same instance).
+        if (isCoPresent)
+        {
+            var liveElapsed = (long)(DateTime.UtcNow - _lastTick).TotalSeconds;
+            if (liveElapsed > 0 && liveElapsed <= 3600)
+                total += liveElapsed;
+        }
+
+        return (total, rec.LastSeen);
+    }
+
+    /// <summary>No-op. Writes happen in Tick(). Kept for API compatibility.</summary>
+    public void Save() { }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        FlushCoPresentUsers();
+        try { _db.Close(); } catch { }
+        _db.Dispose();
+    }
+
+    /// <summary>
+    /// Saves pending elapsed time (since last Tick) for all co-present users.
+    /// Called on app close so the current session is not lost.
+    /// </summary>
+    private void FlushCoPresentUsers()
+    {
+        if (_lastCoPresentIds.Count == 0) return;
+        var elapsed = (long)(DateTime.UtcNow - _lastTick).TotalSeconds;
+        if (elapsed <= 0 || elapsed > 3600) return;
+
         try
         {
             using var tx = _db.BeginTransaction();
@@ -482,35 +621,22 @@ public class UserTimeTracker : IDisposable
             var pTs  = cmd.Parameters.Add("$ts",  SqliteType.Integer);
             var pLs  = cmd.Parameters.Add("$ls",  SqliteType.Text);
             var pLsl = cmd.Parameters.Add("$lsl", SqliteType.Text);
-            foreach (var (userId, rec) in changed)
+
+            var now = DateTime.UtcNow.ToString("o");
+            foreach (var userId in _lastCoPresentIds)
             {
+                if (!Users.TryGetValue(userId, out var rec)) continue;
+                rec.TotalSeconds += elapsed;
                 pUid.Value = userId;
                 pTs.Value  = rec.TotalSeconds;
-                pLs.Value  = rec.LastSeen;
+                pLs.Value  = now;
                 pLsl.Value = rec.LastSeenLocation;
                 cmd.ExecuteNonQuery();
             }
             tx.Commit();
+            _lastTick = DateTime.UtcNow; // prevent double-flush
         }
         catch { }
-    }
-
-    public (long totalSeconds, string lastSeen) GetUserStats(string userId)
-    {
-        if (Users.TryGetValue(userId, out var rec))
-            return (rec.TotalSeconds, rec.LastSeen);
-        return (0, "");
-    }
-
-    /// <summary>No-op. Writes happen in Tick(). Kept for API compatibility.</summary>
-    public void Save() { }
-
-    public void Dispose()
-    {
-        if (_disposed) return;
-        _disposed = true;
-        try { _db.Close(); } catch { }
-        _db.Dispose();
     }
 
     private class UserTimeTracker_Legacy
@@ -531,6 +657,8 @@ public class WorldTimeTracker : IDisposable
         public long TotalSeconds { get; set; }
         public string LastVisited { get; set; } = "";
         public int VisitCount { get; set; }
+        public string WorldName  { get; set; } = "";
+        public string WorldThumb { get; set; } = "";
     }
 
     // In-memory cache, same access pattern as before
@@ -559,16 +687,30 @@ public class WorldTimeTracker : IDisposable
 
     private void InitSchema()
     {
+        // Create table (no-op if already exists)
         using var cmd = _db.CreateCommand();
-        cmd.CommandText = @"
-            CREATE TABLE IF NOT EXISTS world_tracking (
-                world_id      TEXT PRIMARY KEY,
-                total_seconds INTEGER NOT NULL DEFAULT 0,
-                visit_count   INTEGER NOT NULL DEFAULT 0,
-                last_visited  TEXT    NOT NULL DEFAULT ''
-            );
-        ";
+        cmd.CommandText = @"CREATE TABLE IF NOT EXISTS world_tracking (
+            world_id      TEXT    PRIMARY KEY,
+            total_seconds INTEGER NOT NULL DEFAULT 0,
+            visit_count   INTEGER NOT NULL DEFAULT 0,
+            last_visited  TEXT    NOT NULL DEFAULT '',
+            world_name    TEXT    NOT NULL DEFAULT '',
+            world_thumb   TEXT    NOT NULL DEFAULT ''
+        )";
         cmd.ExecuteNonQuery();
+
+        // Add new columns if upgrading from older schema (ALTER TABLE ADD COLUMN
+        // throws if column already exists — that's fine, just ignore)
+        foreach (var col in new[] { "world_name TEXT NOT NULL DEFAULT ''", "world_thumb TEXT NOT NULL DEFAULT ''" })
+        {
+            try
+            {
+                using var ac = _db.CreateCommand();
+                ac.CommandText = $"ALTER TABLE world_tracking ADD COLUMN {col}";
+                ac.ExecuteNonQuery();
+            }
+            catch { }
+        }
     }
 
     private void MigrateFromJson()
@@ -607,7 +749,7 @@ public class WorldTimeTracker : IDisposable
     private void LoadFromDb()
     {
         using var cmd = _db.CreateCommand();
-        cmd.CommandText = "SELECT world_id,total_seconds,visit_count,last_visited FROM world_tracking";
+        cmd.CommandText = "SELECT world_id,total_seconds,visit_count,last_visited,world_name,world_thumb FROM world_tracking";
         using var r = cmd.ExecuteReader();
         while (r.Read())
             Worlds[r.GetString(0)] = new WorldRecord
@@ -615,6 +757,8 @@ public class WorldTimeTracker : IDisposable
                 TotalSeconds = r.GetInt64(1),
                 VisitCount   = r.GetInt32(2),
                 LastVisited  = r.GetString(3),
+                WorldName    = r.GetString(4),
+                WorldThumb   = r.GetString(5),
             };
     }
 
@@ -645,18 +789,21 @@ public class WorldTimeTracker : IDisposable
         _lastTick = DateTime.UtcNow;
     }
 
-    public void Tick(int elapsedSeconds = 45)
+    public void Tick()
     {
         if (string.IsNullOrEmpty(_currentWorldId) || !_currentWorldId.StartsWith("wrld_"))
             return;
+        var now = DateTime.UtcNow;
+        var elapsed = (long)(now - _lastTick).TotalSeconds;
+        _lastTick = now;
+        if (elapsed <= 0 || elapsed > 3600) return; // cap at 1h to handle sleep/pause
         if (!Worlds.TryGetValue(_currentWorldId, out var rec))
         {
             rec = new WorldRecord();
             Worlds[_currentWorldId] = rec;
         }
-        rec.TotalSeconds += elapsedSeconds;
-        rec.LastVisited = DateTime.UtcNow.ToString("o");
-        _lastTick = DateTime.UtcNow;
+        rec.TotalSeconds += elapsed;
+        rec.LastVisited = now.ToString("o");
         UpsertWorld(_currentWorldId, rec);
     }
 
@@ -664,13 +811,14 @@ public class WorldTimeTracker : IDisposable
     {
         if (string.IsNullOrEmpty(_currentWorldId) || !_currentWorldId.StartsWith("wrld_"))
             return;
-        var elapsed = (int)(DateTime.UtcNow - _lastTick).TotalSeconds;
-        if (elapsed > 0 && elapsed < 120 && Worlds.TryGetValue(_currentWorldId, out var rec))
-        {
-            rec.TotalSeconds += elapsed;
-            rec.LastVisited = DateTime.UtcNow.ToString("o");
-            UpsertWorld(_currentWorldId, rec);
-        }
+        var now = DateTime.UtcNow;
+        var elapsed = (long)(now - _lastTick).TotalSeconds;
+        _lastTick = now;
+        if (elapsed <= 0 || elapsed > 3600) return; // same cap as Tick
+        if (!Worlds.TryGetValue(_currentWorldId, out var rec)) return;
+        rec.TotalSeconds += elapsed;
+        rec.LastVisited = now.ToString("o");
+        UpsertWorld(_currentWorldId, rec);
     }
 
     private void UpsertWorld(string worldId, WorldRecord rec)
@@ -678,26 +826,52 @@ public class WorldTimeTracker : IDisposable
         try
         {
             using var cmd = _db.CreateCommand();
-            cmd.CommandText = @"INSERT INTO world_tracking(world_id,total_seconds,visit_count,last_visited)
-                VALUES($wid,$ts,$vc,$lv)
+            cmd.CommandText = @"INSERT INTO world_tracking(world_id,total_seconds,visit_count,last_visited,world_name,world_thumb)
+                VALUES($wid,$ts,$vc,$lv,$wn,$wt)
                 ON CONFLICT(world_id) DO UPDATE SET
                     total_seconds=excluded.total_seconds,
                     visit_count=excluded.visit_count,
-                    last_visited=excluded.last_visited";
+                    last_visited=excluded.last_visited,
+                    world_name=CASE WHEN excluded.world_name!='' THEN excluded.world_name ELSE world_tracking.world_name END,
+                    world_thumb=CASE WHEN excluded.world_thumb!='' THEN excluded.world_thumb ELSE world_tracking.world_thumb END";
             cmd.Parameters.AddWithValue("$wid", worldId);
             cmd.Parameters.AddWithValue("$ts",  rec.TotalSeconds);
             cmd.Parameters.AddWithValue("$vc",  rec.VisitCount);
             cmd.Parameters.AddWithValue("$lv",  rec.LastVisited);
+            cmd.Parameters.AddWithValue("$wn",  rec.WorldName);
+            cmd.Parameters.AddWithValue("$wt",  rec.WorldThumb);
             cmd.ExecuteNonQuery();
         }
         catch { }
     }
 
+    /// <summary>Updates world name and thumbnail when resolved from the API.</summary>
+    public void UpdateWorldInfo(string worldId, string name, string thumb)
+    {
+        if (string.IsNullOrEmpty(worldId) || string.IsNullOrEmpty(name)) return;
+        if (!Worlds.TryGetValue(worldId, out var rec)) return;
+        if (rec.WorldName == name && rec.WorldThumb == thumb) return; // no change
+        rec.WorldName  = name;
+        rec.WorldThumb = thumb;
+        UpsertWorld(worldId, rec);
+    }
+
     public (long totalSeconds, int visitCount, string lastVisited) GetWorldStats(string worldId)
     {
-        if (Worlds.TryGetValue(worldId, out var rec))
-            return (rec.TotalSeconds, rec.VisitCount, rec.LastVisited);
-        return (0, 0, "");
+        if (!Worlds.TryGetValue(worldId, out var rec))
+            return (0, 0, "");
+
+        var total = rec.TotalSeconds;
+
+        // Add live pending time if this is the current world (time since last Tick not yet counted)
+        if (worldId == _currentWorldId)
+        {
+            var liveElapsed = (long)(DateTime.UtcNow - _lastTick).TotalSeconds;
+            if (liveElapsed > 0 && liveElapsed <= 3600)
+                total += liveElapsed;
+        }
+
+        return (total, rec.VisitCount, rec.LastVisited);
     }
 
     /// <summary>No-op. Writes happen in SetCurrentWorld/Tick. Kept for API compatibility.</summary>

@@ -434,6 +434,121 @@ public class TimelineService : IDisposable
         return (result, hasMore);
     }
 
+    /// <summary>
+    /// Full-DB search: returns up to 200 events whose user_name, world_name, message,
+    /// or any player display_name matches the query. Optionally filtered by type.
+    /// </summary>
+    public List<TimelineEvent> SearchEvents(string query, string typeFilter = "", string date = "")
+    {
+        if (string.IsNullOrWhiteSpace(query)) return new List<TimelineEvent>();
+        var like = "%" + query.Replace("%", "\\%").Replace("_", "\\_") + "%";
+
+        // Optional date range (local calendar day → UTC window)
+        string utcStart = "", utcEnd = "";
+        if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out var localDate))
+        {
+            localDate  = DateTime.SpecifyKind(localDate, DateTimeKind.Local);
+            utcStart   = localDate.ToUniversalTime().ToString("o");
+            utcEnd     = localDate.AddDays(1).ToUniversalTime().ToString("o");
+        }
+
+        var ids = new List<string>();
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            var typeClause = string.IsNullOrEmpty(typeFilter) ? "" : "AND e.type = $type";
+            var dateClause = string.IsNullOrEmpty(utcStart)   ? "" : "AND e.timestamp >= $ds AND e.timestamp < $de";
+            cmd.CommandText = $@"
+                SELECT DISTINCT e.id
+                FROM events e
+                LEFT JOIN event_players ep ON e.id = ep.event_id
+                WHERE 1=1
+                  {typeClause}
+                  {dateClause}
+                  AND (
+                    e.user_name        LIKE $q ESCAPE '\'
+                    OR e.world_name    LIKE $q ESCAPE '\'
+                    OR e.sender_name   LIKE $q ESCAPE '\'
+                    OR e.message       LIKE $q ESCAPE '\'
+                    OR ep.display_name LIKE $q ESCAPE '\'
+                  )
+                ORDER BY e.timestamp DESC
+                LIMIT 200";
+            cmd.Parameters.AddWithValue("$q", like);
+            if (!string.IsNullOrEmpty(typeFilter))
+                cmd.Parameters.AddWithValue("$type", typeFilter);
+            if (!string.IsNullOrEmpty(utcStart))
+            {
+                cmd.Parameters.AddWithValue("$ds", utcStart);
+                cmd.Parameters.AddWithValue("$de", utcEnd);
+            }
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) ids.Add(r.GetString(0));
+        }
+        catch { return new List<TimelineEvent>(); }
+
+        if (ids.Count == 0) return new List<TimelineEvent>();
+
+        // Load players for matched events
+        var playerMap = new Dictionary<string, List<PlayerSnap>>();
+        try
+        {
+            var inP = string.Join(",", ids.Select((_, i) => $"$p{i}"));
+            using var pcmd = _db.CreateCommand();
+            pcmd.CommandText = $"SELECT event_id,user_id,display_name,image FROM event_players WHERE event_id IN ({inP})";
+            for (int i = 0; i < ids.Count; i++) pcmd.Parameters.AddWithValue($"$p{i}", ids[i]);
+            using var pr = pcmd.ExecuteReader();
+            while (pr.Read())
+            {
+                var eid = pr.GetString(0);
+                if (!playerMap.TryGetValue(eid, out var list)) playerMap[eid] = list = new();
+                list.Add(new PlayerSnap { UserId = pr.GetString(1), DisplayName = pr.GetString(2), Image = pr.GetString(3) });
+            }
+        }
+        catch { }
+
+        var result = new List<TimelineEvent>();
+        try
+        {
+            var inE = string.Join(",", ids.Select((_, i) => $"$e{i}"));
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = $@"SELECT id,type,timestamp,world_id,world_name,world_thumb,
+                location,photo_path,photo_url,user_id,user_name,user_image,
+                notif_id,notif_type,sender_name,sender_id,sender_image,message
+                FROM events WHERE id IN ({inE}) ORDER BY timestamp DESC";
+            for (int i = 0; i < ids.Count; i++) cmd.Parameters.AddWithValue($"$e{i}", ids[i]);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var id = r.GetString(0);
+                result.Add(new TimelineEvent
+                {
+                    Id          = id,
+                    Type        = r.GetString(1),
+                    Timestamp   = r.GetString(2),
+                    WorldId     = r.GetString(3),
+                    WorldName   = r.GetString(4),
+                    WorldThumb  = r.GetString(5),
+                    Location    = r.GetString(6),
+                    PhotoPath   = r.GetString(7),
+                    PhotoUrl    = r.GetString(8),
+                    UserId      = r.GetString(9),
+                    UserName    = r.GetString(10),
+                    UserImage   = r.GetString(11),
+                    NotifId     = r.GetString(12),
+                    NotifType   = r.GetString(13),
+                    SenderName  = r.GetString(14),
+                    SenderId    = r.GetString(15),
+                    SenderImage = r.GetString(16),
+                    Message     = r.GetString(17),
+                    Players     = playerMap.TryGetValue(id, out var pl) ? pl : new(),
+                });
+            }
+        }
+        catch { }
+        return result;
+    }
+
     /// <summary>Returns all personal timeline events for a specific local calendar date.</summary>
     public List<TimelineEvent> GetEventsByDate(DateTime localDate)
     {
@@ -597,6 +712,67 @@ public class TimelineService : IDisposable
             cmd.Parameters.AddWithValue("$s", utcStart);
             cmd.Parameters.AddWithValue("$e", utcEnd);
             if (hasType) cmd.Parameters.AddWithValue("$type", type);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+                result.Add(new FriendTimelineEvent
+                {
+                    Id          = r.GetString(0),
+                    Type        = r.GetString(1),
+                    Timestamp   = r.GetString(2),
+                    FriendId    = r.GetString(3),
+                    FriendName  = r.GetString(4),
+                    FriendImage = r.GetString(5),
+                    WorldId     = r.GetString(6),
+                    WorldName   = r.GetString(7),
+                    WorldThumb  = r.GetString(8),
+                    Location    = r.GetString(9),
+                    OldValue    = r.GetString(10),
+                    NewValue    = r.GetString(11),
+                });
+        }
+        catch { }
+        return result;
+    }
+
+    public List<FriendTimelineEvent> SearchFriendEvents(string query, string date = "")
+    {
+        if (string.IsNullOrWhiteSpace(query)) return new List<FriendTimelineEvent>();
+        var like = "%" + query.Replace("%", "\\%").Replace("_", "\\_") + "%";
+
+        string utcStart = "", utcEnd = "";
+        if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out var localDate))
+        {
+            localDate = DateTime.SpecifyKind(localDate, DateTimeKind.Local);
+            utcStart  = localDate.ToUniversalTime().ToString("o");
+            utcEnd    = localDate.AddDays(1).ToUniversalTime().ToString("o");
+        }
+
+        var result = new List<FriendTimelineEvent>();
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            var dateClause = string.IsNullOrEmpty(utcStart) ? "" : "AND timestamp >= $ds AND timestamp < $de";
+            cmd.CommandText = $@"
+                SELECT id,type,timestamp,friend_id,friend_name,friend_image,
+                       world_id,world_name,world_thumb,location,old_value,new_value
+                FROM friend_events
+                WHERE 1=1
+                  {dateClause}
+                  AND (
+                    friend_name LIKE $q ESCAPE '\'
+                    OR world_name LIKE $q ESCAPE '\'
+                    OR location   LIKE $q ESCAPE '\'
+                    OR old_value  LIKE $q ESCAPE '\'
+                    OR new_value  LIKE $q ESCAPE '\'
+                  )
+                ORDER BY timestamp DESC
+                LIMIT 200";
+            cmd.Parameters.AddWithValue("$q", like);
+            if (!string.IsNullOrEmpty(utcStart))
+            {
+                cmd.Parameters.AddWithValue("$ds", utcStart);
+                cmd.Parameters.AddWithValue("$de", utcEnd);
+            }
             using var r = cmd.ExecuteReader();
             while (r.Read())
                 result.Add(new FriendTimelineEvent
@@ -929,13 +1105,13 @@ public class TimelineService : IDisposable
             var ev = joins[i];
 
             // Estimate session duration
-            long sec = 0;
+            long sec;
             if (i + 1 < joins.Count)
-            {
                 sec = (long)(joins[i + 1].Timestamp - ev.Timestamp).TotalSeconds;
-                if (sec < 0)  sec = 0;
-                if (sec > MAX_SESSION) sec = MAX_SESSION;
-            }
+            else
+                sec = (long)(DateTime.UtcNow - ev.Timestamp).TotalSeconds; // ongoing session
+            if (sec < 0)  sec = 0;
+            if (sec > MAX_SESSION) sec = MAX_SESSION;
 
             totalSec += sec;
 

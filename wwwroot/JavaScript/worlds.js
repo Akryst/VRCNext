@@ -1,6 +1,7 @@
 /* === Search (Worlds, Groups, People) === */
 /* === World Tab: Favorites / Search filter === */
 let _favRefreshTimer = null;
+let _wdLiveTimer = null;
 function _scheduleBgFavRefresh() {
     clearTimeout(_favRefreshTimer);
     _favRefreshTimer = setTimeout(() => sendToCS({ action: 'vrcGetFavoriteWorlds' }), 2000);
@@ -188,9 +189,15 @@ function renderWorldSearchDetail(w) {
     }
 
     // Merge API instances with friend-inferred non-public instances
+    // Strip nonce for comparison: API instances don't have ~nonce(...) but friend locations do
+    const stripNonce = l => (l || '').replace(/~nonce\([^)]*\)/g, '');
     const allInstances = [...(w.instances || [])];
     Object.keys(worldFriendsByLoc).forEach(loc => {
-        if (!allInstances.find(i => i.location === loc)) {
+        const existing = allInstances.find(i => stripNonce(i.location) === stripNonce(loc));
+        if (existing) {
+            // Update location to friend's key so friend badges + sort work correctly
+            existing.location = loc;
+        } else {
             const { instanceType: iType } = parseFriendLocation(loc);
             const regionMatch = loc.match(/region\(([^)]+)\)/);
             allInstances.push({
@@ -290,7 +297,7 @@ function renderWorldSearchDetail(w) {
             <div class="wd-section-label" style="margin-bottom:6px;">ADD TO FAVORITE GROUP</div>
             <div class="ci-group-list" id="wdFavGroupList"><div style="font-size:11px;color:var(--tx3);padding:8px 0;">Loading groups…</div></div>
         </div>
-        ${w.worldTimeSeconds > 0 ? `<div class="wd-your-time"><span class="msi" style="font-size:15px;">schedule</span><div><div style="font-size:12px;font-weight:600;color:var(--tx1);">Your Time Spent</div><div style="font-size:11px;color:var(--tx3);">${formatDuration(w.worldTimeSeconds)}${w.worldVisitCount > 0 ? ' · ' + w.worldVisitCount + ' visit' + (w.worldVisitCount > 1 ? 's' : '') : ''}</div></div></div>` : ''}
+        ${(w.worldTimeSeconds > 0 || currentInstanceData?.worldId === wid) ? `<div class="wd-your-time"><span class="msi" style="font-size:15px;">schedule</span><div><div style="font-size:12px;font-weight:600;color:var(--tx1);">Your Time Spent</div><div style="font-size:11px;color:var(--tx3);"><span id="wdTimeSpent">${formatDuration(w.worldTimeSeconds || 0)}</span>${w.worldVisitCount > 0 ? ' · ' + w.worldVisitCount + ' visit' + (w.worldVisitCount > 1 ? 's' : '') : ''}</div></div></div>` : ''}
         <div style="margin-bottom:10px;">${idBadge(wid)}</div>
         ${desc ? `<div style="font-size:12px;color:var(--tx2);margin-bottom:14px;max-height:150px;overflow-y:auto;line-height:1.5;white-space:pre-wrap;">${esc(desc)}</div>` : ''}
         ${tagsHtml}
@@ -300,10 +307,27 @@ function renderWorldSearchDetail(w) {
         </div>
         ${instancesHtml}
         ${createHtml}
-        <div style="margin-top:14px;text-align:right;"><button class="fd-btn" onclick="document.getElementById('modalDetail').style.display='none'">Close</button></div>
+        <div style="margin-top:14px;text-align:right;"><button class="fd-btn" onclick="closeWorldSearchDetail()">Close</button></div>
         </div>`;
 
     document.querySelectorAll('#ciType, #ciRegion').forEach(initVnSelect);
+
+    // Live timer – only when currently in this world
+    if (_wdLiveTimer) { clearInterval(_wdLiveTimer); _wdLiveTimer = null; }
+    if (currentInstanceData?.worldId === wid) {
+        let liveSecs = w.worldTimeSeconds || 0;
+        _wdLiveTimer = setInterval(() => {
+            liveSecs++;
+            const el = document.getElementById('wdTimeSpent');
+            if (el) el.textContent = formatDuration(liveSecs);
+            else { clearInterval(_wdLiveTimer); _wdLiveTimer = null; }
+        }, 1000);
+    }
+}
+
+function closeWorldSearchDetail() {
+    if (_wdLiveTimer) { clearInterval(_wdLiveTimer); _wdLiveTimer = null; }
+    document.getElementById('modalDetail').style.display = 'none';
 }
 
 function toggleWorldFavPicker(worldId) {

@@ -356,8 +356,10 @@ if (window.chrome?.webview) {
                 break;
             case 'timelineData': renderTimeline(payload); break;
             case 'timelineEvent': handleTimelineEvent(payload); break;
-            case 'friendTimelineData':  renderFriendTimeline(payload); break;
-            case 'friendTimelineEvent': handleFriendTimelineEvent(payload); break;
+            case 'timelineSearchResults': handleTlSearchResults(payload); break;
+            case 'friendTimelineData':          renderFriendTimeline(payload); break;
+            case 'friendTimelineEvent':         handleFriendTimelineEvent(payload); break;
+            case 'friendTimelineSearchResults': handleFtlSearchResults(payload); break;
             case 'invFiles':
                 if (!payload.error) {
                     renderInvFiles(payload.files || [], activeInvTab);

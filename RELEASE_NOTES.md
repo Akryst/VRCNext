@@ -1,3 +1,19 @@
+## What's New in 2026.3.0
+### Tools
+- **Time Spent** — New major feature added under Tools. Time Spent shows how long you have spent in each world and automatically ranks them based on your total time. You can also see how much time you have spent with specific friends and even with individual users who are not on your friends list.
+
+The feature displays:
+- Total VRChat time tracked by VRCNext
+- Total social time in hours
+- Number of unique people you have met
+- Time spent with friends and non-friends separately
+- Number of unique worlds discovered
+- Total instance joins
+
+> Note: Total VRChat time may differ from your Steam playtime, especially if you started using VRCNext later.
+
+---
+
 ## What's New in 2026.2.5-2
 ### UI & Design
 - **Dashboard Hero** — Refreshed the hero section with a slightly more modern layout and visual feel.

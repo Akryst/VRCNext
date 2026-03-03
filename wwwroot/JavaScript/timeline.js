@@ -14,6 +14,20 @@ let ftlOffset = 0, ftlLoading = false, ftlHasMore = false, ftlObserver = null;
 let tlDateFilter = '';
 let tlTabInited  = false;
 
+// Server-side search state – Personal Timeline
+let _tlSearchTimer = null;
+let _tlSearchMode  = false;
+let _tlSearchEvents = [];
+let _tlSearchQuery  = '';
+let _tlSearchDate   = '';
+
+// Server-side search state – Friends Timeline
+let _ftlSearchTimer = null;
+let _ftlSearchMode  = false;
+let _ftlSearchEvents = [];
+let _ftlSearchQuery  = '';
+let _ftlSearchDate   = '';
+
 // Filter button map
 const TL_FILTER_IDS = {
     all:           'tlFAll',
@@ -83,9 +97,13 @@ function refreshTimeline() {
     tlOffset  = 0;
     tlHasMore = false;
     tlLoading = false;
+    // If search is active, keep showing existing results during refresh instead of a loading flash
+    const activeSearch = (document.getElementById('tlSearchInput')?.value ?? '').trim();
     disconnectTlObserver();
     const c = document.getElementById('tlContainer');
-    if (c) c.innerHTML = '<div class="tl-loading"><div class="tl-sk-line"></div><div class="tl-sk-line tl-sk-short"></div><div class="tl-sk-line"></div><div class="tl-sk-line tl-sk-short"></div><div class="tl-sk-line"></div></div>';
+    if (c && !(_tlSearchMode && activeSearch)) {
+        c.innerHTML = '<div class="tl-loading"><div class="tl-sk-line"></div><div class="tl-sk-line tl-sk-short"></div><div class="tl-sk-line"></div><div class="tl-sk-line tl-sk-short"></div><div class="tl-sk-line"></div></div>';
+    }
     if (tlDateFilter) sendToCS({ action: 'getTimelineByDate', date: tlDateFilter });
     else              sendToCS({ action: 'getTimeline' });
 }
@@ -129,14 +147,36 @@ function setTlFilter(f) {
 
 function filterTimeline() {
     if (tlMode !== 'personal') return;
-    const search  = (document.getElementById('tlSearchInput')?.value ?? '').toLowerCase().trim();
-    let filtered  = timelineEvents;
+    const search = (document.getElementById('tlSearchInput')?.value ?? '').toLowerCase().trim();
 
+    // When a search query is active: use server-side search for complete results
+    if (search) {
+        if (_tlSearchMode && search === _tlSearchQuery && tlDateFilter === _tlSearchDate) {
+            // We have fresh results for exactly this query+date – render (handles filter-only changes)
+            _renderTlSearchResults(search);
+            return;
+        }
+        // Query or date changed → clear stale state, show loading, debounce
+        _tlSearchMode  = false;
+        _tlSearchQuery = '';
+        _tlSearchDate  = '';
+        disconnectTlObserver();
+        const c = document.getElementById('tlContainer');
+        if (c) c.innerHTML = '<div class="tl-loading"><div class="tl-sk-line"></div><div class="tl-sk-line tl-sk-short"></div><div class="tl-sk-line"></div></div>';
+        clearTimeout(_tlSearchTimer);
+        _tlSearchTimer = setTimeout(() => {
+            sendToCS({ action: 'searchTimeline', query: search, date: tlDateFilter });
+        }, 300);
+        return;
+    }
+
+    // No search – clear search mode and show paginated events
+    _tlSearchMode   = false;
+    _tlSearchEvents = [];
+
+    let filtered = timelineEvents;
     if (tlFilter !== 'all')
         filtered = filtered.filter(e => e.type === tlFilter);
-
-    if (search)
-        filtered = filtered.filter(e => tlSearchable(e).includes(search));
 
     const c = document.getElementById('tlContainer');
     if (!c) return;
@@ -149,7 +189,7 @@ function filterTimeline() {
     const prevScrollTop = c.scrollTop;
     let html = buildTimelineHtml(filtered);
 
-    if (tlHasMore && !search) {
+    if (tlHasMore) {
         html += '<div id="tlSentinel" style="height:40px;display:flex;align-items:center;justify-content:center;">'
               + '<span style="font-size:11px;color:var(--tx3);">Loading more…</span></div>';
     }
@@ -157,7 +197,7 @@ function filterTimeline() {
     c.innerHTML = html;
     if (prevScrollTop > 0) c.scrollTop = prevScrollTop;
 
-    if (tlHasMore && !search) setupTlObserver(c);
+    if (tlHasMore) setupTlObserver(c);
 
     // Scroll to and highlight a specific card if requested (e.g. from friend detail preview).
     // Only consume _tlScrollTarget if the card is actually in the newly-built DOM.
@@ -176,6 +216,38 @@ function filterTimeline() {
             }, 50);
         }
     }
+}
+
+function _renderTlSearchResults(search) {
+    const c = document.getElementById('tlContainer');
+    if (!c) return;
+
+    // Apply type filter client-side on the server results
+    let events = _tlSearchEvents;
+    if (tlFilter !== 'all') events = events.filter(e => e.type === tlFilter);
+
+    if (!events.length) {
+        c.innerHTML = `<div class="empty-msg">No results for "<b>${esc(search)}</b>".</div>`;
+        return;
+    }
+
+    const banner = `<div style="padding:6px 12px;font-size:11px;color:var(--tx3);border-bottom:1px solid var(--brd);">`
+        + `${events.length} result${events.length !== 1 ? 's' : ''} for "<b>${esc(search)}</b>"</div>`;
+    c.innerHTML = banner + buildTimelineHtml(events);
+}
+
+// Called when backend delivers search results
+function handleTlSearchResults(payload) {
+    const q = (payload.query || '').toLowerCase().trim();
+    // Ignore stale responses: user has already typed something different or changed the date
+    const currentSearch = (document.getElementById('tlSearchInput')?.value ?? '').toLowerCase().trim();
+    if (q !== currentSearch) return;
+    if ((payload.date || '') !== tlDateFilter) return;
+    _tlSearchMode   = true;
+    _tlSearchQuery  = q;
+    _tlSearchDate   = payload.date || '';
+    _tlSearchEvents = payload.events || [];
+    filterTimeline();
 }
 
 // Personal Timeline pagination helpers
@@ -507,7 +579,8 @@ function tlPlayerAvatars(players, max) {
 // Detail modals (reuses #modalDetail / #detailModalContent)
 
 function openTlDetail(id) {
-    const ev = timelineEvents.find(e => e.id === id);
+    const ev = timelineEvents.find(e => e.id === id)
+             || _tlSearchEvents.find(e => e.id === id);
     if (!ev) return;
     const el = document.getElementById('detailModalContent');
     if (!el) return;
@@ -781,9 +854,12 @@ function refreshFriendTimeline() {
     ftlOffset  = 0;
     ftlHasMore = false;
     ftlLoading = false;
+    const activeSearch = (document.getElementById('tlSearchInput')?.value ?? '').trim();
     disconnectFtlObserver();
     const c = document.getElementById('tlContainer');
-    if (c) c.innerHTML = '<div class="tl-loading"><div class="tl-sk-line"></div><div class="tl-sk-line tl-sk-short"></div><div class="tl-sk-line"></div><div class="tl-sk-line tl-sk-short"></div><div class="tl-sk-line"></div></div>';
+    if (c && !(_ftlSearchMode && activeSearch)) {
+        c.innerHTML = '<div class="tl-loading"><div class="tl-sk-line"></div><div class="tl-sk-line tl-sk-short"></div><div class="tl-sk-line"></div><div class="tl-sk-line tl-sk-short"></div><div class="tl-sk-line"></div></div>';
+    }
     if (tlDateFilter) sendToCS({ action: 'getFriendTimelineByDate', date: tlDateFilter, type: ftFilter === 'all' ? '' : ftFilter });
     else              sendToCS({ action: 'getFriendTimeline', type: ftFilter === 'all' ? '' : ftFilter });
 }
@@ -832,16 +908,33 @@ function setFtFilter(f) {
 
 function filterFriendTimeline() {
     const search = (document.getElementById('tlSearchInput')?.value ?? '').toLowerCase().trim();
-    // Type filter is server-side for paginated loads; client-side filter still applied on loaded set
+    const c = document.getElementById('tlContainer');
+    if (!c) return;
+
+    if (search) {
+        if (_ftlSearchMode && search === _ftlSearchQuery && tlDateFilter === _ftlSearchDate) {
+            _renderFtlSearchResults(search);
+            return;
+        }
+        _ftlSearchMode  = false;
+        _ftlSearchQuery = '';
+        _ftlSearchDate  = '';
+        disconnectFtlObserver();
+        c.innerHTML = '<div class="tl-loading"><div class="tl-sk-line"></div><div class="tl-sk-line tl-sk-short"></div><div class="tl-sk-line"></div></div>';
+        clearTimeout(_ftlSearchTimer);
+        _ftlSearchTimer = setTimeout(() => {
+            sendToCS({ action: 'searchFriendTimeline', query: search, date: tlDateFilter });
+        }, 300);
+        return;
+    }
+
+    // No search – clear search mode and show paginated events
+    _ftlSearchMode  = false;
+    _ftlSearchEvents = [];
+
     let filtered = ftFilter === 'all'
         ? friendTimelineEvents
         : friendTimelineEvents.filter(e => e.type === ftFilter);
-
-    if (search)
-        filtered = filtered.filter(e => ftSearchable(e).includes(search));
-
-    const c = document.getElementById('tlContainer');
-    if (!c) return;
 
     if (!filtered.length && !ftlLoading) {
         c.innerHTML = '<div class="empty-msg">No friend activity logged yet. Events appear here as friends move, change status, etc.</div>';
@@ -851,7 +944,7 @@ function filterFriendTimeline() {
     const prevScrollTop = c.scrollTop;
     let html = buildFriendTimelineHtml(filtered);
 
-    if (ftlHasMore && !search) {
+    if (ftlHasMore) {
         html += '<div id="ftlSentinel" style="height:40px;display:flex;align-items:center;justify-content:center;">'
               + '<span style="font-size:11px;color:var(--tx3);">Loading more…</span></div>';
     }
@@ -859,7 +952,36 @@ function filterFriendTimeline() {
     c.innerHTML = html;
     if (prevScrollTop > 0) c.scrollTop = prevScrollTop;
 
-    if (ftlHasMore && !search) setupFtlObserver(c);
+    if (ftlHasMore) setupFtlObserver(c);
+}
+
+function _renderFtlSearchResults(search) {
+    const c = document.getElementById('tlContainer');
+    if (!c) return;
+
+    let events = _ftlSearchEvents;
+    if (ftFilter !== 'all') events = events.filter(e => e.type === ftFilter);
+
+    if (!events.length) {
+        c.innerHTML = `<div class="empty-msg">No results for "<b>${esc(search)}</b>".</div>`;
+        return;
+    }
+
+    const banner = `<div style="padding:6px 12px;font-size:11px;color:var(--tx3);border-bottom:1px solid var(--brd);">`
+        + `${events.length} result${events.length !== 1 ? 's' : ''} for "<b>${esc(search)}</b>"</div>`;
+    c.innerHTML = banner + buildFriendTimelineHtml(events);
+}
+
+function handleFtlSearchResults(payload) {
+    const q = (payload.query || '').toLowerCase().trim();
+    const currentSearch = (document.getElementById('tlSearchInput')?.value ?? '').toLowerCase().trim();
+    if (q !== currentSearch) return;
+    if ((payload.date || '') !== tlDateFilter) return;
+    _ftlSearchMode   = true;
+    _ftlSearchQuery  = q;
+    _ftlSearchDate   = payload.date || '';
+    _ftlSearchEvents = payload.events || [];
+    filterFriendTimeline();
 }
 
 function ftSearchable(e) {
