@@ -78,17 +78,15 @@ function _initCalUI() {
     const tab = document.getElementById('tab17');
     if (!tab || document.getElementById('calInner')) return;
     tab.innerHTML = `<div id="calInner">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                <button class="btn-fav sub-tab-btn cal-filter-btn active" data-filter="all"      onclick="setCalFilter('all')"><span class="msi" style="font-size:14px;">calendar_month</span> All</button>
-                <button class="btn-fav sub-tab-btn cal-filter-btn"        data-filter="featured"  onclick="setCalFilter('featured')"><span class="msi" style="font-size:14px;">star</span> Featured</button>
-                <button class="btn-fav sub-tab-btn cal-filter-btn"        data-filter="following" onclick="setCalFilter('following')"><span class="msi" style="font-size:14px;">notifications_active</span> Following</button>
-            </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:8px;">
             <div style="display:flex;align-items:center;gap:4px;">
                 <button class="btn-f" onclick="_calNavMonth(-1)" style="padding:5px 10px;"><span class="msi" style="font-size:18px;">chevron_left</span></button>
                 <span id="calMonthLabel" style="min-width:140px;text-align:center;font-size:14px;font-weight:700;color:var(--tx0);"></span>
                 <button class="btn-f" onclick="_calNavMonth(1)"  style="padding:5px 10px;"><span class="msi" style="font-size:18px;">chevron_right</span></button>
-                <button class="btn-f" id="calRefreshBtn" onclick="refreshCalendar()" title="Refresh" style="margin-left:6px;"><span class="msi" style="font-size:16px;">refresh</span></button>
+                <button class="btn-fav sub-tab-btn cal-filter-btn active" data-filter="all"      onclick="setCalFilter('all')"><span class="msi" style="font-size:14px;">calendar_month</span> All</button>
+                <button class="btn-fav sub-tab-btn cal-filter-btn"        data-filter="featured"  onclick="setCalFilter('featured')"><span class="msi" style="font-size:14px;">star</span> Featured</button>
+                <button class="btn-fav sub-tab-btn cal-filter-btn"        data-filter="following" onclick="setCalFilter('following')"><span class="msi" style="font-size:14px;">notifications_active</span> Following</button>
+                <button class="btn-f" id="calRefreshBtn" onclick="refreshCalendar()" title="Refresh" style="padding:5px 10px;"><span class="msi" style="font-size:18px;">refresh</span></button>
             </div>
         </div>
         <div id="calGridArea"></div>
