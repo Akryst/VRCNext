@@ -3683,11 +3683,69 @@ body {
     flex-shrink: 0;
 }
 
-.gp-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    filter: invert(42%) sepia(93%) saturate(1352%) hue-rotate(199deg) brightness(119%) contrast(97%);
+/* ── Group Event custom date-time picker ─────────────────────────── */
+.gev-dt-trigger {
     cursor: pointer;
-    opacity: 0.85;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    color: var(--tx2);
+    font-size: 13px;
+    transition: background .12s;
 }
+.gev-dt-trigger:empty::before {
+    content: 'Select date & time...';
+    color: var(--tx3);
+}
+.gev-dt-trigger:hover { background: var(--bg-input-h, color-mix(in srgb, var(--bg-input) 80%, var(--tx0) 5%)); }
+
+.gev-dp-time-input {
+    width: 38px;
+    background: var(--bg-input);
+    border: none;
+    border-radius: 6px;
+    color: var(--tx1);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    padding: 5px 4px;
+    text-align: center;
+    outline: none;
+    -moz-appearance: textfield;
+}
+.gev-dp-time-input::-webkit-outer-spin-button,
+.gev-dp-time-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+.gev-dp-ampm-btn {
+    background: var(--bg-btn);
+    border: none;
+    border-radius: 6px;
+    color: var(--tx2);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: inherit;
+    padding: 5px 8px;
+    cursor: pointer;
+    transition: all .15s;
+    min-width: 34px;
+}
+.gev-dp-ampm-btn:hover { background: var(--bg-btn-h); color: var(--tx1); }
+
+.gev-dp-24h-btn {
+    background: transparent;
+    border: 1px solid var(--brd-lt);
+    border-radius: 6px;
+    color: var(--tx3);
+    font-size: 10px;
+    font-weight: 700;
+    font-family: inherit;
+    padding: 4px 7px;
+    cursor: pointer;
+    transition: all .15s;
+    margin-left: auto;
+}
+.gev-dp-24h-btn:hover { color: var(--tx2); }
+.gev-dp-24h-btn.active { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-lt); border-color: transparent; }
 
 /* Add friend accent button — inherits theme from .fd-btn */
 

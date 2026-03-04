@@ -673,6 +673,237 @@ function submitGroupPost() {
     closeGroupPostModal();
 }
 
+/* === Group Event Date-Time Picker === */
+let _gevDpTarget = null; // 'start' | 'end'
+let _gevDpYear = 0, _gevDpMonth = 0;
+let _gevDpSelDate = ''; // YYYY-MM-DD
+let _gevDpHour = 12;   // 0-23 (internal always 24h)
+let _gevDpMin  = 0;
+let _gevDp24h  = false;
+
+const _GEV_DP_MONTHS = ['January','February','March','April','May','June',
+                        'July','August','September','October','November','December'];
+
+function _ensureGevDp() {
+    if (document.getElementById('gevDatePicker')) return;
+    const el = document.createElement('div');
+    el.id = 'gevDatePicker';
+    el.className = 'tl-date-picker';
+    el.style.cssText = 'display:none;width:268px;z-index:10100;';
+    el.innerHTML = `
+        <div class="tl-dp-header">
+            <button class="tl-dp-nav" onclick="gevDpNavMonth(-1)"><span class="msi" style="font-size:16px;">chevron_left</span></button>
+            <span id="gevDpMonthLabel" class="tl-dp-month-label"></span>
+            <button class="tl-dp-nav" onclick="gevDpNavMonth(1)"><span class="msi" style="font-size:16px;">chevron_right</span></button>
+        </div>
+        <div class="tl-dp-weekdays">
+            <div class="tl-dp-wd">Su</div><div class="tl-dp-wd">Mo</div><div class="tl-dp-wd">Tu</div>
+            <div class="tl-dp-wd">We</div><div class="tl-dp-wd">Th</div><div class="tl-dp-wd">Fr</div><div class="tl-dp-wd">Sa</div>
+        </div>
+        <div id="gevDpDaysGrid" class="tl-dp-days"></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--brd);">
+            <span class="msi" style="font-size:15px;color:var(--tx3);">schedule</span>
+            <input id="gevDpHourInput" class="gev-dp-time-input" type="number" min="1" max="12" oninput="gevDpTimeChanged()">
+            <span style="color:var(--tx2);font-weight:700;font-size:15px;">:</span>
+            <input id="gevDpMinInput" class="gev-dp-time-input" type="number" min="0" max="59" oninput="gevDpTimeChanged()">
+            <button id="gevDpAmPmBtn" class="gev-dp-ampm-btn" onclick="gevDpToggleAmPm()">AM</button>
+            <button id="gevDp24hBtn" class="gev-dp-24h-btn" onclick="gevDpToggle24h()">24h</button>
+        </div>
+        <div class="tl-dp-footer">
+            <button class="btn-f" style="flex:1;justify-content:center;font-size:11px;" onclick="gevDpNow()">Now</button>
+            <button class="btn-f fd-btn-join" style="flex:1;justify-content:center;font-size:11px;" onclick="gevDpConfirm()">OK</button>
+        </div>`;
+    document.body.appendChild(el);
+}
+
+function _gevDpFmtDate(year, month, day) {
+    const d = new Date(year, month, day);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function _gevDpFormatDisplay(dateStr, hour, min, use24) {
+    const d   = new Date(dateStr + 'T00:00:00');
+    const dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+    const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+    let timeStr;
+    if (use24) {
+        timeStr = `${String(hour).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+    } else {
+        const ap = hour < 12 ? 'AM' : 'PM';
+        let h12 = hour % 12; if (h12 === 0) h12 = 12;
+        timeStr = `${h12}:${String(min).padStart(2,'0')} ${ap}`;
+    }
+    return `${dow}, ${mon} ${d.getDate()} · ${timeStr}`;
+}
+
+function _gevDpSyncTimeInputs() {
+    const hInput  = document.getElementById('gevDpHourInput');
+    const mInput  = document.getElementById('gevDpMinInput');
+    const ampmBtn = document.getElementById('gevDpAmPmBtn');
+    const h24Btn  = document.getElementById('gevDp24hBtn');
+    if (!hInput) return;
+    if (_gevDp24h) {
+        hInput.min = '0'; hInput.max = '23';
+        hInput.value = String(_gevDpHour).padStart(2,'0');
+        if (ampmBtn) ampmBtn.style.display = 'none';
+        if (h24Btn)  h24Btn.classList.add('active');
+    } else {
+        hInput.min = '1'; hInput.max = '12';
+        let h12 = _gevDpHour % 12; if (h12 === 0) h12 = 12;
+        hInput.value = h12;
+        if (ampmBtn) { ampmBtn.textContent = _gevDpHour < 12 ? 'AM' : 'PM'; ampmBtn.style.display = ''; }
+        if (h24Btn)  h24Btn.classList.remove('active');
+    }
+    if (mInput) mInput.value = String(_gevDpMin).padStart(2,'0');
+}
+
+function openGevDp(target) {
+    _ensureGevDp();
+    _gevDpTarget = target;
+    const existing = document.getElementById(target === 'start' ? 'gevStart' : 'gevEnd')?.value || '';
+    if (existing) {
+        const [datePart, timePart] = existing.split('T');
+        _gevDpSelDate = datePart;
+        if (timePart) { const [h, m] = timePart.split(':').map(Number); _gevDpHour = h||0; _gevDpMin = m||0; }
+        const base = new Date(_gevDpSelDate + 'T00:00:00');
+        _gevDpYear = base.getFullYear(); _gevDpMonth = base.getMonth();
+    } else {
+        const now = new Date();
+        _gevDpSelDate = ''; _gevDpHour = now.getHours(); _gevDpMin = 0;
+        _gevDpYear = now.getFullYear(); _gevDpMonth = now.getMonth();
+    }
+    _gevDpSyncTimeInputs();
+    renderGevDpCalendar();
+    const picker = document.getElementById('gevDatePicker');
+    picker.style.display = '';
+    const trigEl = document.getElementById(target === 'start' ? 'gevStartDisplay' : 'gevEndDisplay');
+    if (trigEl) {
+        const rect = trigEl.getBoundingClientRect();
+        const ph = picker.offsetHeight || 360;
+        const top = rect.bottom + 6 + ph > window.innerHeight ? rect.top - ph - 6 : rect.bottom + 6;
+        picker.style.top  = Math.max(6, top) + 'px';
+        picker.style.left = Math.min(rect.left, window.innerWidth - 276) + 'px';
+    }
+    setTimeout(() => document.addEventListener('click', _gevDpOutside), 0);
+}
+
+function _gevDpOutside(e) {
+    const picker = document.getElementById('gevDatePicker');
+    if (!picker) return;
+    // Detached target = calendar grid was re-rendered (day click) — not an outside click
+    if (!e.target.isConnected) {
+        setTimeout(() => document.addEventListener('click', _gevDpOutside), 0);
+        return;
+    }
+    const trigEl = document.getElementById(_gevDpTarget === 'start' ? 'gevStartDisplay' : 'gevEndDisplay');
+    if (!picker.contains(e.target) && (!trigEl || !trigEl.contains(e.target))) {
+        picker.style.display = 'none';
+        document.removeEventListener('click', _gevDpOutside);
+    } else {
+        setTimeout(() => document.addEventListener('click', _gevDpOutside), 0);
+    }
+}
+
+function renderGevDpCalendar() {
+    const label = document.getElementById('gevDpMonthLabel');
+    const grid  = document.getElementById('gevDpDaysGrid');
+    if (!label || !grid) return;
+    label.textContent = _GEV_DP_MONTHS[_gevDpMonth] + ' ' + _gevDpYear;
+    const today    = new Date();
+    const todayStr = _gevDpFmtDate(today.getFullYear(), today.getMonth(), today.getDate());
+    const firstDow    = new Date(_gevDpYear, _gevDpMonth, 1).getDay();
+    const daysInMonth = new Date(_gevDpYear, _gevDpMonth + 1, 0).getDate();
+    const daysInPrev  = new Date(_gevDpYear, _gevDpMonth, 0).getDate();
+    let html = '';
+    for (let i = firstDow - 1; i >= 0; i--) {
+        const d = daysInPrev - i;
+        const ds = _gevDpFmtDate(_gevDpYear, _gevDpMonth - 1, d);
+        html += `<button class="tl-dp-day other-month${ds === _gevDpSelDate ? ' selected' : ''}" onclick="gevDpSelectDate('${ds}')">${d}</button>`;
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+        const ds  = _gevDpFmtDate(_gevDpYear, _gevDpMonth, d);
+        const cls = (ds === todayStr ? ' today' : '') + (ds === _gevDpSelDate ? ' selected' : '');
+        html += `<button class="tl-dp-day${cls}" onclick="gevDpSelectDate('${ds}')">${d}</button>`;
+    }
+    const used = firstDow + daysInMonth;
+    const remaining = used % 7 === 0 ? 0 : 7 - (used % 7);
+    for (let d = 1; d <= remaining; d++) {
+        const ds = _gevDpFmtDate(_gevDpYear, _gevDpMonth + 1, d);
+        html += `<button class="tl-dp-day other-month${ds === _gevDpSelDate ? ' selected' : ''}" onclick="gevDpSelectDate('${ds}')">${d}</button>`;
+    }
+    grid.innerHTML = html;
+}
+
+function gevDpNavMonth(dir) {
+    _gevDpMonth += dir;
+    if (_gevDpMonth < 0)  { _gevDpMonth = 11; _gevDpYear--; }
+    if (_gevDpMonth > 11) { _gevDpMonth = 0;  _gevDpYear++; }
+    renderGevDpCalendar();
+}
+
+function gevDpSelectDate(ds) { _gevDpSelDate = ds; renderGevDpCalendar(); }
+
+function gevDpTimeChanged() {
+    const hInput = document.getElementById('gevDpHourInput');
+    const mInput = document.getElementById('gevDpMinInput');
+    if (!hInput) return;
+    let h = parseInt(hInput.value) || 0;
+    let m = Math.max(0, Math.min(59, parseInt(mInput.value) || 0));
+    if (_gevDp24h) {
+        _gevDpHour = Math.max(0, Math.min(23, h));
+    } else {
+        h = Math.max(1, Math.min(12, h));
+        const isAm = document.getElementById('gevDpAmPmBtn')?.textContent === 'AM';
+        _gevDpHour = (h === 12 ? 0 : h) + (isAm ? 0 : 12);
+    }
+    _gevDpMin = m;
+}
+
+function gevDpToggleAmPm() {
+    const btn = document.getElementById('gevDpAmPmBtn');
+    if (!btn) return;
+    if (_gevDpHour < 12) { _gevDpHour += 12; btn.textContent = 'PM'; }
+    else                  { _gevDpHour -= 12; btn.textContent = 'AM'; }
+}
+
+function gevDpToggle24h() {
+    gevDpTimeChanged();
+    _gevDp24h = !_gevDp24h;
+    _gevDpSyncTimeInputs();
+}
+
+function gevDpNow() {
+    const now = new Date();
+    _gevDpSelDate = _gevDpFmtDate(now.getFullYear(), now.getMonth(), now.getDate());
+    _gevDpHour = now.getHours(); _gevDpMin = now.getMinutes();
+    _gevDpYear = now.getFullYear(); _gevDpMonth = now.getMonth();
+    _gevDpSyncTimeInputs();
+    renderGevDpCalendar();
+}
+
+function gevDpConfirm() {
+    if (!_gevDpSelDate) return;
+    gevDpTimeChanged();
+    const value     = `${_gevDpSelDate}T${String(_gevDpHour).padStart(2,'0')}:${String(_gevDpMin).padStart(2,'0')}`;
+    const hiddenId  = _gevDpTarget === 'start' ? 'gevStart' : 'gevEnd';
+    const displayId = _gevDpTarget === 'start' ? 'gevStartDisplay' : 'gevEndDisplay';
+    const hidden  = document.getElementById(hiddenId);
+    const display = document.getElementById(displayId);
+    if (hidden)  hidden.value = value;
+    if (display) display.textContent = _gevDpFormatDisplay(_gevDpSelDate, _gevDpHour, _gevDpMin, _gevDp24h);
+    document.getElementById('gevDatePicker').style.display = 'none';
+    document.removeEventListener('click', _gevDpOutside);
+}
+
+function _gevDpSetDisplay(target, dtLocalStr) {
+    if (!dtLocalStr) return;
+    const [datePart, timePart] = dtLocalStr.split('T');
+    const [h, m] = (timePart || '00:00').split(':').map(Number);
+    document.getElementById(target === 'start' ? 'gevStart' : 'gevEnd').value = dtLocalStr;
+    const display = document.getElementById(target === 'start' ? 'gevStartDisplay' : 'gevEndDisplay');
+    if (display) display.textContent = _gevDpFormatDisplay(datePart, h, m, _gevDp24h);
+}
+
 /* === Group Event Modal === */
 let _groupEventGroupId = null;
 let _groupEventImageBase64 = null;
@@ -716,11 +947,13 @@ function openGroupEventModal(groupId) {
             <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;">
                 <div style="flex:1;min-width:160px;">
                     <label class="gp-label">Start</label>
-                    <input id="gevStart" class="gp-input" type="datetime-local" value="${defaultStart}">
+                    <div class="gp-input gev-dt-trigger" id="gevStartDisplay" onclick="openGevDp('start')"></div>
+                    <input type="hidden" id="gevStart">
                 </div>
                 <div style="flex:1;min-width:160px;">
                     <label class="gp-label">End</label>
-                    <input id="gevEnd" class="gp-input" type="datetime-local" value="${defaultEnd}">
+                    <div class="gp-input gev-dt-trigger" id="gevEndDisplay" onclick="openGevDp('end')"></div>
+                    <input type="hidden" id="gevEnd">
                 </div>
             </div>
 
@@ -787,6 +1020,8 @@ function openGroupEventModal(groupId) {
         </div>
     </div>`;
     initAllVnSelects();
+    _gevDpSetDisplay('start', defaultStart);
+    _gevDpSetDisplay('end', defaultEnd);
     overlay.style.display = 'flex';
     setTimeout(() => document.getElementById('gevName')?.focus(), 50);
 }
