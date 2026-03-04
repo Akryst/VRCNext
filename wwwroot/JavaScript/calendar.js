@@ -134,8 +134,12 @@ function renderCalendarEvents(payload) {
     if (raw?.events)  raw = raw.events;
     else if (raw?.results) raw = raw.results;
     else if (raw?.data)    raw = raw.data;
-    _calEvents = Array.isArray(raw) ? raw : [];
+    let all = Array.isArray(raw) ? raw : [];
 
+    // "featured" filter: same endpoint as "all", filter client-side
+    if (calendarFilter === 'featured') all = all.filter(e => e.featured === true || _isFeatured(e));
+
+    _calEvents = all;
     _calSelectedDay = null;
     const dp = document.getElementById('calDayPanel');
     if (dp) dp.style.display = 'none';

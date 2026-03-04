@@ -1198,8 +1198,9 @@ public class VRChatApiService
 
             while (true)
             {
+                // "featured" uses the same /calendar endpoint — filtering to featured events is done client-side
+                // because /calendar/featured only returns upcoming featured events and ignores past months
                 var endpoint = filter switch {
-                    "featured"  => $"{BASE}/calendar/featured?n={pageSize}&offset={pageOffset}&date={dateStr}",
                     "following" => $"{BASE}/calendar/following?n={pageSize}&offset={pageOffset}&date={dateStr}",
                     _           => $"{BASE}/calendar?n={pageSize}&offset={pageOffset}&date={dateStr}"
                 };
