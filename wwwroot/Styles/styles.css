@@ -5413,9 +5413,133 @@ body {
 /* Mode toggle row (Personal / Friends) */
 .tl-mode-row {
     display: flex;
+    align-items: center;
     gap: 8px;
     padding: 12px 20px 0;
     flex-shrink: 0;
+}
+
+
+/* ── List view wrap ────────────────────────────────────────────────── */
+.tl-list-wrap {
+    padding: 12px 16px 24px;
+}
+
+.tl-list-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.tl-list-table thead tr {
+    border-bottom: 1px solid var(--brd-lt);
+}
+
+.tl-list-table thead th {
+    padding: 6px 12px 8px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--tx3);
+    white-space: nowrap;
+}
+
+.tl-list-row {
+    border-bottom: 1px solid var(--brd);
+    cursor: pointer;
+    transition: background .12s;
+}
+.tl-list-row:hover { background: var(--bg-hover); }
+.tl-list-row:last-child { border-bottom: none; }
+
+.tl-list-row td {
+    padding: 8px 12px;
+    vertical-align: middle;
+    color: var(--tx1);
+}
+
+/* Date/Time column */
+.tl-list-dt {
+    white-space: nowrap;
+    color: var(--tx2) !important;
+    font-size: 11px !important;
+    min-width: 150px;
+}
+
+/* Type column */
+.tl-list-type {
+    white-space: nowrap;
+    display: flex !important;
+    align-items: center;
+    gap: 5px;
+    min-width: 110px;
+    font-weight: 600;
+}
+.tl-list-icon {
+    font-size: 15px !important;
+    flex-shrink: 0;
+}
+
+/* User column */
+.tl-list-user {
+    white-space: nowrap;
+    font-weight: 600;
+    min-width: 100px;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Detail column */
+.tl-list-detail {
+    color: var(--tx2) !important;
+    max-width: 340px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tl-list-na {
+    color: var(--tx3);
+    font-style: italic;
+}
+
+/* Player avatar circles in list-view User column */
+.tl-list-avs {
+    display: inline-flex;
+    align-items: center;
+    gap: -4px;
+}
+.tl-list-av {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--bg3);
+    border: 2px solid var(--bg-card);
+    margin-right: -5px;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--tx2);
+    flex-shrink: 0;
+}
+.tl-list-av-letter { background-color: var(--bg3); }
+.tl-list-av-more {
+    background-color: var(--bg3);
+    color: var(--tx2);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 0 4px;
+    border-radius: 10px;
+    width: auto;
+    margin-right: 0;
+    margin-left: 8px;
 }
 
 /* Status chips in friend_status cards */

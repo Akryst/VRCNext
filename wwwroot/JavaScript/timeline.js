@@ -14,6 +14,9 @@ let ftlOffset = 0, ftlLoading = false, ftlHasMore = false, ftlObserver = null;
 let tlDateFilter = '';
 let tlTabInited  = false;
 
+// View mode: 'timeline' (card view) or 'list' (table view) — persisted in localStorage
+let tlViewMode = localStorage.getItem('tlViewMode') || 'timeline';
+
 // Server-side search state – Personal Timeline
 let _tlSearchTimer = null;
 let _tlSearchMode  = false;
@@ -107,7 +110,22 @@ function setTlMode(mode) {
     refreshTimeline();
 }
 
+function setTlViewMode(mode) {
+    tlViewMode = mode;
+    localStorage.setItem('tlViewMode', mode);
+    document.getElementById('tlViewTimeline')?.classList.toggle('active', mode === 'timeline');
+    document.getElementById('tlViewList')?.classList.toggle('active', mode === 'list');
+    if (tlMode === 'friends') filterFriendTimeline();
+    else filterTimeline();
+}
+
+function _initTlViewButtons() {
+    document.getElementById('tlViewTimeline')?.classList.toggle('active', tlViewMode === 'timeline');
+    document.getElementById('tlViewList')?.classList.toggle('active', tlViewMode === 'list');
+}
+
 function refreshTimeline() {
+    _initTlViewButtons();
     if (tlMode === 'friends') { refreshFriendTimeline(); return; }
     if (!tlTabInited) {
         tlTabInited = true;
@@ -215,7 +233,7 @@ function filterTimeline() {
     }
 
     const prevScrollTop = c.scrollTop;
-    let html = buildTimelineHtml(filtered);
+    let html = tlViewMode === 'list' ? buildPersonalListHtml(filtered) : buildTimelineHtml(filtered);
 
     if (tlHasMore) {
         html += '<div id="tlSentinel" style="height:40px;display:flex;align-items:center;justify-content:center;">'
@@ -261,7 +279,7 @@ function _renderTlSearchResults(search) {
 
     const banner = `<div style="padding:6px 12px;font-size:11px;color:var(--tx3);border-bottom:1px solid var(--brd);">`
         + `${events.length} result${events.length !== 1 ? 's' : ''} for "<b>${esc(search)}</b>"</div>`;
-    c.innerHTML = banner + buildTimelineHtml(events);
+    c.innerHTML = banner + (tlViewMode === 'list' ? buildPersonalListHtml(events) : buildTimelineHtml(events));
 }
 
 // Called when backend delivers search results
@@ -960,7 +978,7 @@ function filterFriendTimeline() {
     }
 
     const prevScrollTop = c.scrollTop;
-    let html = buildFriendTimelineHtml(filtered);
+    let html = tlViewMode === 'list' ? buildFriendListHtml(filtered) : buildFriendTimelineHtml(filtered);
 
     if (ftlHasMore) {
         html += '<div id="ftlSentinel" style="height:40px;display:flex;align-items:center;justify-content:center;">'
@@ -987,7 +1005,7 @@ function _renderFtlSearchResults(search) {
 
     const banner = `<div style="padding:6px 12px;font-size:11px;color:var(--tx3);border-bottom:1px solid var(--brd);">`
         + `${events.length} result${events.length !== 1 ? 's' : ''} for "<b>${esc(search)}</b>"</div>`;
-    c.innerHTML = banner + buildFriendTimelineHtml(events);
+    c.innerHTML = banner + (tlViewMode === 'list' ? buildFriendListHtml(events) : buildFriendTimelineHtml(events));
 }
 
 function handleFtlSearchResults(payload) {
@@ -1418,4 +1436,139 @@ function renderFtDetailBio(ev, el) {
             ${ftDetailViewProfile(ev)}${ftDetailClose()}
         </div>
     </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// List View — Personal Timeline
+// ═══════════════════════════════════════════════════════════════════
+
+function buildPersonalListHtml(events) {
+    if (!events.length) return '<div class="empty-msg">No timeline events match your filter.</div>';
+
+    let rows = '';
+    events.forEach(ev => {
+        const d     = new Date(ev.timestamp);
+        const dt    = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    + ' · ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const meta  = TL_TYPE_META[ev.type] ?? { icon: 'circle', label: ev.type };
+        const color = TL_TYPE_COLOR[ev.type] ?? 'var(--tx3)';
+        const ei    = jsq(ev.id);
+        const { userHtml, detail } = _tlListData(ev);
+
+        rows += `<tr class="tl-list-row" onclick="openTlDetail('${ei}')">
+            <td class="tl-list-dt">${esc(dt)}</td>
+            <td class="tl-list-type"><span class="msi tl-list-icon" style="color:${color}">${meta.icon}</span><span>${esc(meta.label)}</span></td>
+            <td class="tl-list-user">${userHtml || '<span class="tl-list-na">—</span>'}</td>
+            <td class="tl-list-detail">${detail || '<span class="tl-list-na">—</span>'}</td>
+        </tr>`;
+    });
+
+    return `<div class="tl-list-wrap">
+        <table class="tl-list-table">
+            <thead><tr>
+                <th>Date / Time</th><th>Type</th><th>User</th><th>Detail</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+    </div>`;
+}
+
+function _tlListPlayerAvatars(players, max) {
+    if (!players || !players.length) return '';
+    const shown = players.slice(0, max);
+    const rest  = players.length - max;
+    let html = '<span class="tl-list-avs">';
+    shown.forEach(p => {
+        html += p.image
+            ? `<span class="tl-list-av" style="background-image:url('${cssUrl(p.image)}')" title="${esc(p.displayName || '')}"></span>`
+            : `<span class="tl-list-av tl-list-av-letter" title="${esc(p.displayName || '')}">${esc((p.displayName || '?')[0].toUpperCase())}</span>`;
+    });
+    if (rest > 0) html += `<span class="tl-list-av tl-list-av-more">+${rest}</span>`;
+    html += '</span>';
+    return html;
+}
+
+function _tlListData(ev) {
+    switch (ev.type) {
+        case 'instance_join':
+            return { userHtml: _tlListPlayerAvatars(ev.players, 3), detail: esc(ev.worldName || ev.worldId || 'Unknown World') };
+        case 'photo':
+            return { userHtml: _tlListPlayerAvatars(ev.players, 3), detail: esc(ev.photoPath ? ev.photoPath.split(/[\\/]/).pop() : 'Photo') };
+        case 'first_meet':
+            return { userHtml: esc(ev.userName || 'Unknown'), detail: ev.worldName ? esc(ev.worldName) : '' };
+        case 'meet_again':
+            return { userHtml: esc(ev.userName || 'Unknown'), detail: ev.worldName ? esc(ev.worldName) : '' };
+        case 'notification': {
+            const typeLabel = NOTIF_TYPE_LABELS[ev.notifType] || ev.notifType || 'Notification';
+            const sender    = ev.senderName ? ` from ${esc(ev.senderName)}` : '';
+            const msg       = ev.message
+                ? ` — ${esc(ev.message.slice(0, 80))}${ev.message.length > 80 ? '…' : ''}`
+                : '';
+            return { userHtml: ev.senderName ? esc(ev.senderName) : '', detail: esc(typeLabel) + sender + msg };
+        }
+        default:
+            return { userHtml: '', detail: '' };
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// List View — Friends Timeline
+// ═══════════════════════════════════════════════════════════════════
+
+function buildFriendListHtml(events) {
+    if (!events.length) return '<div class="empty-msg">No friend activity logged yet.</div>';
+
+    let rows = '';
+    events.forEach(ev => {
+        const d     = new Date(ev.timestamp);
+        const dt    = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    + ' · ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const meta  = FT_TYPE_META[ev.type] ?? { icon: 'circle', label: ev.type };
+        const color = FT_TYPE_COLOR[ev.type] ?? 'var(--tx3)';
+        const ei    = jsq(ev.id);
+        const detail = _ftListDetail(ev);
+        const clickAction = ev.type === 'friend_gps'
+            ? `openFtGpsDetail('${ei}')`
+            : `openFtDetail('${ei}')`;
+
+        rows += `<tr class="tl-list-row" onclick="${clickAction}">
+            <td class="tl-list-dt">${esc(dt)}</td>
+            <td class="tl-list-type"><span class="msi tl-list-icon" style="color:${color}">${meta.icon}</span><span>${esc(meta.label)}</span></td>
+            <td class="tl-list-user">${esc(ev.friendName || '—')}</td>
+            <td class="tl-list-detail">${detail || '<span class="tl-list-na">—</span>'}</td>
+        </tr>`;
+    });
+
+    return `<div class="tl-list-wrap">
+        <table class="tl-list-table">
+            <thead><tr>
+                <th>Date / Time</th><th>Type</th><th>User</th><th>Detail</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+    </div>`;
+}
+
+function _ftListDetail(ev) {
+    switch (ev.type) {
+        case 'friend_online':     return '<span style="color:var(--ok)">Came Online</span>';
+        case 'friend_offline':    return '<span style="color:var(--tx3)">Went Offline</span>';
+        case 'friend_gps':        return esc(ev.worldName || ev.worldId || 'Unknown World');
+        case 'friend_status': {
+            const oldCls = statusCssClass(ev.oldValue);
+            const newCls = statusCssClass(ev.newValue);
+            return `<span class="ft-status-chip ${oldCls}">${esc(ev.oldValue || '?')}</span>`
+                 + `<span class="msi" style="font-size:12px;color:var(--tx3);vertical-align:middle;margin:0 4px;">arrow_forward</span>`
+                 + `<span class="ft-status-chip ${newCls}">${esc(ev.newValue || '?')}</span>`;
+        }
+        case 'friend_statusdesc': {
+            const v = (ev.newValue || '').slice(0, 80);
+            return v ? esc(v) + ((ev.newValue || '').length > 80 ? '…' : '') : '<span class="tl-list-na">(cleared)</span>';
+        }
+        case 'friend_bio': {
+            const v = (ev.newValue || '').slice(0, 80);
+            return v ? esc(v) + ((ev.newValue || '').length > 80 ? '…' : '') : '<span class="tl-list-na">(cleared)</span>';
+        }
+        default: return '';
+    }
 }

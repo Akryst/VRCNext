@@ -31,10 +31,10 @@ function handleSfUpdate(d) {
     const dot = document.getElementById('sfDot');
     const txt = document.getElementById('sfStatusText');
     const btn = document.getElementById('sfConnBtn');
-    const badge = document.getElementById('badgeSteamVR');
+    const badge = document.getElementById('badgeSpace');
     if (d.connected) {
         dot.classList.remove('offline'); dot.classList.add('online');
-        txt.textContent = d.dragging ? 'Dragging...' : 'Connected to SteamVR';
+        txt.textContent = d.dragging ? 'Dragging...' : 'Connected to Space';
         txt.style.color = d.dragging ? 'var(--warn)' : 'var(--ok)';
         btn.innerHTML = '<span class="msi" style="font-size:16px;">link_off</span> Disconnect';
         if (badge) { badge.classList.remove('offline'); badge.classList.add('online'); }

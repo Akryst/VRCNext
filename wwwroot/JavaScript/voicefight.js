@@ -16,15 +16,18 @@ function handleVfState(p) {
     const txt = document.getElementById('vfStatusText');
     const btn = document.getElementById('vfConnBtn');
     if (!dot) return;
+    const vfBadge = document.getElementById('badgeVoice');
     if (vfRunning) {
         dot.className = 'sf-dot online';
         txt.textContent = 'Listening…';
         btn.innerHTML = '<span class="msi" style="font-size:16px;">stop</span> Stop';
+        if (vfBadge) { vfBadge.classList.remove('offline'); vfBadge.classList.add('online'); }
     } else {
         dot.className = 'sf-dot offline';
         txt.textContent = 'Not running';
         btn.innerHTML = '<span class="msi" style="font-size:16px;">play_arrow</span> Start';
         updateVfMeter(0);
+        if (vfBadge) { vfBadge.classList.remove('online'); vfBadge.classList.add('offline'); }
     }
 }
 

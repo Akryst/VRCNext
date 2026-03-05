@@ -47,7 +47,8 @@
                 <div class="mini-badge vrcplus" id="badgeVrcPlus" style="display:none;"><span class="mini-badge-label">VRC+</span></div>
                 <div class="mini-badge offline" id="badgeRelay"><span class="msi mini-badge-icon">cell_tower</span><span class="mini-badge-label">Relay</span></div>
                 <div class="mini-badge offline" id="badgeChatbox"><span class="msi mini-badge-icon">chat</span><span class="mini-badge-label">Chatbox</span></div>
-                <div class="mini-badge offline" id="badgeSteamVR"><span class="msi mini-badge-icon">rocket_launch</span><span class="mini-badge-label">SteamVR</span></div>
+                <div class="mini-badge offline" id="badgeSpace"><span class="msi mini-badge-icon">rocket_launch</span><span class="mini-badge-label">Space</span></div>
+                <div class="mini-badge offline" id="badgeVoice"><span class="msi mini-badge-icon">mic</span><span class="mini-badge-label">Voice</span></div>
                 <button class="btn-notif" id="btnUpdate" onclick="toggleUpdatePanel()" title="Update available" style="display:none;"><span class="msi" style="font-size:20px;">system_update_alt</span><span class="notif-count" id="updateBadge">1</span></button>
                 <button class="btn-notif" id="btnNotif" onclick="toggleNotifPanel()" title="Notifications"><span class="msi" style="font-size:20px;">notifications</span><span class="notif-count" id="notifBadge" style="display:none;">0</span></button>
             </div>
@@ -563,6 +564,9 @@
                 <div class="tl-mode-row">
                     <button class="btn-fav sub-tab-btn active" id="tlModePersonal" onclick="setTlMode('personal')"><span class="msi" style="font-size:14px;">person</span> Personal</button>
                     <button class="btn-fav sub-tab-btn" id="tlModeFriends" onclick="setTlMode('friends')"><span class="msi" style="font-size:14px;">group</span> Friends</button>
+                    <div style="flex:1;"></div>
+                    <button class="btn-fav sub-tab-btn" id="tlViewTimeline" title="Timeline View" onclick="setTlViewMode('timeline')"><span class="msi" style="font-size:14px;">account_tree</span></button>
+                    <button class="btn-fav sub-tab-btn" id="tlViewList" title="List View" onclick="setTlViewMode('list')"><span class="msi" style="font-size:14px;">format_list_bulleted</span></button>
                 </div>
                 <div class="tl-topbar">
                     <div class="search-bar-row" style="flex:1;margin-bottom:0;">
