@@ -19,6 +19,8 @@ VRCNext is not a replacement for VRCX and never will be. It is a hobby project f
 * Change your pronouns
 * Change or add your languages
 * Change or add your social links (Twitter, Instagram, TikTok, YouTube, Discord, GitHub, and more)
+* Change your profile picture / user icon
+* Change your profile banner image
 
 ### Manage Your Friends
 
@@ -31,6 +33,10 @@ VRCNext is not a replacement for VRCX and never will be. It is a hobby project f
 * See mutual friends you have with someone
 * Block or mute users directly from their profile
 * View your full blocked and muted users list
+* Friend list is split into sections: Favorites, In-Game, Web/Active, and Offline — collapse any section to keep the list tidy
+* Search and filter your friend list by name in real time
+* Trust rank badge is shown directly on each friend card
+* Favorite friends appear pinned at the top in their own section
 
 ### Timeline
 
@@ -55,6 +61,7 @@ VRCNext is not a replacement for VRCX and never will be. It is a hobby project f
 ### Stats
 
 * See how much time you have spent with someone overall
+* See how much time you have spent in each individual world
 * This is stored locally, so time spent before using this feature may not be recorded
 
 ### Worlds and People
@@ -62,9 +69,16 @@ VRCNext is not a replacement for VRCX and never will be. It is a hobby project f
 * Find new people or add them as friends using the People tab
 * Find new worlds and see if there is any public instance available to join
 * Create your own instance outside of VRChat and invite yourself
+* Create group instances (Group Public, Group, Group+) and pick which group to host under
+* See all active instances for a world including player counts, region, and type
+* See which friends are already in a world and which instance they are in
+* View world details: player count, favorites, visits, capacity, author, tags, and description
+* Open the author profile directly from the world detail view
 * See how much time you spend in a world (BETA)
 * See your favorited worlds and organize them into groups (BETA)
 * Rename your favorite world groups
+* Browse your own uploaded worlds
+* Add or move worlds between favorite groups directly from the world detail view
 
 ### Groups
 
@@ -82,7 +96,12 @@ VRCNext is not a replacement for VRCX and never will be. It is a hobby project f
 
 * Change your avatar before you even start VRChat
 * See your own uploaded avatars
-* See your favorited avatars
+* Search within your own avatars by name
+* See your favorited avatars organized into groups, rename favorite avatar groups
+* Search for public avatars via avtrdb.com with pagination
+* Browse the Rose Database — a community-curated list of public avatars with category tags
+* Platform compatibility badges (PC / Quest) shown on every avatar card
+* Your currently active avatar is highlighted with a "Current" badge
 
 ### Inventory
 
@@ -91,12 +110,17 @@ VRCNext is not a replacement for VRCX and never will be. It is a hobby project f
 * Upload and manage custom Emojis (VRC+ required, up to 18)
 * Upload and manage custom Stickers (VRC+ required, up to 18)
 * View your in-game Prints collected in VRChat
+* Browse your Inventory — props, emojis, and stickers obtained from bundles
 * Download or delete individual files
+* Animated emojis are labeled with an ANIM badge
+* All items are grouped by upload date
 
 ### Dashboard
 
 * Show the worlds your friends are in so you can join them quickly
 * Show the activity of your friends in real time
+* Click a world card to see exactly which friends are there and which instance type they are in
+* When friends are spread across multiple instances the dashboard shows the instance count
 
 ### Notifications
 
@@ -115,6 +139,9 @@ VRCNext is not a replacement for VRCX and never will be. It is a hobby project f
 * See the worlds where you took your images. Enable Meta Data on your VRCCam for this! (BETA)
 * See the profiles of people who were in the instance when you took the image
 * Blur images that might be sensitive so no one can see them without hovering
+* Copy an image URL directly to clipboard
+* Filter by folder or by file type (images / videos)
+* Infinite scroll — large libraries load progressively so the app stays fast
 
 ### Media Relay
 
@@ -130,8 +157,11 @@ VRCNext is not a replacement for VRCX and never will be. It is a hobby project f
 * Show that you are AFK when VRChat is not focused (Desktop only at the moment)
 * Show your computer stats (CPU and RAM usage)
 * Show your current local time so people know what time it is for you! (12h/24h system)
+* Show how long you have been playing VRChat
 * Rotate through multiple custom text lines
 * Choose your separator style and update rate
+* Suppress the chatbox typing sound effect
+* Live preview of the current chatbox message with a character counter
 
 ### OSC Tool (BETA)
 
