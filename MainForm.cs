@@ -5896,8 +5896,6 @@ var list = avatars.Select(a => new
         SendToJS("log", new { msg = $"{prefix}: {fileName} ({sizeMB:F1} MB)", color = "default" });
 
         var whs = _settings.Webhooks.Where(w => w.Enabled && !string.IsNullOrWhiteSpace(w.Url)).ToList();
-        if (!_settings.PostAll && _settings.SelectedChannel < whs.Count)
-            whs = new() { whs[_settings.SelectedChannel] };
 
         foreach (var wh in whs)
         {
