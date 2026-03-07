@@ -355,7 +355,6 @@ var list = avatars.Select(a => new
                     var payload = await BuildUserDetailPayloadAsync(uid, fetchNote: false);
                     if (payload != null)
                     {
-                        CacheUserDetail(uid, payload);
                         _cache.Save(CacheHandler.KeyUserProfile(uid), payload);
                     }
                     await Task.Delay(250); // rate-limit gap before next profile

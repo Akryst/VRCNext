@@ -114,9 +114,8 @@ public partial class MainForm
         var senderUserId = (string?)n.senderUserId;
         if (!string.IsNullOrEmpty(senderUserId))
         {
-            lock (_playerImageCache)
-                if (_playerImageCache.TryGetValue(senderUserId, out var cached))
-                    senderImg = cached.image;
+            if (_friendNameImg.TryGetValue(senderUserId, out var fi) && !string.IsNullOrEmpty(fi.image))
+                senderImg = fi.image;
         }
 
         // Extract message — for v1 invite responses the text lives in details, not message
@@ -167,7 +166,6 @@ public partial class MainForm
                     if (profile == null) return;
                     var img = VRChatApiService.GetUserImage(profile);
                     if (string.IsNullOrEmpty(img)) return;
-                    lock (_playerImageCache) _playerImageCache[uid] = (img, DateTime.Now);
                     _timeline.UpdateEvent(evId, ev => ev.SenderImage = img);
                     var updated = _timeline.GetEvents().FirstOrDefault(e => e.Id == evId);
                     if (updated != null) Invoke(() => SendToJS("timelineEvent", BuildTimelinePayload(updated)));

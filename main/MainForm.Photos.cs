@@ -209,9 +209,8 @@ public partial class MainForm
                 var img = "";
                 if (!string.IsNullOrEmpty(p.UserId))
                 {
-                    // Try player image cache first (from instance info fetches)
-                    if (_playerImageCache.TryGetValue(p.UserId, out var cached))
-                        img = cached.image;
+                    if (_friendNameImg.TryGetValue(p.UserId, out var fi) && !string.IsNullOrEmpty(fi.image))
+                        img = fi.image;
                 }
                 players.Add((p.UserId, p.DisplayName, img));
             }
@@ -240,9 +239,6 @@ public partial class MainForm
                         if (profile != null)
                         {
                             var img = VRChatApiService.GetUserImage(profile);
-                            lock (_playerImageCache)
-                                _playerImageCache[p.userId] = (img, DateTime.Now);
-
                             var rec = _photoPlayersStore.GetPhotoRecord(fileName);
                             if (rec != null)
                             {

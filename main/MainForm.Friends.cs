@@ -454,41 +454,11 @@ public partial class MainForm
     {
         if (!_vrcApi.IsLoggedIn) return;
 
-        // Helper: send a payload, then silently refresh & re-cache in background.
-        // Notes are skipped here (rarely change, already in cache) to avoid rate-limiting /users/{id}/notes.
-        void ServeAndRefresh(object immediatePayload)
-        {
-            SendToJS("vrcFriendDetail", immediatePayload);
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    var fresh = await BuildUserDetailPayloadAsync(userId, fetchNote: false);
-                    if (fresh == null) return;
-                    Invoke(() =>
-                    {
-                        CacheUserDetail(userId, fresh);
-                        if (_settings.FfcEnabled) _cache.Save(CacheHandler.KeyUserProfile(userId), fresh);
-                        SendToJS("vrcFriendDetail", fresh);
-                    });
-                }
-                catch { }
-            });
-        }
-
-        // 1. In-memory cache → instant (only when FFC enabled)
-        if (_settings.FfcEnabled && _userDetailCache.TryGetValue(userId, out var cached))
-        {
-            ServeAndRefresh(cached.payload);
-            return;
-        }
-
-        // 2. Disk cache → instant (also populates in-memory for this session)
+        // Disk cache → instant (FFC disk cache, no in-memory store)
         var diskCached = _settings.FfcEnabled ? _cache.LoadRaw(CacheHandler.KeyUserProfile(userId)) : null;
         if (diskCached is JObject diskProfile)
         {
             // Overlay live fields from the friend store (kept fresh by WebSocket).
-            // Falls back to safe defaults if the store has no entry yet.
             JObject? live;
             lock (_friendStore) _friendStore.TryGetValue(userId, out live);
             diskProfile["status"]              = live?["status"]?.ToString() ?? "offline";
@@ -504,12 +474,11 @@ public partial class MainForm
             diskProfile["inSameInstance"]      = false;
             diskProfile["travelingToLocation"] = "";
             diskProfile["state"]               = "";
-            CacheUserDetail(userId, diskProfile);
-            ServeAndRefresh(diskProfile);
+            SendToJS("vrcFriendDetail", diskProfile);
             return;
         }
 
-        // 3. Cold fetch → block once, then every future open is instant
+        // Cold fetch — only runs once per session when FFC has no disk entry
         try
         {
             var payload = await BuildUserDetailPayloadAsync(userId);
@@ -518,7 +487,6 @@ public partial class MainForm
                 SendToJS("vrcFriendDetailError", new { error = "Could not load user profile" });
                 return;
             }
-            CacheUserDetail(userId, payload);
             if (_settings.FfcEnabled) _cache.Save(CacheHandler.KeyUserProfile(userId), payload);
             SendToJS("vrcFriendDetail", payload);
         }

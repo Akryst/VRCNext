@@ -16,8 +16,6 @@ public partial class MainForm
     private ChatboxService? _chatbox;
     private SteamVRService? _steamVR;
     private OscService? _osc;
-    // Cache fetched player profile images: userId -> (imageUrl, fetchedAt)
-    private readonly Dictionary<string, (string image, DateTime fetched)> _playerImageCache = new();
     // Favorite friends: userId -> fvrt_xxx id
     private readonly Dictionary<string, string> _favoriteFriends = new();
     private ImageCacheService? _imgCache;
@@ -47,9 +45,6 @@ public partial class MainForm
     // Voice Fight
     private VoiceFightService? _voiceFight;
     private VoiceFightSettings _vfSettings = VoiceFightSettings.Load();
-
-    // User detail cache: serves profiles instantly on repeated opens
-    private readonly Dictionary<string, (object payload, DateTime cachedAt)> _userDetailCache = new();
 
     // Library file cache: quick-scan result for pagination
     private List<LibFileEntry> _libFileCache = new();

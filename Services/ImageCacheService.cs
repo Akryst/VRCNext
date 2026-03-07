@@ -12,6 +12,7 @@ public class ImageCacheService
     private readonly HttpClient _http;
     private readonly HashSet<string> _inFlight = new();
     private readonly HashSet<string> _permanentFail = new();
+    private readonly SemaphoreSlim _downloadSem = new(8, 8);
     private static readonly TimeSpan TTL = TimeSpan.FromDays(7);
 
     // Amount freed per trim pass (~2 GB)
@@ -118,29 +119,31 @@ public class ImageCacheService
             if (_inFlight.Contains(url)) return;
             _inFlight.Add(url);
         }
+        await _downloadSem.WaitAsync();
         try
         {
             var tmp = filePath + ".tmp";
-            using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseContentRead);
+            using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
             if (!resp.IsSuccessStatusCode)
             {
                 var status = (int)resp.StatusCode;
-                // 403/404 won't be fixed by retrying — permanently blacklist
                 if (status == 403 || status == 404)
                     lock (_permanentFail) _permanentFail.Add(url);
                 return;
             }
-            var bytes = await resp.Content.ReadAsByteArrayAsync();
-            await File.WriteAllBytesAsync(tmp, bytes);
+            using var stream = await resp.Content.ReadAsStreamAsync();
+            using var fs = File.Create(tmp);
+            await stream.CopyToAsync(fs);
+            fs.Close();
             File.Move(tmp, filePath, overwrite: true);
 
-            // Enforce cache limit in background after each write
             if (LimitBytes > 0)
                 _ = Task.Run(() => TrimIfNeeded(LimitBytes));
         }
-        catch { }
+        catch { try { if (File.Exists(filePath + ".tmp")) File.Delete(filePath + ".tmp"); } catch { } }
         finally
         {
+            _downloadSem.Release();
             lock (_inFlight) _inFlight.Remove(url);
         }
     }

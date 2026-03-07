@@ -56,8 +56,7 @@ public partial class MainForm
                 var userProfiles  = new Dictionary<string, JObject>();
 
                 var needFetch = playersWithId.Where(p =>
-                    !_playerImageCache.TryGetValue(p.UserId, out var c) ||
-                    (DateTime.Now - c.fetched).TotalMinutes > 30
+                    !_friendNameImg.ContainsKey(p.UserId)
                 ).ToList();
 
                 if (needFetch.Count > 0)
@@ -72,8 +71,6 @@ public partial class MainForm
                             if (profile != null)
                             {
                                 var img = VRChatApiService.GetUserImage(profile);
-                                lock (_playerImageCache)
-                                    _playerImageCache[p.UserId] = (img, DateTime.Now);
                                 lock (userProfiles)
                                     userProfiles[p.UserId] = profile;
                             }
@@ -82,17 +79,6 @@ public partial class MainForm
                     });
                     await Task.WhenAll(tasks);
 
-                    Invoke(() =>
-                    {
-                        foreach (var uid in _cumulativeInstancePlayers.Keys.ToList())
-                        {
-                            if (_playerImageCache.TryGetValue(uid, out var cached) && !string.IsNullOrEmpty(cached.image))
-                            {
-                                var existing = _cumulativeInstancePlayers[uid];
-                                _cumulativeInstancePlayers[uid] = (existing.displayName, cached.image);
-                            }
-                        }
-                    });
                 }
 
                 Invoke(() => SendToJS("log", new { msg = $"[LOG] Profiles: {needFetch.Count} fetched, {playersWithId.Count - needFetch.Count} cached", color = "sec" }));
@@ -108,9 +94,9 @@ public partial class MainForm
                             img    = VRChatApiService.GetUserImage(prof);
                             status = prof["status"]?.ToString() ?? "";
                         }
-                        else if (_playerImageCache.TryGetValue(p.UserId, out var cached))
+                        else if (_friendNameImg.TryGetValue(p.UserId, out var fi) && !string.IsNullOrEmpty(fi.image))
                         {
-                            img = cached.image;
+                            img = fi.image;
                         }
                     }
                     users.Add(new { id = p.UserId, displayName = p.DisplayName, image = img, status });
@@ -175,7 +161,7 @@ public partial class MainForm
         var logPlayers = _logWatcher.GetCurrentPlayers();
         var users = logPlayers.Select(p =>
         {
-            var img = _playerImageCache.TryGetValue(p.UserId ?? "", out var c) ? c.image : "";
+            var img = _friendNameImg.TryGetValue(p.UserId ?? "", out var fi) ? fi.image : "";
             return (object)new { id = p.UserId, displayName = p.DisplayName, image = img, status = "" };
         }).ToList();
 
@@ -196,19 +182,9 @@ public partial class MainForm
 
     private void HandleWorldChangedOnUiThread(string worldId, string location)
     {
-        // Finalise previous instance event: refresh images from cache, save, push to JS
+        // Finalise previous instance event
         if (_pendingInstanceEventId != null)
         {
-            // Fill any missing images from the player cache
-            foreach (var uid in _cumulativeInstancePlayers.Keys.ToList())
-            {
-                if (_playerImageCache.TryGetValue(uid, out var cached) && !string.IsNullOrEmpty(cached.image))
-                {
-                    var existing = _cumulativeInstancePlayers[uid];
-                    _cumulativeInstancePlayers[uid] = (existing.displayName, cached.image);
-                }
-            }
-
             var finalPlayers = _cumulativeInstancePlayers.Select(kv => new TimelineService.PlayerSnap
             {
                 UserId      = kv.Key,
@@ -259,15 +235,6 @@ public partial class MainForm
                     try
                     {
                         // Refresh any images that have since been fetched (e.g. via requestInstanceInfo)
-                        foreach (var uid in _cumulativeInstancePlayers.Keys.ToList())
-                        {
-                            if (_playerImageCache.TryGetValue(uid, out var cached) && !string.IsNullOrEmpty(cached.image))
-                            {
-                                var existing = _cumulativeInstancePlayers[uid];
-                                _cumulativeInstancePlayers[uid] = (existing.displayName, cached.image);
-                            }
-                        }
-
                         var snap = _cumulativeInstancePlayers.Select(kv => new TimelineService.PlayerSnap
                         {
                             UserId      = kv.Key,
@@ -316,7 +283,7 @@ public partial class MainForm
         // Accumulate into instance player history
         if (!string.IsNullOrEmpty(userId) && !_cumulativeInstancePlayers.ContainsKey(userId))
         {
-            var img = _playerImageCache.TryGetValue(userId, out var c) ? c.image : "";
+            var img = _friendNameImg.TryGetValue(userId, out var fi) ? fi.image : "";
             _cumulativeInstancePlayers[userId] = (displayName, img);
             // Store name in UserTimeTracker so this player appears in Time Spent list
             // even when they are not a friend and not in the timeline top-200
@@ -342,7 +309,7 @@ public partial class MainForm
         if (!string.IsNullOrEmpty(userId) && _timeline.KnownUsersSeeded && !_timeline.IsKnownUser(userId))
         {
             _timeline.AddKnownUser(userId);
-            var img = _playerImageCache.TryGetValue(userId, out var ci) ? ci.image : "";
+            var img = _friendNameImg.TryGetValue(userId, out var fi) ? fi.image : "";
             var meetEv = new TimelineService.TimelineEvent
             {
                 Type      = "first_meet",
@@ -369,7 +336,6 @@ public partial class MainForm
                         if (profile == null) return;
                         var fetchedImg = VRChatApiService.GetUserImage(profile);
                         if (string.IsNullOrEmpty(fetchedImg)) return;
-                        lock (_playerImageCache) _playerImageCache[userId] = (fetchedImg, DateTime.Now);
                         _timeline.UpdateEvent(evId, ev => ev.UserImage = fetchedImg);
                         var updated = _timeline.GetEvents().FirstOrDefault(e => e.Id == evId);
                         if (updated != null) Invoke(() => SendToJS("timelineEvent", BuildTimelinePayload(updated)));
@@ -386,7 +352,7 @@ public partial class MainForm
             if (_timeline.KnownUsersSeeded && !_meetAgainThisInstance.Contains(userId))
             {
                 _meetAgainThisInstance.Add(userId);
-                var img = _playerImageCache.TryGetValue(userId, out var cImg) ? cImg.image : "";
+                var img = _friendNameImg.TryGetValue(userId, out var fi2) ? fi2.image : "";
                 var meetAgainEv = new TimelineService.TimelineEvent
                 {
                     Type      = "meet_again",
@@ -412,7 +378,6 @@ public partial class MainForm
                             if (profile == null) return;
                             var fetchedImg = VRChatApiService.GetUserImage(profile);
                             if (string.IsNullOrEmpty(fetchedImg)) return;
-                            lock (_playerImageCache) _playerImageCache[userId] = (fetchedImg, DateTime.Now);
                             _timeline.UpdateEvent(maEvId, ev => ev.UserImage = fetchedImg);
                             var updated = _timeline.GetEvents().FirstOrDefault(e => e.Id == maEvId);
                             if (updated != null) Invoke(() => SendToJS("timelineEvent", BuildTimelinePayload(updated)));
@@ -479,8 +444,6 @@ public partial class MainForm
         {
             if (_friendNameImg.TryGetValue(userId, out var fi) && !string.IsNullOrEmpty(fi.image))
                 return fi.image;
-            if (_playerImageCache.TryGetValue(userId, out var pi) && !string.IsNullOrEmpty(pi.image))
-                return pi.image;
         }
         return storedImage ?? "";
     }

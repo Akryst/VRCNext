@@ -108,7 +108,6 @@ public partial class MainForm
                     _ = Task.Run(() =>
                     {
                         _cache.ClearAll();
-                        _userDetailCache.Clear();
                         Invoke(() => SendToJS("log", new { msg = "🗑 FFC cache cleared.", color = "sec" }));
                     });
                     break;
@@ -2828,9 +2827,9 @@ public partial class MainForm
                                     await sem.WaitAsync();
                                     try
                                     {
-                                        if (_playerImageCache.TryGetValue(uid, out var c) && !string.IsNullOrEmpty(c.image))
+                                        if (_friendNameImg.TryGetValue(uid, out var fi) && !string.IsNullOrEmpty(fi.image))
                                         {
-                                            fetchedImgs[uid] = c.image;
+                                            fetchedImgs[uid] = fi.image;
                                             return;
                                         }
                                         var profile = await _vrcApi.GetUserAsync(uid);
@@ -2838,10 +2837,7 @@ public partial class MainForm
                                         {
                                             var img = VRChatApiService.GetUserImage(profile);
                                             if (!string.IsNullOrEmpty(img))
-                                            {
                                                 fetchedImgs[uid] = img;
-                                                lock (_playerImageCache) _playerImageCache[uid] = (img, DateTime.Now);
-                                            }
                                         }
                                         await Task.Delay(250);
                                     }
