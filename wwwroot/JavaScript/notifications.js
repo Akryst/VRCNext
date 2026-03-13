@@ -297,7 +297,7 @@ function renderCurrentInstance(data) {
             </button>
         </div>
     </div>
-    <div style="font-size:10px;font-weight:700;color:var(--tx3);padding:8px 0 4px;letter-spacing:.05em;">FRIENDS</div>`;
+    `;
     if (prevInstScroll > 0) {
         const newInstUsers = el.querySelector('.inst-users');
         if (newInstUsers) newInstUsers.scrollTop = prevInstScroll;
