@@ -1,60 +1,28 @@
-# 2026.10.8
+# 2026.10.9
 
-## UI Improvements
+## Dashboard
 
-- Profile, Group, and World modals have been resized to be slightly larger for better readability
-- Mutuals are now displayed in two rows
-- Group members are now displayed in two rows
-- Groups inside the profile modal are now displayed in two rows
-- Added a search bar to the "Mutuals" tab in the profile modal
+- Added **Popular Worlds** — browse worlds currently trending in VRChat
+- Added **Active Worlds** — see worlds with the most active players right now
+- Added **Recently Visited** — quickly revisit worlds you have been to before
 
----
-
-## Group Management Update
-
-### Roles
-- You can now view all roles in a group
-- You can now create a role with full general and permission settings
-- You can assign a role to a member via the right-click context menu
-
-### Banned Members
-- Banned members are now visible in the group management view
-- You can unban members directly via the context menu
-
-### Group Modal
-- The group modal has been enlarged so all management settings fit comfortably
-- Added a search bar on the "Members" tab to quickly find members — especially useful for moderation
+All three are accessible via the **Discovery** section using the three buttons: **Discovery**, **Popular Worlds**, and **Active Worlds**
 
 ---
 
-## New Features
+## Sidebar
 
-### Auto Color
-Settings now include an **Auto Color** option. The launcher will automatically pick its accent color based on your dashboard background image, keeping the UI consistent with your personal design.
-
-### Context Menu — Media Library
-- Right-clicking images in the Media Library now opens a context menu
-- You can quickly set your dashboard background directly from the context menu
+- Fixed alignment of the **Collapse / Hamburger** button so it merges more cleanly with the sidebar
 
 ---
 
-## Bug Fixes
+## Steam Overlay
 
-- Fixed an issue where the dashboard background image was not saved correctly
-- Fixed an issue where the Invite navigation bar was cut off when using "Send with Image" — the nav bar now has its own container
-- Fixed a bug that caused the media library file list to be rebuilt every time the tab was opened
-- Fixed an issue where favorite images were not fully displayed if the page had not finished building
-- Fixed an issue where pressing Refresh in the media library caused images to appear duplicated in the preview
+The Steam Overlay has received a major update with four new features:
 
----
+- **Friend Status Feed** — shows the last 4 status updates from your friends
+- **Friend Locations** — see where your friends are and join them directly
+- **Media Player** — control your active media session (Browser, Spotify, etc.) without leaving VR
+- **Quick Tools** — toggle all 6 tools instantly: Space Flight, YouTube Fix, Chatbox, and more
 
-## Linux Port
-
-The Linux port is actively in progress. This release includes the following Linux-specific work:
-
-- All VRChat launch paths (Join, Play VRChat, and related buttons) now correctly route through Steam (`steam steam://rungameid/438100`) instead of trying to execute `launch.exe` directly
-- **Custom Chatbox** partially working on Linux:
-  - **System Stats** now reads CPU usage from `/proc/stat` and RAM from `/proc/meminfo`
-  - **Now Playing** and **Play Time** now work via MPRIS2 using `playerctl` (install with `sudo pacman -S playerctl`)
-- Setup Wizard updated for Linux: VRChat path page shows the Steam launch command and hides the Browse button; "Start with Windows" renamed to "Start with System" throughout
-- Settings panel: VRChat launch path is locked to the Steam command on Linux; Browse button is hidden
+The overlay can be triggered using **any controller keybind of your choice**
