@@ -29,7 +29,11 @@ namespace VRCNext.Services
         public float RotY          { get; set; } = 0f;
         public float RotZ          { get; set; } = 0f;
         public float WidthMeters   { get; set; } = 0.22f;
-        public List<uint> Keybind  { get; private set; } = new();
+        public List<uint> Keybind       { get; private set; } = new();
+        public int        KeybindHand   { get; private set; } = 0; // 0=any, 1=left, 2=right
+        public int        KeybindMode   { get; private set; } = 0; // 0=combo(hold), 1=doubletap
+        public List<uint> KeybindDt     { get; private set; } = new();
+        public int        KeybindDtHand { get; private set; } = 0; // 0=any, 1=left, 2=right (doubletap slot)
 
         // ── State ─────────────────────────────────────────────────────────────
         public bool IsConnected    { get; private set; }
@@ -39,7 +43,7 @@ namespace VRCNext.Services
 
         // ── Events ────────────────────────────────────────────────────────────
         public event Action<object>? OnStateUpdate;
-        public event Action<List<uint>, List<string>>? OnKeybindRecorded;
+        public event Action<List<uint>, List<string>, int, int>? OnKeybindRecorded; // (ids, names, hand, mode)
         public event Action<int>? OnToolToggle;
         public event Action<string, string>? OnJoinRequest; // (friendId, location)
 
@@ -67,9 +71,15 @@ namespace VRCNext.Services
         // Event-driven button state — updated from VREvent_ButtonPress/Unpress,
         // which fire even while the Steam overlay is open (unlike GetControllerState).
         private ulong _eventButtonsHeld = 0;
+        private ulong _eventLeftHeld    = 0;  // buttons held on left controller only
+        private ulong _eventRightHeld   = 0;  // buttons held on right controller only
         private bool  _keybindTriggered = false;    // prevents repeated toggle while combo held
         private int   _keybindReleaseFrames = 0;    // frames the combo has been NOT held
         private const int KEYBIND_RELEASE_REQUIRED = 30; // ~330ms stable release before re-arm
+        // Double-tap state
+        private ulong    _prevTriggerHeld      = 0;
+        private uint     _doubleTapLastButton  = uint.MaxValue;
+        private DateTime _doubleTapLastTime    = DateTime.MinValue;
 
         // ── D3D11 (staging + overlay textures for flicker-free upload) ────────
         // Valve docs & openvr#772: use Texture2D.NativePointer + CopyResource + Flush,
@@ -120,7 +130,7 @@ namespace VRCNext.Services
         private const float INTERACT_LEAVE_DIST = 0.36f; // 36 cm
 
         // ── Overlay content ───────────────────────────────────────────────────
-        private int                   _activeTab = 0; // 0=Notifications 1=Music 2=Tools
+        private int                   _activeTab = 0; // 0=Alerts 1=Location 2=Music 3=Tools
         private readonly List<NotifEntry> _notifications = new();
         private string   _mediaTitle    = "";
         private string   _mediaArtist   = "";
@@ -147,18 +157,42 @@ namespace VRCNext.Services
             _dirty = true;
         }
 
+        // ── Allowed buttons & keybind limits ─────────────────────────────────
+        // Allowed: Grip(2), B/Y(1), A/X(7), Thumbstick(32), Trigger(33)
+        // Excluded: System(0), Trackpad(34)
+        private const ulong ALLOWED_BUTTON_MASK =
+            (1UL << 1) | (1UL << 2) | (1UL << 7) | (1UL << 32) | (1UL << 33);
+        private const int MAX_KEYBIND_BUTTONS  = 4;
+        private const int DOUBLE_TAP_WINDOW_MS = 400;
+
         // ── Button name maps ──────────────────────────────────────────────────
         private static readonly Dictionary<uint, string> ButtonNames = new()
         {
-            { (uint)EVRButtonId.k_EButton_System,          "System"    },
-            { (uint)EVRButtonId.k_EButton_ApplicationMenu, "Menu"      },
+            { (uint)EVRButtonId.k_EButton_ApplicationMenu, "B/Y"       },
             { (uint)EVRButtonId.k_EButton_Grip,            "Grip"      },
-            { (uint)EVRButtonId.k_EButton_A,               "A"         },
-            { (uint)EVRButtonId.k_EButton_Axis0,           "Thumbstick"},
+            { (uint)EVRButtonId.k_EButton_A,               "A/X"       },
+            { (uint)EVRButtonId.k_EButton_Axis0,           "Stick"     },
             { (uint)EVRButtonId.k_EButton_Axis1,           "Trigger"   },
         };
 
         private record NotifEntry(string EvType, string FriendName, string EvText, string Time, string ImageUrl = "", string FriendId = "", string Location = "");
+
+        // ── Location tab ──────────────────────────────────────────────────────
+        private record LocationEntry(string WorldId, string InstanceId, string WorldName, string WorldImageUrl, string FriendId, string FriendName, string FriendImageUrl, string Location);
+        private readonly List<LocationEntry>         _friendLocations  = new();
+        private readonly Dictionary<string, Bitmap?> _locationImgCache = new(); // world + friend images, keyed by URL
+        private int _locationPage = 0; // current page (0-based, 6 cards per page)
+
+        // ── Location layout constants (shared by Draw + Click) ────────────────
+        private const int LocPadX     = 12;
+        private const int LocColGap   = 6;
+        private const int LocRowGap   = 6;
+        private const int LocCardH    = 68;
+        private const int LocContentY = 72;
+        private const int LocPagY     = 296;
+        private const int LocPagH     = 40;
+        private const int LocArrW     = 40;
+        private static int LocColW    => (W - 2 * LocPadX - LocColGap) / 2; // = 241
 
         // ── Theme colors ──────────────────────────────────────────────────────
         private OverlayTheme _theme = OverlayTheme.FromName("midnight");
@@ -399,6 +433,11 @@ namespace VRCNext.Services
                 foreach (var bmp in _notifImgCache.Values) bmp?.Dispose();
                 _notifImgCache.Clear();
             }
+            lock (_locationImgCache)
+            {
+                foreach (var bmp in _locationImgCache.Values) bmp?.Dispose();
+                _locationImgCache.Clear();
+            }
 
             IsConnected = false;
             IsVisible   = false;
@@ -488,7 +527,8 @@ namespace VRCNext.Services
         public void ApplyConfig(bool attachLeft, bool attachHand,
             float px, float py, float pz,
             float rx, float ry, float rz,
-            float width, List<uint> keybind)
+            float width, List<uint> keybind, int keybindHand = 0, int keybindMode = 0,
+            List<uint>? keybindDt = null, int keybindDtHand = 0)
         {
             AttachToLeft  = attachLeft;
             AttachToHand  = attachHand;
@@ -496,6 +536,10 @@ namespace VRCNext.Services
             RotX = rx; RotY = ry; RotZ = rz;
             WidthMeters   = Math.Clamp(width, 0.05f, 1.0f);
             Keybind       = keybind ?? new();
+            KeybindHand   = keybindHand;
+            KeybindMode   = keybindMode;
+            KeybindDt     = keybindDt ?? new();
+            KeybindDtHand = keybindDtHand;
 
             if (IsConnected && OpenVR.Overlay != null)
             {
@@ -538,6 +582,57 @@ namespace VRCNext.Services
             {
                 lock (_notifImgCache) { _notifImgCache[url] = null; }
             }
+        }
+
+        // ── Friend location data (Location tab) ───────────────────────────────
+
+        public void SetFriendLocations(IReadOnlyList<(string worldId, string instanceId, string worldName, string worldImageUrl, string friendId, string friendName, string friendImageUrl, string location)> entries)
+        {
+            lock (_friendLocations)
+            {
+                _friendLocations.Clear();
+                _friendLocations.AddRange(entries.Select(e => new LocationEntry(
+                    e.worldId, e.instanceId, e.worldName, e.worldImageUrl,
+                    e.friendId, e.friendName, e.friendImageUrl, e.location)));
+            }
+            // Kick off image downloads for any URL not yet successfully loaded (bitmap == null).
+            // No sentinel is written on failure, so retries happen on next SetFriendLocations call.
+            foreach (var e in entries)
+            {
+                var wurl = e.worldImageUrl;
+                var furl = e.friendImageUrl;
+                if (!string.IsNullOrEmpty(wurl))
+                {
+                    bool needed;
+                    lock (_locationImgCache) needed = !_locationImgCache.TryGetValue(wurl, out var b) || b == null;
+                    if (needed) _ = Task.Run(() => EnsureLocationImageAsync(wurl));
+                }
+                if (!string.IsNullOrEmpty(furl))
+                {
+                    bool needed;
+                    lock (_locationImgCache) needed = !_locationImgCache.TryGetValue(furl, out var b) || b == null;
+                    if (needed) _ = Task.Run(() => EnsureLocationImageAsync(furl));
+                }
+            }
+            int totalPages = Math.Max(1, (GetLocationGroupCount() + 5) / 6);
+            _locationPage = Math.Clamp(_locationPage, 0, totalPages - 1);
+            _dirty = true;
+        }
+
+        private async Task EnsureLocationImageAsync(string url)
+        {
+            // Re-check under lock — another task may have already loaded it
+            lock (_locationImgCache) { if (_locationImgCache.TryGetValue(url, out var b) && b != null) return; }
+            try
+            {
+                var bytes = await _httpImgClient.GetByteArrayAsync(url);
+                using var ms = new System.IO.MemoryStream(bytes);
+                var bmp = new Bitmap(ms);
+                lock (_locationImgCache) { _locationImgCache[url] = bmp; }
+                _dirty = true;
+            }
+            catch { }
+            // No cache entry written on failure — next SetFriendLocations call will retry
         }
 
         public void UpdateMediaInfo(string title, string artist, double position, double duration, bool playing)
@@ -655,6 +750,8 @@ namespace VRCNext.Services
             _stableFrames       = 0;
             _lastPressedButtons = 0;
             _eventButtonsHeld   = 0; // clear stale state so nothing fires immediately
+            _eventLeftHeld      = 0;
+            _eventRightHeld     = 0;
             _log("[VROverlay] Keybind recording started");
             EmitState();
         }
@@ -767,7 +864,7 @@ namespace VRCNext.Services
 
                         // For the music player tab, re-render only when the displayed second
                         // actually changes — avoids calling SetOverlayRaw every tick.
-                        if (_activeTab == 1 && _mediaPlaying)
+                        if (_activeTab == 2 && _mediaPlaying)
                         {
                             int sec = (int)GetCurrentMediaPosition();
                             if (sec != _lastDisplayedSecond)
@@ -838,11 +935,17 @@ namespace VRCNext.Services
                 var eType = (EVREventType)evt.eventType;
                 if (eType == EVREventType.VREvent_ButtonPress)
                 {
-                    _eventButtonsHeld |= 1UL << (int)evt.data.controller.button;
+                    ulong bit = 1UL << (int)evt.data.controller.button;
+                    _eventButtonsHeld |= bit;
+                    if (evt.trackedDeviceIndex == _leftIdx)  _eventLeftHeld  |= bit;
+                    if (evt.trackedDeviceIndex == _rightIdx) _eventRightHeld |= bit;
                 }
                 else if (eType == EVREventType.VREvent_ButtonUnpress)
                 {
-                    _eventButtonsHeld &= ~(1UL << (int)evt.data.controller.button);
+                    ulong bit = 1UL << (int)evt.data.controller.button;
+                    _eventButtonsHeld &= ~bit;
+                    if (evt.trackedDeviceIndex == _leftIdx)  _eventLeftHeld  &= ~bit;
+                    if (evt.trackedDeviceIndex == _rightIdx) _eventRightHeld &= ~bit;
                 }
             }
 
@@ -857,18 +960,22 @@ namespace VRCNext.Services
                     var oType = (EVREventType)evt.eventType;
                     if (oType == EVREventType.VREvent_ButtonPress)
                     {
-                        _eventButtonsHeld |= 1UL << (int)evt.data.controller.button;
+                        ulong bit = 1UL << (int)evt.data.controller.button;
+                        _eventButtonsHeld |= bit;
+                        if (evt.trackedDeviceIndex == _leftIdx)  _eventLeftHeld  |= bit;
+                        if (evt.trackedDeviceIndex == _rightIdx) _eventRightHeld |= bit;
                     }
                     else if (oType == EVREventType.VREvent_ButtonUnpress)
                     {
-                        _eventButtonsHeld &= ~(1UL << (int)evt.data.controller.button);
+                        ulong bit = 1UL << (int)evt.data.controller.button;
+                        _eventButtonsHeld &= ~bit;
+                        if (evt.trackedDeviceIndex == _leftIdx)  _eventLeftHeld  &= ~bit;
+                        if (evt.trackedDeviceIndex == _rightIdx) _eventRightHeld &= ~bit;
                     }
                     else if (oType == EVREventType.VREvent_MouseButtonDown)
                     {
                         var mu = evt.data.mouse;
-                        float nx = mu.x / W;
-                        float ny = mu.y / H;   // OpenVR: y=0 at bottom, y=H at top
-                        HandleOverlayClick(nx, ny);
+                        HandleOverlayClick(mu.x / W, mu.y / H);
                     }
                 }
             }
@@ -877,23 +984,20 @@ namespace VRCNext.Services
         private void HandleOverlayClick(float nx, float ny)
         {
             // Tab bar: GDI+ y=8–58 → OpenVR ny ≈ 0.85–0.98 (y=0 at bottom)
-            // 3 tabs, each ~165px: thirds at nx 0.34 and 0.67
+            // 4 tabs, each 124px: tabTW=496/4=124 → thresholds at nx 0.25, 0.50, 0.75
             if (ny > 0.84f)
             {
-                _activeTab = nx < 0.34f ? 0 : nx < 0.67f ? 1 : 2;
+                _activeTab = nx < 0.25f ? 0 : nx < 0.50f ? 1 : nx < 0.75f ? 2 : 3;
                 _lastDisplayedSecond = -1;
+                _locationPage = 0;
                 _dirty = true;
                 return;
             }
 
-            // Music player controls (new layout):
-            //   artBottom=206, barY=268, barH=6, ctrlCY=312, W=512, H=384
-            //   OpenVR y=0 at bottom → ny=(H-gdiy)/H
+            // Music player controls:
             //   Controls GDI+ y 286–338 → ny 0.12–0.25
-            //   Prev  cx=172 ±18 → nx 0.27–0.40
-            //   Play  cx=256 ±26 → nx 0.43–0.57
-            //   Next  cx=340 ±18 → nx 0.60–0.73
-            if (_activeTab == 1 && ny >= 0.11f && ny <= 0.27f)
+            //   Prev cx=172±18 → nx 0.27–0.40, Play cx=256±26 → nx 0.43–0.57, Next cx=340±18 → nx 0.60–0.73
+            if (_activeTab == 2 && ny >= 0.11f && ny <= 0.27f)
             {
                 if      (nx >= 0.27f && nx <= 0.40f) SendSmtcCommand("prev");
                 else if (nx >= 0.43f && nx <= 0.57f) SendSmtcCommand("playpause");
@@ -901,7 +1005,7 @@ namespace VRCNext.Services
             }
 
             // Tools tab card clicks — same constants as DrawTools
-            if (_activeTab == 2)
+            if (_activeTab == 3)
             {
                 const int startY = 76, gap = 8, padX = 12;
                 int cardW = (W - padX * 2 - gap) / 2;
@@ -912,11 +1016,59 @@ namespace VRCNext.Services
                 int row   = (gdiy - startY) / (cardH + gap);
                 if (col >= 0 && col < 2 && row >= 0 && row < 3)
                 {
-                    // Verify click is inside the card (not in the gap)
                     int localX = (gdix - padX) % (cardW + gap);
                     int localY = (gdiy - startY) % (cardH + gap);
                     if (localX < cardW && localY < cardH)
                         OnToolToggle?.Invoke(row * 2 + col);
+                }
+            }
+
+            // Location tab: 2-column × 3-row grid + pagination arrows
+            if (_activeTab == 1)
+            {
+                int gdixL = (int)(nx * W);
+                int gdiyL = (int)((1f - ny) * H);
+                int colW  = LocColW; // 241
+
+                // Pagination bar (GDI y = LocPagY..LocPagY+LocPagH)
+                if (gdiyL >= LocPagY && gdiyL < LocPagY + LocPagH)
+                {
+                    int totalPages = Math.Max(1, (GetLocationGroupCount() + 5) / 6);
+                    // Left arrow: x = LocPadX .. LocPadX+LocArrW
+                    if (gdixL >= LocPadX && gdixL < LocPadX + LocArrW && _locationPage > 0)
+                    { _locationPage--; _dirty = true; }
+                    // Right arrow: x = W-LocPadX-LocArrW .. W-LocPadX
+                    else if (gdixL >= W - LocPadX - LocArrW && gdixL < W - LocPadX && _locationPage < totalPages - 1)
+                    { _locationPage++; _dirty = true; }
+                    return;
+                }
+
+                // Card grid (GDI y = LocContentY .. LocContentY + 3*(LocCardH+LocRowGap))
+                if (gdiyL >= LocContentY && gdiyL < LocPagY)
+                {
+                    int row = (gdiyL - LocContentY) / (LocCardH + LocRowGap);
+                    int col = gdixL < LocPadX + colW ? 0 : 1;
+                    // Verify inside card (not in gap row)
+                    int localY = (gdiyL - LocContentY) % (LocCardH + LocRowGap);
+                    int cardX  = LocPadX + col * (colW + LocColGap);
+                    if (row >= 0 && row < 3 && localY < LocCardH && gdixL >= cardX && gdixL < cardX + colW)
+                    {
+                        var groups = GetLocationGroups();
+                        int absIdx = _locationPage * 6 + row * 2 + col;
+                        if (absIdx >= 0 && absIdx < groups.Count)
+                        {
+                            var first = groups[absIdx][0];
+                            string locKey = first.WorldId + ":" + first.InstanceId;
+                            bool inCooldown = _joinCooldowns.TryGetValue(locKey, out var cdL)
+                                && (DateTime.UtcNow - cdL).TotalSeconds < 5;
+                            if (!inCooldown)
+                            {
+                                _joinCooldowns[locKey] = DateTime.UtcNow;
+                                _dirty = true;
+                                OnJoinRequest?.Invoke(first.FriendId, first.Location);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -956,6 +1108,21 @@ namespace VRCNext.Services
             }
         }
 
+        private List<List<LocationEntry>> GetLocationGroups()
+        {
+            lock (_friendLocations)
+                return _friendLocations
+                    .GroupBy(e => e.WorldId + ":" + e.InstanceId)
+                    .Select(g => g.ToList())
+                    .ToList();
+        }
+
+        private int GetLocationGroupCount()
+        {
+            lock (_friendLocations)
+                return _friendLocations.GroupBy(e => e.WorldId + ":" + e.InstanceId).Count();
+        }
+
         /// <summary>
         /// Merges GetControllerState (reliable when Steam overlay is closed) with
         /// _eventButtonsHeld (from VREvent_ButtonPress, reliable when Steam overlay
@@ -963,31 +1130,47 @@ namespace VRCNext.Services
         /// </summary>
         private ulong GetMergedButtonState()
         {
-            // Start with the event-driven state accumulated in PollEvents().
             ulong state = _eventButtonsHeld;
-
             if (_vrSystem == null) return state;
-
-            // Also poll GetControllerState — works when Steam overlay is NOT open.
-            // When the overlay IS open, this returns 0, so the merge is harmless.
             var s  = new VRControllerState_t();
             var sz = (uint)Marshal.SizeOf<VRControllerState_t>();
-            if (_leftIdx != OpenVR.k_unTrackedDeviceIndexInvalid)
-                if (_vrSystem.GetControllerState(_leftIdx, ref s, sz))
-                    state |= s.ulButtonPressed;
+            if (_leftIdx  != OpenVR.k_unTrackedDeviceIndexInvalid)
+                if (_vrSystem.GetControllerState(_leftIdx,  ref s, sz)) state |= s.ulButtonPressed;
             if (_rightIdx != OpenVR.k_unTrackedDeviceIndexInvalid)
-                if (_vrSystem.GetControllerState(_rightIdx, ref s, sz))
-                    state |= s.ulButtonPressed;
-
+                if (_vrSystem.GetControllerState(_rightIdx, ref s, sz)) state |= s.ulButtonPressed;
             return state;
+        }
+
+        /// <summary>
+        /// Returns button state for a specific controller side.
+        /// side=0 → merged (both), side=1 → left only, side=2 → right only.
+        /// </summary>
+        private ulong GetSideButtonState(int side)
+        {
+            if (side == 0) return GetMergedButtonState();
+
+            uint idx   = side == 1 ? _leftIdx : _rightIdx;
+            ulong held = side == 1 ? _eventLeftHeld : _eventRightHeld;
+
+            if (_vrSystem != null && idx != OpenVR.k_unTrackedDeviceIndexInvalid)
+            {
+                var s  = new VRControllerState_t();
+                var sz = (uint)Marshal.SizeOf<VRControllerState_t>();
+                if (_vrSystem.GetControllerState(idx, ref s, sz)) held |= s.ulButtonPressed;
+            }
+            return held;
         }
 
         private void PollKeybindRecording()
         {
-            ulong pressed = GetMergedButtonState();
-            int bitCount  = CountBits(pressed);
+            ulong pressed  = GetMergedButtonState() & ALLOWED_BUTTON_MASK;
+            int   bitCount = CountBits(pressed);
 
-            if (bitCount >= 2 && pressed == _lastPressedButtons)
+            // Combo: 1–4 buttons held stably. DoubleTap: exactly 1 button held stably.
+            int minButtons = 1;
+            int maxButtons = KeybindMode == 1 ? 1 : MAX_KEYBIND_BUTTONS;
+
+            if (bitCount >= minButtons && bitCount <= maxButtons && pressed == _lastPressedButtons)
             {
                 _stableFrames++;
                 if (_stableFrames >= STABLE_FRAMES_REQUIRED)
@@ -1002,33 +1185,72 @@ namespace VRCNext.Services
 
         private void PollKeybindTrigger()
         {
-            if (Keybind.Count == 0) return;
+            bool activeSlotEmpty = KeybindMode == 1 ? KeybindDt.Count == 0 : Keybind.Count == 0;
+            if (activeSlotEmpty) return;
 
-            ulong mask = 0;
-            foreach (var b in Keybind) mask |= 1UL << (int)b;
-
-            bool allHeld = mask != 0 && (GetMergedButtonState() & mask) == mask;
-
-            if (allHeld)
+            if (KeybindMode == 1)
             {
-                _keybindReleaseFrames = 0; // reset release counter while held
+                // ── Double-tap mode ──────────────────────────────────────────
+                ulong cur      = GetSideButtonState(KeybindDtHand) & ALLOWED_BUTTON_MASK;
+                ulong newPress = cur & ~_prevTriggerHeld; // edge: newly pressed this frame
+                _prevTriggerHeld = cur;
 
-                if (!_keybindTriggered)
+                if (newPress == 0)
                 {
-                    _keybindTriggered = true;
+                    // No new press — re-arm once button has been released long enough
+                    if (cur == 0)
+                    {
+                        _keybindReleaseFrames++;
+                        if (_keybindReleaseFrames >= KEYBIND_RELEASE_REQUIRED)
+                        {
+                            _keybindTriggered = false;
+                            _keybindReleaseFrames = 0;
+                        }
+                    }
+                    return;
+                }
+                _keybindReleaseFrames = 0;
+
+                // Take only the lowest set bit (first new button pressed this frame)
+                uint btn = FirstSetBit(newPress);
+                uint keybindBtn = KeybindDt.Count > 0 ? KeybindDt[0] : uint.MaxValue;
+                if (btn != keybindBtn) { _doubleTapLastButton = uint.MaxValue; return; }
+
+                var now = DateTime.UtcNow;
+                if (btn == _doubleTapLastButton
+                    && (now - _doubleTapLastTime).TotalMilliseconds < DOUBLE_TAP_WINDOW_MS
+                    && !_keybindTriggered)
+                {
+                    _keybindTriggered     = true;
+                    _doubleTapLastButton  = uint.MaxValue;
                     Toggle();
+                }
+                else
+                {
+                    _doubleTapLastButton = btn;
+                    _doubleTapLastTime   = now;
                 }
             }
             else
             {
-                // Require the combo to be stably released for KEYBIND_RELEASE_REQUIRED
-                // frames before re-arming. Prevents flicker during Steam overlay open/close
-                // where GetControllerState briefly returns 0 between frames.
-                _keybindReleaseFrames++;
-                if (_keybindReleaseFrames >= KEYBIND_RELEASE_REQUIRED)
+                // ── Combo (hold) mode ────────────────────────────────────────
+                ulong mask = 0;
+                foreach (var b in Keybind) mask |= 1UL << (int)b;
+                bool allHeld = mask != 0 && (GetSideButtonState(KeybindHand) & mask) == mask;
+
+                if (allHeld)
                 {
-                    _keybindTriggered = false;
                     _keybindReleaseFrames = 0;
+                    if (!_keybindTriggered) { _keybindTriggered = true; Toggle(); }
+                }
+                else
+                {
+                    _keybindReleaseFrames++;
+                    if (_keybindReleaseFrames >= KEYBIND_RELEASE_REQUIRED)
+                    {
+                        _keybindTriggered = false;
+                        _keybindReleaseFrames = 0;
+                    }
                 }
             }
         }
@@ -1038,22 +1260,42 @@ namespace VRCNext.Services
             IsRecording = false;
             _stableFrames = 0;
 
-            var ids = new List<uint>();
+            var ids   = new List<uint>();
             var names = new List<string>();
-            for (int b = 0; b < 64; b++)
+            int added = 0;
+            for (int b = 0; b < 64 && added < MAX_KEYBIND_BUTTONS; b++)
             {
                 if ((pressed & (1UL << b)) != 0)
                 {
                     var id = (uint)b;
                     ids.Add(id);
                     names.Add(ButtonNames.TryGetValue(id, out var n) ? n : $"Button{b}");
+                    added++;
                 }
             }
 
-            Keybind = ids;
-            _log($"[VROverlay] Keybind recorded: {string.Join("+", names)}");
-            OnKeybindRecorded?.Invoke(ids, names);
+            // Determine which controller side the combo came from
+            bool leftHasAll  = (GetSideButtonState(1) & pressed) == pressed;
+            bool rightHasAll = (GetSideButtonState(2) & pressed) == pressed;
+            int hand = leftHasAll && !rightHasAll ? 1
+                     : rightHasAll && !leftHasAll ? 2
+                     : 0;
+
+            if (KeybindMode == 1) { KeybindDt = ids; KeybindDtHand = hand; }
+            else                  { Keybind = ids;   KeybindHand   = hand; }
+
+            string modeLabel = KeybindMode == 1 ? "DoubleTap" : "Combo";
+            string side      = hand == 1 ? "Left" : hand == 2 ? "Right" : "Any";
+            _log($"[VROverlay] Keybind recorded ({modeLabel}): {side} — {string.Join("+", names)}");
+            OnKeybindRecorded?.Invoke(ids, names, hand, KeybindMode);
             EmitState();
+        }
+
+        private static uint FirstSetBit(ulong v)
+        {
+            for (int b = 0; b < 64; b++)
+                if ((v & (1UL << b)) != 0) return (uint)b;
+            return uint.MaxValue;
         }
 
         private static int CountBits(ulong v)
@@ -1104,6 +1346,10 @@ namespace VRCNext.Services
                 recording  = IsRecording,
                 keybind    = Keybind,
                 keybindNames = GetKeybindNames(),
+                keybindHand  = KeybindHand,
+                keybindMode  = KeybindMode,
+                keybindDt     = KeybindDt,
+                keybindDtHand = KeybindDtHand,
                 leftController  = _leftIdx  != OpenVR.k_unTrackedDeviceIndexInvalid,
                 rightController = _rightIdx != OpenVR.k_unTrackedDeviceIndexInvalid,
                 error      = LastError
@@ -1134,7 +1380,8 @@ namespace VRCNext.Services
                 DrawBackground(g);
                 DrawTabBar(g);
                 if      (_activeTab == 0) DrawNotifications(g);
-                else if (_activeTab == 1) DrawMusicPlayer(g);
+                else if (_activeTab == 1) DrawLocations(g);
+                else if (_activeTab == 2) DrawMusicPlayer(g);
                 else                      DrawTools(g);
 
                 UploadTexture();
@@ -1150,7 +1397,7 @@ namespace VRCNext.Services
             var th = _theme;
             const int r = 24;
 
-            bool hasArt = _activeTab == 1 && _albumArt != null && !string.IsNullOrWhiteSpace(_mediaTitle);
+            bool hasArt = _activeTab == 2 && _albumArt != null && !string.IsNullOrWhiteSpace(_mediaTitle);
 
             if (hasArt)
             {
@@ -1211,18 +1458,19 @@ namespace VRCNext.Services
             int tabH  = 50;
             int tabX  = 8;
             int tabTW = W - 16;           // total usable width
-            int tabW  = tabTW / 3;        // each tab width
+            int tabW  = tabTW / 4;        // each of 4 tabs
 
-            bool artBg = _activeTab == 1 && _albumArt != null && !string.IsNullOrWhiteSpace(_mediaTitle);
+            bool artBg = _activeTab == 2 && _albumArt != null && !string.IsNullOrWhiteSpace(_mediaTitle);
             if (!artBg)
             {
                 using var tabBg = new SolidBrush(Color.FromArgb(50, th.BgHover));
                 FillRoundedRect(g, tabBg, tabX, 8, tabTW, tabH, 14);
             }
 
-            DrawTab(g, "Alerts",  0, tabX,           8, tabW,          tabH);
-            DrawTab(g, "Music",   1, tabX + tabW,     8, tabW,          tabH);
-            DrawTab(g, "Tools",   2, tabX + tabW * 2, 8, tabTW - tabW * 2, tabH);
+            DrawTab(g, "\uE7F4", "Alerts",   0, tabX,               8, tabW,              tabH);
+            DrawTab(g, "\uE0C8", "Location", 1, tabX + tabW,         8, tabW,              tabH);
+            DrawTab(g, "\uE405", "Music",    2, tabX + tabW * 2,     8, tabW,              tabH);
+            DrawTab(g, "\uE869", "Tools",    3, tabX + tabW * 3,     8, tabTW - tabW * 3,  tabH);
 
             if (!artBg)
             {
@@ -1231,7 +1479,7 @@ namespace VRCNext.Services
             }
         }
 
-        private void DrawTab(Graphics g, string label, int index, int x, int y, int w, int h)
+        private void DrawTab(Graphics g, string icon, string label, int index, int x, int y, int w, int h)
         {
             var th = _theme;
             bool active = _activeTab == index;
@@ -1241,10 +1489,252 @@ namespace VRCNext.Services
                 FillRoundedRect(g, activeBg, x + 2, y + 2, w - 4, h - 4, 12);
             }
 
-            using var font = new Font("Segoe UI", 10.5f, active ? FontStyle.Bold : FontStyle.Regular, GraphicsUnit.Point);
             using var brush = new SolidBrush(active ? Color.White : Color.FromArgb(180, th.Tx2));
-            var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            g.DrawString(label, font, brush, new RectangleF(x, y, w, h), fmt);
+            var fmtC = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+
+            // Icon only — centered in full tab height
+            using var iconFont = _matSymFamily != null
+                ? new Font(_matSymFamily, 18f, FontStyle.Regular, GraphicsUnit.Point)
+                : new Font("Segoe MDL2 Assets", 18f, FontStyle.Regular, GraphicsUnit.Point);
+            g.DrawString(icon, iconFont, brush, new RectangleF(x, y, w, h), fmtC);
+        }
+
+        private void DrawLocations(Graphics g)
+        {
+            var th     = _theme;
+            int colW   = LocColW; // 241
+            var groups = GetLocationGroups();
+
+            if (groups.Count == 0)
+            {
+                int emptyW = 2 * colW + LocColGap;
+                using var emptyFont  = new Font("Segoe UI", 11f, FontStyle.Regular, GraphicsUnit.Point);
+                using var emptyBrush = new SolidBrush(th.Tx3);
+                var emptyFmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                g.DrawString("No friends online in worlds", emptyFont, emptyBrush,
+                    new RectangleF(LocPadX, LocContentY, emptyW, H - LocContentY - LocPadX), emptyFmt);
+                return;
+            }
+
+            int totalPages = Math.Max(1, (groups.Count + 5) / 6);
+            int startIdx   = _locationPage * 6;
+
+            for (int i = 0; i < 6; i++)
+            {
+                int absIdx = startIdx + i;
+                if (absIdx >= groups.Count) break;
+
+                int row = i / 2;
+                int col = i % 2;
+                int cx  = LocPadX + col * (colW + LocColGap);
+                int cy  = LocContentY + row * (LocCardH + LocRowGap);
+                DrawLocationCard(g, groups[absIdx], cx, cy, colW, LocCardH);
+            }
+
+            DrawLocationPagination(g, th, _locationPage, totalPages);
+        }
+
+        private void DrawLocationPagination(Graphics g, OverlayTheme th, int page, int totalPages)
+        {
+            int colW = LocColW;
+            int barX = LocPadX;
+            int barW = 2 * colW + LocColGap; // = W - 2*LocPadX = 488
+            int barY = LocPagY;
+            int barH = LocPagH;
+
+            bool canPrev = page > 0;
+            bool canNext = page < totalPages - 1;
+
+            var fmtC = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+
+            // Arrow buttons — same style as tab buttons (active pill bg when enabled)
+            int btnPad = 3; // inner padding so pill doesn't touch the bar edge
+            using var arrowFont = _matSymFamily != null
+                ? new Font(_matSymFamily, 16f, FontStyle.Regular, GraphicsUnit.Point)
+                : new Font("Segoe MDL2 Assets", 16f, FontStyle.Regular, GraphicsUnit.Point);
+
+            // Left arrow
+            if (canPrev)
+            {
+                using var btnBg = new SolidBrush(Color.FromArgb(55, th.Accent));
+                FillRoundedRect(g, btnBg, barX + btnPad, barY + btnPad, LocArrW - btnPad * 2, barH - btnPad * 2, 10);
+                using var pen = new Pen(Color.FromArgb(80, th.Accent), 1f);
+                DrawRoundedRect(g, pen, barX + btnPad, barY + btnPad, LocArrW - btnPad * 2, barH - btnPad * 2, 10);
+            }
+            using var leftBrush = new SolidBrush(canPrev ? th.Tx1 : Color.FromArgb(45, th.Tx3));
+            g.DrawString("\uE5CB", arrowFont, leftBrush, new RectangleF(barX, barY, LocArrW, barH), fmtC);
+
+            // Right arrow
+            if (canNext)
+            {
+                using var btnBg = new SolidBrush(Color.FromArgb(55, th.Accent));
+                FillRoundedRect(g, btnBg, barX + barW - LocArrW + btnPad, barY + btnPad, LocArrW - btnPad * 2, barH - btnPad * 2, 10);
+                using var pen = new Pen(Color.FromArgb(80, th.Accent), 1f);
+                DrawRoundedRect(g, pen, barX + barW - LocArrW + btnPad, barY + btnPad, LocArrW - btnPad * 2, barH - btnPad * 2, 10);
+            }
+            using var rightBrush = new SolidBrush(canNext ? th.Tx1 : Color.FromArgb(45, th.Tx3));
+            g.DrawString("\uE5CC", arrowFont, rightBrush, new RectangleF(barX + barW - LocArrW, barY, LocArrW, barH), fmtC);
+
+            // Page indicator — dots for each page, active dot accent-colored
+            int dotR    = 4;
+            int dotGap  = 6;
+            int dotsW   = totalPages * (dotR * 2) + (totalPages - 1) * dotGap;
+            int innerX  = barX + LocArrW;
+            int innerW  = barW - 2 * LocArrW;
+            int dotStartX = innerX + (innerW - dotsW) / 2;
+            int dotY    = barY + (barH - dotR * 2) / 2;
+
+            if (totalPages <= 8)
+            {
+                for (int i = 0; i < totalPages; i++)
+                {
+                    int dx = dotStartX + i * (dotR * 2 + dotGap);
+                    bool active = i == page;
+                    using var dotBrush = new SolidBrush(active ? th.Accent : Color.FromArgb(60, th.Tx3));
+                    if (active)
+                        g.FillEllipse(dotBrush, dx, dotY, dotR * 2, dotR * 2);
+                    else
+                        g.FillEllipse(dotBrush, dx + 1, dotY + 1, dotR * 2 - 2, dotR * 2 - 2);
+                }
+            }
+            else
+            {
+                // Fallback for many pages: "3 / 12" text
+                using var pageFont  = new Font("Segoe UI", 9f, FontStyle.Regular, GraphicsUnit.Point);
+                using var pageBrush = new SolidBrush(th.Tx2);
+                g.DrawString($"{page + 1} / {totalPages}", pageFont, pageBrush,
+                    new RectangleF(innerX, barY, innerW, barH), fmtC);
+            }
+        }
+
+        private void DrawLocationCard(Graphics g, List<LocationEntry> friends, int x, int y, int w, int h)
+        {
+            var th = _theme;
+            var first = friends[0];
+            string locKey = first.WorldId + ":" + first.InstanceId;
+            bool inCooldown = _joinCooldowns.TryGetValue(locKey, out var cdT)
+                && (DateTime.UtcNow - cdT).TotalSeconds < 5;
+
+            // ── Card background ────────────────────────────────────────────
+            using var cardBg = new SolidBrush(Color.FromArgb(inCooldown ? 160 : 190, inCooldown ? th.Ok : th.BgCard));
+            FillRoundedRect(g, cardBg, x, y, w, h, 8);
+
+            // ── World image (left strip 52×h-4) ───────────────────────────
+            const int imgW = 52;
+            Bitmap? worldImg = null;
+            if (!string.IsNullOrEmpty(first.WorldImageUrl))
+                lock (_locationImgCache) { _locationImgCache.TryGetValue(first.WorldImageUrl, out worldImg); }
+
+            var imgRect = new Rectangle(x + 2, y + 2, imgW, h - 4);
+            var oldClip = g.Clip;
+            using var imgPath = RoundedRectPath(imgRect.X, imgRect.Y, imgRect.Width, imgRect.Height, 6);
+            g.SetClip(imgPath);
+            if (worldImg != null)
+                g.DrawImage(worldImg, imgRect);
+            else
+            {
+                using var imgFallback = new SolidBrush(Color.FromArgb(80, th.Accent));
+                g.FillPath(imgFallback, imgPath);
+            }
+            g.SetClip(oldClip, System.Drawing.Drawing2D.CombineMode.Replace);
+
+            // ── Avatar (right side, 24×24) ────────────────────────────────
+            const int avSz = 24, avRadius = 5;
+            int avX = x + w - avSz - 6;
+            int avY = y + (h - avSz) / 2;
+
+            Bitmap? avImg = null;
+            if (!string.IsNullOrEmpty(first.FriendImageUrl))
+                lock (_locationImgCache) { _locationImgCache.TryGetValue(first.FriendImageUrl, out avImg); }
+
+            var avRect = new Rectangle(avX, avY, avSz, avSz);
+            var oldClip2 = g.Clip;
+            using var avPath = RoundedRectPath(avX, avY, avSz, avSz, avRadius);
+            g.SetClip(avPath);
+            if (avImg != null)
+            {
+                g.DrawImage(avImg, avRect);
+            }
+            else
+            {
+                using var avFallback = new SolidBrush(th.BgHover);
+                g.FillPath(avFallback, avPath);
+                g.ResetClip();
+                string init = first.FriendName.Length > 0 ? first.FriendName[0].ToString().ToUpper() : "?";
+                using var initFont  = new Font("Segoe UI", 8f, FontStyle.Bold, GraphicsUnit.Point);
+                using var initBrush = new SolidBrush(th.Tx2);
+                var initFmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                g.DrawString(init, initFont, initBrush, new RectangleF(avX, avY, avSz, avSz), initFmt);
+            }
+            g.SetClip(oldClip2, System.Drawing.Drawing2D.CombineMode.Replace);
+            using var avBorder = new Pen(Color.FromArgb(60, th.Brd), 1f);
+            DrawRoundedRect(g, avBorder, avX, avY, avSz, avSz, avRadius);
+
+            // "+N" badge for multiple friends in same instance
+            if (friends.Count > 1)
+            {
+                int badgeX = avX - 18;
+                int badgeY = avY + avSz - 12;
+                using var badgeBg    = new SolidBrush(Color.FromArgb(200, th.Accent));
+                using var badgeFont  = new Font("Segoe UI", 6.5f, FontStyle.Bold, GraphicsUnit.Point);
+                using var badgeBrush = new SolidBrush(Color.White);
+                var bFmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                FillRoundedRect(g, badgeBg, badgeX, badgeY, 16, 12, 4);
+                g.DrawString($"+{friends.Count - 1}", badgeFont, badgeBrush,
+                    new RectangleF(badgeX, badgeY, 16, 12), bFmt);
+            }
+
+            // ── Text area ─────────────────────────────────────────────────
+            int textX = x + imgW + 6;
+            int textW = w - imgW - 6 - avSz - 10;
+
+            // World name (bold 9pt)
+            using var worldNameFont  = new Font("Segoe UI", 9f, FontStyle.Bold, GraphicsUnit.Point);
+            using var worldNameBrush = new SolidBrush(inCooldown ? Color.White : th.Tx1);
+            var ellipsisFmt = new StringFormat { Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap };
+            string worldDisplay = !string.IsNullOrEmpty(first.WorldName) ? first.WorldName : first.WorldId;
+            g.DrawString(worldDisplay, worldNameFont, worldNameBrush,
+                new RectangleF(textX, y + 8, textW, 16), ellipsisFmt);
+
+            // Friend name (7.5pt gray)
+            string subText = friends.Count == 1
+                ? first.FriendName
+                : $"{friends.Count} friends";
+            using var subFont  = new Font("Segoe UI", 7.5f, FontStyle.Regular, GraphicsUnit.Point);
+            using var subBrush = new SolidBrush(inCooldown ? Color.FromArgb(200, Color.White) : th.Tx3);
+            g.DrawString(subText, subFont, subBrush,
+                new RectangleF(textX, y + 28, textW, 14), ellipsisFmt);
+
+            // Instance type (7pt, accent-ish)
+            string instanceType = ParseInstanceType(first.Location);
+            using var typeFont  = new Font("Segoe UI", 7f, FontStyle.Regular, GraphicsUnit.Point);
+            using var typeBrush = new SolidBrush(inCooldown ? Color.FromArgb(160, Color.White) : Color.FromArgb(160, th.Tx2));
+            g.DrawString(instanceType, typeFont, typeBrush,
+                new RectangleF(textX, y + 44, textW, 13), ellipsisFmt);
+
+            // ── Cooldown checkmark ────────────────────────────────────────
+            if (inCooldown)
+            {
+                using var checkFont = _matSymFamily != null
+                    ? new Font(_matSymFamily, 16f, FontStyle.Regular, GraphicsUnit.Point)
+                    : new Font("Segoe MDL2 Assets", 16f, FontStyle.Regular, GraphicsUnit.Point);
+                using var checkBrush = new SolidBrush(Color.White);
+                var checkFmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                g.DrawString("\uE876", checkFont, checkBrush,
+                    new RectangleF(x + imgW + 4, y, w - imgW - 4 - avSz - 10, h), checkFmt);
+            }
+        }
+
+        private static string ParseInstanceType(string location)
+        {
+            if (string.IsNullOrEmpty(location)) return "Unknown";
+            if (location.Contains("~private("))  return "Private";
+            if (location.Contains("~friends("))  return "Friends";
+            if (location.Contains("~hidden("))   return "Friends+";
+            if (location.Contains("~group("))    return "Group";
+            if (location.Contains("~groupPublic(")) return "Group Public";
+            if (location.Contains(':'))          return "Public";
+            return "Unknown";
         }
 
         private void DrawTools(Graphics g)

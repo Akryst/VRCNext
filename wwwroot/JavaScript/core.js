@@ -409,7 +409,7 @@ function showTab(i) {
             }
         }
     });
-    document.getElementById('pageTitle').textContent = ['Dashboard','Worlds','Groups','People','Avatars','Custom Chatbox','Media Relay','Media Library','Activity Log','Settings','Space Flight','OSC Tool','Timeline','Inventory','YouTube Fix','Mutual Network','Time Spent','Calendar','Voice Fight','Discord Presence'][i] ?? '';
+    document.getElementById('pageTitle').textContent = ['Dashboard','Worlds','Groups','People','Avatars','Custom Chatbox','Media Relay','Media Library','Activity Log','Settings','Space Flight','OSC Tool','Timeline','Inventory','YouTube Fix','Mutual Network','Time Spent','Calendar','Voice Fight','Discord Presence','VR Overlay'][i] ?? '';
     if (i === 0) renderDashboard();
     if (i === 1 && favWorldsData.length === 0) sendToCS({ action: 'vrcGetFavoriteWorlds' });
     if (i === 2 && !myGroupsLoaded) loadMyGroups();

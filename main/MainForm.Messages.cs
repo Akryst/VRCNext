@@ -3878,8 +3878,8 @@ public partial class MainForm
                         _vrOverlay ??= new Services.VROverlayService(
                             s => Invoke(() => SendToJS("log", new { msg = s, color = "sec" })));
                         _vrOverlay.OnStateUpdate    += d => Invoke(() => SendToJS("vroState", d));
-                        _vrOverlay.OnKeybindRecorded += (ids, names) =>
-                            Invoke(() => SendToJS("vroKeybindRecorded", new { ids, names }));
+                        _vrOverlay.OnKeybindRecorded += (ids, names, hand, mode) =>
+                            Invoke(() => SendToJS("vroKeybindRecorded", new { ids, names, hand, mode }));
                         _vrOverlay.OnToolToggle    += idx => Invoke(() => ToggleToolFromOverlay(idx));
                         _vrOverlay.OnJoinRequest   += (fid, loc) => Invoke(async () =>
                         {
@@ -3895,19 +3895,24 @@ public partial class MainForm
                             _settings.VroAttachLeft, _settings.VroAttachHand,
                             _settings.VroPosX, _settings.VroPosY, _settings.VroPosZ,
                             _settings.VroRotX, _settings.VroRotY, _settings.VroRotZ,
-                            _settings.VroWidth, _settings.VroKeybind);
+                            _settings.VroWidth, _settings.VroKeybind, _settings.VroKeybindHand,
+                            _settings.VroKeybindMode, _settings.VroKeybindDt, _settings.VroKeybindDtHand);
 
                         bool ok = _vrOverlay.Connect();
-                        if (ok) _vrOverlay.StartPolling();
+                        if (ok) { _vrOverlay.StartPolling(); PushVroLocations(); }
                         UpdateVroToolStates();
                         SendToJS("vroState", new
                         {
-                            connected = ok,
-                            visible   = false,
-                            recording = false,
-                            keybind   = _settings.VroKeybind,
-                            keybindNames = new List<string>(),
-                            error     = ok ? null : _vrOverlay.LastError
+                            connected    = ok,
+                            visible      = false,
+                            recording    = false,
+                            keybind       = _settings.VroKeybind,
+                            keybindNames  = new List<string>(),
+                            keybindHand   = _settings.VroKeybindHand,
+                            keybindMode   = _settings.VroKeybindMode,
+                            keybindDt     = _settings.VroKeybindDt,
+                            keybindDtHand = _settings.VroKeybindDtHand,
+                            error         = ok ? null : _vrOverlay.LastError
                         });
                     }
                     break;
@@ -3955,17 +3960,25 @@ public partial class MainForm
                         float ry    = msg["rotY"]?.Value<float>() ?? 0f;
                         float rz    = msg["rotZ"]?.Value<float>() ?? 0f;
                         float width = msg["width"]?.Value<float>() ?? 0.22f;
-                        var kb      = msg["keybind"]?.ToObject<List<uint>>() ?? new();
+                        var kb        = msg["keybind"]?.ToObject<List<uint>>() ?? new();
+                        int kbHand    = msg["keybindHand"]?.Value<int>() ?? 0;
+                        int kbMode    = msg["keybindMode"]?.Value<int>() ?? 0;
+                        var kbDt      = msg["keybindDt"]?.ToObject<List<uint>>() ?? new();
+                        int kbDtHand  = msg["keybindDtHand"]?.Value<int>() ?? 0;
 
-                        _settings.VroAttachLeft = left;
-                        _settings.VroAttachHand = hand;
+                        _settings.VroAttachLeft   = left;
+                        _settings.VroAttachHand   = hand;
                         _settings.VroPosX = px; _settings.VroPosY = py; _settings.VroPosZ = pz;
                         _settings.VroRotX = rx; _settings.VroRotY = ry; _settings.VroRotZ = rz;
-                        _settings.VroWidth = width;
-                        _settings.VroKeybind = kb;
+                        _settings.VroWidth        = width;
+                        _settings.VroKeybind      = kb;
+                        _settings.VroKeybindHand  = kbHand;
+                        _settings.VroKeybindMode  = kbMode;
+                        _settings.VroKeybindDt    = kbDt;
+                        _settings.VroKeybindDtHand = kbDtHand;
                         _settings.Save();
 
-                        _vrOverlay?.ApplyConfig(left, hand, px, py, pz, rx, ry, rz, width, kb);
+                        _vrOverlay?.ApplyConfig(left, hand, px, py, pz, rx, ry, rz, width, kb, kbHand, kbMode, kbDt, kbDtHand);
                     }
                     break;
 

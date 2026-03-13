@@ -1,11 +1,31 @@
 /* === VR Wrist Overlay === */
 
-let vroConnected   = false;
-let vroVisible     = false;
-let vroRecording   = false;
-let vroKeybindIds  = [];
-let vroKeybindNames = [];
-let _vroAutoTimer  = null;
+let vroConnected    = false;
+let vroVisible      = false;
+let vroRecording    = false;
+let vroKeybindMode  = 0;   // 0=combo(hold), 1=doubletap — which mode is ACTIVE
+
+// Combo slot (1–4 buttons held)
+let vroComboIds    = [];
+let vroComboHand   = 0;   // 0=any, 1=left, 2=right
+
+// Double-tap slot (exactly 1 button, double-press)
+let vroDtIds       = [];
+let vroDtHand      = 0;   // 0=any, 1=left, 2=right
+
+let _vroAutoTimer   = null;
+let _vroPrevHand    = null; // tracks previous hand selection for mirror logic
+
+// Button name lookup (mirrors C# ButtonNames dictionary)
+const VRO_BTN_NAMES = { 1: 'B/Y', 2: 'Grip', 7: 'A/X', 32: 'Stick', 33: 'Trigger' };
+function vroGetNames(ids) {
+    return ids.map(id => VRO_BTN_NAMES[id] ?? `Button${id}`);
+}
+
+// ── Helpers to get/set active slot ───────────────────────────────────────────
+
+function vroActiveIds()  { return vroKeybindMode === 0 ? vroComboIds  : vroDtIds;  }
+function vroActiveHand() { return vroKeybindMode === 0 ? vroComboHand : vroDtHand; }
 
 // ── State sync from C# ───────────────────────────────────────────────────────
 
@@ -14,12 +34,15 @@ function handleVroState(d) {
     vroVisible      = !!d.visible;
     vroRecording    = !!d.recording;
 
-    if (d.keybind   !== undefined) vroKeybindIds   = d.keybind   || [];
-    if (d.keybindNames !== undefined) vroKeybindNames = d.keybindNames || [];
+    if (d.keybind     !== undefined) vroComboIds   = d.keybind     || [];
+    if (d.keybindHand !== undefined) vroComboHand  = d.keybindHand ?? 0;
+    if (d.keybindDt   !== undefined) vroDtIds      = d.keybindDt   || [];
+    if (d.keybindDtHand !== undefined) vroDtHand   = d.keybindDtHand ?? 0;
+    if (d.keybindMode !== undefined) vroKeybindMode = d.keybindMode ?? 0;
 
-    const dot  = document.getElementById('vroDot');
-    const txt  = document.getElementById('vroStatusText');
-    const btn  = document.getElementById('vroConnBtn');
+    const dot   = document.getElementById('vroDot');
+    const txt   = document.getElementById('vroStatusText');
+    const btn   = document.getElementById('vroConnBtn');
     const badge = document.getElementById('badgeVro');
 
     if (d.connected) {
@@ -28,8 +51,6 @@ function handleVroState(d) {
         if (txt) txt.style.color = 'var(--ok)';
         if (btn) btn.innerHTML = '<span class="msi" style="font-size:16px;">link_off</span> Disconnect';
         badge?.classList.replace('offline', 'online');
-        // Push current resolved colors so the overlay gets the right theme immediately,
-        // including auto color. applyColors() will sendToCS overlayThemeColors.
         if (currentSpecialTheme === 'auto') applyAutoColor();
         else if (typeof THEMES !== 'undefined' && THEMES[currentTheme]) applyColors(THEMES[currentTheme].c);
     } else {
@@ -43,8 +64,8 @@ function handleVroState(d) {
     const controlCard = document.getElementById('vroControlCard');
     if (controlCard) controlCard.style.display = d.connected ? '' : 'none';
 
-    const showBtn  = document.getElementById('vroShowBtn');
-    const hideBtn  = document.getElementById('vroHideBtn');
+    const showBtn = document.getElementById('vroShowBtn');
+    const hideBtn = document.getElementById('vroHideBtn');
     if (showBtn) { showBtn.disabled = !d.connected; showBtn.style.opacity = d.connected ? '1' : '0.4'; }
     if (hideBtn) { hideBtn.disabled = !d.connected; hideBtn.style.opacity = d.connected ? '1' : '0.4'; }
 
@@ -53,6 +74,7 @@ function handleVroState(d) {
     if (visIco) visIco.textContent = d.visible ? 'visibility_off' : 'visibility';
     if (visTxt) visTxt.textContent = d.visible ? 'Hide Overlay' : 'Show Overlay';
 
+    updateModePill();
     updateKeybindDisplay();
     updateRecordingUI();
 
@@ -63,9 +85,17 @@ function handleVroState(d) {
 }
 
 function handleVroKeybindRecorded(d) {
-    vroKeybindIds   = d.ids   || [];
-    vroKeybindNames = d.names || [];
-    vroRecording    = false;
+    const ids  = d.ids  || [];
+    const hand = d.hand ?? 0;
+    const mode = d.mode ?? 0;
+
+    if (mode === 0) { vroComboIds = ids; vroComboHand = hand; }
+    else            { vroDtIds    = ids; vroDtHand    = hand; }
+
+    // Switch active mode to match what was just recorded
+    vroKeybindMode = mode;
+    vroRecording   = false;
+    updateModePill();
     updateKeybindDisplay();
     updateRecordingUI();
     vroSendConfig();
@@ -93,20 +123,23 @@ function vroToggleVisibility() {
 
 function vroSendConfig() {
     const attachLeft = document.getElementById('vroAttachLeft')?.value === 'left';
-    const attachHand = document.getElementById('vroAttachPart')?.value === 'hand';
 
     sendToCS({
-        action:     'vroConfig',
+        action:        'vroConfig',
         attachLeft,
-        attachHand,
-        posX:       parseFloat(document.getElementById('vroPosX')?.value)  || 0,
-        posY:       parseFloat(document.getElementById('vroPosY')?.value)  || 0.07,
-        posZ:       parseFloat(document.getElementById('vroPosZ')?.value)  || -0.05,
-        rotX:       parseFloat(document.getElementById('vroRotX')?.value)  || -80,
-        rotY:       parseFloat(document.getElementById('vroRotY')?.value)  || 0,
-        rotZ:       parseFloat(document.getElementById('vroRotZ')?.value)  || 0,
-        width:      parseFloat(document.getElementById('vroWidth')?.value) || 0.22,
-        keybind:    vroKeybindIds
+        attachHand:    true,
+        posX:          parseFloat(document.getElementById('vroPosX')?.value)  || 0,
+        posY:          parseFloat(document.getElementById('vroPosY')?.value)  || 0.07,
+        posZ:          parseFloat(document.getElementById('vroPosZ')?.value)  || -0.05,
+        rotX:          parseFloat(document.getElementById('vroRotX')?.value)  || -80,
+        rotY:          parseFloat(document.getElementById('vroRotY')?.value)  || 0,
+        rotZ:          parseFloat(document.getElementById('vroRotZ')?.value)  || 0,
+        width:         parseFloat(document.getElementById('vroWidth')?.value) || 0.22,
+        keybind:       vroComboIds,
+        keybindHand:   vroComboHand,
+        keybindDt:     vroDtIds,
+        keybindDtHand: vroDtHand,
+        keybindMode:   vroKeybindMode,
     });
 }
 
@@ -116,10 +149,46 @@ function vroAutoSave() {
     _vroAutoTimer = setTimeout(() => saveSettings(), 600);
 }
 
+// Called when the Hand dropdown changes — mirrors transform then saves
+function vroMirrorAndSave() {
+    const handEl = document.getElementById('vroAttachLeft');
+    const isLeft = handEl?.value === 'left';
+
+    if (_vroPrevHand !== null && _vroPrevHand !== isLeft) {
+        const posX = document.getElementById('vroPosX');
+        const rotY = document.getElementById('vroRotY');
+        const rotZ = document.getElementById('vroRotZ');
+        if (posX) { posX.value = String(-parseFloat(posX.value)); vroUpdateTransformLabel('vroPosX'); }
+        if (rotY) { rotY.value = String(-parseFloat(rotY.value)); vroUpdateTransformLabel('vroRotY'); }
+        if (rotZ) { rotZ.value = String(-parseFloat(rotZ.value)); vroUpdateTransformLabel('vroRotZ'); }
+    }
+    _vroPrevHand = isLeft;
+    vroAutoSave();
+}
+
 function vroAutoSaveSettings() {
     sendToCS({ action: 'vroAutoSave', autoStart: !!document.getElementById('setVroAutoStart')?.checked });
     clearTimeout(_vroAutoTimer);
     _vroAutoTimer = setTimeout(() => saveSettings(), 600);
+}
+
+// ── Mode pill ─────────────────────────────────────────────────────────────────
+
+function vroSetMode(mode) {
+    if (mode === vroKeybindMode) return; // already active — don't clear anything
+    vroKeybindMode = mode;
+    updateModePill();
+    updateKeybindDisplay();
+    updateRecordingUI();
+    vroSendConfig();
+}
+
+function updateModePill() {
+    const comboBtn  = document.getElementById('vroModeCombo');
+    const dtBtn     = document.getElementById('vroModeDoubleTap');
+    if (!comboBtn || !dtBtn) return;
+    comboBtn.classList.toggle('active', vroKeybindMode === 0);
+    dtBtn.classList.toggle('active',    vroKeybindMode === 1);
 }
 
 // ── Keybind recording ─────────────────────────────────────────────────────────
@@ -138,8 +207,8 @@ function vroCancelRecording() {
 }
 
 function vroClearKeybind() {
-    vroKeybindIds   = [];
-    vroKeybindNames = [];
+    if (vroKeybindMode === 0) { vroComboIds = []; vroComboHand = 0; }
+    else                      { vroDtIds    = []; vroDtHand    = 0; }
     updateKeybindDisplay();
     vroSendConfig();
 }
@@ -150,35 +219,57 @@ function updateRecordingUI() {
     const hint      = document.getElementById('vroRecordHint');
 
     if (vroRecording) {
-        if (recordBtn) { recordBtn.style.display = 'none'; }
-        if (cancelBtn) { cancelBtn.style.display = 'flex'; }
-        if (hint)      { hint.textContent = 'Press 2–3 controller buttons simultaneously and hold…'; hint.style.color = 'var(--warn)'; }
+        if (recordBtn) recordBtn.style.display = 'none';
+        if (cancelBtn) cancelBtn.style.display = 'flex';
+        if (hint) {
+            hint.textContent = vroKeybindMode === 1
+                ? 'Press one button and hold to record for Double Tap…'
+                : 'Hold 1–4 buttons simultaneously to record a combo…';
+            hint.style.color = 'var(--warn)';
+        }
     } else {
-        if (recordBtn) { recordBtn.style.display = 'flex'; }
-        if (cancelBtn) { cancelBtn.style.display = 'none'; }
-        if (hint)      { hint.textContent = 'Hold 2–3 controller buttons together to record a combo.'; hint.style.color = 'var(--tx3)'; }
+        if (recordBtn) recordBtn.style.display = 'flex';
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        if (hint) {
+            hint.textContent = vroKeybindMode === 1
+                ? 'Double-tap a single button to toggle the overlay.'
+                : 'Hold 1–4 buttons on one controller to toggle the overlay.';
+            hint.style.color = 'var(--tx3)';
+        }
     }
 }
 
 function updateKeybindDisplay() {
     const display = document.getElementById('vroKeybindDisplay');
     const visual  = document.getElementById('vroControllerVisual');
+
+    const ids  = vroActiveIds();
+    const hand = vroActiveHand();
+
     if (!display) return;
 
-    if (vroKeybindNames.length === 0) {
+    if (ids.length === 0) {
         display.innerHTML = '<span style="color:var(--tx3);font-style:italic;">No keybind set</span>';
     } else {
-        display.innerHTML = vroKeybindNames
+        const names = vroGetNames(ids);
+        const sideLabel = hand === 1 ? '<span class="vro-keybind-chip" style="background:var(--accent20);color:var(--accent);">L</span>'
+                        : hand === 2 ? '<span class="vro-keybind-chip" style="background:var(--accent20);color:var(--accent);">R</span>'
+                        : '';
+        const modeChip = vroKeybindMode === 1
+            ? '<span class="vro-keybind-chip" style="background:color-mix(in srgb,var(--cyan) 20%,transparent);color:var(--cyan);border-color:var(--cyan);">×2</span>'
+            : '';
+        const chips = names
             .map(n => `<span class="vro-keybind-chip">${n}</span>`)
             .join('<span class="vro-keybind-plus">+</span>');
+        const sep = (sideLabel || modeChip) ? '<span class="vro-keybind-plus">·</span>' : '';
+        display.innerHTML = modeChip + sideLabel + sep + chips;
     }
 
     if (!visual) return;
-    // Update highlighted buttons on the controller SVG
     visual.querySelectorAll('.vro-btn').forEach(el => {
         el.classList.remove('active');
         const btnId = parseInt(el.dataset.btnId ?? '999');
-        if (vroKeybindIds.includes(btnId)) el.classList.add('active');
+        if (ids.includes(btnId)) el.classList.add('active');
     });
 }
 
@@ -197,11 +288,9 @@ function vroLoadSettings(s) {
     if (!s) return;
 
     const attachLeftEl = document.getElementById('vroAttachLeft');
-    const attachPartEl = document.getElementById('vroAttachPart');
     if (attachLeftEl) attachLeftEl.value = s.vroAttachLeft ? 'left' : 'right';
-    if (attachPartEl) attachPartEl.value = s.vroAttachHand ? 'hand' : 'arm';
 
-    const ids = ['vroPosX','vroPosY','vroPosZ','vroRotX','vroRotY','vroRotZ','vroWidth'];
+    const ids  = ['vroPosX','vroPosY','vroPosZ','vroRotX','vroRotY','vroRotZ','vroWidth'];
     const keys = ['vroPosX','vroPosY','vroPosZ','vroRotX','vroRotY','vroRotZ','vroWidth'];
     ids.forEach((id, i) => {
         const el = document.getElementById(id);
@@ -214,7 +303,15 @@ function vroLoadSettings(s) {
     const autoEl = document.getElementById('setVroAutoStart');
     if (autoEl && s.vroAutoStart !== undefined) autoEl.checked = !!s.vroAutoStart;
 
-    vroKeybindIds   = s.vroKeybind   || [];
-    vroKeybindNames = s.vroKeybindNames || [];
+    vroComboIds   = s.vroKeybind   || [];
+    vroComboHand  = s.vroKeybindHand ?? 0;
+    vroDtIds      = s.vroKeybindDt   || [];
+    vroDtHand     = s.vroKeybindDtHand ?? 0;
+    vroKeybindMode = s.vroKeybindMode ?? 0;
+
+    updateModePill();
     updateKeybindDisplay();
+    updateRecordingUI();
+
+    _vroPrevHand = s.vroAttachLeft ? true : false;
 }

@@ -6991,13 +6991,14 @@ div.vn-select {
     align-items: center;
 }
 .vro-ctrl-left,
-.vro-ctrl-right,
-.vro-ctrl-center {
+.vro-ctrl-right {
     display: flex;
     flex-direction: column;
     gap: 6px;
     align-items: center;
 }
+
+
 .vro-btn {
     background: var(--bg2);
     border: 1.5px solid var(--bdr);

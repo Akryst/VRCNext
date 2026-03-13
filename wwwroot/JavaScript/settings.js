@@ -135,7 +135,11 @@ function saveSettings() {
             vroRotY:  parseFloat(document.getElementById('vroRotY')?.value) || 0,
             vroRotZ:  parseFloat(document.getElementById('vroRotZ')?.value) || 0,
             vroWidth: parseFloat(document.getElementById('vroWidth')?.value) || 0.22,
-            vroKeybind: vroKeybindIds ?? [],
+            vroKeybind:       vroComboIds    ?? [],
+            vroKeybindHand:   vroComboHand   ?? 0,
+            vroKeybindDt:     vroDtIds       ?? [],
+            vroKeybindDtHand: vroDtHand      ?? 0,
+            vroKeybindMode:   vroKeybindMode ?? 0,
             dpHideJoinBtnJoinMe: document.getElementById('dpHideJoinBtn_joinme')?.checked ?? false,
             dpHideJoinBtnOnline: document.getElementById('dpHideJoinBtn_online')?.checked ?? false,
             dpHideJoinBtnAskMe:  document.getElementById('dpHideJoinBtn_askme')?.checked  ?? false,
@@ -306,8 +310,11 @@ function loadSettingsToUI(s) {
         vroRotZ: s.VroRotZ ?? s.vroRotZ ?? 0,
         vroWidth: s.VroWidth ?? s.vroWidth ?? 0.22,
         vroAutoStart: _vroAutoStart,
-        vroKeybind: s.VroKeybind ?? s.vroKeybind ?? [],
-        vroKeybindNames: s.VroKeybindNames ?? []
+        vroKeybind:       s.VroKeybind       ?? s.vroKeybind       ?? [],
+        vroKeybindHand:   s.VroKeybindHand   ?? s.vroKeybindHand   ?? 0,
+        vroKeybindDt:     s.VroKeybindDt     ?? s.vroKeybindDt     ?? [],
+        vroKeybindDtHand: s.VroKeybindDtHand ?? s.vroKeybindDtHand ?? 0,
+        vroKeybindMode:   s.VroKeybindMode   ?? s.vroKeybindMode   ?? 0
     });
 
     // Trigger auto-starts if enabled

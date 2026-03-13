@@ -992,16 +992,9 @@
                         <div class="sf-card-header"><span class="msi">back_hand</span> Attachment</div>
                         <div class="vro-setting-row">
                             <label>Hand</label>
-                            <select id="vroAttachLeft" class="vrcn-select" onchange="vroAutoSave()">
+                            <select id="vroAttachLeft" class="vrcn-select" onchange="vroMirrorAndSave()">
                                 <option value="left">Left</option>
                                 <option value="right">Right</option>
-                            </select>
-                        </div>
-                        <div class="vro-setting-row">
-                            <label>Position</label>
-                            <select id="vroAttachPart" class="vrcn-select" onchange="vroAutoSave()">
-                                <option value="hand">Hand / Controller</option>
-                                <option value="arm">Wrist / Forearm</option>
                             </select>
                         </div>
                     </div>
@@ -1057,30 +1050,31 @@
                     <div class="sf-card">
                         <div class="sf-card-header"><span class="msi">gamepad</span> Toggle Keybind</div>
 
+                        <!-- Mode selector: Keybind | Double Tap -->
+                        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+                            <button class="vrcn-button sub-tab-btn active" id="vroModeCombo" onclick="vroSetMode(0)">
+                                <span class="msi" style="font-size:13px;">back_hand</span> Keybind
+                            </button>
+                            <button class="vrcn-button sub-tab-btn" id="vroModeDoubleTap" onclick="vroSetMode(1)">
+                                <span class="msi" style="font-size:13px;">touch_app</span> Double Tap
+                            </button>
+                        </div>
+
                         <!-- Controller button visual -->
                         <div id="vroControllerVisual" class="vro-controller-visual">
                             <div class="vro-ctrl-diagram">
                                 <div class="vro-ctrl-body">
-                                    <!-- Left side -->
                                     <div class="vro-ctrl-left">
-                                        <div class="vro-btn" data-btn-id="2" title="Grip">Grip</div>
+                                        <div class="vro-btn" data-btn-id="2"  title="Grip">Grip</div>
+                                        <div class="vro-btn" data-btn-id="33" title="Trigger">Trigger</div>
                                         <div class="vro-btn" data-btn-id="32" title="Thumbstick">Stick</div>
-                                        <div class="vro-btn" data-btn-id="33" title="Trigger">Trig.</div>
                                     </div>
-                                    <!-- Center -->
-                                    <div class="vro-ctrl-center">
-                                        <div class="vro-btn" data-btn-id="0" title="System">Sys</div>
-                                        <div class="vro-btn" data-btn-id="1" title="Menu / B">Menu</div>
-                                    </div>
-                                    <!-- Right side -->
                                     <div class="vro-ctrl-right">
-                                        <div class="vro-btn" data-btn-id="7" title="A Button">A</div>
-                                        <div class="vro-btn" data-btn-id="2" title="Grip">Grip</div>
-                                        <div class="vro-btn" data-btn-id="33" title="Trigger">Trig.</div>
+                                        <div class="vro-btn" data-btn-id="7" title="A (right) / X (left)">A / X</div>
+                                        <div class="vro-btn" data-btn-id="1" title="B (right) / Y (left)">B / Y</div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="vro-ctrl-legend">Buttons highlighted <span class="vro-btn-demo">in blue</span> are bound</div>
                         </div>
 
                         <!-- Current keybind display -->
@@ -1097,28 +1091,16 @@
                         <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
                             <button class="vrcn-button" id="vroRecordBtn" onclick="vroStartRecording()"
                                 style="flex:1;justify-content:center;">
-                                <span class="msi" style="font-size:15px;">radio_button_checked</span> Record Keybind
+                                <span class="msi" style="font-size:15px;">radio_button_checked</span> Record
                             </button>
                             <button class="vrcn-button" id="vroCancelRecordBtn" onclick="vroCancelRecording()"
                                 style="flex:1;justify-content:center;display:none;border-color:var(--warn);">
                                 <span class="msi" style="font-size:15px;">stop_circle</span> Cancel
                             </button>
                         </div>
-                        <div id="vroRecordHint" style="margin-top:6px;font-size:11px;color:var(--tx3);">
-                            Hold 2–3 controller buttons together to record a combo.
-                        </div>
+                        <div id="vroRecordHint" style="margin-top:6px;font-size:11px;color:var(--tx3);"></div>
                     </div>
 
-                    <!-- Info card -->
-                    <div class="sf-card">
-                        <div class="sf-card-header"><span class="msi">info</span> How it works</div>
-                        <div style="font-size:12px;color:var(--tx2);line-height:1.7;">
-                            Creates a small overlay attached to your VR controller / wrist.<br>
-                            Shows your latest friend notifications and currently playing music.<br>
-                            You can interact with it directly in VR using the laser pointer.<br><br>
-                            <strong style="color:var(--tx1);">SteamVR must be running</strong> before connecting.
-                        </div>
-                    </div>
                 </div>
             </div>
 

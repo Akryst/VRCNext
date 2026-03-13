@@ -114,4 +114,7 @@ public partial class MainForm
 
     private System.Threading.CancellationTokenSource _tlFetchCts  = new();
     private System.Threading.CancellationTokenSource _ftlFetchCts = new();
+
+    // VR overlay world name+thumb cache (worldId → name, localUrl)
+    private readonly Dictionary<string, (string name, string thumb)> _vrWorldCache = new();
 }

@@ -316,7 +316,20 @@ public partial class MainForm
                             .Where(r => r.Item2 != null)
                             .ToDictionary(r => r.wid, r => r.Item2!);
                         if (dict.Count > 0)
+                        {
                             SendToJS("vrcWorldsResolved", dict);
+#if WINDOWS
+                            // Update VR overlay world cache with resolved names/thumbs
+                            foreach (var (wid, wobj) in dict)
+                            {
+                                var jo = Newtonsoft.Json.Linq.JObject.FromObject(wobj);
+                                var wname  = jo["name"]?.ToString() ?? "";
+                                var wthumb = _imgCache?.GetWorld(jo["thumbnailImageUrl"]?.ToString()) ?? jo["thumbnailImageUrl"]?.ToString() ?? "";
+                                lock (_vrWorldCache) _vrWorldCache[wid] = (wname, wthumb);
+                            }
+                            Invoke(() => PushVroLocations());
+#endif
+                        }
                     }
                     catch { }
                 });
@@ -499,7 +512,49 @@ public partial class MainForm
         };
 
         Invoke(() => SendToJS("vrcFriends", new { friends = list, counts }));
+
+#if WINDOWS
+        if (_vrOverlay != null) PushVroLocations();
+#endif
     }
+
+#if WINDOWS
+    private void PushVroLocations()
+    {
+        if (_vrOverlay == null) return;
+        List<JObject> snapshot;
+        lock (_friendStore) snapshot = _friendStore.Values.ToList();
+
+        var entries = snapshot
+            .Where(f =>
+            {
+                var loc = f["location"]?.ToString() ?? "";
+                return loc.Contains(':') && loc.Split(':')[0].StartsWith("wrld_");
+            })
+            .Select(f =>
+            {
+                var loc = f["location"]?.ToString() ?? "";
+                var wid = loc.Split(':')[0];
+                var iid = loc.Contains(':') ? loc.Split(':', 2)[1].Split('~')[0] : "";
+                (string name, string thumb) world = ("", "");
+                lock (_vrWorldCache) _vrWorldCache.TryGetValue(wid, out world);
+                var rawFriendImg = VRChatApiService.GetUserImage(f);
+                return (
+                    worldId:       wid,
+                    instanceId:    iid,
+                    worldName:     world.name,
+                    worldImageUrl: _imgCache?.GetWorld(world.thumb) ?? world.thumb,
+                    friendId:      f["id"]?.ToString() ?? "",
+                    friendName:    f["displayName"]?.ToString() ?? "",
+                    friendImageUrl: _imgCache?.Get(rawFriendImg) ?? rawFriendImg,
+                    location:      loc
+                );
+            })
+            .ToList();
+
+        _vrOverlay.SetFriendLocations(entries);
+    }
+#endif
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -865,6 +920,10 @@ public partial class MainForm
                 var updated = _timeline.GetFriendEvents().FirstOrDefault(x => x.Id == evId);
                 if (updated != null)
                     Invoke(() => SendToJS("friendTimelineEvent", BuildFriendTimelinePayload(updated)));
+#if WINDOWS
+                lock (_vrWorldCache) _vrWorldCache[worldId] = (wname, wthumb);
+                Invoke(() => PushVroLocations());
+#endif
             }
             catch { }
         });

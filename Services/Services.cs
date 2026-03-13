@@ -286,7 +286,11 @@ public class AppSettings
     public float   VroRotY        { get; set; } = 0f;
     public float   VroRotZ        { get; set; } = 0f;
     public float   VroWidth       { get; set; } = 0.22f;
-    public List<uint> VroKeybind  { get; set; } = new();
+    public List<uint> VroKeybind       { get; set; } = new();
+    public int        VroKeybindHand   { get; set; } = 0; // 0=any, 1=left, 2=right
+    public int        VroKeybindMode   { get; set; } = 0; // 0=combo(hold), 1=doubletap
+    public List<uint> VroKeybindDt     { get; set; } = new();
+    public int        VroKeybindDtHand { get; set; } = 0; // 0=any, 1=left, 2=right for doubletap slot
 
     // Discord Rich Presence — privacy per status
     public bool DpHideInstIdJoinMe  { get; set; }
