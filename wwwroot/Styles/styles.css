@@ -80,6 +80,28 @@
 #msgrName,
 #msgrSub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* --- vrcn-info: flex info containers (flex:1 + min-width:0) --- */
+.vrcn-info,
+.vrc-profile-info,
+.vrc-friend-info,
+.gd-perm-info,
+.fd-profile-item-info,
+.fd-pi-sm-info,
+.dash-feed-info,
+.fd-group-card-info,
+.notif-body,
+.cb-media-details,
+.fdtl-item-info,
+.chat-inbox-body { flex: 1; min-width: 0; }
+
+/* --- vrcn-name: 13px 600 tx0 name labels --- */
+.vrcn-name,
+.gd-role-name,
+.fd-profile-item-name,
+.fav-friend-name,
+.cb-media-title,
+.fdtl-item-loc { font-size: 13px; font-weight: 600; color: var(--tx0); }
+
 /* --- vrcn-flex-center: all selectors that are flex+center+center --- */
 .vrcn-flex-center,
 .logo-icon,
@@ -1735,10 +1757,6 @@ body {
     flex-shrink: 0;
 }
 
-.vrc-profile-info {
-    min-width: 0;
-    flex: 1;
-}
 
 .vrc-profile-name {
     font-size: 13px;
@@ -1762,12 +1780,12 @@ body {
     flex-shrink: 0;
 }
 
-.vrc-status-dot.s-active,
-.vrc-status-dot.s-online  { background: var(--status-online); }
-.vrc-status-dot.s-join    { background: var(--status-join); }
-.vrc-status-dot.s-ask     { background: var(--status-ask); }
-.vrc-status-dot.s-busy    { background: var(--status-busy); }
-.vrc-status-dot.s-offline { background: var(--status-offline); }
+/* — Status dot colours: all dot/ring types share these — */
+.vrc-status-dot.s-active, .vrc-status-dot.s-online, .st-active, .st-online, .dp-status-dot.online, .dp-pg-dot.online   { background: var(--status-online); }
+.vrc-status-dot.s-join, .st-join, .st-join\ me, .dp-status-dot.join_me, .dp-pg-dot.join_me                              { background: var(--status-join); }
+.vrc-status-dot.s-ask, .st-ask, .st-ask\ me, .st-look\ me, .dp-status-dot.ask_me, .dp-pg-dot.ask_me                    { background: var(--status-ask); }
+.vrc-status-dot.s-busy, .st-busy, .st-do\ not\ disturb, .dp-status-dot.busy, .dp-pg-dot.busy                           { background: var(--status-busy); }
+.vrc-status-dot.s-offline, .st-offline, .dp-status-dot.offline                                                          { background: var(--status-offline); }
 
 .vrc-status-ring {
     width: 8px;
@@ -1809,10 +1827,6 @@ body {
     flex-shrink: 0;
 }
 
-.vrc-friend-info {
-    min-width: 0;
-    flex: 1;
-}
 
 .vrc-friend-name {
     font-size: 12px;
@@ -1967,7 +1981,6 @@ body {
     user-select: none;
 }
 .gd-role-header:hover { background: var(--bg-hover); }
-.gd-role-name { font-size: 13px; font-weight: 600; color: var(--tx0); }
 .gd-role-meta { font-size: 11px; color: var(--tx3); margin-top: 1px; }
 .gd-role-body { padding: 0 14px 14px; }
 .gd-role-section { margin-top: 14px; }
@@ -1987,7 +2000,6 @@ body {
     border-bottom: 1px solid color-mix(in srgb, var(--brd) 50%, transparent);
 }
 .gd-perm-row:last-child { border-bottom: none; }
-.gd-perm-info { flex: 1; min-width: 0; }
 .gd-perm-label { font-size: 12px; color: var(--tx1); font-weight: 500; }
 .gd-perm-desc { font-size: 10px; color: var(--tx3); margin-top: 2px; line-height: 1.4; }
 
@@ -2244,16 +2256,7 @@ body {
     background: var(--bg-base);
 }
 
-.fd-profile-item-info {
-    flex: 1;
-    min-width: 0;
-}
 
-.fd-profile-item-name {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--tx0);
-}
 
 .fd-profile-item-status {
     font-size: 10px;
@@ -2294,10 +2297,6 @@ body {
     background: var(--bg-card);
 }
 
-.fd-pi-sm-info {
-    flex: 1;
-    min-width: 0;
-}
 
 .fd-pi-sm-name {
     font-size: 12px;
@@ -2600,10 +2599,6 @@ body {
     flex-shrink: 0;
 }
 
-.dash-feed-info {
-    min-width: 0;
-    flex: 1;
-}
 
 .dash-feed-name {
     font-size: 13px;
@@ -3260,10 +3255,6 @@ body {
     color: var(--tx3);
 }
 
-.fd-group-card-info {
-    flex: 1;
-    min-width: 0;
-}
 
 .fd-group-card-name {
     font-size: 12px;
@@ -3520,7 +3511,6 @@ body {
     color: var(--tx2);
 }
 .fav-friend-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.fav-friend-name { font-size: 13px; font-weight: 600; color: var(--tx0); }
 .fav-friend-status { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--tx3); }
 
 .vrcn-notify-button {
@@ -3583,11 +3573,6 @@ body {
     flex-shrink: 0;
 }
 
-.st-active, .st-online              { background: var(--status-online); }
-.st-join, .st-join\ me              { background: var(--status-join); }
-.st-ask, .st-ask\ me, .st-look\ me  { background: var(--status-ask); }
-.st-busy, .st-do\ not\ disturb      { background: var(--status-busy); }
-.st-offline                          { background: var(--status-offline); }
 
 /* ═══════════════════════════════════════════════════════════
    NOTIFICATION BELL + PANEL
@@ -3703,10 +3688,6 @@ body {
     margin-top: 2px;
 }
 
-.notif-body {
-    flex: 1;
-    min-width: 0;
-}
 
 .notif-title {
     font-size: 12px;
@@ -4121,13 +4102,7 @@ body {
     gap: 10px;
 }
 
-.cb-media-details { min-width: 0; flex: 1; }
 
-.cb-media-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--tx0);
-}
 
 .cb-media-artist {
     font-size: 11px;
@@ -5557,15 +5532,6 @@ body {
 .fdtl-avatar-empty {
     color: var(--tx3);
 }
-.fdtl-item-info {
-    flex: 1;
-    min-width: 0;
-}
-.fdtl-item-loc {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--tx0);
-}
 .fdtl-item-date {
     font-size: 10px;
     color: var(--tx3);
@@ -6692,7 +6658,6 @@ div.vn-select {
     background: var(--bg-hover);
     flex-shrink: 0;
 }
-.chat-inbox-body { flex: 1; min-width: 0; }
 .chat-inbox-row  { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
 .chat-inbox-name { font-size: 13px; font-weight: 600; color: var(--tx1); }
 .chat-inbox-time { font-size: 10px; color: var(--tx3); flex-shrink: 0; }
@@ -6856,11 +6821,6 @@ div.vn-select {
     right: -3px;
     background: var(--status-offline);
 }
-.dp-status-dot.online  { background: var(--status-online); }
-.dp-status-dot.join_me { background: var(--status-join); }
-.dp-status-dot.busy    { background: var(--status-busy); }
-.dp-status-dot.ask_me  { background: var(--status-ask); }
-.dp-status-dot.offline { background: var(--status-offline); }
 .dp-preview-text {
     display: flex;
     flex-direction: column;
@@ -6892,10 +6852,6 @@ div.vn-select {
     border-radius: 50%;
     background: var(--status-offline);
 }
-.dp-pg-dot.online  { background: var(--status-online); }
-.dp-pg-dot.join_me { background: var(--status-join); }
-.dp-pg-dot.ask_me  { background: var(--status-ask); }
-.dp-pg-dot.busy    { background: var(--status-busy); }
 
 /* ═══════════════════════════════════════════════════════════
    INSTANCE INFO MODAL — Player Table
