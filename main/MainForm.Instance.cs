@@ -87,7 +87,10 @@ public partial class MainForm
                             {
                                 var img = VRChatApiService.GetUserImage(profile);
                                 if (!string.IsNullOrEmpty(img))
+                                {
                                     _tlPlayerImageCache[p.UserId] = img;
+                                    _timeline.SetUserImage(p.UserId, img); // persist across restarts
+                                }
                                 _playerAgeVerifiedCache[p.UserId] = profile["ageVerified"]?.Value<bool>() ?? false;
                                 _playerProfileCache[p.UserId] = profile;
                                 lock (userProfiles)
@@ -395,6 +398,12 @@ public partial class MainForm
                         if (profile == null) return;
                         var fetchedImg = VRChatApiService.GetUserImage(profile);
                         if (string.IsNullOrEmpty(fetchedImg)) return;
+                        _tlPlayerImageCache[userId]   = fetchedImg;
+                        _timeline.SetUserImage(userId, fetchedImg); // persist across restarts
+                        _playerProfileCache[userId]   = profile;
+                        _playerAgeVerifiedCache[userId] = profile["ageVerified"]?.Value<bool>() ?? false;
+                        if (_cumulativeInstancePlayers.TryGetValue(userId, out var ex2) && string.IsNullOrEmpty(ex2.image))
+                            _cumulativeInstancePlayers[userId] = (ex2.displayName, fetchedImg);
                         _timeline.UpdateEvent(evId, ev => ev.UserImage = fetchedImg);
                         var updated = _timeline.GetEvents().FirstOrDefault(e => e.Id == evId);
                         if (updated != null) Invoke(() => SendToJS("timelineEvent", BuildTimelinePayload(updated)));
@@ -437,6 +446,12 @@ public partial class MainForm
                             if (profile == null) return;
                             var fetchedImg = VRChatApiService.GetUserImage(profile);
                             if (string.IsNullOrEmpty(fetchedImg)) return;
+                            _tlPlayerImageCache[userId]   = fetchedImg;
+                            _timeline.SetUserImage(userId, fetchedImg); // persist across restarts
+                            _playerProfileCache[userId]   = profile;
+                            _playerAgeVerifiedCache[userId] = profile["ageVerified"]?.Value<bool>() ?? false;
+                            if (_cumulativeInstancePlayers.TryGetValue(userId, out var ex3) && string.IsNullOrEmpty(ex3.image))
+                                _cumulativeInstancePlayers[userId] = (ex3.displayName, fetchedImg);
                             _timeline.UpdateEvent(maEvId, ev => ev.UserImage = fetchedImg);
                             var updated = _timeline.GetEvents().FirstOrDefault(e => e.Id == maEvId);
                             if (updated != null) Invoke(() => SendToJS("timelineEvent", BuildTimelinePayload(updated)));
@@ -463,7 +478,10 @@ public partial class MainForm
                     if (profile == null) return;
                     var img = VRChatApiService.GetUserImage(profile);
                     if (!string.IsNullOrEmpty(img))
+                    {
                         _tlPlayerImageCache[userId] = img;
+                        _timeline.SetUserImage(userId, img); // persist across restarts
+                    }
                     _playerAgeVerifiedCache[userId] = profile["ageVerified"]?.Value<bool>() ?? false;
                     _playerProfileCache[userId] = profile;
 
@@ -471,7 +489,25 @@ public partial class MainForm
                     if (_cumulativeInstancePlayers.TryGetValue(userId, out var existing) && string.IsNullOrEmpty(existing.image))
                         _cumulativeInstancePlayers[userId] = (existing.displayName, img);
 
-                    Invoke(() => PushCurrentInstanceFromCache());
+                    Invoke(() =>
+                    {
+                        PushCurrentInstanceFromCache();
+
+                        // Immediately persist the updated image to the pending instance_join
+                        // timeline event — don't wait for the 15 s snapshot, so images are
+                        // written to DB even if the snapshot timer fires before all fetches finish.
+                        if (_pendingInstanceEventId != null)
+                        {
+                            var evId = _pendingInstanceEventId;
+                            var snap = _cumulativeInstancePlayers.Select(kv => new TimelineService.PlayerSnap
+                            {
+                                UserId      = kv.Key,
+                                DisplayName = kv.Value.displayName,
+                                Image       = ResolvePlayerImage(kv.Key, kv.Value.image)
+                            }).ToList();
+                            _timeline.UpdateEvent(evId, ev => ev.Players = snap);
+                        }
+                    });
                 }
                 catch { }
             });
@@ -554,6 +590,13 @@ public partial class MainForm
                 return fi.image;
             if (_tlPlayerImageCache.TryGetValue(userId, out var ci) && !string.IsNullOrEmpty(ci))
                 return ci;
+            // Persistent DB cache — survives app restarts (covers non-friends, self, ex-friends)
+            var dbImg = _timeline.GetCachedUserImage(userId);
+            if (!string.IsNullOrEmpty(dbImg))
+            {
+                _tlPlayerImageCache[userId] = dbImg; // warm session cache
+                return dbImg;
+            }
         }
         return storedImage ?? "";
     }

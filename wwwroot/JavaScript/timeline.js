@@ -201,6 +201,8 @@ function renderTimeline(payload) {
         const expectedType = tlFilter === 'all' ? '' : tlFilter;
         if (payload.type !== expectedType) return;
     }
+    // Discard stale getTimeline responses when a date filter is active
+    if (tlDateFilter && payload?.date !== tlDateFilter) return;
 
     if (total > 0) tlTotal = total;
 
@@ -306,16 +308,21 @@ function filterTimeline() {
 
     const prevScrollTop = c.scrollTop;
 
-    // Both views use server-side pagination — timelineEvents holds current page only
-    const totalPages = tlTotal > 0
-        ? Math.ceil(tlTotal / 100)
+    // Date filter: all events loaded at once → paginate client-side
+    // Normal mode: server-side pagination (timelineEvents = current page only)
+    const eventsToRender = tlDateFilter
+        ? timelineEvents.slice(tlListPage * 100, (tlListPage + 1) * 100)
+        : timelineEvents;
+    const totalCount = tlDateFilter ? timelineEvents.length : tlTotal;
+    const totalPages = totalCount > 0
+        ? Math.ceil(totalCount / 100)
         : Math.max(tlListPage + 1, 1) + (tlHasMore ? 1 : 0);
 
     const contentHtml = tlViewMode === 'list'
-        ? buildPersonalListHtml(timelineEvents)
-        : buildTimelineHtml(timelineEvents);
+        ? buildPersonalListHtml(eventsToRender)
+        : buildTimelineHtml(eventsToRender);
     c.innerHTML = contentHtml;
-    _setTlPaginator(buildTlPagination(tlListPage, totalPages, tlHasMore));
+    _setTlPaginator(buildTlPagination(tlListPage, totalPages, tlDateFilter ? false : tlHasMore));
 
     if (prevScrollTop > 0) c.scrollTop = prevScrollTop;
 
@@ -383,26 +390,34 @@ function tlGoSearchPage(page) {
     sendToCS({ action: 'searchTimeline', query: _tlSearchQuery, date: _tlSearchDate, offset: page * 100, type: typeParam });
 }
 
+// Shared: builds fixed-slot page buttons so navigating never adds/removes buttons.
+// ≤7 pages → show all. >7 pages → always [first][left-ell][m-1][m][m+1][right-ell][last]
+// Ellipsis uses visibility:hidden (not display:none) when no gap → slot preserved, no layout shift.
+function _buildPaginatorBtns(page, totalPages, onPageFn) {
+    const btn = (i) => {
+        const a = i === page ? ' style="background:var(--accent);color:#fff;"' : '';
+        return `<button class="vrcn-button"${a} onclick="${onPageFn}(${i})">${i + 1}</button>`;
+    };
+    if (totalPages <= 7) {
+        let h = '';
+        for (let i = 0; i < totalPages; i++) h += btn(i);
+        return h;
+    }
+    const last = totalPages - 1;
+    // Clamp middle center to [2, last-2] so the window never overlaps first or last slot
+    const mid = Math.max(2, Math.min(page, last - 2));
+    const m0 = mid - 1, m2 = mid + 1;
+    const ell = (show) =>
+        `<span style="padding:0 4px;color:var(--tx3);${show ? '' : 'visibility:hidden;'}">…</span>`;
+    return btn(0) + ell(m0 > 1) + btn(m0) + btn(mid) + btn(m2) + ell(m2 < last - 1) + btn(last);
+}
+
 function buildSearchPagination(page, totalPages, onPageFn) {
     if (totalPages <= 1) return '';
-    const delta = 3;
-    const range = [];
-    for (let i = 0; i < totalPages; i++) {
-        if (i === 0 || i === totalPages - 1 || (i >= page - delta && i <= page + delta))
-            range.push(i);
-    }
-    let btns = '';
-    let prev = -1;
-    range.forEach(i => {
-        if (prev !== -1 && i > prev + 1) btns += `<span style="padding:0 4px;color:var(--tx3);">…</span>`;
-        const active = i === page ? 'style="background:var(--accent);color:#fff;"' : '';
-        btns += `<button class="vrcn-button" ${active} onclick="${onPageFn}(${i})">${i + 1}</button>`;
-        prev = i;
-    });
     const prevDis = page === 0 ? 'disabled' : '';
     const nextDis = page >= totalPages - 1 ? 'disabled' : '';
     return `<button class="vrcn-button" ${prevDis} onclick="${onPageFn}(${page - 1})"><span class="msi" style="font-size:16px;">chevron_left</span></button>
-        ${btns}
+        ${_buildPaginatorBtns(page, totalPages, onPageFn)}
         <button class="vrcn-button" ${nextDis} onclick="${onPageFn}(${page + 1})"><span class="msi" style="font-size:16px;">chevron_right</span></button>`;
 }
 
@@ -430,31 +445,28 @@ function _setTlPaginator(html) {
 
 function buildTlPagination(page, totalPages, hasMore) {
     if (totalPages <= 1 && !hasMore) return '';
-    const delta = 3;
-    const range = [];
-    for (let i = 0; i < totalPages; i++) {
-        if (i === 0 || i === totalPages - 1 || (i >= page - delta && i <= page + delta))
-            range.push(i);
-    }
-    let btns = '';
-    let prev = -1;
-    range.forEach(i => {
-        if (prev !== -1 && i > prev + 1) btns += `<span style="padding:0 4px;color:var(--tx3);">…</span>`;
-        const active = i === page ? 'style="background:var(--accent);color:#fff;"' : '';
-        btns += `<button class="vrcn-button" ${active} onclick="tlGoPage(${i})">${i + 1}</button>`;
-        prev = i;
-    });
     const prevDis = page === 0 ? 'disabled' : '';
     const nextDis = (page >= totalPages - 1 && !hasMore) ? 'disabled' : '';
     const countInfo = tlTotal > 0 ? `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${tlTotal.toLocaleString()} total</span>` : '';
     return `<button class="vrcn-button" ${prevDis} onclick="tlGoPage(${page - 1})"><span class="msi" style="font-size:16px;">chevron_left</span></button>
-        ${btns}
+        ${_buildPaginatorBtns(page, totalPages, 'tlGoPage')}
         <button class="vrcn-button" ${nextDis} onclick="tlGoPage(${page + 1})"><span class="msi" style="font-size:16px;">chevron_right</span></button>
         ${countInfo}`;
 }
 
 function tlGoPage(page) {
     if (page < 0) return;
+    // Date filter active: all events in memory, paginate client-side
+    if (tlDateFilter) {
+        const totalPages = Math.ceil(timelineEvents.length / 100) || 1;
+        if (page >= totalPages) return;
+        if (page === tlListPage) { const c = document.getElementById('tlContainer'); if (c) c.scrollTop = 0; return; }
+        tlListPage = page;
+        filterTimeline();
+        const c = document.getElementById('tlContainer');
+        if (c) c.scrollTop = 0;
+        return;
+    }
     const totalPages = tlTotal > 0 ? Math.ceil(tlTotal / 100) : null;
     if (totalPages !== null && page >= totalPages) return;
     if (page === tlListPage && _tlPendingListPage === null && !tlLoading) {
@@ -604,7 +616,7 @@ function applyTlDateFilter(dateStr) {
     if (tlMode === 'friends') {
         friendTimelineEvents = [];
         ftlOffset = 0; ftlHasMore = false; ftlLoading = false;
-        ftlListPage = 0; ftlRenderedCount = 100;
+        ftlListPage = 0; ftlRenderedCount = 100; ftlTotal = 0;
         _ftlSearchMode = false; _ftlSearchQuery = ''; _ftlSearchDate = '';
         if (activeSearch) { filterFriendTimeline(); return; }
         const c = document.getElementById('tlContainer');
@@ -617,11 +629,12 @@ function applyTlDateFilter(dateStr) {
         tlLoading       = false;
         tlRenderedCount = 100;
         tlListPage      = 0;
+        tlTotal         = 0;
         _tlSearchMode = false; _tlSearchQuery = ''; _tlSearchDate = '';
         if (activeSearch) { filterTimeline(); return; }
         const c = document.getElementById('tlContainer');
         if (c) c.innerHTML = '<div class="tl-loading"><div class="tl-sk-line"></div><div class="tl-sk-line tl-sk-short"></div><div class="tl-sk-line"></div><div class="tl-sk-line tl-sk-short"></div><div class="tl-sk-line"></div></div>';
-        sendToCS({ action: 'getTimelineByDate', date: dateStr });
+        sendToCS({ action: 'getTimelineByDate', date: dateStr, type: tlFilter === 'all' ? '' : tlFilter });
     }
 }
 
@@ -1199,6 +1212,8 @@ function renderFriendTimeline(payload) {
         const expectedType = ftFilter === 'all' ? '' : ftFilter;
         if (payload.type !== expectedType) return;
     }
+    // Discard stale getFriendTimeline responses when a date filter is active
+    if (tlDateFilter && payload?.date !== tlDateFilter) return;
 
     if (total > 0) ftlTotal = total;
 
@@ -1291,41 +1306,32 @@ function filterFriendTimeline() {
 
     const prevScrollTop = c.scrollTop;
 
-    // Both views use server-side pagination — friendTimelineEvents holds current page only
-    const totalPages = ftlTotal > 0
-        ? Math.ceil(ftlTotal / 100)
+    // Date filter: all events loaded at once → paginate client-side
+    // Normal mode: server-side pagination (friendTimelineEvents = current page only)
+    const ftlEventsToRender = tlDateFilter
+        ? friendTimelineEvents.slice(ftlListPage * 100, (ftlListPage + 1) * 100)
+        : friendTimelineEvents;
+    const ftlTotalCount = tlDateFilter ? friendTimelineEvents.length : ftlTotal;
+    const totalPages = ftlTotalCount > 0
+        ? Math.ceil(ftlTotalCount / 100)
         : Math.max(ftlListPage + 1, 1) + (ftlHasMore ? 1 : 0);
 
     const contentHtml = tlViewMode === 'list'
-        ? buildFriendListHtml(friendTimelineEvents)
-        : buildFriendTimelineHtml(friendTimelineEvents);
+        ? buildFriendListHtml(ftlEventsToRender)
+        : buildFriendTimelineHtml(ftlEventsToRender);
     c.innerHTML = contentHtml;
-    _setTlPaginator(buildFtlPagination(ftlListPage, totalPages, ftlHasMore));
+    _setTlPaginator(buildFtlPagination(ftlListPage, totalPages, tlDateFilter ? false : ftlHasMore));
 
     if (prevScrollTop > 0) c.scrollTop = prevScrollTop;
 }
 
 function buildFtlPagination(page, totalPages, hasMore) {
     if (totalPages <= 1 && !hasMore) return '';
-    const delta = 3;
-    const range = [];
-    for (let i = 0; i < totalPages; i++) {
-        if (i === 0 || i === totalPages - 1 || (i >= page - delta && i <= page + delta))
-            range.push(i);
-    }
-    let btns = '';
-    let prev = -1;
-    range.forEach(i => {
-        if (prev !== -1 && i > prev + 1) btns += `<span style="padding:0 4px;color:var(--tx3);">…</span>`;
-        const active = i === page ? 'style="background:var(--accent);color:#fff;"' : '';
-        btns += `<button class="vrcn-button" ${active} onclick="ftlGoPage(${i})">${i + 1}</button>`;
-        prev = i;
-    });
     const prevDis = page === 0 ? 'disabled' : '';
     const nextDis = (page >= totalPages - 1 && !hasMore) ? 'disabled' : '';
     const countInfo = ftlTotal > 0 ? `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${ftlTotal.toLocaleString()} total</span>` : '';
     return `<button class="vrcn-button" ${prevDis} onclick="ftlGoPage(${page - 1})"><span class="msi" style="font-size:16px;">chevron_left</span></button>
-        ${btns}
+        ${_buildPaginatorBtns(page, totalPages, 'ftlGoPage')}
         <button class="vrcn-button" ${nextDis} onclick="ftlGoPage(${page + 1})"><span class="msi" style="font-size:16px;">chevron_right</span></button>
         ${countInfo}`;
 }
@@ -1396,6 +1402,17 @@ function loadMoreFriendTimeline() {
 
 function ftlGoPage(page) {
     if (page < 0) return;
+    // Date filter active: all events in memory, paginate client-side
+    if (tlDateFilter) {
+        const totalPages = Math.ceil(friendTimelineEvents.length / 100) || 1;
+        if (page >= totalPages) return;
+        if (page === ftlListPage) { const c = document.getElementById('tlContainer'); if (c) c.scrollTop = 0; return; }
+        ftlListPage = page;
+        filterFriendTimeline();
+        const c = document.getElementById('tlContainer');
+        if (c) c.scrollTop = 0;
+        return;
+    }
     const totalPages = ftlTotal > 0 ? Math.ceil(ftlTotal / 100) : null;
     if (totalPages !== null && page >= totalPages) return;
     if (page === ftlListPage && _ftlPendingListPage === null && !ftlLoading) {

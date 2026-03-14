@@ -3269,7 +3269,11 @@ public partial class MainForm
                                         {
                                             var img = VRChatApiService.GetUserImage(profile);
                                             if (!string.IsNullOrEmpty(img))
-                                            { fetchedImgs[uid] = img; _tlPlayerImageCache[uid] = img; }
+                                            {
+                                                fetchedImgs[uid] = img;
+                                                _tlPlayerImageCache[uid] = img;
+                                                _timeline.SetUserImage(uid, img); // persist across restarts
+                                            }
                                         }
                                         await Task.Delay(250);
                                     }
@@ -3516,6 +3520,9 @@ public partial class MainForm
                     break;
 
                 case "getTimelineByDate":
+                    // Cancel any in-flight getTimeline enrichment so its stale timelineData
+                    // response doesn't overwrite the date-filtered results.
+                    _tlFetchCts.Cancel();
                     _ = Task.Run(() =>
                     {
                         try
@@ -3530,7 +3537,7 @@ public partial class MainForm
                                 events = events.Where(e => e.Type == typeFilter).ToList();
                             var total   = events.Count;
                             var payload = events.Select(e => BuildTimelinePayload(e)).ToList();
-                            Invoke(() => SendToJS("timelineData", new { events = payload, hasMore = false, offset = 0, total, type = typeFilter }));
+                            Invoke(() => SendToJS("timelineData", new { events = payload, hasMore = false, offset = 0, total, type = typeFilter, date = dateStr }));
                         }
                         catch { }
                     });
@@ -3547,7 +3554,7 @@ public partial class MainForm
                             localDate = DateTime.SpecifyKind(localDate, DateTimeKind.Local);
                             var fevents  = _timeline.GetFriendEventsByDate(localDate, typeFilter);
                             var fpayload = fevents.Select(e => BuildFriendTimelinePayload(e)).ToList();
-                            Invoke(() => SendToJS("friendTimelineData", new { events = fpayload, hasMore = false, offset = 0, type = typeFilter }));
+                            Invoke(() => SendToJS("friendTimelineData", new { events = fpayload, hasMore = false, offset = 0, type = typeFilter, date = dateStr }));
                         }
                         catch { }
                     });

@@ -208,25 +208,11 @@ function _renderLibPage() {
 // ── Paginator (1:1 from buildTlPagination / tlGoPage) ─────────────────────
 function buildLibPagination(page, totalPages) {
     if (totalPages <= 1) return '';
-    const delta = 3;
-    const range = [];
-    for (let i = 0; i < totalPages; i++) {
-        if (i === 0 || i === totalPages - 1 || (i >= page - delta && i <= page + delta))
-            range.push(i);
-    }
-    let btns = '';
-    let prev = -1;
-    range.forEach(i => {
-        if (prev !== -1 && i > prev + 1) btns += `<span style="padding:0 4px;color:var(--tx3);">…</span>`;
-        const active = i === page ? 'style="background:var(--accent);color:#fff;"' : '';
-        btns += `<button class="vrcn-button" ${active} onclick="libGoPage(${i})">${i + 1}</button>`;
-        prev = i;
-    });
     const prevDis  = page === 0 ? 'disabled' : '';
     const nextDis  = page >= totalPages - 1 ? 'disabled' : '';
     const countInfo = `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${_libFiltered.length.toLocaleString()} files</span>`;
     return `<button class="vrcn-button" ${prevDis} onclick="libGoPage(${page - 1})"><span class="msi" style="font-size:16px;">chevron_left</span></button>
-        ${btns}
+        ${_buildPaginatorBtns(page, totalPages, 'libGoPage')}
         <button class="vrcn-button" ${nextDis} onclick="libGoPage(${page + 1})"><span class="msi" style="font-size:16px;">chevron_right</span></button>
         ${countInfo}`;
 }

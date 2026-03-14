@@ -1,3 +1,4 @@
+using System.Drawing.Imaging;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -18,8 +19,6 @@ public class ImageCacheService
     // Reverse map: fileName (e.g. "abc123.jpg") → original VRC URL — for resolving cached URLs back to originals
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _reverseMap = new();
 
-    // Amount freed per trim pass (~2 GB)
-    private const long TrimPassBytes = 2L * 1024 * 1024 * 1024;
 
     /// <summary>HttpListener port used to serve cached images. Set by MainForm after starting the listener.</summary>
     public int Port { get; set; } = 49152;
@@ -99,12 +98,13 @@ public class ImageCacheService
             var total = files.Sum(f => f.Length);
             if (total <= limitBytes) return;
 
-            // Free TrimPassBytes worth of old files to create breathing room
-            long freed = 0;
+            // Delete oldest files until we're at 80 % of the limit — leaves
+            // headroom for new downloads without wiping the whole cache.
+            var targetBytes = (long)(limitBytes * 0.8);
             foreach (var f in files)
             {
-                if (freed >= TrimPassBytes) break;
-                try { freed += f.Length; f.Delete(); } catch { }
+                if (total <= targetBytes) break;
+                try { total -= f.Length; f.Delete(); } catch { }
             }
         }
         catch { }
@@ -145,7 +145,7 @@ public class ImageCacheService
             using var fs = File.Create(tmp);
             await stream.CopyToAsync(fs);
             fs.Close();
-            File.Move(tmp, filePath, overwrite: true);
+            CompressToJpeg(tmp, filePath);
 
             if (LimitBytes > 0)
                 _ = Task.Run(() => TrimIfNeeded(LimitBytes));
@@ -155,6 +155,30 @@ public class ImageCacheService
         {
             _downloadSem.Release();
             lock (_inFlight) _inFlight.Remove(url);
+        }
+    }
+
+    /// <summary>
+    /// Re-encodes <paramref name="sourcePath"/> as JPEG at 50 % quality and writes the result
+    /// to <paramref name="destPath"/>. Falls back to a plain file move if the source is not a
+    /// valid image or if System.Drawing is unavailable (e.g. missing libgdiplus on Linux).
+    /// </summary>
+    private static void CompressToJpeg(string sourcePath, string destPath)
+    {
+        try
+        {
+            using var bmp = new System.Drawing.Bitmap(sourcePath);
+            var jpegEncoder = ImageCodecInfo.GetImageEncoders()
+                .First(c => c.FormatID == ImageFormat.Jpeg.Guid);
+            using var encoderParams = new EncoderParameters(1);
+            encoderParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 50L);
+            bmp.Save(destPath, jpegEncoder, encoderParams);
+            try { File.Delete(sourcePath); } catch { }
+        }
+        catch
+        {
+            // Not a valid image or System.Drawing unavailable — keep original as-is
+            try { File.Move(sourcePath, destPath, overwrite: true); } catch { }
         }
     }
 

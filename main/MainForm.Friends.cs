@@ -245,7 +245,9 @@ public partial class MainForm
                     _friendLastStatus[uid]     = f["status"]?.ToString() ?? "";
                     _friendLastStatusDesc[uid] = (f["statusDescription"]?.ToString() ?? "").Trim();
                     _friendLastBio[uid]        = (f["bio"]?.ToString() ?? "").Trim();
-                    _friendNameImg[uid]        = (f["displayName"]?.ToString() ?? "", VRChatApiService.GetUserImage(f));
+                    var img0 = VRChatApiService.GetUserImage(f);
+                    _friendNameImg[uid] = (f["displayName"]?.ToString() ?? "", img0);
+                    if (!string.IsNullOrEmpty(img0)) _timeline.SetUserImage(uid, img0);
                 }
                 foreach (var f in offline)
                 {
@@ -255,7 +257,9 @@ public partial class MainForm
                     _friendLastStatus[uid]     = "offline";
                     _friendLastStatusDesc[uid] = (f["statusDescription"]?.ToString() ?? "").Trim();
                     _friendLastBio[uid]        = (f["bio"]?.ToString() ?? "").Trim();
-                    _friendNameImg[uid]        = (f["displayName"]?.ToString() ?? "", VRChatApiService.GetUserImage(f));
+                    var img0 = VRChatApiService.GetUserImage(f);
+                    _friendNameImg[uid] = (f["displayName"]?.ToString() ?? "", img0);
+                    if (!string.IsNullOrEmpty(img0)) _timeline.SetUserImage(uid, img0);
                 }
                 _friendStateSeeded = true;
             }
@@ -268,7 +272,10 @@ public partial class MainForm
                     if (string.IsNullOrEmpty(uid)) continue;
                     var img = VRChatApiService.GetUserImage(f);
                     if (img.Length > 0)
+                    {
                         _friendNameImg[uid] = (f["displayName"]?.ToString() ?? _friendNameImg.GetValueOrDefault(uid).name ?? "", img);
+                        _timeline.SetUserImage(uid, img);
+                    }
                 }
             }
 
@@ -653,6 +660,10 @@ public partial class MainForm
             if (fresh != null) user = fresh;
             else if (user == null) return null;
         }
+        // Always refresh the image cache when a full profile is opened —
+        // catches profile picture changes for both friends and non-friends.
+        var _freshImg = VRChatApiService.GetUserImage(user);
+        if (!string.IsNullOrEmpty(_freshImg)) _timeline.SetUserImage(userId, _freshImg);
 
         // WebSocket store is authoritative for status/location for friends.
         // Overlay it after any REST fetch so the modal always reflects live state.

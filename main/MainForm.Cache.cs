@@ -318,7 +318,47 @@ var list = avatars.Select(a => new
         _ = Task.Run(FetchAndCacheAvatarsAsync);
         _ = Task.Run(FetchAndCacheGroupsAsync);
         _ = Task.Run(FetchAndCacheFavWorldsAsync);
+        _ = Task.Run(BackfillMissingPlayerImagesAsync);
         await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// One-time background job: fetches profile images for all timeline players that have
+    /// no entry in user_image_cache. Runs after every login but skips users already cached.
+    /// Limited to 3 concurrent API calls with a 300 ms gap to avoid rate-limiting.
+    /// </summary>
+    private async Task BackfillMissingPlayerImagesAsync()
+    {
+        if (!_vrcApi.IsLoggedIn) return;
+        var missing = _timeline.GetUsersWithMissingImages();
+        if (missing.Count == 0) return;
+
+        Invoke(() => SendToJS("log", new { msg = $"[IMG] Backfilling images for {missing.Count} players…", color = "sec" }));
+
+        var sem = new SemaphoreSlim(3);
+        var tasks = missing.Select(async m =>
+        {
+            await sem.WaitAsync();
+            try
+            {
+                if (!_vrcApi.IsLoggedIn) return;
+                var profile = await _vrcApi.GetUserAsync(m.UserId);
+                if (profile == null) return;
+                var img = VRChatApiService.GetUserImage(profile);
+                if (string.IsNullOrEmpty(img)) return;
+
+                _tlPlayerImageCache[m.UserId] = img;
+                _playerProfileCache[m.UserId] = profile;
+                _playerAgeVerifiedCache[m.UserId] = profile["ageVerified"]?.Value<bool>() ?? false;
+                _timeline.SetUserImage(m.UserId, img);
+                await Task.Delay(300);
+            }
+            catch { }
+            finally { sem.Release(); }
+        });
+        await Task.WhenAll(tasks);
+
+        Invoke(() => SendToJS("log", new { msg = "[IMG] Backfill complete", color = "ok" }));
     }
 
     /// <summary>
