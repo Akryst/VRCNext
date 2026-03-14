@@ -444,6 +444,12 @@ public partial class MainForm
                 }
                 else ctx.Response.StatusCode = 404;
             }
+            else if (path.StartsWith("/cursor/"))
+            {
+                var cursorDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "cursor");
+                var file = Path.Combine(cursorDir, Uri.UnescapeDataString(path["/cursor/".Length..]));
+                await ServeFileAsync(ctx, file);
+            }
             else ctx.Response.StatusCode = 404;
         }
         catch { ctx.Response.StatusCode = 500; }

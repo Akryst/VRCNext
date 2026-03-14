@@ -885,6 +885,9 @@ body.play-btn-accent .vrcn-btn-join:hover {
     background: var(--accent-lt) !important;
     box-shadow: 0 6px 24px color-mix(in srgb, var(--accent) 55%, transparent) !important;
 }
+/* Custom Cursor */
+html.cursor-custom * { cursor: var(--cursor-url, auto) !important; }
+
 .vrcn-btn-danger { background: rgba(255,75,85,.15) !important; color: var(--err) !important; }
 .vrcn-btn-danger:hover { background: var(--err) !important; color: #fff !important; }
 

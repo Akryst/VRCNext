@@ -7,6 +7,9 @@ const thumbCache = {};
 let currentTheme = 'midnight', currentSpecialTheme = '', autoColorAccuracy = 50, notifyAudio = null, currentVrcUser = null;
 let customThemes = []; // user-saved themes from auto color
 let currentPlayBtnTheme = '';
+let currentCursorTheme = '';
+let _localHttpPort = 0;
+let _cursorFiles = [];
 let sidebarCollapsed = localStorage.getItem('vrcnext_sidebar') === '1';
 let rsidebarCollapsed = localStorage.getItem('vrcnext_rsidebar') === '1';
 // Apply saved sidebar state immediately on load
@@ -448,6 +451,29 @@ function applyPlayBtnTheme(key) {
     currentPlayBtnTheme = key;
     document.body.classList.toggle('play-btn-accent', key === 'accent');
     renderPlayBtnThemeChips();
+    autoSave();
+}
+
+function renderCursorThemeChips(files) {
+    if (files) _cursorFiles = files;
+    const el = document.getElementById('cursorThemeGrid');
+    if (!el) return;
+    const all = [{ key: '', label: 'Standard', url: null }, ..._cursorFiles.map(f => ({ key: f, label: f.replace(/\.[^.]+$/, ''), url: _localHttpPort ? `http://localhost:${_localHttpPort}/cursor/${encodeURIComponent(f)}` : null }))];
+    el.innerHTML = all.map(t =>
+        `<button class="theme-chip${currentCursorTheme === t.key ? ' active' : ''}" onclick="applyCursorTheme('${t.key}')">${t.url ? `<img src="${t.url}" style="width:18px;height:18px;object-fit:contain;image-rendering:pixelated;margin-right:4px;vertical-align:middle;">` : `<span class="theme-dot" style="background:var(--tx3)"></span>`}${t.label}</button>`
+    ).join('');
+}
+
+function applyCursorTheme(key) {
+    currentCursorTheme = key;
+    if (key && _localHttpPort) {
+        document.documentElement.style.setProperty('--cursor-url', `url('http://localhost:${_localHttpPort}/cursor/${encodeURIComponent(key)}') 0 0, auto`);
+        document.documentElement.classList.add('cursor-custom');
+    } else {
+        document.documentElement.classList.remove('cursor-custom');
+        document.documentElement.style.removeProperty('--cursor-url');
+    }
+    renderCursorThemeChips();
     autoSave();
 }
 

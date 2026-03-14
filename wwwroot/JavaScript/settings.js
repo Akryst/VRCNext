@@ -113,6 +113,7 @@ function saveSettings() {
             specialTheme: currentSpecialTheme,
             autoColorAccuracy: autoColorAccuracy,
             playBtnTheme: currentPlayBtnTheme,
+            cursorTheme: currentCursorTheme,
             dashBgPath: dashBgPath,
             dashOpacity: parseInt(document.getElementById('setDashOpacity').value) || 40,
             randomDashBg: document.getElementById('setRandomBg').checked,
@@ -263,6 +264,9 @@ function loadSettingsToUI(s) {
     renderSpecialThemeChips();
     currentPlayBtnTheme = s.PlayBtnTheme || s.playBtnTheme || '';
     applyPlayBtnTheme(currentPlayBtnTheme);
+    _localHttpPort = s.LocalHttpPort || s.localHttpPort || 0;
+    currentCursorTheme = s.CursorTheme || s.cursorTheme || '';
+    sendToCS({ action: 'getCursorFiles' });
 
     // Restore chatbox settings
     document.getElementById('cbShowTime').checked = s.CbShowTime ?? s.cbShowTime ?? true;

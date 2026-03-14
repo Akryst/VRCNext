@@ -3,6 +3,7 @@ window.external.receiveMessage(rawMsg => {
     const { type, payload } = JSON.parse(rawMsg);
     switch (type) {
             case 'loadSettings': loadSettingsToUI(payload); break;
+            case 'cursorFiles': _localHttpPort = payload.port || _localHttpPort; renderCursorThemeChips(payload.files); applyCursorTheme(currentCursorTheme); break;
             case 'vrcLaunched': {
                 // Fired when the user launches VRChat from VRCNext (VR or Desktop)
                 const vr = !!payload.vr;

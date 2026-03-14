@@ -275,6 +275,7 @@ public partial class MainForm
 #endif
             _settings.AutoColorAccuracy = data["autoColorAccuracy"]?.Value<int>() ?? 50;
             _settings.PlayBtnTheme = data["playBtnTheme"]?.ToString() ?? "";
+            _settings.CursorTheme = data["cursorTheme"]?.ToString() ?? "";
 
             var dashBg = data["dashBgPath"]?.ToString();
             if (dashBg != null) _settings.DashBgPath = dashBg;
