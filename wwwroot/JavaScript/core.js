@@ -628,11 +628,15 @@ function addLog(m, c) {
     // Strip emoji characters
     m = m.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
 
-    // Track HTTP status code counts
+    // Track HTTP status code counts + color the log line
+    let httpColorClass = null;
     const statusMatch = m.match(/→ (\d{3})/);
     if (statusMatch) {
         const code = +statusMatch[1];
         if (code in _httpCounts) { _httpCounts[code]++; _updateHttpBadge(code); }
+        if (code === 200) httpColorClass = 'log-msg-ok';
+        else if (code === 429) httpColorClass = 'log-msg-warn';
+        else if (code >= 400) httpColorClass = 'log-msg-err';
     }
 
     // Bracket-prefix to CSS class map
@@ -660,11 +664,13 @@ function addLog(m, c) {
     // Color-param fallback
     const _colorMap = { ok: 'log-msg-ok', warn: 'log-msg-warn', err: 'log-msg-err', sec: 'log-msg-sec', accent: 'log-msg-accent' };
 
-    let cl;
-    const pm = m.match(/^\[([A-Z][A-Z0-9 _-]*)\]/);
-    if (pm) cl = _prefixMap[pm[1]];
-    if (!cl) { for (const [re, cls] of _contentMap) { if (re.test(m)) { cl = cls; break; } } }
-    if (!cl) cl = _colorMap[c] || 'log-msg-default';
+    let cl = httpColorClass; // HTTP status color takes priority
+    if (!cl) {
+        const pm = m.match(/^\[([A-Z][A-Z0-9 _-]*)\]/);
+        if (pm) cl = _prefixMap[pm[1]];
+        if (!cl) { for (const [re, cls] of _contentMap) { if (re.test(m)) { cl = cls; break; } } }
+        if (!cl) cl = _colorMap[c] || 'log-msg-default';
+    }
 
     const l = document.createElement('div');
     l.className = 'log-line';
