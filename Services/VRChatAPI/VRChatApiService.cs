@@ -455,6 +455,12 @@ public class VRChatApiService
         return null;
     }
 
+    public async Task<JObject?> GetWorldFreshAsync(string worldId)
+    {
+        if (!IsLoggedIn || string.IsNullOrEmpty(worldId)) return null;
+        return await FetchWorldAsync(worldId);
+    }
+
     // Get avatar info by ID
     public async Task<JObject?> GetAvatarAsync(string avatarId)
     {

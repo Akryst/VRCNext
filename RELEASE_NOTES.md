@@ -1,16 +1,16 @@
-# Release Notes
+2026.10.15 HOTFIX! (BETA)
 
-## 2026.10.13
+Fixes
+- Fixed an issue where the timeline did not show the location of first meet events
+- Fixed an issue where the timeline did not show the location of meet again events
+- Fixed an issue where VRCN tried to read .unitypackages from MY Avatars and compress them into cache which caused an enormous amount of GET Requests on each startup
 
-- Fixed an issue that caused profile images in the timeline to be empty
-- Fixed an issue that caused profile images in the media library to be empty
-- Improved caching for profile images
-- Improved caching for profile images of non-friends
-- Database now stores CDN URLs to allow re-downloading profile images
-- Fixed an issue that caused the paginator on the timeline to jump when selecting a date
-- Fixed an issue that caused the timeline to show more than 100 results on one page
-- Changed the paginator to always show 3 buttons in the middle without growing when navigating pages
-- Added a background downloader for profile images used in the timeline and media library — only downloads what is needed to prevent API spam
-- Changed the minimum cache size from 2 GB to 5 GB
-- All images are now compressed to 90% JPEG quality to prevent the cache from filling up too quickly
-- Added custom cursor support in theme settings
+
+Changes:
+- Moved Custom Added themes to "CUSTOM THEME" section below "THEME"
+
+Notification Sounds
+- Added Notification sounds. They can be found in settings
+1. Sound for Messages
+2. Sound for Notifications
+3. Sound for successful sound when an image was sent using media relay

@@ -43,7 +43,7 @@
   <None Update="voice\**\*">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </None>
-  <None Update="Services\OpenVR\openvr_api.dll" Condition="'$(_LinuxBuild)'!='true'">
+  <None Update="Services\OpenVR\openvr_api.dll" Condition="'$(_LinuxBuild)'!='true'" Link="openvr_api.dll">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </None>
 </ItemGroup>

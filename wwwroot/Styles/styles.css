@@ -7278,3 +7278,95 @@ div.vn-select {
     gap: 8px;
     margin-top: 4px;
 }
+
+/* ── World Insights ─────────────────────────────────────────────────── */
+
+.wi-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.wi-modes {
+    display: flex;
+    gap: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg-input);
+}
+
+.wi-mode-btn {
+    border-radius: 0 !important;
+    font-size: 11px !important;
+    padding: 6px 14px !important;
+    background: transparent !important;
+    color: var(--tx3) !important;
+    border: none !important;
+}
+
+.wi-mode-btn.wi-active {
+    background: var(--bg-hover) !important;
+    color: var(--tx1) !important;
+}
+
+.wi-mode-btn:hover:not(.wi-active) {
+    color: var(--tx2) !important;
+}
+
+.wi-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wi-range-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tx2);
+    min-width: 140px;
+    text-align: center;
+}
+
+.wi-today-btn {
+    font-size: 11px !important;
+    padding: 5px 8px !important;
+}
+
+.wi-chart-card {
+    background: var(--bg-card);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 10px;
+}
+
+.wi-chart-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tx2);
+    margin-bottom: 8px;
+}
+
+.wi-chart-card canvas {
+    width: 100%;
+    display: block;
+}
+
+.wi-dp-wrap {
+    position: relative;
+}
+
+.wi-date-picker {
+    position: absolute !important;
+    top: 0;
+    right: 0;
+    z-index: 100;
+}
+
+@keyframes wi-spin { to { transform: rotate(360deg); } }
+.wi-spin .msi { animation: wi-spin .8s linear infinite; }

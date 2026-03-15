@@ -17,6 +17,7 @@ public partial class AppShell
     private int _httpPort;
     private System.Net.HttpListener? _httpListener;
     private System.Threading.Timer? _uptimeTimer2;
+    private System.Threading.Timer? _worldStatsTimer;
     private bool _minimized;
     private StreamWriter? _activityLogWriter;
     private string _activityLogPath = "";
@@ -171,6 +172,28 @@ public partial class AppShell
                 SendToJS("uptimeTick", (DateTime.Now - _relayCtrl.RelayStart).ToString(@"hh\:mm\:ss"));
         }, null, 100, 100);
 
+        // Hourly world stats collection for World Insights
+        _worldStatsTimer = new System.Threading.Timer(async _ =>
+        {
+            try
+            {
+                if (!_vrcApi.IsLoggedIn) return;
+                var worlds = await _vrcApi.GetMyWorldsAsync();
+                foreach (var w in worlds)
+                {
+                    var id  = w["id"]?.ToString();
+                    if (string.IsNullOrEmpty(id)) continue;
+                    // List endpoint returns LimitedWorld (no visits) — fetch full world
+                    var full = await _vrcApi.GetWorldFreshAsync(id);
+                    var active    = full?["occupants"]?.Value<int>() ?? w["occupants"]?.Value<int>() ?? 0;
+                    var favorites = full?["favorites"]?.Value<int>() ?? w["favorites"]?.Value<int>() ?? 0;
+                    var visits    = full?["visits"]?.Value<int>() ?? 0;
+                    _timeline.InsertWorldStats(id, active, favorites, visits);
+                }
+            }
+            catch { /* silently ignore — retry next hour */ }
+        }, null, TimeSpan.FromMinutes(1), TimeSpan.FromHours(1));
+
         // Chromeless on Windows requires explicit location (Center() sets a flag, not coordinates)
         var (startX, startY) = WindowController.GetCenteredLocation(1100, 700);
 
@@ -267,6 +290,7 @@ public partial class AppShell
         _relayCtrl?.Dispose();
         _fileWatcher.Dispose();
         _uptimeTimer2?.Dispose();
+        _worldStatsTimer?.Dispose();
         _sfCtrl?.Dispose();
         _vfCtrl?.Dispose();
         _discordCtrl?.Dispose();

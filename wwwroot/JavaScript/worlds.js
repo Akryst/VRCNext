@@ -291,10 +291,21 @@ function renderWorldSearchDetail(w) {
         ? '<span class="msi" style="font-size:16px;">star</span>Unfavorite'
         : '<span class="msi" style="font-size:16px;">star_outline</span>Favorite';
 
+    const isOwnWorld = currentVrcUser && w.authorId === currentVrcUser.id;
+    _wdCurrentWorldId = wid;
+
+    // Tab pills (only for own worlds)
+    const tabsHtml = isOwnWorld ? `<div class="fd-tabs" style="margin-bottom:14px;">
+        <button class="fd-tab active" onclick="switchWdTab('info',this)">Info</button>
+        <button class="fd-tab" onclick="switchWdTab('insights',this)">Insights</button>
+    </div>` : '';
+
     el.innerHTML = `${thumb ? `<div class="fd-banner"><img src="${thumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>` : ''}
         <div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:20px;">
         <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(w.name)}</h2>
         <div style="font-size:12px;color:var(--tx3);margin-bottom:12px;">by ${w.authorId ? `<span onclick="document.getElementById('modalDetail').style.display='none';openFriendDetail('${esc(w.authorId)}')" style="display:inline-flex;align-items:center;padding:1px 8px;border-radius:20px;background:var(--bg-hover);font-size:11px;font-weight:600;color:var(--tx1);cursor:pointer;line-height:1.8;">${esc(w.authorName)}</span>` : esc(w.authorName)}</div>
+        ${tabsHtml}
+        <div id="wdTabInfo">
         <div class="fd-badges-row">
             <span class="vrcn-badge"><span class="msi" style="font-size:11px;">person</span> ${w.occupants} Active</span>
             <span class="vrcn-badge"><span class="msi" style="font-size:11px;">star</span> ${w.favorites}</span>
@@ -317,6 +328,8 @@ function renderWorldSearchDetail(w) {
         </div>
         ${instancesHtml}
         ${createHtml}
+        </div>
+        ${isOwnWorld ? `<div id="wdTabInsights" style="display:none;"><div id="wiContainer"><div class="empty-msg">Loading insights…</div></div></div>` : ''}
         <div style="margin-top:14px;text-align:right;"><button class="vrcn-button-round" onclick="closeWorldSearchDetail()">Close</button></div>
         </div>`;
 
@@ -335,8 +348,24 @@ function renderWorldSearchDetail(w) {
     }
 }
 
+let _wdCurrentWorldId = '';
+
+function switchWdTab(tab, btn) {
+    const info = document.getElementById('wdTabInfo');
+    const insights = document.getElementById('wdTabInsights');
+    if (info) info.style.display = tab === 'info' ? '' : 'none';
+    if (insights) insights.style.display = tab === 'insights' ? '' : 'none';
+    document.querySelectorAll('#detailModalContent .fd-tab').forEach(t => t.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    if (tab === 'insights' && _wdCurrentWorldId) {
+        wiLoadInsights(_wdCurrentWorldId);
+    }
+}
+
 function closeWorldSearchDetail() {
     if (_wdLiveTimer) { clearInterval(_wdLiveTimer); _wdLiveTimer = null; }
+    _wdCurrentWorldId = '';
+    if (typeof _wiReset === 'function') _wiReset();
     document.getElementById('modalDetail').style.display = 'none';
 }
 

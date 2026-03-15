@@ -589,6 +589,49 @@ public partial class AppShell
                     });
                     break;
 
+                case "getWorldInsights":
+                    _ = Task.Run(() =>
+                    {
+                        var worldId = msg["worldId"]?.ToString() ?? "";
+                        var from    = msg["from"]?.ToString() ?? "";
+                        var to      = msg["to"]?.ToString() ?? "";
+                        if (string.IsNullOrEmpty(worldId) || string.IsNullOrEmpty(from) || string.IsNullOrEmpty(to)) return;
+                        var stats = _timeline.GetWorldStats(worldId, from, to);
+                        Invoke(() => SendToJS("worldInsights", new { worldId, from, to, stats }));
+                    });
+                    break;
+
+                case "refreshWorldInsights":
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var worldId = msg["worldId"]?.ToString() ?? "";
+                            var from    = msg["from"]?.ToString() ?? "";
+                            var to      = msg["to"]?.ToString() ?? "";
+
+                            var worlds = await _vrcApi.GetMyWorldsAsync();
+                            foreach (var w in worlds)
+                            {
+                                var id = w["id"]?.ToString();
+                                if (string.IsNullOrEmpty(id)) continue;
+                                var full = await _vrcApi.GetWorldFreshAsync(id);
+                                var active    = full?["occupants"]?.Value<int>() ?? w["occupants"]?.Value<int>() ?? 0;
+                                var favorites = full?["favorites"]?.Value<int>() ?? w["favorites"]?.Value<int>() ?? 0;
+                                var visits    = full?["visits"]?.Value<int>() ?? 0;
+                                _timeline.InsertWorldStats(id, active, favorites, visits);
+                            }
+
+                            if (!string.IsNullOrEmpty(worldId) && !string.IsNullOrEmpty(from) && !string.IsNullOrEmpty(to))
+                            {
+                                var stats = _timeline.GetWorldStats(worldId, from, to);
+                                Invoke(() => SendToJS("worldInsights", new { worldId, from, to, stats }));
+                            }
+                        }
+                        catch { }
+                    });
+                    break;
+
                 // Groups - my groups, join, leave
                 case "vrcGetFavoriteWorlds":
                     _ = Task.Run(async () =>

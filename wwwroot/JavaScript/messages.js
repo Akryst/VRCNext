@@ -460,6 +460,9 @@ window.external.receiveMessage(rawMsg => {
             case 'vrcMyWorlds':
                 renderMyWorlds(payload);
                 break;
+            case 'worldInsights':
+                if (typeof wiHandleData === 'function') wiHandleData(payload);
+                break;
             case 'vrcFavoriteGroupUpdated':
                 onFavoriteGroupUpdated(payload);
                 onAvatarFavoriteGroupUpdated(payload);

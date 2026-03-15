@@ -152,6 +152,25 @@ public class TimelineService : IDisposable
         // Column migration — SQLite ADD COLUMN is idempotent with catch
         try { using var mc = _db.CreateCommand(); mc.CommandText = "ALTER TABLE events ADD COLUMN notif_title TEXT NOT NULL DEFAULT ''"; mc.ExecuteNonQuery(); } catch { }
         try { using var mc = _db.CreateCommand(); mc.CommandText = "CREATE TABLE IF NOT EXISTS user_image_cache (user_id TEXT PRIMARY KEY, image TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT '')"; mc.ExecuteNonQuery(); } catch { }
+        // World Insights stats table
+        try
+        {
+            using var ws = _db.CreateCommand();
+            ws.CommandText = @"
+                CREATE TABLE IF NOT EXISTS world_stats (
+                    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                    world_id  TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    active    INTEGER NOT NULL DEFAULT 0,
+                    favorites INTEGER NOT NULL DEFAULT 0,
+                    visits    INTEGER NOT NULL DEFAULT 0
+                );
+                DROP INDEX IF EXISTS idx_ws_world_ts;
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_ws_world_ts ON world_stats(world_id, timestamp);
+            ";
+            ws.ExecuteNonQuery();
+        }
+        catch { }
     }
 
     private void MigrateFromJson()
@@ -1507,6 +1526,60 @@ public class TimelineService : IDisposable
                 .Take(200)
                 .ToList(),
         };
+    }
+
+    // ── World Insights ─────────────────────────────────────────────────────
+
+    public class WorldStatPoint
+    {
+        public string Timestamp { get; set; } = "";
+        public int Active    { get; set; }
+        public int Favorites { get; set; }
+        public int Visits    { get; set; }
+    }
+
+    public void InsertWorldStats(string worldId, int active, int favorites, int visits)
+    {
+        lock (_lock)
+        {
+            var hourBucket = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH':00:00Z'");
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"INSERT INTO world_stats (world_id, timestamp, active, favorites, visits)
+                VALUES (@wid, @ts, @a, @f, @v)
+                ON CONFLICT(world_id, timestamp) DO UPDATE SET
+                    active = excluded.active, favorites = excluded.favorites, visits = excluded.visits";
+            cmd.Parameters.AddWithValue("@wid", worldId);
+            cmd.Parameters.AddWithValue("@ts", hourBucket);
+            cmd.Parameters.AddWithValue("@a", active);
+            cmd.Parameters.AddWithValue("@f", favorites);
+            cmd.Parameters.AddWithValue("@v", visits);
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    public List<WorldStatPoint> GetWorldStats(string worldId, string fromIso, string toIso)
+    {
+        lock (_lock)
+        {
+            var list = new List<WorldStatPoint>();
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT timestamp, active, favorites, visits FROM world_stats WHERE world_id = @wid AND timestamp >= @from AND timestamp <= @to ORDER BY timestamp ASC";
+            cmd.Parameters.AddWithValue("@wid", worldId);
+            cmd.Parameters.AddWithValue("@from", fromIso);
+            cmd.Parameters.AddWithValue("@to", toIso);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                list.Add(new WorldStatPoint
+                {
+                    Timestamp = r.GetString(0),
+                    Active    = r.GetInt32(1),
+                    Favorites = r.GetInt32(2),
+                    Visits    = r.GetInt32(3),
+                });
+            }
+            return list;
+        }
     }
 
     // Disposal
