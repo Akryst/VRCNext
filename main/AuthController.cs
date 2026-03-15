@@ -1055,7 +1055,9 @@ public class AuthController
                         releaseStatus     = a["releaseStatus"]?.ToString() ?? "private",
                         favoriteGroup     = g.name,
                         favoriteId        = a["favoriteId"]?.ToString() ?? "",
-                        unityPackages     = a["unityPackages"] as JArray ?? new JArray(),
+                        unityPackages     = (a["unityPackages"] as JArray ?? new JArray())
+                            .Select(p => new { platform = p["platform"]?.ToString() ?? "", variant = p["variant"]?.ToString() ?? "" })
+                            .ToArray(),
                     });
                 }
             }
@@ -1083,7 +1085,9 @@ public class AuthController
                 authorName        = a["authorName"]?.ToString() ?? "",
                 releaseStatus     = a["releaseStatus"]?.ToString() ?? "private",
                 description       = a["description"]?.ToString() ?? "",
-                unityPackages     = a["unityPackages"] as JArray ?? new JArray(),
+                unityPackages     = (a["unityPackages"] as JArray ?? new JArray())
+                    .Select(p => new { platform = p["platform"]?.ToString() ?? "", variant = p["variant"]?.ToString() ?? "" })
+                    .ToArray(),
             }).ToList();
             var payload = new { filter = "own", avatars = list, currentAvatarId = _core.VrcApi.CurrentAvatarId ?? "" };
             if (_core.Settings.FfcEnabled) _core.Cache.Save(CacheHandler.KeyAvatars, payload);

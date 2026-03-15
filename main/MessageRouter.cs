@@ -312,7 +312,9 @@ public partial class AppShell
                                     authorName       = a["author"]?["name"]?.ToString() ?? a["authorName"]?.ToString() ?? "",
                                     releaseStatus    = "public",
                                     description      = a["description"]?.ToString() ?? "",
-                                    unityPackages    = a["unityPackages"] as JArray ?? new JArray(),
+                                    unityPackages    = (a["unityPackages"] as JArray ?? new JArray())
+                                        .Select(p => new { platform = p["platform"]?.ToString() ?? "", variant = p["variant"]?.ToString() ?? "" })
+                                        .ToArray(),
                                     compatibility    = a["compatibility"] as JArray ?? new JArray(),
                                 }).ToList();
                                 Invoke(() => SendToJS("vrcAvatarSearchResults", new
