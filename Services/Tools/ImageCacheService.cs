@@ -37,17 +37,31 @@ public class ImageCacheService
         if (string.IsNullOrWhiteSpace(url) || !url.StartsWith("http")) return url ?? "";
         if (!Enabled) return url;
 
-        var fileName = GetFileName(url);
-        var filePath = Path.Combine(_dir, fileName);
-        _reverseMap[fileName] = url;
+        var baseHash = GetFileHash(url);
+        var jpgName = baseHash + ".jpg";
+        var pngName = baseHash + ".png";
+        var jpgPath = Path.Combine(_dir, jpgName);
+        var pngPath = Path.Combine(_dir, pngName);
 
-        if (File.Exists(filePath) && DateTime.UtcNow - File.GetCreationTimeUtc(filePath) < ttl)
-            return $"http://localhost:{Port}/imgcache/{fileName}";
+        // Check both extensions — PNGs with alpha are stored as .png
+        if (File.Exists(pngPath) && DateTime.UtcNow - File.GetCreationTimeUtc(pngPath) < ttl)
+        {
+            _reverseMap[pngName] = url;
+            return $"http://localhost:{Port}/imgcache/{pngName}";
+        }
+        if (File.Exists(jpgPath) && DateTime.UtcNow - File.GetCreationTimeUtc(jpgPath) < ttl)
+        {
+            _reverseMap[jpgName] = url;
+            return $"http://localhost:{Port}/imgcache/{jpgName}";
+        }
+
+        _reverseMap[jpgName] = url;
+        _reverseMap[pngName] = url;
 
         lock (_permanentFail)
             if (_permanentFail.Contains(url)) return url;
 
-        _ = DownloadAsync(url, filePath);
+        _ = DownloadAsync(url, jpgPath);
         return url;
     }
 
@@ -129,7 +143,7 @@ public class ImageCacheService
             using (var fs = File.Create(tmp))
                 await stream.CopyToAsync(fs);
 
-            CompressToJpeg(tmp, filePath);
+            CompressImage(tmp, filePath);
 
             if (LimitBytes > 0)
                 _ = Task.Run(() => TrimIfNeeded(LimitBytes));
@@ -145,11 +159,10 @@ public class ImageCacheService
         }
     }
 
-    private static void CompressToJpeg(string sourcePath, string destPath)
+    private static void CompressImage(string sourcePath, string destPath)
     {
         try
         {
-            // Magic bytes, not URL extension (CDN may serve WebP under .jpg)
             var format = DetectFormat(sourcePath);
 
             if (format == SKEncodedImageFormat.Jpeg)
@@ -162,8 +175,16 @@ public class ImageCacheService
             using var bmp = SKBitmap.Decode(sourcePath);
             if (bmp == null) { TryDelete(sourcePath); return; }
 
+            // Keep PNG if image has alpha channel (badges, icons, etc.)
+            bool hasAlpha = bmp.AlphaType != SKAlphaType.Opaque;
+            var targetFormat = hasAlpha ? SKEncodedImageFormat.Png : SKEncodedImageFormat.Jpeg;
+
+            // Update dest extension to match actual format
+            if (hasAlpha && destPath.EndsWith(".jpg"))
+                destPath = destPath[..^4] + ".png";
+
             using var img  = SKImage.FromBitmap(bmp);
-            using var data = img.Encode(SKEncodedImageFormat.Jpeg, 90);
+            using var data = img.Encode(targetFormat, 90);
             if (data == null) { TryDelete(sourcePath); return; }
 
             using var fs = File.Create(destPath);
@@ -214,9 +235,9 @@ public class ImageCacheService
         return _reverseMap.TryGetValue(fileName, out var original) ? original : url;
     }
 
-    private static string GetFileName(string url)
+    private static string GetFileHash(string url)
     {
         var hash = MD5.HashData(Encoding.UTF8.GetBytes(url));
-        return Convert.ToHexString(hash).ToLower() + ".jpg";
+        return Convert.ToHexString(hash).ToLower();
     }
 }

@@ -18,6 +18,7 @@ public partial class AppShell
     private System.Net.HttpListener? _httpListener;
     private System.Threading.Timer? _uptimeTimer2;
     private System.Threading.Timer? _worldStatsTimer;
+    private int _worldStatsOffsetMin; // random 0-10 min offset per session
     private bool _minimized;
     private StreamWriter? _activityLogWriter;
     private string _activityLogPath = "";
@@ -173,26 +174,14 @@ public partial class AppShell
         }, null, 100, 100);
 
         // Hourly world stats collection for World Insights
+        // Fires at each UTC hour + random 0-10 min offset (to spread API load across users)
+        _worldStatsOffsetMin = new Random().Next(0, 11);
         _worldStatsTimer = new System.Threading.Timer(async _ =>
         {
-            try
-            {
-                if (!_vrcApi.IsLoggedIn) return;
-                var worlds = await _vrcApi.GetMyWorldsAsync();
-                foreach (var w in worlds)
-                {
-                    var id  = w["id"]?.ToString();
-                    if (string.IsNullOrEmpty(id)) continue;
-                    // List endpoint returns LimitedWorld (no visits) — fetch full world
-                    var full = await _vrcApi.GetWorldFreshAsync(id);
-                    var active    = full?["occupants"]?.Value<int>() ?? w["occupants"]?.Value<int>() ?? 0;
-                    var favorites = full?["favorites"]?.Value<int>() ?? w["favorites"]?.Value<int>() ?? 0;
-                    var visits    = full?["visits"]?.Value<int>() ?? 0;
-                    _timeline.InsertWorldStats(id, active, favorites, visits);
-                }
-            }
-            catch { /* silently ignore — retry next hour */ }
-        }, null, TimeSpan.FromMinutes(1), TimeSpan.FromHours(1));
+            await CollectWorldStatsAsync();
+            ScheduleNextWorldStats();
+        }, null, Timeout.Infinite, Timeout.Infinite);
+        ScheduleNextWorldStats();
 
         // Chromeless on Windows requires explicit location (Center() sets a flag, not coordinates)
         var (startX, startY) = WindowController.GetCenteredLocation(1100, 700);
@@ -282,6 +271,40 @@ public partial class AppShell
         catch { }
     }
 #endif
+
+    // ── World Stats collection (aligned to UTC hour + random offset) ────────
+
+    private void ScheduleNextWorldStats()
+    {
+        var now = DateTime.UtcNow;
+        // Target: next UTC hour + offset
+        var nextHour = new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0, DateTimeKind.Utc).AddHours(1);
+        var target = nextHour.AddMinutes(_worldStatsOffsetMin);
+        // If target is in the past (e.g. offset=5 and it's :03), fire for *this* hour
+        if (target <= now) target = target.AddHours(1);
+        var delay = target - now;
+        _worldStatsTimer?.Change(delay, Timeout.InfiniteTimeSpan);
+    }
+
+    internal async Task CollectWorldStatsAsync()
+    {
+        try
+        {
+            if (!_vrcApi.IsLoggedIn) return;
+            var worlds = await _vrcApi.GetMyWorldsAsync();
+            foreach (var w in worlds)
+            {
+                var id = w["id"]?.ToString();
+                if (string.IsNullOrEmpty(id)) continue;
+                var full = await _vrcApi.GetWorldFreshAsync(id);
+                var active    = full?["occupants"]?.Value<int>() ?? w["occupants"]?.Value<int>() ?? 0;
+                var favorites = full?["favorites"]?.Value<int>() ?? w["favorites"]?.Value<int>() ?? 0;
+                var visits    = full?["visits"]?.Value<int>() ?? 0;
+                _timeline.InsertWorldStats(id, active, favorites, visits);
+            }
+        }
+        catch { }
+    }
 
     // OnClose
 

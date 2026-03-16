@@ -1128,7 +1128,29 @@ public class AuthController
         _ = Task.Run(_groups.FetchAndCacheAsync);
         _ = Task.Run(FetchAndCacheFavWorldsAsync);
         _ = Task.Run(BackfillMissingPlayerImagesAsync);
+        _ = Task.Run(CollectWorldStatsIfMissingAsync);
         await Task.CompletedTask;
+    }
+
+    private async Task CollectWorldStatsIfMissingAsync()
+    {
+        try
+        {
+            if (!_core.VrcApi.IsLoggedIn) return;
+            if (_core.Timeline.HasWorldStatsForCurrentHour()) return;
+            var worlds = await _core.VrcApi.GetMyWorldsAsync();
+            foreach (var w in worlds)
+            {
+                var id = w["id"]?.ToString();
+                if (string.IsNullOrEmpty(id)) continue;
+                var full = await _core.VrcApi.GetWorldFreshAsync(id);
+                var active    = full?["occupants"]?.Value<int>() ?? w["occupants"]?.Value<int>() ?? 0;
+                var favorites = full?["favorites"]?.Value<int>() ?? w["favorites"]?.Value<int>() ?? 0;
+                var visits    = full?["visits"]?.Value<int>() ?? 0;
+                _core.Timeline.InsertWorldStats(id, active, favorites, visits);
+            }
+        }
+        catch { }
     }
 
     private async Task BackfillMissingPlayerImagesAsync()

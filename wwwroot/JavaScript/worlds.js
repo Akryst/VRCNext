@@ -329,7 +329,7 @@ function renderWorldSearchDetail(w) {
         ${instancesHtml}
         ${createHtml}
         </div>
-        ${isOwnWorld ? `<div id="wdTabInsights" style="display:none;"><div id="wiContainer"><div class="empty-msg">Loading insights…</div></div></div>` : ''}
+        ${isOwnWorld ? `<div id="wdTabInsights" style="display:none;"><div id="wiContainer"></div></div>` : ''}
         <div style="margin-top:14px;text-align:right;"><button class="vrcn-button-round" onclick="closeWorldSearchDetail()">Close</button></div>
         </div>`;
 

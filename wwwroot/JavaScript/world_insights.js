@@ -1,7 +1,7 @@
 /* === World Insights — line charts for own-world stats === */
 
 let _wiWorldId = '';
-let _wiMode = 'week';       // 'day' | 'week' | 'month'
+let _wiMode = 'week';       // 'day' | 'week' | 'month' | 'year'
 let _wiAnchor = null;        // Date object — end of current range
 let _wiData = [];            // raw stat points from backend
 let _wiLoading = false;
@@ -33,8 +33,12 @@ function _wiRange() {
     } else if (_wiMode === 'week') {
         from.setDate(from.getDate() - 6);
         from.setHours(0, 0, 0, 0);
-    } else {
+    } else if (_wiMode === 'month') {
         from.setDate(from.getDate() - 29);
+        from.setHours(0, 0, 0, 0);
+    } else {
+        from.setFullYear(from.getFullYear() - 1);
+        from.setDate(from.getDate() + 1);
         from.setHours(0, 0, 0, 0);
     }
     return { from, to };
@@ -48,6 +52,7 @@ function _wiRangeLabel() {
     const { from, to } = _wiRange();
     const opts = { month: 'short', day: 'numeric' };
     if (_wiMode === 'day') return to.toLocaleDateString('en-US', { ...opts, year: 'numeric' });
+    if (_wiMode === 'year') return from.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) + ' – ' + to.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     return from.toLocaleDateString('en-US', opts) + ' – ' + to.toLocaleDateString('en-US', { ...opts, year: 'numeric' });
 }
 
@@ -63,7 +68,8 @@ function wiNav(dir) {
     const d = _wiAnchor;
     if (_wiMode === 'day') d.setDate(d.getDate() + dir);
     else if (_wiMode === 'week') d.setDate(d.getDate() + dir * 7);
-    else d.setDate(d.getDate() + dir * 30);
+    else if (_wiMode === 'month') d.setDate(d.getDate() + dir * 30);
+    else d.setFullYear(d.getFullYear() + dir);
     _wiUpdateToolbar();
     _wiRequestData();
 }
@@ -194,6 +200,26 @@ function _wiBucket() {
                 points[h].count++;
             }
         });
+    } else if (_wiMode === 'year') {
+        // 12 monthly buckets
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const start = new Date(from);
+        for (let i = 0; i < 12; i++) {
+            const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
+            const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            points.push({ label: monthNames[d.getMonth()], monthKey: key, active: 0, favorites: 0, visits: 0, count: 0 });
+        }
+        _wiData.forEach(p => {
+            const d = new Date(p.Timestamp || p.timestamp);
+            const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            const pt = points.find(x => x.monthKey === key);
+            if (pt) {
+                pt.active = Math.max(pt.active, p.Active ?? p.active ?? 0);
+                pt.favorites = Math.max(pt.favorites, p.Favorites ?? p.favorites ?? 0);
+                pt.visits = Math.max(pt.visits, p.Visits ?? p.visits ?? 0);
+                pt.count++;
+            }
+        });
     } else {
         const days = _wiMode === 'week' ? 7 : 30;
         const start = new Date(from);
@@ -256,7 +282,7 @@ function _wiRenderShell() {
                 </div>
             </div>
         </div>
-        <div id="wiCharts"></div>`;
+        <div id="wiCharts"><div class="empty-msg" style="margin-top:20px;">Loading insights…</div></div>`;
 
     _wiUpdateToolbar();
 }
@@ -268,7 +294,7 @@ function _wiUpdateToolbar() {
         `<button class="vrcn-button wi-mode-btn${_wiMode === m ? ' wi-active' : ''}" onclick="wiSetMode('${m}')">${label}</button>`;
 
     const modes = document.getElementById('wiModes');
-    if (modes) modes.innerHTML = modeBtn('day', 'Day') + modeBtn('week', 'Week') + modeBtn('month', 'Month');
+    if (modes) modes.innerHTML = modeBtn('day', 'Day') + modeBtn('week', 'Week') + modeBtn('month', 'Month') + modeBtn('year', 'Year');
 
     const rangeLabel = document.getElementById('wiRangeLabel');
     if (rangeLabel) rangeLabel.textContent = _wiRangeLabel();

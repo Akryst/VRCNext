@@ -1582,6 +1582,18 @@ public class TimelineService : IDisposable
         }
     }
 
+    public bool HasWorldStatsForCurrentHour()
+    {
+        lock (_lock)
+        {
+            var hourBucket = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH':00:00Z'");
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM world_stats WHERE timestamp = @ts";
+            cmd.Parameters.AddWithValue("@ts", hourBucket);
+            return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+        }
+    }
+
     // Disposal
 
     public void Dispose()

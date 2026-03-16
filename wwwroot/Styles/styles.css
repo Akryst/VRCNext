@@ -1682,8 +1682,9 @@ html.cursor-custom * { cursor: var(--cursor-url, auto) !important; }
     inset: 0;
     background: rgba(0,0,0,.65);
     z-index: 10000;
-    animation: fadeIn .12s ease;
+    animation: fadeIn .12s ease forwards;
     backdrop-filter: blur(4px);
+    will-change: opacity;
 }
 #modalFriendDetail { z-index: 10001; }
 #modalStatus { z-index: 10002; }
@@ -1698,7 +1699,8 @@ html.cursor-custom * { cursor: var(--cursor-url, auto) !important; }
     overflow-y: auto;
     overflow-x: hidden;
     box-shadow: 0 20px 60px rgba(0,0,0,.5);
-    animation: modalPop .18s ease;
+    animation: modalPop .18s ease forwards;
+    will-change: transform, opacity;
 }
 
 .modal-icon {
@@ -7283,10 +7285,8 @@ div.vn-select {
 
 .wi-toolbar {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     gap: 10px;
-    flex-wrap: wrap;
     margin-bottom: 14px;
 }
 
@@ -7299,12 +7299,15 @@ div.vn-select {
 }
 
 .wi-mode-btn {
+    flex: 1;
     border-radius: 0 !important;
-    font-size: 11px !important;
-    padding: 6px 14px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 8px 0 !important;
     background: transparent !important;
     color: var(--tx3) !important;
     border: none !important;
+    justify-content: center !important;
 }
 
 .wi-mode-btn.wi-active {
@@ -7319,6 +7322,7 @@ div.vn-select {
 .wi-nav {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
 }
 
