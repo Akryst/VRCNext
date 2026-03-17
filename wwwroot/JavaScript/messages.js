@@ -105,6 +105,7 @@ window.external.receiveMessage(rawMsg => {
                     if (fsl) fsl.innerHTML = '<div class="vrc-section-label">IN-GAME — ···</div>' + sk('friend', 10);
                 }
                 renderDashboard();
+                fetchWorldTabs();
                 loadMyInstances();
                 requestInstanceInfo();
                 refreshNotifications();
@@ -491,10 +492,7 @@ window.external.receiveMessage(rawMsg => {
             case 'vrcWorldsResolved':
                 onWorldsResolved(payload);
                 break;
-            case 'discoveryFeed':
-                onDiscoveryFeed(payload.json);
-                break;
-            case 'popularWorlds':
+case 'popularWorlds':
                 onPopularWorlds(payload.worlds);
                 break;
             case 'activeWorlds':

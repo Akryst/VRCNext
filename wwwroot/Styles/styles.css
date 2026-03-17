@@ -2714,33 +2714,6 @@ html.cursor-custom * { cursor: var(--cursor-url, auto) !important; }
     color: var(--tx1);
 }
 
-.disc-desc {
-    font-size: 11px;
-    color: var(--tx3);
-    line-height: 1.4;
-    margin-top: 4px;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.disc-tags-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 6px;
-}
-
-.disc-tag {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: .4px;
-    padding: 2px 7px;
-    border-radius: 99px;
-    text-transform: uppercase;
-    line-height: 1.6;
-}
 
 .dash-world-thumb {
     height: 120px;

@@ -14,7 +14,6 @@ initAllVnSelects();
 renderWebhookCards([{}, {}, {}, {}]);
 renderThemeChips();
 renderDashboard();
-fetchDiscovery();
 tryLoadLogo();
 tryInitNotifySound();
 renderChatboxLines();
