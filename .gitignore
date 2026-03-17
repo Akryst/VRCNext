@@ -43,3 +43,10 @@ appsettings.Local.json
 # Build
 make_ico.ps1
 *.bat
+
+# Reference docs
+API Refs/
+
+# Distribution
+installer/
+releases/
