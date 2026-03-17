@@ -313,7 +313,7 @@ function openMyInstanceDetail(worldId, location) {
 }
 
 /* === Discovery Section === */
-let _discTab  = 'discovery';
+let _discTab  = 'popular';
 let _discPage = 0;
 const DISC_PER_PAGE   = 8;
 const DISC_CACHE_TTL  = 10 * 60 * 1000;
@@ -321,10 +321,16 @@ let _popularCache = { worlds: [], ts: 0 };
 let _activeCache  = { worlds: [], ts: 0 };
 let _recentCache  = { worlds: [], ts: 0 };
 
+// Refresh every 10 minutes (initial fetch triggered by vrcUser login event)
 setInterval(() => {
     sendToCS({ action: 'vrcGetPopularWorlds' });
     sendToCS({ action: 'vrcGetActiveWorlds' });
 }, DISC_CACHE_TTL);
+
+function fetchWorldTabs() {
+    sendToCS({ action: 'vrcGetPopularWorlds' });
+    sendToCS({ action: 'vrcGetActiveWorlds' });
+}
 
 function setDiscoveryTab(tab) {
     _discTab  = tab;
@@ -335,7 +341,6 @@ function setDiscoveryTab(tab) {
     if (tab === 'popular') _fetchPopularWorlds();
     else if (tab === 'active') _fetchActiveWorlds();
     else if (tab === 'recent') _fetchRecentWorlds();
-    else renderDiscoverySection();
 }
 
 function _fetchPopularWorlds() {
@@ -392,12 +397,6 @@ function renderDiscoverySection() {
     const pagination = document.getElementById('discPagination');
     if (!grid) return;
 
-    if (_discTab === 'discovery') {
-        if (pagination) pagination.style.display = 'none';
-        renderDiscovery();
-        return;
-    }
-
     const cache = _discTab === 'popular' ? _popularCache : _discTab === 'active' ? _activeCache : _recentCache;
     if (!cache.worlds.length) {
         grid.innerHTML = '<div class="empty-msg">Loading worlds...</div>';
@@ -436,83 +435,3 @@ function renderDiscoverySection() {
     }
 }
 
-const DISCOVERY_URL = 'https://vrcn.shinyflvres.com/Dashboard_Discovery.json';
-
-const DISCOVERY_TAG_COLORS = {
-    'Hangout':    { bg: '#3b82f6', tx: '#fff' },
-    'Photography':{ bg: '#8b5cf6', tx: '#fff' },
-    'Game':       { bg: '#ef4444', tx: '#fff' },
-    'Events':     { bg: '#f59e0b', tx: '#000' },
-    'Abstract':   { bg: '#6366f1', tx: '#fff' },
-    'Lovely':     { bg: '#ec4899', tx: '#fff' },
-    'Cozy':       { bg: '#f97316', tx: '#fff' },
-    'Open World': { bg: '#22c55e', tx: '#fff' },
-    'Home':       { bg: '#14b8a6', tx: '#fff' },
-    'Outdoor':    { bg: '#84cc16', tx: '#000' },
-    'Indoor':     { bg: '#a78bfa', tx: '#fff' },
-    'Brainrot':   { bg: '#f43f5e', tx: '#fff' },
-};
-
-let discoveryWorlds = [];
-
-function fetchDiscovery() {
-    sendToCS({ action: 'fetchDiscoveryFeed', url: DISCOVERY_URL });
-}
-
-function onDiscoveryFeed(json) {
-    try {
-        const data = JSON.parse(json);
-        if (!Array.isArray(data) || data.length === 0) return;
-        discoveryWorlds = data.slice(0, 8);
-        const unresolvedIds = discoveryWorlds
-            .map(w => w.WorldID || w.worldId || '')
-            .filter(id => id.startsWith('wrld_') && !dashWorldCache[id]);
-        if (unresolvedIds.length > 0) {
-            sendToCS({ action: 'vrcResolveWorlds', worldIds: unresolvedIds });
-            setTimeout(() => {
-                const stillUnresolved = discoveryWorlds.some(w => {
-                    const id = w.WorldID || w.worldId || '';
-                    return id.startsWith('wrld_') && !dashWorldCache[id];
-                });
-                if (stillUnresolved && _discTab === 'discovery') renderDiscovery();
-            }, 8000);
-        } else if (_discTab === 'discovery') {
-            renderDiscovery();
-        }
-    } catch (_) {}
-}
-
-function renderDiscovery() {
-    const grid = document.getElementById('dashDiscoveryGrid');
-    if (!grid) return;
-
-    if (!discoveryWorlds.length) {
-        grid.innerHTML = '<div class="empty-msg">No discovery worlds available</div>';
-        return;
-    }
-
-    grid.innerHTML = discoveryWorlds.map(w => {
-        const wid  = (w.WorldID || w.worldId || '').trim();
-        const desc = w.Description || w.description || '';
-        const tags = Array.isArray(w.Tags || w.tags) ? (w.Tags || w.tags) : [];
-        const cached = dashWorldCache[wid];
-        const name  = cached?.name || wid;
-        const thumb = cached?.thumbnailImageUrl || cached?.imageUrl || '';
-        const thumbStyle = thumb ? `background-image:url('${cssUrl(thumb)}')` : '';
-        const safeWid = wid.replace(/'/g, "\\'");
-
-        const tagHtml = tags.map(t => {
-            const col = DISCOVERY_TAG_COLORS[t] || { bg: 'var(--bg3)', tx: 'var(--tx2)' };
-            return `<span class="vrcn-badge" style="background:${col.bg};color:${col.tx}">${esc(t)}</span>`;
-        }).join('');
-
-        return `<div class="dash-world-card disc-card" onclick="openWorldDetail('${safeWid}')">
-            <div class="dash-world-thumb" style="${thumbStyle}"><div class="dash-world-thumb-overlay"></div></div>
-            <div class="dash-world-info">
-                <div class="dash-world-name">${esc(name)}</div>
-                ${desc ? `<div class="disc-desc">${esc(desc)}</div>` : ''}
-                ${tagHtml ? `<div class="disc-tags-row">${tagHtml}</div>` : ''}
-            </div>
-        </div>`;
-    }).join('');
-}

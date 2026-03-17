@@ -311,7 +311,6 @@ function onWorldsResolved(dict) {
     });
     Object.assign(dashWorldCache, dict);
     renderDashboard();
-    renderDiscovery();
     document.querySelectorAll('.lib-world-badge[data-wid]').forEach(btn => {
         const wid  = btn.getAttribute('data-wid');
         const info = worldInfoCache[wid];

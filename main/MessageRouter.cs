@@ -287,23 +287,6 @@ public partial class AppShell
                     });
                     break;
 
-                case "fetchDiscoveryFeed":
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            var url = msg["url"]?.ToString() ?? "";
-                            using var http = new System.Net.Http.HttpClient();
-                            http.DefaultRequestHeaders.Add("User-Agent", AppInfo.UserAgent);
-                            var resp = await http.GetStringAsync(url);
-                            Invoke(() => SendToJS("discoveryFeed", new { json = resp }));
-                        }
-                        catch (Exception ex)
-                        {
-                            Invoke(() => SendToJS("log", new { msg = $"Discovery fetch error: {ex.Message}", color = "err" }));
-                        }
-                    });
-                    break;
 
                 case "playVRChat":
                     _relayCtrl.HandleMessage(action, msg);
