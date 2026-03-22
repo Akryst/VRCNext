@@ -41,15 +41,87 @@ function showUpdateAvailable(version) {
     setUpdProgress(false);
     document.getElementById('updBtn').disabled = false;
     rerenderUpdateTranslations();
+    _setUpdCardAvailable(version);
 }
+
+// ─── Settings card helpers ────────────────────────────────────────────────────
+function _setUpdCardStatus(text) {
+    const el = document.getElementById('setUpdStatus');
+    if (el) el.textContent = text;
+}
+function _setUpdCardAvailable(version) {
+    const wrap = document.getElementById('setUpdInstallWrap');
+    const ver  = document.getElementById('setUpdVersion');
+    if (wrap) wrap.style.display = '';
+    if (ver)  ver.textContent = version;
+    _setUpdCardStatus('');
+}
+function _setUpdCardProgress(pct) {
+    const wrap = document.getElementById('setUpdProgressWrap');
+    const fill = document.getElementById('setUpdProgressFill');
+    const lbl  = document.getElementById('setUpdProgressStatus');
+    const btn  = document.getElementById('setUpdInstallBtn');
+    if (wrap) wrap.style.display = '';
+    if (fill) fill.style.width = pct + '%';
+    if (btn)  btn.disabled = true;
+    if (lbl)  lbl.textContent = pct < 100
+        ? `${t('update.downloading','Downloading...')} ${pct}%`
+        : t('update.installing_restarting','Installing & restarting...');
+}
+
+function settingsCheckUpdate() {
+    const btn = document.getElementById('setUpdCheckBtn');
+    if (btn) { btn.disabled = true; }
+    _setUpdCardStatus(t('update.checking', 'Checking...'));
+    sendToCS({ action: 'checkUpdate' });
+    // re-enable after a few seconds in case nothing found
+    setTimeout(() => {
+        if (btn) btn.disabled = false;
+        const wrap = document.getElementById('setUpdInstallWrap');
+        if (!wrap || wrap.style.display === 'none')
+            _setUpdCardStatus(t('update.up_to_date', 'You are up to date.'));
+    }, 4000);
+}
+
+function settingsInstallUpdate() {
+    if (_updateInstalling) return;
+    _updateInstalling = true;
+    _updatePhase = 'starting';
+    _updatePct = 0;
+    const btn = document.getElementById('updBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = updButtonHtml('hourglass_empty','update.starting','Starting...'); }
+    _setUpdCardProgress(0);
+    rerenderUpdateTranslations();
+    setUpdProgress(true, 0);
+    sendToCS({ action: 'installUpdate' });
+}
+
+let _updDismiss = null;
 
 function toggleUpdatePanel() {
     if (_updateInstalling) return;
     _updatePanelOpen = !_updatePanelOpen;
-    document.getElementById('updatePanel').style.display = _updatePanelOpen ? '' : 'none';
+    const panel = document.getElementById('updatePanel');
     if (_updatePanelOpen) {
+        panel.style.display = '';
+        requestAnimationFrame(() => panel.classList.add('panel-open'));
+        // close other panels
         const np = document.getElementById('notifPanel');
-        if (np) np.style.display = 'none';
+        if (np?.classList.contains('panel-open')) toggleNotifPanel();
+        const cp = document.getElementById('chatPanel');
+        if (cp?.classList.contains('panel-open')) toggleChatPanel();
+        setTimeout(() => {
+            _updDismiss = e => {
+                const p = document.getElementById('updatePanel');
+                const b = document.getElementById('btnUpdate');
+                if (!p?.contains(e.target) && !b?.contains(e.target)) toggleUpdatePanel();
+            };
+            document.addEventListener('click', _updDismiss);
+        }, 0);
+    } else {
+        if (_updDismiss) { document.removeEventListener('click', _updDismiss); _updDismiss = null; }
+        panel.classList.remove('panel-open');
+        setTimeout(() => { if (!_updatePanelOpen) panel.style.display = 'none'; }, 90);
     }
 }
 
@@ -61,6 +133,7 @@ function startUpdate() {
     document.getElementById('updBtn').disabled = true;
     rerenderUpdateTranslations();
     setUpdProgress(true, 0);
+    _setUpdCardProgress(0);
     sendToCS({ action: 'installUpdate' });
 }
 
@@ -74,6 +147,7 @@ function setUpdProgress(visible, pct = 0) {
 function onUpdateProgress(pct) {
     _updatePhase = 'downloading';
     setUpdProgress(true, pct);
+    _setUpdCardProgress(pct);
 }
 
 function onUpdateReady() {
@@ -81,4 +155,5 @@ function onUpdateReady() {
     _updatePct = 100;
     setUpdProgress(true, 100);
     rerenderUpdateTranslations();
+    _setUpdCardProgress(100);
 }

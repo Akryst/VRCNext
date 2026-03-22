@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="sidebar" id="sidebarEl">
-        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.11.3</div></div><button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar" data-i18n-title="common.toggle_sidebar"><span class="msi" id="sbIcon">chevron_left</span></button></div>
+        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.11.5</div></div><button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar" data-i18n-title="common.toggle_sidebar"><span class="msi" id="sbIcon">chevron_left</span></button></div>
         <div class="nav">
             <button class="nav-btn active" onclick="showTab(0)"><span class="ni msi">dashboard</span><span class="nl" data-i18n="nav.dashboard">Dashboard</span></button>
             <button class="nav-btn" onclick="showTab(1)"><span class="ni msi">travel_explore</span><span class="nl" data-i18n="nav.worlds">Worlds</span></button>
@@ -422,6 +422,25 @@
             <!-- Tab 9: Settings -->
             <div class="tab" id="tab9">
                 <div class="settings-inner sf-layout">
+
+                    <!-- UPDATE VRCNEXT -->
+                    <div class="sf-card">
+                        <div class="sf-card-header"><span class="msi">system_update_alt</span> <span data-i18n="settings.update.title">Update VRCNext</span></div>
+                        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                            <button class="vrcn-button-round" id="setUpdCheckBtn" onclick="settingsCheckUpdate()"><span class="msi" style="font-size:15px;">refresh</span> <span data-i18n="settings.update.check_btn">Check for Update</span></button>
+                            <span id="setUpdStatus" style="font-size:12px;color:var(--tx3);"></span>
+                        </div>
+                        <div id="setUpdInstallWrap" style="display:none;margin-top:12px;">
+                            <div style="font-size:13px;color:var(--tx1);margin-bottom:8px;">
+                                <span data-i18n="settings.update.available_label">New version available:</span> <strong id="setUpdVersion" style="color:var(--accent);"></strong>
+                            </div>
+                            <button class="vrcn-button-round vrcn-btn-join" id="setUpdInstallBtn" onclick="settingsInstallUpdate()"><span class="msi" style="font-size:15px;">download</span> <span data-i18n="settings.update.install_btn">Download &amp; Install</span></button>
+                            <div id="setUpdProgressWrap" style="display:none;margin-top:10px;">
+                                <div class="upd-progress-bar"><div class="upd-progress-fill" id="setUpdProgressFill"></div></div>
+                                <div id="setUpdProgressStatus" style="font-size:11px;color:var(--tx3);margin-top:4px;" data-i18n="update.downloading">Downloading...</div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- LANGUAGE + SOUNDS -->
                     <div class="sf-card-pair">
