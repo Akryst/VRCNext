@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="sidebar" id="sidebarEl">
-        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.11.6</div></div><button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar" data-i18n-title="common.toggle_sidebar"><span class="msi" id="sbIcon">chevron_left</span></button></div>
+        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.11.7</div></div><button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar" data-i18n-title="common.toggle_sidebar"><span class="msi" id="sbIcon">chevron_left</span></button></div>
         <div class="nav">
             <button class="nav-btn active" onclick="showTab(0)"><span class="ni msi">dashboard</span><span class="nl" data-i18n="nav.dashboard">Dashboard</span></button>
             <button class="nav-btn" onclick="showTab(1)"><span class="ni msi">travel_explore</span><span class="nl" data-i18n="nav.worlds">Worlds</span></button>
@@ -876,9 +876,40 @@
                             <div id="vcProgressBar" style="height:100%;background:var(--accent);width:0%;transition:width .3s;border-radius:4px;"></div>
                         </div>
                     </div>
-                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
                         <button class="vrcn-button" id="btnVcInstall" onclick="vcInstall()"><span class="msi" style="font-size:16px;">download</span> <span data-i18n="youtube_fix.install_update">Install / Update</span></button>
+                        <button class="vrcn-button" onclick="sendToCS({action:'openUrl',url:'https://chromewebstore.google.com/detail/vrcvideocacher-cookies-ex/kfgelknbegappcajiflgfbjbdpbpokge'})"><span class="msi" style="font-size:16px;">extension</span> Install Chrome Extension</button>
+                        <button class="vrcn-button" onclick="sendToCS({action:'openUrl',url:'https://addons.mozilla.org/en-US/firefox/addon/vrcvideocachercookiesexporter/'})"><span class="msi" style="font-size:16px;">extension</span> Install Firefox Extension</button>
                         <span id="vcVersionLabel" style="font-size:12px;color:var(--tx3);"></span>
+                    </div>
+                    <div style="background:var(--bg2);border-radius:8px;padding:12px 14px;">
+                        <div style="font-size:13px;font-weight:600;color:var(--tx1);margin-bottom:10px;">How to use YouTube Fix?</div>
+                        <div style="display:flex;flex-direction:column;gap:8px;">
+                            <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--tx2);">
+                                <span style="min-width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">1</span>
+                                <span>Click the <b style="color:var(--tx1);">Install / Update</b> button above to install the YouTube Fix patcher.</span>
+                            </div>
+                            <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--tx2);">
+                                <span style="min-width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">2</span>
+                                <span>Make sure you create a <b style="color:var(--tx1);">throwaway YouTube account</b>.</span>
+                            </div>
+                            <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--tx2);">
+                                <span style="min-width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">3</span>
+                                <span>Open <b style="color:var(--tx1);">Google Chrome</b> or <b style="color:var(--tx1);">Mozilla Firefox</b> and log into your throwaway YouTube account.</span>
+                            </div>
+                            <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--tx2);">
+                                <span style="min-width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">4</span>
+                                <span>Click <b style="color:var(--tx1);">Install Chrome Extension</b> or <b style="color:var(--tx1);">Install Firefox Extension</b> above, you need the browser extension to make YouTube Fix work.</span>
+                            </div>
+                            <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--tx2);">
+                                <span style="min-width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">5</span>
+                                <span>Once the browser extension is installed, make sure to <b style="color:var(--tx1);">start the YouTube Fix service</b> using the Start button above.</span>
+                            </div>
+                            <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--tx2);">
+                                <span style="min-width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">6</span>
+                                <span>Refresh the YouTube page until the YouTube Fix (VRCVideoCacher) shows <b style="color:var(--tx1);">"Valid Cookies"</b>.</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
