@@ -211,6 +211,8 @@ public class AppSettings
     public string DashBgPath { get; set; } = "";
     public int DashOpacity { get; set; } = 40;
     public bool RandomDashBg { get; set; } = false;
+    public bool ClockEnabled { get; set; } = true;
+    public bool ClockAmPm { get; set; } = false;
     public string VrcUsername { get; set; } = "";
 
     // Encrypted on disk via DPAPI — use VrcPassword/VrcAuthCookie/VrcTwoFactorCookie at runtime
@@ -367,6 +369,9 @@ public class AppSettings
 
     // Memory Trim
     public bool MemoryTrimEnabled { get; set; } = false;
+
+    // Legacy Window Manager (requires restart — disables chromeless + custom chrome)
+    public bool LegacyWindow { get; set; } = false;
 
     public bool SetupComplete { get; set; }
 

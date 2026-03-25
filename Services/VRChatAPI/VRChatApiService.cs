@@ -1455,6 +1455,22 @@ public class VRChatApiService
         catch (Exception ex) { Log($"LeaveGroup exception: {ex.Message}"); return false; }
     }
 
+    public async Task<bool> SetRepresentedGroupAsync(string groupId)
+    {
+        if (!IsLoggedIn || CurrentUserId == null) return false;
+        try
+        {
+            // VRChat API: update own group membership isRepresenting flag
+            var body = new StringContent(
+                JsonConvert.SerializeObject(new { isRepresenting = true }),
+                Encoding.UTF8, "application/json");
+            var resp = await _http.PutAsync($"{BASE}/groups/{groupId}/representation", body);
+            Log($"SetRepresentedGroup({groupId}): {(int)resp.StatusCode}");
+            return resp.IsSuccessStatusCode;
+        }
+        catch (Exception ex) { Log($"SetRepresentedGroup exception: {ex.Message}"); return false; }
+    }
+
     public async Task<JArray> GetGroupPostsAsync(string groupId, int n = 10, bool publicOnly = false)
     {
         if (!IsLoggedIn) return new JArray();
@@ -1945,7 +1961,8 @@ public class VRChatApiService
     }
 
     // create a group instance and return the location string
-    public async Task<string?> CreateGroupInstanceAsync(string worldId, string groupId, string groupAccessType, string region)
+    public async Task<string?> CreateGroupInstanceAsync(string worldId, string groupId, string groupAccessType, string region,
+        string instanceName = "", bool queueEnabled = false, bool ageGateEnabled = false)
     {
         if (!IsLoggedIn) return null;
         try
@@ -1956,12 +1973,16 @@ public class VRChatApiService
                 ["type"] = "group",
                 ["ownerId"] = groupId,
                 ["groupAccessType"] = groupAccessType,
-                ["region"] = region
+                ["region"] = region,
+                ["queueEnabled"] = queueEnabled,
+                ["ageGate"] = ageGateEnabled
             };
+            if (!string.IsNullOrWhiteSpace(instanceName))
+                body["displayName"] = instanceName;
             var resp = await _http.PostAsync($"{BASE}/instances",
                 new StringContent(body.ToString(Newtonsoft.Json.Formatting.None), Encoding.UTF8, "application/json"));
             var respBody = await resp.Content.ReadAsStringAsync();
-            Log($"CreateGroupInstance: {(int)resp.StatusCode} {respBody[..Math.Min(300, respBody.Length)]}");
+            Log($"CreateGroupInstance: {(int)resp.StatusCode} {respBody[..Math.Min(600, respBody.Length)]}");
             if (resp.IsSuccessStatusCode)
             {
                 var obj = JObject.Parse(respBody);

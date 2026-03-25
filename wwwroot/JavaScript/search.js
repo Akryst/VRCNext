@@ -89,9 +89,17 @@ function renderSearchResults(type, results, offset, hasMore) {
     if (type === 'worlds') {
         html = state.results.map(w => renderWorldCard(w)).join('');
     } else if (type === 'groups') {
-        html = state.results.map(g => `<div class="s-card" onclick="openGroupDetail('${esc(g.id)}')">
-            <div class="s-card-img" style="background-image:url('${cssUrl(g.bannerUrl || g.iconUrl || '')}')"><div class="s-card-icon" style="background-image:url('${cssUrl(g.iconUrl || '')}')"></div></div>
-            <div class="s-card-body"><div class="s-card-title">${esc(g.name)}</div><div class="s-card-sub">${g.shortCode ? `${esc(g.shortCode)} | ` : ''}<span class="msi" style="font-size:11px;">group</span> ${esc(searchGroupMembersText(g.memberCount))}</div></div></div>`).join('');
+        html = state.results.map(g => `<div class="vrcn-content-card" onclick="openGroupDetail('${esc(g.id)}')">
+            <div class="cc-bg" style="background-image:url('${cssUrl(g.bannerUrl || g.iconUrl || '')}')"></div>
+            <div class="cc-scrim"></div>
+            <div class="cc-content">
+                <div class="cc-name">${esc(g.name)}</div>
+                <div class="cc-bottom-row">
+                    <div class="cc-meta">${g.iconUrl ? `<div class="cc-group-icon" style="background-image:url('${cssUrl(g.iconUrl)}')"></div>` : ''}<span class="msi" style="font-size:12px;">group</span> ${esc(searchGroupMembersText(g.memberCount))}</div>
+                    ${g.shortCode ? `<span style="font-size:10px;color:rgba(255,255,255,.4);">${esc(g.shortCode)}</span>` : ''}
+                </div>
+            </div>
+        </div>`).join('');
     } else if (type === 'users') {
         html = state.results.map(u => `<div class="s-card s-card-h" onclick="openFriendDetail('${esc(u.id)}')">
             <div class="s-card-avatar" style="background-image:url('${cssUrl(u.image)}')"></div>

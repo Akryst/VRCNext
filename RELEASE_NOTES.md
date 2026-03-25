@@ -1,25 +1,50 @@
-**2026.11.9**
+**2026.12.0**
 
-**Permini**
-NEW PERMINI!
-Found in Tools -> Permini
+This Update contains several Design Updates, Rewrites of the Design and several new fixes and features.
 
-Permini allows you that your friends can join your Instance when you have the status "Online, Ask Me or Do Not Disturb"
-You can change every single status type and you can give permissions individually to the persons you want to have the ability to join.
+**Discord**
+Added a discord link on top of the app.
 
-As example your friend "Catygirl420" (lol) wants to join you but you are asleep. you can now give her permission to join you when you have a specific status. When she requests an invite even if "Do Not Disturb" it will automatically send an invite to your friend so they can join you.
+**Representing a Group**
+You can now right-click a group inside **Groups > My Groups** and click **Represent this Group** to represent the selected group. You can also now see in your profile which group you are representing.
+
+**Design**
+
+* Updated the **Launch VRChat Modal** to a more modern design
+* Updated the **Activity Logger** to a more modern design
+* Updated the **World Cards** to a more modern design
+* Updated the **Group Cards** to a more modern design
+* Updated the **Avatar Cards** to a more modern design
+* Updated the **Play** button
+* Updated the clock
+* Added an option to enable or disable the clock above the **Play** button
+* Added the ability to switch between **12-hour** and **24-hour** clock formats
+
+**Legacy Window Option**
+Found in **Settings > Debugging**.
+
+You can enable **Legacy Window** there. When enabled, VRCNext will use the original window behavior, just like any other Windows app, instead of the modern dots inside the friends sidebar.
+
+**Create Instances**
+A new **Create Instance** modal has been added. When you click **Create Instance** on a world, a new modal will open where you can create an instance with more settings.
+
+**Your Instances**
+Previously, VRCNext only showed instances that were created within the app. Now, if you create an instance in VRChat that you own, it will also appear on the dashboard under **Your Instances**. From there, you can directly invite friends or close the instance.
+
+Please note that the **Your Instances** section only shows your latest 4 instances.
 
 **Changes**
 
-* Updated the YouTube Fix section for better clarity.
-* Changed the name **"VRCN"** to **"VRChat"** in Discord Rich Presence.
+* Reduced log spam in **Activity Logs**. It should now be much cleaner.
+* Added a **Join World** button to your own instances
+* Increased the crash log level to better analyze crashes
+* Increased the log level for tasks like **Time Spent** for better analysis
+* Added a **Create Instance** button to the context menu
+* Removed the **Glow** effect from several buttons
+* Updated **Design** inside **Settings** to be separated into 3 different parts
 
 **Fixes**
 
-* Fixed an issue that caused the **VR Overlay Notification Sounds** setting to always remain enabled.
-* Fixed an issue where disabling **VR Overlay Notification Sounds** would still play the sound.
-* Fixed an issue that prevented **YouTube Fix** from being installed due to the error: `"The format of value "vrcn@shinyflvres.com" is invalid."`
-* Fixed #22, where **Discord Rich Presence** would still show the last location after closing **VRChat**, which could confuse friends into thinking you were still playing. **Discord Rich Presence** will now hide when **VRChat** is closed.
-* Fixed an issue where the **Live Preview** in **Discord Rich Presence** still showed the last instance information even though **VRChat** was already closed. This was related to #22 and has now been fixed.
-* Discord Rich Presence needed to be turned of and on again to apply Privacy changes this will now work live.
-* Fixed an issue where the Context Menu would go out of bounds when scaling the app up or down.
+* Fixed an issue that caused **Invite+** instances to appear as **Invite** instances in the **Instance Info** modal
+* Fixed an issue that caused **Group+** and **Group Public** instances to appear as **Group** instances in the **Instance Info** modal
+* Fixed several other instance type issues across VRCNext

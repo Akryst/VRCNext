@@ -197,7 +197,7 @@ function _markDeletedAvatars(deletedIds) {
             card.dataset.deleted = '1';
             card.style.pointerEvents = 'none';
             card.style.opacity = '0.5';
-            const thumb = card.querySelector('.av-thumb');
+            const thumb = card.querySelector('.cc-bg');
             if (thumb) {
                 thumb.style.filter = 'grayscale(1) brightness(0.4)';
                 const badge = document.createElement('span');
@@ -230,20 +230,17 @@ function renderAvatarCard(a, context) {
     const thumb = a.thumbnailImageUrl || a.imageUrl || '';
     const isActive = a.id === currentAvatarId;
     const isPublic = context === 'search' || a.releaseStatus === 'public';
-    const isFav = favAvatarsData.some(f => f.id === a.id);
     const statusBadge = avatarStatusBadge(isPublic);
     const activeBadge = avatarCurrentBadge(isActive);
     const aid = jsq(a.id || '');
     const thumbStyle = thumb ? `background-image:url('${cssUrl(thumb)}')` : '';
-    return `<div class="av-card ${isActive ? 'av-active' : ''}" onclick="selectAvatar('${aid}')">
-        <div class="av-thumb" style="${thumbStyle}">
-            <div class="av-thumb-overlay"></div>
-            <div class="av-badges-top">${activeBadge}</div>
-            <div class="av-badges-bottom">${statusBadge}${_avPlatformBadges(a)}</div>
-        </div>
-        <div class="av-info">
-            <div class="av-name">${esc(a.name || t('avatars.labels.unnamed', 'Unnamed'))}</div>
-            <div class="av-author">${esc(a.authorName || '')}</div>
+    return `<div class="vrcn-content-card av-card${isActive ? ' av-active' : ''}" onclick="selectAvatar('${aid}')">
+        <div class="cc-bg" style="${thumbStyle}"></div>
+        <div class="cc-scrim"></div>
+        <div class="cc-badges-top">${activeBadge}${statusBadge}${_avPlatformBadges(a)}</div>
+        <div class="cc-content">
+            <div class="cc-name">${esc(a.name || t('avatars.labels.unnamed', 'Unnamed'))}</div>
+            <div class="cc-meta">${esc(a.authorName || '')}</div>
         </div>
     </div>`;
 }
@@ -368,34 +365,27 @@ function _renderFavAvCard(a) {
     if (_avEditMode) {
         const isSelected = _avEditSelected.has(a.id);
         const checkIcon = isSelected
-            ? `<span class="msi" style="font-size:20px;color:var(--accent);">check_circle</span>`
-            : `<span class="msi" style="font-size:20px;color:rgba(255,255,255,0.7);">radio_button_unchecked</span>`;
-        return `<div class="av-card${isActive ? ' av-active' : ''}" data-avid="${esc(a.id)}" onclick="toggleAvEditSelect('${aid}',this)" style="cursor:pointer;user-select:none;position:relative;">
-            <div class="av-thumb" style="${thumbStyle}">
-                <div class="av-thumb-overlay"></div>
-                <div class="av-badges-top">${activeBadge}</div>
-                <div class="av-badges-bottom">${statusBadge}${_avPlatformBadges(a)}</div>
-                <div class="wd-edit-check">${checkIcon}</div>
-            </div>
-            <div class="av-info">
-                <div style="flex:1;min-width:0;">
-                    <div class="av-name">${esc(a.name || t('avatars.labels.unnamed', 'Unnamed'))}</div>
-                    <div class="av-author">${esc(a.authorName || '')}</div>
-                </div>
+            ? `<span class="msi" style="font-size:22px;color:var(--accent);">check_circle</span>`
+            : `<span class="msi" style="font-size:22px;color:rgba(255,255,255,0.7);">radio_button_unchecked</span>`;
+        return `<div class="vrcn-content-card av-card${isActive ? ' av-active' : ''}" data-avid="${esc(a.id)}" onclick="toggleAvEditSelect('${aid}',this)" style="user-select:none;">
+            <div class="cc-bg" style="${thumbStyle}"></div>
+            <div class="cc-scrim"></div>
+            <div class="cc-badges-top">${activeBadge}${statusBadge}${_avPlatformBadges(a)}</div>
+            <div class="wd-edit-check">${checkIcon}</div>
+            <div class="cc-content">
+                <div class="cc-name">${esc(a.name || t('avatars.labels.unnamed', 'Unnamed'))}</div>
+                <div class="cc-meta">${esc(a.authorName || '')}</div>
             </div>
             ${isSelected ? '<div class="wd-edit-sel-border"></div>' : ''}
         </div>`;
     }
-    const fid = jsq(a.favoriteId || '');
-    return `<div class="av-card${isActive ? ' av-active' : ''}" onclick="selectAvatar('${aid}')">
-        <div class="av-thumb" style="${thumbStyle}">
-            <div class="av-thumb-overlay"></div>
-            <div class="av-badges-top">${activeBadge}</div>
-            <div class="av-badges-bottom">${statusBadge}${_avPlatformBadges(a)}</div>
-        </div>
-        <div class="av-info">
-            <div class="av-name">${esc(a.name || t('avatars.labels.unnamed', 'Unnamed'))}</div>
-            <div class="av-author">${esc(a.authorName || '')}</div>
+    return `<div class="vrcn-content-card av-card${isActive ? ' av-active' : ''}" onclick="selectAvatar('${aid}')">
+        <div class="cc-bg" style="${thumbStyle}"></div>
+        <div class="cc-scrim"></div>
+        <div class="cc-badges-top">${activeBadge}${statusBadge}${_avPlatformBadges(a)}</div>
+        <div class="cc-content">
+            <div class="cc-name">${esc(a.name || t('avatars.labels.unnamed', 'Unnamed'))}</div>
+            <div class="cc-meta">${esc(a.authorName || '')}</div>
         </div>
     </div>`;
 }
@@ -834,18 +824,15 @@ function renderRoseAvatarCard(a) {
     ];
     const tags = sorted.map(t => _roseTagBadge(t)).join('');
 
-    return `<div class="av-card" onclick="selectAvatar('${aid}')">
-        <div class="av-thumb" style="${thumbStyle}">
-            <div class="av-thumb-overlay"></div>
-            <div class="av-badges-bottom">${avatarStatusBadge(true)}</div>
-        </div>
-        <div class="av-info" style="display:flex;align-items:center;gap:6px;">
-            <div style="flex:1;min-width:0;">
-                <div class="av-name">${esc(a.avatar_name || t('avatars.labels.unnamed', 'Unnamed'))}</div>
-                <div class="av-author" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                    <span>${esc(a.author || '')}</span>
-                    ${tags ? `<span style="display:inline-flex;gap:3px;flex-wrap:wrap;">${tags}</span>` : ''}
-                </div>
+    return `<div class="vrcn-content-card av-card" onclick="selectAvatar('${aid}')">
+        <div class="cc-bg" style="${thumbStyle}"></div>
+        <div class="cc-scrim"></div>
+        <div class="cc-badges-top">${avatarStatusBadge(true)}</div>
+        <div class="cc-content">
+            <div class="cc-name">${esc(a.avatar_name || t('avatars.labels.unnamed', 'Unnamed'))}</div>
+            <div class="cc-bottom-row">
+                <div class="cc-meta">${esc(a.author || '')}</div>
+                ${tags ? `<div class="cc-tags">${tags}</div>` : ''}
             </div>
         </div>
     </div>`;

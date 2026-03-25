@@ -187,10 +187,10 @@ let invInventoryCache = [];
 // Skeleton shimmer helpers. sk(type, count) adds .sk-block CSS class to any element.
 function sk(type, n = 1) {
     const t = {
-        world:   () => `<div class="dash-world-card"><div class="dash-world-thumb sk-block"></div><div class="dash-world-info"><div class="sk-block" style="height:14px;width:65%;border-radius:4px;margin-bottom:8px;"></div><div class="sk-block" style="height:10px;width:40%;border-radius:4px;"></div></div></div>`,
+        world:   () => `<div class="vrcn-content-card" style="pointer-events:none;"><div class="cc-bg sk-block"></div><div class="cc-scrim"></div><div class="cc-content"><div class="sk-block" style="height:16px;width:65%;border-radius:4px;margin-bottom:7px;"></div><div class="sk-block" style="height:10px;width:40%;border-radius:4px;"></div></div></div>`,
         feed:    () => `<div class="dash-feed-card"><div class="dash-feed-avatar sk-block"></div><div class="dash-feed-info"><div class="sk-block" style="height:11px;width:75%;border-radius:4px;margin-bottom:5px;"></div><div class="sk-block" style="height:9px;width:50%;border-radius:4px;"></div></div></div>`,
         friend:  () => `<div class="vrc-friend-card"><div class="vrc-friend-avatar sk-block"></div><div class="vrc-friend-info"><div class="sk-block" style="height:11px;width:70%;border-radius:4px;margin-bottom:5px;"></div><div class="sk-block" style="height:9px;width:45%;border-radius:4px;"></div></div></div>`,
-        avatar:  () => `<div class="av-card"><div class="av-thumb sk-block"></div><div class="av-info"><div class="sk-block" style="height:13px;width:70%;border-radius:4px;margin-bottom:6px;"></div><div class="sk-block" style="height:10px;width:45%;border-radius:4px;"></div></div></div>`,
+        avatar:  () => `<div class="vrcn-content-card av-card" style="pointer-events:none;"><div class="cc-bg sk-block"></div><div class="cc-scrim"></div><div class="cc-content"><div class="sk-block" style="height:14px;width:70%;border-radius:4px;margin-bottom:6px;"></div><div class="sk-block" style="height:10px;width:45%;border-radius:4px;"></div></div></div>`,
         detail:  () => `<div style="padding:4px 0"><div class="sk-block" style="height:180px;border-radius:10px;margin-bottom:20px;"></div><div class="sk-block" style="height:20px;width:60%;border-radius:6px;margin-bottom:10px;"></div><div class="sk-block" style="height:13px;width:40%;border-radius:4px;margin-bottom:20px;"></div><div class="sk-block" style="height:11px;border-radius:4px;margin-bottom:8px;"></div><div class="sk-block" style="height:11px;width:85%;border-radius:4px;margin-bottom:8px;"></div><div class="sk-block" style="height:11px;width:65%;border-radius:4px;"></div></div>`,
         profile: () => `<div style="padding:4px 0"><div style="display:flex;gap:16px;align-items:center;margin-bottom:20px;"><div class="sk-block" style="width:72px;height:72px;border-radius:14px;flex-shrink:0;"></div><div style="flex:1;min-width:0;"><div class="sk-block" style="height:18px;width:60%;border-radius:5px;margin-bottom:8px;"></div><div class="sk-block" style="height:12px;width:40%;border-radius:4px;margin-bottom:6px;"></div><div class="sk-block" style="height:12px;width:55%;border-radius:4px;"></div></div></div><div class="sk-block" style="height:34px;border-radius:8px;margin-bottom:18px;"></div><div class="sk-block" style="height:11px;border-radius:4px;margin-bottom:7px;"></div><div class="sk-block" style="height:11px;width:80%;border-radius:4px;margin-bottom:7px;"></div><div class="sk-block" style="height:11px;width:60%;border-radius:4px;"></div></div>`
     };
@@ -654,11 +654,25 @@ function playSteamOverlaySound() {
     }
 }
 
+let _clockEnabled = true;
+let _clockAmPm = false;
+
+function applyClockSettings() {
+    const enableEl = document.getElementById('setClockEnabled');
+    const ampmEl   = document.getElementById('setClockAmPm');
+    if (enableEl) _clockEnabled = enableEl.checked;
+    if (ampmEl)   _clockAmPm   = ampmEl.checked;
+    const area = document.querySelector('.clock-area');
+    if (area) area.style.display = _clockEnabled ? '' : 'none';
+    updateClock();
+}
+
 function updateClock() {
+    if (!_clockEnabled) return;
     const n = new Date();
     const timeLocale = t('clock.time_locale', 'en-GB');
     const dateLocale = t('clock.date_locale', 'en-US');
-    document.getElementById('clock').textContent = n.toLocaleTimeString(timeLocale, { hour12: false });
+    document.getElementById('clock').textContent = n.toLocaleTimeString(timeLocale, { hour12: _clockAmPm });
     document.getElementById('clockDate').textContent = n.toLocaleDateString(dateLocale, { weekday: 'long', month: 'short', day: 'numeric' });
 }
 
@@ -762,58 +776,51 @@ function _updateHttpBadge(code) {
 function addLog(m, c) {
     const a = document.getElementById('logArea');
     if (!a) return;
-    const t = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    const ts = new Date().toLocaleTimeString('en-GB', { hour12: false });
 
-    // Strip emoji characters
+    // Strip emoji
     m = m.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
 
-    // Track HTTP status code counts + color the log line
-    let httpColorClass = null;
+    // Suppress pending REST requests — only show the response line (with → NNN)
+    if (/\[REST\] (GET|POST|PUT|DELETE|PATCH) /.test(m) && !/→/.test(m)) return;
+
+    // Track HTTP status codes
+    let httpLevel = null;
     const statusMatch = m.match(/→ (\d{3})/);
     if (statusMatch) {
         const code = +statusMatch[1];
         if (code in _httpCounts) { _httpCounts[code]++; _updateHttpBadge(code); }
-        if (code === 200) httpColorClass = 'log-msg-ok';
-        else if (code === 429) httpColorClass = 'log-msg-warn';
-        else if (code >= 400) httpColorClass = 'log-msg-err';
+        if (code === 200) httpLevel = 'ok';
+        else if (code === 429) httpLevel = 'warn';
+        else if (code >= 400) httpLevel = 'err';
     }
 
-    // Bracket-prefix to CSS class map
+    // Bracket-prefix → level label + color class
     const _prefixMap = {
-        'LOG':        'log-msg-log',
-        'VRC':        'log-msg-vrc',
-        'VRCHAT':     'log-msg-vrc',
-        'LOAD':       'log-msg-load',
-        'LOAD ERROR': 'log-msg-err',
-        'STARTUP':    'log-msg-startup',
-        'GROUPS':     'log-msg-groups',
-        'INSTANCE':   'log-msg-instance',
-        'RELAY':      'log-msg-relay',
-        'CHATBOX':    'log-msg-chatbox',
-        'SF':         'log-msg-sf',
-        'WS':         'log-msg-ws',
+        'LOG': ['LOG', 'info'], 'VRC': ['VRC', 'vrc'], 'VRCHAT': ['VRC', 'vrc'],
+        'LOAD': ['LOAD', 'ok'], 'LOAD ERROR': ['ERR', 'err'],
+        'STARTUP': ['START', 'info'], 'GROUPS': ['GRPS', 'ok'],
+        'INSTANCE': ['INST', 'warn'], 'RELAY': ['RELY', 'ok'],
+        'CHATBOX': ['CHAT', 'info'], 'SF': ['SF', 'info'], 'WS': ['WS', 'info'],
     };
-    // Content-pattern fallback map (for messages without brackets)
-    const _contentMap = [
-        [/^VRChat:/,   'log-msg-vrc'],
-        [/Instance:/,  'log-msg-instance'],
-        [/^Relay/,     'log-msg-relay'],
-        [/^Posted|^\s+Posted|^\s+Error '/, 'log-msg-relay'],
-    ];
-    // Color-param fallback
-    const _colorMap = { ok: 'log-msg-ok', warn: 'log-msg-warn', err: 'log-msg-err', sec: 'log-msg-sec', accent: 'log-msg-accent' };
+    const _colorParamMap = { ok: ['OK', 'ok'], warn: ['WARN', 'warn'], err: ['ERR', 'err'], sec: ['SEC', 'info'], accent: ['VRC', 'vrc'] };
 
-    let cl = httpColorClass; // HTTP status color takes priority
-    if (!cl) {
-        const pm = m.match(/^\[([A-Z][A-Z0-9 _-]*)\]/);
-        if (pm) cl = _prefixMap[pm[1]];
-        if (!cl) { for (const [re, cls] of _contentMap) { if (re.test(m)) { cl = cls; break; } } }
-        if (!cl) cl = _colorMap[c] || 'log-msg-default';
-    }
+    let level = 'INFO', levelCls = 'info', msgBody = m;
+
+    const pm = m.match(/^\[([A-Z][A-Z0-9 _-]*)\]\s*/);
+    if (pm && _prefixMap[pm[1]]) {
+        [level, levelCls] = _prefixMap[pm[1]];
+        msgBody = m.slice(pm[0].length);
+    } else if (/^VRChat:/.test(m))       { level = 'VRC';  levelCls = 'vrc'; }
+      else if (/Instance:/.test(m))       { level = 'INST'; levelCls = 'warn'; }
+      else if (/^Relay|^Posted/.test(m)) { level = 'RELY'; levelCls = 'ok'; }
+      else if (_colorParamMap[c])         { [level, levelCls] = _colorParamMap[c]; }
+
+    if (httpLevel) levelCls = httpLevel;
 
     const l = document.createElement('div');
-    l.className = 'log-line';
-    l.innerHTML = `<span class="log-time">${t}  </span><span class="${cl}">${esc(m)}</span>`;
+    l.className = 'li-f';
+    l.innerHTML = `<span class="li-ts">${ts}</span><span class="li-level ${levelCls}">${esc(level)}</span><span class="li-msg">${esc(msgBody)}</span>`;
     a.appendChild(l);
     while (a.childElementCount > 500) a.removeChild(a.firstChild);
     a.scrollTop = a.scrollHeight;
@@ -905,7 +912,7 @@ function clearLog() {
 function copyLog() {
     const a = document.getElementById('logArea');
     if (!a) return;
-    const text = Array.from(a.querySelectorAll('.log-line')).map(l => l.textContent).join('\n');
+    const text = Array.from(a.querySelectorAll('.li-f')).map(l => l.textContent).join('\n');
     navigator.clipboard.writeText(text).then(() => showToast(true, t('activity.copy_done', 'Log copied to clipboard')));
 }
 
@@ -966,7 +973,7 @@ function parseFriendLocation(loc) {
     if (!loc || loc === 'private' || loc === 'offline' || loc === 'traveling') return { worldId: '', instanceType: loc || 'private' };
     var worldId = loc.includes(':') ? loc.split(':')[0] : loc;
     var instanceType = 'public';
-    if (loc.includes('~private(')) instanceType = 'private';
+    if (loc.includes('~private(')) instanceType = loc.includes('~canRequestInvite') ? 'invite_plus' : 'private';
     else if (loc.includes('~friends+(')) instanceType = 'friends+';
     else if (loc.includes('~friends(')) instanceType = 'friends';
     else if (loc.includes('~hidden(')) instanceType = 'hidden';

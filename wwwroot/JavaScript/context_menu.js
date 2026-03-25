@@ -310,25 +310,25 @@
             if (path) return buildLibCardItems(path, url, type, name);
         }
 
-        const groupCard = el.closest('#myGroupsGrid .s-card');
+        const groupCard = el.closest('#myGroupsGrid .vrcn-content-card');
         if (groupCard) {
             const id = extractId(groupCard, /openGroupDetail\('([^']+)'\)/);
             if (id) return buildGroupItems(id);
         }
 
-        const myInstCard = el.closest('#dashMyInstances .dash-world-card');
+        const myInstCard = el.closest('#dashMyInstances .vrcn-content-card');
         if (myInstCard) {
             const loc = myInstCard.dataset.location;
             if (loc) return buildMyInstanceItems(loc);
         }
 
-        const dashWorld = el.closest('#dashFavWorlds .dash-world-card, #dashDiscoveryGrid .dash-world-card');
+        const dashWorld = el.closest('#dashFavWorlds .vrcn-content-card, #dashDiscoveryGrid .vrcn-content-card');
         if (dashWorld) {
             const id = extractId(dashWorld, /openWorld(?:Search)?Detail\('([^']+)'\)/);
             if (id) return buildWorldItems(id);
         }
 
-        const worldCard = el.closest('#favWorldsGrid .s-card, #worldSearchArea .s-card, #worldMineGrid .s-card, #fdContentWorlds .s-card');
+        const worldCard = el.closest('#favWorldsGrid .vrcn-content-card, #worldSearchArea .vrcn-content-card, #worldMineGrid .vrcn-content-card, #fdContentWorlds .vrcn-content-card');
         if (worldCard) {
             const id = extractId(worldCard, /openWorldSearchDetail\('([^']+)'\)/) || worldCard.dataset.wid;
             if (id) return buildWorldItems(id);
@@ -389,6 +389,7 @@
         const g = (typeof myGroups !== 'undefined') && myGroups.find(x => x.id === id);
         const canPost = g && g.canPost === true;
         const canEvent = g && g.canEvent === true;
+        const isRep = g && g.isRepresenting === true;
         const items = [
             { icon: 'open_in_new', label: cm('group.open_details', 'Open Details'), action: () => openGroupDetail(id) },
             { icon: 'share', label: cm('group.share', 'Share Group'), action: () => copyWithToast('https://vrchat.com/home/group/' + id, 'group.share_copied', 'Group link copied to clipboard') },
@@ -397,6 +398,8 @@
         if (canPost) items.push({ icon: 'edit_note', label: cm('group.post', 'Post'), action: () => openGroupPostModal(id) });
         if (canEvent) items.push({ icon: 'event', label: cm('group.events', 'Events'), action: () => openGroupEventModal(id) });
         if (canPost || canEvent) items.push('sep');
+        items.push({ icon: 'shield_person', label: cm('group.represent', 'Represent this group'), action: () => sendToCS({ action: 'vrcRepresentGroup', groupId: id }), disabled: isRep });
+        items.push('sep');
         items.push({ icon: 'logout', label: cm('group.leave', 'Leave Group'), action: () => sendToCS({ action: 'vrcLeaveGroup', groupId: id }), danger: true, confirm: true });
         return items;
     }
@@ -593,6 +596,7 @@
             items.push('sep');
         }
         items.push({ icon: 'open_in_new', label: cm('world.open_details', 'Open Details'), action: () => openWorldSearchDetail(worldId) });
+        items.push({ icon: 'add_circle_outline', label: cm('world.create_instance', 'Create Instance'), action: () => createWorldInstance(worldId) });
         items.push({ icon: 'share', label: cm('world.share', 'Share World'), action: () => copyWithToast('https://vrchat.com/home/world/' + worldId, 'world.share_copied', 'World link copied to clipboard') });
         items.push({ icon: 'home', label: cm('world.set_home', 'Set as Home'), action: () => sendToCS({ action: 'vrcSetHomeWorld', worldId }), confirm: true });
         items.push('sep');
@@ -651,6 +655,7 @@
         const favEntry = (typeof favWorldsData !== 'undefined') && favWorldsData.find(fw => fw.id === id);
         const items = [
             { icon: 'open_in_new', label: cm('world.open_details', 'Open Details'), action: () => openWorldSearchDetail(id) },
+            { icon: 'add_circle_outline', label: cm('world.create_instance', 'Create Instance'), action: () => createWorldInstance(id) },
             { icon: 'share', label: cm('world.share', 'Share World'), action: () => copyWithToast('https://vrchat.com/home/world/' + id, 'world.share_copied', 'World link copied to clipboard') },
             { icon: 'home', label: cm('world.set_home', 'Set as Home'), action: () => sendToCS({ action: 'vrcSetHomeWorld', worldId: id }), confirm: true },
             'sep',
@@ -680,7 +685,7 @@
             const isInWorld = loc && loc !== 'offline' && loc !== 'private' && loc !== 'traveling';
             const joinable = ['public', 'friends', 'friends+', 'hidden', 'group-public', 'group-plus', 'group-members', 'group'];
             const canJoin = isInWorld && joinable.includes(instanceType);
-            const canRequestInvite = instanceType === 'private';
+            const canRequestInvite = instanceType === 'invite_plus';
             const myInInstance = (typeof currentInstanceData !== 'undefined')
                 && currentInstanceData && currentInstanceData.location
                 && !currentInstanceData.empty && !currentInstanceData.error;

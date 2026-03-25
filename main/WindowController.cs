@@ -144,6 +144,29 @@ public class WindowController
     }
 #endif
 
+    /// <summary>
+    /// Sets the native title bar background color via DWM (Windows 11+).
+    /// hex must be in #RRGGBB format. No-op on unsupported OS versions.
+    /// </summary>
+    public void ApplyDwmCaptionColor(string hex)
+    {
+#if WINDOWS
+        var window = _core.Window;
+        if (window == null) return;
+        hex = hex.TrimStart('#');
+        if (hex.Length != 6) return;
+        try
+        {
+            int r = Convert.ToInt32(hex[..2], 16);
+            int g = Convert.ToInt32(hex[2..4], 16);
+            int b = Convert.ToInt32(hex[4..6], 16);
+            int colorRef = r | (g << 8) | (b << 16); // COLORREF = 0x00BBGGRR
+            _ = DwmSetWindowAttribute(window.WindowHandle, 35 /*DWMWA_CAPTION_COLOR*/, ref colorRef, 4);
+        }
+        catch { }
+#endif
+    }
+
     // Install Chrome (called from "ready" message)
 
     public void InstallChrome()

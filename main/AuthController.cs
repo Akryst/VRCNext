@@ -788,6 +788,8 @@ public class AuthController
             if (dashBg != null) _core.Settings.DashBgPath = dashBg;
             _core.Settings.DashOpacity = data["dashOpacity"]?.Value<int>() ?? 40;
             _core.Settings.RandomDashBg = data["randomDashBg"]?.Value<bool>() ?? false;
+            _core.Settings.ClockEnabled  = data["clockEnabled"]?.Value<bool>()  ?? true;
+            _core.Settings.ClockAmPm     = data["clockAmPm"]?.Value<bool>()     ?? false;
 
             // Webhooks: explicit parsing to handle any casing
             if (data["webhooks"] is JArray whArr && whArr.Count > 0)
@@ -881,6 +883,9 @@ public class AuthController
             // Memory Trim
             _core.Settings.MemoryTrimEnabled = data["memoryTrimEnabled"]?.Value<bool>() ?? false;
             _core.MemTrim.SetEnabled(_core.Settings.MemoryTrimEnabled);
+
+            // Legacy Window (requires restart)
+            _core.Settings.LegacyWindow = data["legacyWindow"]?.Value<bool>() ?? false;
 
             _core.Settings.Save();
             if (_core.Settings.LastSaveError != null)

@@ -190,23 +190,42 @@ function acceptNotif(notifId, btn) {
 
 function showLaunchModal(location, steamVrOpen) {
     closeLaunchModal();
+    let _launchVr = steamVrOpen;
     const el = document.createElement('div');
     el.className = 'modal-overlay';
     el.style.zIndex = '10003';
     el.innerHTML = `
         <div class="modal-box launch-modal">
-            <div class="launch-modal-title">${t('notifications.launch.title', 'VRChat is not open')}</div>
-            <div class="launch-modal-sub">${t('notifications.launch.subtitle', 'How do you want to play?')}</div>
-            <div class="launch-modal-btns">
-                <button class="vrcn-button${steamVrOpen ? ' vrcn-btn-primary' : ''}" onclick="launchAndJoin('${location}',true)">
-                    <span class="msi">visibility</span> ${t('notifications.launch.play_vr', 'Play in VR')}
-                </button>
-                <button class="vrcn-button${!steamVrOpen ? ' vrcn-btn-primary' : ''}" onclick="launchAndJoin('${location}',false)">
-                    <span class="msi">desktop_windows</span> ${t('notifications.launch.play_desktop', 'Play on Desktop')}
-                </button>
+            <div class="launch-modal-title">${t('notifications.launch.title', 'Ready to play?')}</div>
+            <div class="launch-modal-sub">${t('notifications.launch.subtitle', 'VRChat is not currently running')}</div>
+            <div class="play-grid">
+                <div class="play-card${steamVrOpen ? ' selected' : ''}" id="_lmCardVR">
+                    <span class="msi">vrpano</span>
+                    <div class="play-card-label">${t('notifications.launch.play_vr', 'VR Mode')}</div>
+                    <div class="play-card-sub">SteamVR</div>
+                </div>
+                <div class="play-card${!steamVrOpen ? ' selected' : ''}" id="_lmCardDesktop">
+                    <span class="msi">desktop_windows</span>
+                    <div class="play-card-label">${t('notifications.launch.play_desktop', 'Desktop')}</div>
+                    <div class="play-card-sub">Mouse &amp; KB</div>
+                </div>
             </div>
-            <button class="launch-modal-cancel" onclick="closeLaunchModal()">${t('common.cancel', 'Cancel')}</button>
+            <div class="play-modal-btns">
+                <button class="vrcn-button-round" onclick="closeLaunchModal()">${t('common.cancel', 'Cancel')}</button>
+                <button class="vrcn-button-round vrcn-btn-primary" id="_lmPlayBtn"><span class="msi play-icon">play_circle</span> ${t('notifications.launch.play', 'Play')}</button>
+            </div>
         </div>`;
+    el.querySelector('#_lmCardVR').addEventListener('click', () => {
+        _launchVr = true;
+        el.querySelector('#_lmCardVR').classList.add('selected');
+        el.querySelector('#_lmCardDesktop').classList.remove('selected');
+    });
+    el.querySelector('#_lmCardDesktop').addEventListener('click', () => {
+        _launchVr = false;
+        el.querySelector('#_lmCardDesktop').classList.add('selected');
+        el.querySelector('#_lmCardVR').classList.remove('selected');
+    });
+    el.querySelector('#_lmPlayBtn').addEventListener('click', () => launchAndJoin(location, _launchVr));
     el.addEventListener('click', e => { if (e.target === el) closeLaunchModal(); });
     document.body.appendChild(el);
     window._launchModalEl = el;

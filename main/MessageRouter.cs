@@ -168,13 +168,14 @@ public partial class AppShell
             using (var _jr = new Newtonsoft.Json.JsonTextReader(new System.IO.StringReader(rawMessage)) { DateParseHandling = Newtonsoft.Json.DateParseHandling.None })
                 msg = JObject.Load(_jr);
             var action = msg["action"]?.ToString() ?? "";
+            CrashHandler.AddBreadcrumb($"JS→C# action={action}");
 
             switch (action)
             {
                 case "ready":
                     // Signal platform to JS (hides Windows-only tabs on Linux)
                     SendToJS("setPlatform", new { isLinux = !OperatingSystem.IsWindows() });
-                    _windowCtrl.InstallChrome();
+                    if (!_settings.LegacyWindow) _windowCtrl.InstallChrome();
                     // Debug: show what Load() did
                     if (AppSettings.LastLoadError != null)
                         SendToJS("log", new { msg = $"[LOAD ERROR] {AppSettings.LastLoadError}", color = "err" });
@@ -1033,6 +1034,7 @@ public partial class AppShell
                 case "vrcSearchGroupMembers":
                 case "vrcGetGroupRoleMembers":
                 case "vrcLeaveGroup":
+                case "vrcRepresentGroup":
                     await _groups.HandleMessage(action, msg);
                     break;
 
@@ -1570,9 +1572,19 @@ public partial class AppShell
                     break;
                 }
 
+                // Theme color broadcast — also updates DWM title bar in legacy window mode
+                case "overlayThemeColors":
+#if WINDOWS
+                    if (_settings.LegacyWindow &&
+                        msg["colors"] is JObject themeColors &&
+                        themeColors["bg-side"]?.ToString() is string bgSideHex)
+                        _windowCtrl.ApplyDwmCaptionColor(bgSideHex);
+#endif
+                    await _vroCtrl.HandleMessage(action, msg);
+                    break;
+
                 // VR Wrist Overlay
                 case "vroConnect":
-                case "overlayThemeColors":
                 case "vroDisconnect":
                 case "vroShow":
                 case "vroHide":

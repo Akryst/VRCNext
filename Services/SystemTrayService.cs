@@ -4,6 +4,7 @@ using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Newtonsoft.Json.Linq;
+using VRCNext.Services;
 
 namespace VRCNext;
 
@@ -66,8 +67,14 @@ public class SystemTrayService : IDisposable
 
     private void TrayThreadProc()
     {
+        try
+        {
         System.Windows.Forms.Application.EnableVisualStyles();
         System.Windows.Forms.Application.SetHighDpiMode(HighDpiMode.SystemAware);
+
+        // Catch exceptions from WinForms message pump (not covered by AppDomain handler)
+        System.Windows.Forms.Application.ThreadException += (_, e) =>
+            CrashHandler.WriteEntry("SystemTray.ThreadException", e.Exception);
 
         _syncCtx = new WindowsFormsSynchronizationContext();
         SynchronizationContext.SetSynchronizationContext(_syncCtx);
@@ -104,6 +111,11 @@ public class SystemTrayService : IDisposable
         };
 
         System.Windows.Forms.Application.Run();
+        }
+        catch (Exception ex)
+        {
+            CrashHandler.WriteEntry("SystemTray.TrayThreadProc", ex);
+        }
     }
 
     /// <summary>Loads a PNG file and converts it to a 32x32 Icon for the system tray.</summary>

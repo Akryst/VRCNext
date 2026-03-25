@@ -216,6 +216,7 @@ public sealed class VRChatWebSocketService : IDisposable
         {
             var msg = JObject.Parse(json);
             var type = msg["type"]?.Value<string>() ?? "";
+            CrashHandler.AddBreadcrumb($"WS event={type}");
 
             var contentStr = msg["content"]?.Value<string>() ?? "{}";
 

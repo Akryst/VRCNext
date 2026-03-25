@@ -30,10 +30,19 @@ function joinStateBadge(js) {
 function _renderGroupListCard(g) {
     const metaParts = [];
     if (g.shortCode) metaParts.push(esc(g.shortCode));
-    metaParts.push(`<span class="msi" style="font-size:11px;">group</span> ${esc(getGroupMembersText(g.memberCount || 0))}`);
-    return `<div class="s-card" onclick="openGroupDetail('${esc(g.id)}')">
-        <div class="s-card-img" style="background-image:url('${cssUrl(g.bannerUrl||g.iconUrl||'')}')"><div class="s-card-icon" style="background-image:url('${cssUrl(g.iconUrl||'')}')"></div></div>
-        <div class="s-card-body"><div class="s-card-title">${esc(g.name)}</div><div class="s-card-sub" style="display:flex;align-items:center;gap:4px;">${metaParts.join(' &middot; ')}${g.joinState ? `<span style="margin-left:auto;">${joinStateBadge(g.joinState)}</span>` : ''}</div></div></div>`;
+    metaParts.push(`<span class="msi" style="font-size:12px;">group</span> ${esc(getGroupMembersText(g.memberCount || 0))}`);
+    const iconHtml = g.iconUrl ? `<div class="cc-group-icon" style="background-image:url('${cssUrl(g.iconUrl)}')"></div>` : '';
+    return `<div class="vrcn-content-card" onclick="openGroupDetail('${esc(g.id)}')">
+        <div class="cc-bg" style="background-image:url('${cssUrl(g.bannerUrl||g.iconUrl||'')}')"></div>
+        <div class="cc-scrim"></div>
+        <div class="cc-content">
+            <div class="cc-name">${esc(g.name)}</div>
+            <div class="cc-bottom-row">
+                <div class="cc-meta">${iconHtml}${metaParts.join(' · ')}</div>
+                ${g.joinState ? joinStateBadge(g.joinState) : ''}
+            </div>
+        </div>
+    </div>`;
 }
 
 function setGroupFilter(filter) {

@@ -13,6 +13,21 @@ internal static class CrashHandler
 {
     private static string _crashDir = "";
 
+    // Breadcrumb trail — last 40 operations before crash
+    private static readonly System.Collections.Concurrent.ConcurrentQueue<string> _breadcrumbs = new();
+    private const int MaxBreadcrumbs = 40;
+
+    public static void AddBreadcrumb(string msg)
+    {
+        _breadcrumbs.Enqueue($"{DateTime.Now:HH:mm:ss.fff}  {msg}");
+        while (_breadcrumbs.Count > MaxBreadcrumbs)
+            _breadcrumbs.TryDequeue(out _);
+    }
+
+    /// <summary>Manually write a crash entry for caught exceptions that would otherwise be silent.</summary>
+    public static void WriteEntry(string context, Exception ex)
+        => WriteCrashReport(ex, $"ManualEntry:{context}", isTerminating: false);
+
     public static void Register()
     {
         _crashDir = Path.Combine(
@@ -107,6 +122,50 @@ internal static class CrashHandler
             {
                 sb.AppendLine("(No exception object available)");
             }
+            sb.AppendLine();
+
+            // Breadcrumb trail
+            sb.AppendLine("─── Recent Activity (breadcrumbs) ─────────────────────────────");
+            var crumbs = _breadcrumbs.ToArray();
+            if (crumbs.Length == 0)
+                sb.AppendLine("  (no breadcrumbs recorded)");
+            else
+                foreach (var c in crumbs)
+                    sb.AppendLine($"  {c}");
+            sb.AppendLine();
+
+            // Thread dump
+            sb.AppendLine("─── Threads ───────────────────────────────────────────────────");
+            try
+            {
+                foreach (ProcessThread t in proc.Threads)
+                {
+                    try
+                    {
+                        sb.AppendLine($"  ID={t.Id,-6} State={t.ThreadState,-15} Priority={t.CurrentPriority,-4} CPU={t.TotalProcessorTime.TotalMilliseconds:F0}ms");
+                    }
+                    catch { sb.AppendLine($"  ID={t.Id} (info unavailable)"); }
+                }
+            }
+            catch { sb.AppendLine("  (thread dump failed)"); }
+            sb.AppendLine();
+
+            // Probable causes (heuristic hints)
+            sb.AppendLine("─── Possible Causes ───────────────────────────────────────────");
+            sb.AppendLine("  Known crash-prone areas in VRCNext:");
+            sb.AppendLine("  • async void OnNewFile (PhotosController) — webhook/post exception");
+            sb.AppendLine("  • MemoryTrimService Task.Run — GC.Collect / P/Invoke failure");
+            sb.AppendLine("  • SystemTray STA thread — WinForms pump exception");
+            sb.AppendLine("  • HttpListener fire-and-forget — unhandled IO/OOM");
+            sb.AppendLine("  • TimelineService OOM — all events loaded in RAM");
+            sb.AppendLine("  • PlayerProfileCache OOM — unbounded, grows per session");
+            sb.AppendLine($"  Working Set at crash: {FormatBytes(proc.WorkingSet64)}");
+            try
+            {
+                var drive = new System.IO.DriveInfo(Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData))!);
+                sb.AppendLine($"  AppData drive free:  {FormatBytes(drive.AvailableFreeSpace)} of {FormatBytes(drive.TotalSize)}");
+            }
+            catch { }
             sb.AppendLine();
 
             // Loaded assemblies

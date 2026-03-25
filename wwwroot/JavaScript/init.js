@@ -23,12 +23,14 @@ renderChatboxLines();
 const winDrag = document.getElementById('winDrag');
 if (winDrag) {
     winDrag.addEventListener('mousedown', e => {
+        if (window._legacyWindow) return;
         // Only drag from the topbar background, not buttons/badges
         if (e.target.closest('.win-controls, .btn-notif, .mini-badge, button')) return;
         // Skip SC_MOVE on the 2nd click of a double-click so dblclick event can fire
         if (e.button === 0 && e.detail === 1) sendToCS({ action: 'windowDragStart' });
     });
     winDrag.addEventListener('dblclick', e => {
+        if (window._legacyWindow) return;
         if (e.target.closest('.win-controls, .btn-notif, .mini-badge, button')) return;
         sendToCS({ action: 'windowMaximize' });
     });
@@ -39,10 +41,12 @@ if (winDrag) {
     const el = document.querySelector(sel);
     if (!el) return;
     el.addEventListener('mousedown', e => {
+        if (window._legacyWindow) return;
         if (e.target.closest('button')) return;
         if (e.button === 0 && e.detail === 1) sendToCS({ action: 'windowDragStart' });
     });
     el.addEventListener('dblclick', e => {
+        if (window._legacyWindow) return;
         if (e.target.closest('button')) return;
         sendToCS({ action: 'windowMaximize' });
     });
@@ -62,10 +66,12 @@ if (winDrag) {
         return null;
     }
     document.addEventListener('mousemove', e => {
+        if (window._legacyWindow) return;
         const dir = getDir(e.clientX, e.clientY);
         document.documentElement.style.cursor = dir ? cursorMap[dir] : '';
     });
     document.addEventListener('mousedown', e => {
+        if (window._legacyWindow) return;
         if (e.button !== 0) return;
         const dir = getDir(e.clientX, e.clientY);
         if (dir) { e.preventDefault(); sendToCS({ action: 'windowResizeStart', direction: dir }); }

@@ -175,31 +175,42 @@ function onFavoriteGroupUpdated(data) {
 /* === Shared world card renderer (search + favorites) === */
 function renderWorldCard(w) {
     const thumb = w.thumbnailImageUrl || w.imageUrl || '';
-    const desc = w.description ? w.description.substring(0, 100) + (w.description.length > 100 ? '...' : '') : '';
     const tags = (w.tags || []).filter(t => t.startsWith('author_tag_')).map(t => t.replace('author_tag_','')).slice(0,4);
-    const tagsHtml = tags.length ? `<div class="s-card-tags">${tags.map(t => `<span class="vrcn-badge">${esc(t)}</span>`).join('')}</div>` : '';
+    const tagsHtml = tags.length ? `<div class="cc-tags">${tags.map(t => `<span class="vrcn-badge">${esc(t)}</span>`).join('')}</div>` : '';
     const wid = jsq(w.id);
     const ts = w.worldTimeSeconds || 0;
-    const timeBadge = ts > 0 ? `<div class="s-card-time-badge"><span class="msi" style="font-size:11px;">schedule</span> ${formatDuration(ts)}</div>` : '';
+    const timeBadge = ts > 0 ? `<div class="cc-time-top"><span class="msi">schedule</span> ${formatDuration(ts)}</div>` : '';
     if (_worldEditMode) {
         const isSelected = _worldEditSelected.has(w.id);
         const checkIcon = isSelected
-            ? `<span class="msi" style="font-size:20px;color:var(--accent);">check_circle</span>`
-            : `<span class="msi" style="font-size:20px;color:rgba(255,255,255,0.7);">radio_button_unchecked</span>`;
-        return `<div class="s-card" data-wid="${esc(w.id)}" onclick="toggleWorldEditSelect('${wid}',this)" style="cursor:pointer;user-select:none;position:relative;">
-            <div class="s-card-img" style="background-image:url('${cssUrl(thumb)}')">${timeBadge}<div class="wd-edit-check">${checkIcon}</div></div>
-            <div class="s-card-body"><div class="s-card-title">${esc(w.name)}</div>
-            <div class="s-card-sub">${esc(w.authorName)} · <span class="msi" style="font-size:11px;">person</span> ${w.occupants} · <span class="msi" style="font-size:11px;">star</span> ${w.favorites}</div>
-            ${desc ? `<div class="s-card-desc">${esc(desc)}</div>` : ''}
-            ${tagsHtml}</div>
+            ? `<span class="msi" style="font-size:22px;color:var(--accent);">check_circle</span>`
+            : `<span class="msi" style="font-size:22px;color:rgba(255,255,255,0.7);">radio_button_unchecked</span>`;
+        return `<div class="vrcn-content-card" data-wid="${esc(w.id)}" onclick="toggleWorldEditSelect('${wid}',this)" style="user-select:none;">
+            <div class="cc-bg" style="background-image:url('${cssUrl(thumb)}')"></div>
+            <div class="cc-scrim"></div>
+            ${timeBadge}
+            <div class="wd-edit-check">${checkIcon}</div>
+            <div class="cc-content">
+                <div class="cc-name">${esc(w.name)}</div>
+                <div class="cc-bottom-row">
+                    <div class="cc-meta">${esc(w.authorName)} · <span class="msi">person</span>${w.occupants} · <span class="msi">star</span>${w.favorites}</div>
+                    ${tagsHtml}
+                </div>
+            </div>
             ${isSelected ? '<div class="wd-edit-sel-border"></div>' : ''}</div>`;
     }
-    return `<div class="s-card" onclick="openWorldSearchDetail('${wid}')">
-        <div class="s-card-img" style="background-image:url('${cssUrl(thumb)}')">${timeBadge}</div>
-        <div class="s-card-body"><div class="s-card-title">${esc(w.name)}</div>
-        <div class="s-card-sub">${esc(w.authorName)} · <span class="msi" style="font-size:11px;">person</span> ${w.occupants} · <span class="msi" style="font-size:11px;">star</span> ${w.favorites}</div>
-        ${desc ? `<div class="s-card-desc">${esc(desc)}</div>` : ''}
-        ${tagsHtml}</div></div>`;
+    return `<div class="vrcn-content-card" onclick="openWorldSearchDetail('${wid}')">
+        <div class="cc-bg" style="background-image:url('${cssUrl(thumb)}')"></div>
+        <div class="cc-scrim"></div>
+        ${timeBadge}
+        <div class="cc-content">
+            <div class="cc-name">${esc(w.name)}</div>
+            <div class="cc-bottom-row">
+                <div class="cc-meta">${esc(w.authorName)} · <span class="msi">person</span>${w.occupants} · <span class="msi">star</span>${w.favorites}</div>
+                ${tagsHtml}
+            </div>
+        </div>
+    </div>`;
 }
 
 function filterFavWorlds() {
@@ -466,34 +477,6 @@ function renderWorldSearchDetail(w) {
         instancesHtml = `<div style="font-size:11px;color:var(--tx3);margin-bottom:14px;">${t('worlds.instances.none_active', 'No active instances')}</div>`;
     }
 
-    // Create instance UI
-    const createHtml = `<div class="wd-section-label" style="margin-top:6px;">${t('worlds.instances.create_title', 'CREATE INSTANCE')}</div>
-        <div class="wd-create-row">
-            <select id="ciType" class="wd-create-select" onchange="onCiTypeChange()">
-                <option value="public">${t('worlds.instances.types.public', 'Public')}</option>
-                <option value="friends">${t('worlds.instances.types.friends', 'Friends')}</option>
-                <option value="hidden">${t('worlds.instances.types.friends_plus', 'Friends+')}</option>
-                <option value="invite_plus">${t('worlds.instances.types.invite_plus', 'Invite+')}</option>
-                <option value="private">${t('worlds.instances.types.invite', 'Invite')}</option>
-                <optgroup label="---------"></optgroup>
-                <option value="group_public">${t('worlds.instances.types.group_public', 'Group Public')}</option>
-                <option value="group_members">${t('worlds.instances.types.group', 'Group')}</option>
-                <option value="group_plus">${t('worlds.instances.types.group_plus', 'Group+')}</option>
-            </select>
-            <select id="ciRegion" class="wd-create-select">
-                <option value="eu">${getWorldRegionLabel('eu')}</option>
-                <option value="us">${getWorldRegionLabel('us')}</option>
-                <option value="use">${getWorldRegionLabel('use')}</option>
-                <option value="jp">${getWorldRegionLabel('jp')}</option>
-            </select>
-            <button class="vrcn-button" id="ciBtn" onclick="createWorldInstance('${esc(w.id)}')" style="background:var(--accent);color:#fff;"><span class="msi" style="font-size:14px;">add</span> ${t('worlds.instances.create_join', 'Create & Join')}</button>
-        </div>
-        <div id="ciGroupRow" style="display:none;margin-top:8px;">
-            <div style="font-size:11px;color:var(--tx3);margin-bottom:6px;">${t('worlds.instances.select_group', 'Select group for this instance:')}</div>
-            <input type="hidden" id="ciGroupId" value="">
-            <div class="ci-group-list" id="ciGroupList"></div>
-        </div>`;
-
     const isFavWorld = favWorldsData.some(fw => fw.id === w.id);
     const favBtnLabel = isFavWorld
         ? `<span class="msi" style="font-size:16px;">star</span>${t('worlds.favorites.unfavorite', 'Unfavorite')}`
@@ -501,6 +484,7 @@ function renderWorldSearchDetail(w) {
 
     const isOwnWorld = currentVrcUser && w.authorId === currentVrcUser.id;
     _wdCurrentWorldId = wid;
+    _ciWorld = { id: w.id, name: w.name, thumb };
 
     // Tab pills (only for own worlds)
     const tabsHtml = isOwnWorld ? `<div class="fd-tabs" style="margin-bottom:14px;">
@@ -521,7 +505,8 @@ function renderWorldSearchDetail(w) {
             ${w.pcSize > 0 ? `<span class="vrcn-badge"><span class="msi" style="font-size:11px;">computer</span> ${formatFileSize(w.pcSize)}</span>` : ''}
             ${w.androidSize > 0 ? `<span class="vrcn-badge"><span class="msi" style="font-size:11px;">android</span> ${formatFileSize(w.androidSize)}</span>` : ''}
         </div>
-        <div style="margin:10px 0 6px;">
+        <div style="margin:10px 0 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <button class="vrcn-button-round" onclick="openCreateInstanceModal()"><span class="msi" style="font-size:14px;">add_circle_outline</span> ${t('worlds.instances.create_title', 'Create Instance')}</button>
             <button class="vrcn-button-round${isFavWorld ? ' active' : ''}" id="wdFavBtn" onclick="toggleWorldFavPicker('${wid}')" style="margin-left:auto;">${favBtnLabel}</button>
         </div>
         <div id="wdFavPicker" style="display:none;margin-bottom:14px;">
@@ -539,13 +524,10 @@ function renderWorldSearchDetail(w) {
             ${w.updatedAt ? `<div class="fd-meta-row"><span class="fd-meta-label">${t('worlds.meta.updated', 'Updated')}</span><span>${esc(w.updatedAt)}</span></div>` : ''}
         </div>
         ${instancesHtml}
-        ${createHtml}
         </div>
         ${isOwnWorld ? `<div id="wdTabInsights" style="display:none;"><div id="wiContainer"></div></div>` : ''}
         <div style="margin-top:14px;text-align:right;"><button class="vrcn-button-round" onclick="closeWorldSearchDetail()">${t('common.close', 'Close')}</button></div>
         </div>`;
-
-    document.querySelectorAll('#ciType, #ciRegion').forEach(initVnSelect);
 
     // Live timer – only when currently in this world
     if (_wdLiveTimer) { clearInterval(_wdLiveTimer); _wdLiveTimer = null; }
@@ -738,17 +720,24 @@ function onWorldFavGroupsLoaded(groups) {
 }
 
 function onCiTypeChange() {
-    const type = document.getElementById('ciType')?.value || '';
+    const type = document.getElementById('ciTypeValue')?.value || '';
     const groupRow = document.getElementById('ciGroupRow');
     if (!groupRow) return;
-    const isGroup = type.startsWith('group_');
+    const isGroup = type === 'group';
     groupRow.style.display = isGroup ? '' : 'none';
+    const subPills = document.getElementById('ciGroupSubPillsWrap');
+    if (subPills) subPills.style.display = isGroup ? '' : 'none';
+    const queueRow = document.getElementById('ciQueueRow');
+    if (queueRow) queueRow.style.display = isGroup ? '' : 'none';
+    const ageRow = document.getElementById('ciAgeGateRow');
+    if (ageRow) ageRow.style.display = isGroup ? '' : 'none';
     const hidden = document.getElementById('ciGroupId');
     if (hidden) hidden.value = '';
+    document.querySelectorAll('.ci-group-card').forEach(c => c.classList.remove('ci-group-selected'));
     if (isGroup) {
         if (!myGroupsLoaded) {
-            renderCiGroupPicker(null); // show loading state
-            loadMyGroups();            // triggers vrcMyGroups → renderCiGroupPicker via messages.js
+            renderCiGroupPicker(null);
+            loadMyGroups();
         } else {
             renderCiGroupPicker(myGroups);
         }
@@ -788,27 +777,165 @@ function ciSelectGroup(groupId, el) {
 }
 
 function createInstance(worldId) {
-    createWorldInstance(worldId);
+    // Legacy wrapper — open the create instance modal if world is set
+    if (worldId && _ciWorld?.id !== worldId) _ciWorld = { id: worldId, name: worldId, thumb: '' };
+    openCreateInstanceModal();
 }
 
-function createWorldInstance(worldId) {
-    const type = document.getElementById('ciType').value;
-    const region = document.getElementById('ciRegion').value;
-    const btn = document.getElementById('ciBtn');
-    if (btn) { btn.disabled = true; btn.innerHTML = `<span class="msi" style="font-size:14px;">hourglass_empty</span> ${t('worlds.instances.creating', 'Creating...')}`; }
+let _ciWorldId = '';
+let _ciWorld = null;
 
-    if (type.startsWith('group_')) {
+function openCreateInstanceModal() {
+    if (!_ciWorld) return;
+    _ciWorldId = _ciWorld.id;
+    const worldName = _ciWorld.name;
+    const thumb = _ciWorld.thumb || '';
+
+    const el = document.getElementById('createInstanceContent');
+    if (!el) return;
+
+    el.innerHTML = `
+        ${thumb ? `<div class="fd-banner"><img src="${esc(thumb)}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>` : ''}
+        <div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:20px;">
+            <h2 style="margin:0 0 16px;color:var(--tx0);font-size:18px;">${esc(worldName)}</h2>
+
+            <div class="wd-section-label">${t('timeline.detail.instance_type', 'Instance Type')}</div>
+            <div class="fd-tabs" id="ciTypePills" style="margin-bottom:0;">
+                <button class="fd-tab active" data-type="private" onclick="setCiType('private',this)">${t('worlds.instances.types.invite', 'Invite')}</button>
+                <button class="fd-tab" data-type="invite_plus" onclick="setCiType('invite_plus',this)">${t('worlds.instances.types.invite_plus', 'Invite+')}</button>
+                <button class="fd-tab" data-type="friends" onclick="setCiType('friends',this)">${t('worlds.instances.types.friends', 'Friends')}</button>
+                <button class="fd-tab" data-type="hidden" onclick="setCiType('hidden',this)">${t('worlds.instances.types.friends_plus', 'Friends+')}</button>
+                <button class="fd-tab" data-type="group" onclick="setCiType('group',this)">${t('worlds.instances.types.group_root', 'Group')}</button>
+                <button class="fd-tab" data-type="public" onclick="setCiType('public',this)">${t('worlds.instances.types.public', 'Public')}</button>
+            </div>
+
+            <div id="ciGroupSubPillsWrap" style="margin-top:6px;">
+                <div class="fd-tabs" id="ciGroupSubPills" style="margin-bottom:0;">
+                    <button class="fd-tab active" data-type="group_members" onclick="setCiGroupType('group_members',this)">${t('worlds.instances.types.group', 'Members')}</button>
+                    <button class="fd-tab" data-type="group_plus" onclick="setCiGroupType('group_plus',this)">${t('worlds.instances.types.group_plus', 'Group+')}</button>
+                    <button class="fd-tab" data-type="group_public" onclick="setCiGroupType('group_public',this)">${t('worlds.instances.types.group_public', 'Group Public')}</button>
+                </div>
+            </div>
+
+            <div class="ci-toggle-row" id="ciQueueRow">
+                <span>${t('worlds.instances.queue', 'Queue')}</span>
+                <label class="ci-toggle"><input type="checkbox" id="ciQueueEnabled"><span class="ci-toggle-slider"></span></label>
+            </div>
+            <div class="ci-toggle-row" id="ciAgeGateRow">
+                <span>${t('worlds.instances.age_gate', 'Age Gate')}</span>
+                <label class="ci-toggle"><input type="checkbox" id="ciAgeGateEnabled"><span class="ci-toggle-slider"></span></label>
+            </div>
+
+            <div style="margin-top:14px;">
+                <div class="wd-section-label">${t('worlds.instances.instance_name', 'Instance Name')} <span class="vrcn-badge vrcplus" style="font-size:9px;padding:1px 6px;vertical-align:middle;margin-left:4px;">VRC+</span></div>
+                <input type="text" id="ciInstanceName" class="ci-instance-name-input" placeholder="${t('worlds.instances.instance_name_placeholder', 'Optional name...')}" maxlength="64">
+            </div>
+
+            <div id="ciGroupRow" style="margin-top:12px;">
+                <div class="wd-section-label" style="margin-bottom:6px;">${t('worlds.instances.select_group', 'Select Group')}</div>
+                <input type="hidden" id="ciGroupId" value="">
+                <div class="ci-group-list" id="ciGroupList"></div>
+            </div>
+
+            <div style="margin-top:14px;">
+                <div class="wd-section-label" style="margin-bottom:6px;">${t('worlds.instances.region', 'Region')}</div>
+                <select id="ciRegion" class="wd-create-select">
+                    <option value="eu">${getWorldRegionLabel('eu')}</option>
+                    <option value="us">${getWorldRegionLabel('us')}</option>
+                    <option value="use">${getWorldRegionLabel('use')}</option>
+                    <option value="jp">${getWorldRegionLabel('jp')}</option>
+                </select>
+            </div>
+
+            <input type="hidden" id="ciTypeValue" value="private">
+            <input type="hidden" id="ciGroupTypeValue" value="group_members">
+
+            <div class="fd-actions" style="margin-top:20px;flex-wrap:wrap;gap:8px;">
+                <button class="vrcn-button-round" id="ciCreateBtn" onclick="doCreateInstance(false)">
+                    <span class="msi" style="font-size:14px;">add_circle_outline</span> ${t('worlds.instances.create_only', 'Create Instance')}
+                </button>
+                <button class="vrcn-button-round vrcn-btn-primary" id="ciCreateJoinBtn" onclick="doCreateInstance(true)">
+                    <span class="msi" style="font-size:14px;">play_circle</span> ${t('worlds.instances.create_join', 'Create &amp; Join')}
+                </button>
+                <button class="vrcn-button-round" style="margin-left:auto;" onclick="closeCreateInstanceModal()">${t('common.close', 'Close')}</button>
+            </div>
+        </div>`;
+
+    initVnSelect(document.getElementById('ciRegion'));
+    onCiTypeChange();
+    document.getElementById('modalCreateInstance').style.display = 'flex';
+}
+
+function closeCreateInstanceModal() {
+    document.getElementById('modalCreateInstance').style.display = 'none';
+}
+
+function setCiType(type, btn) {
+    document.querySelectorAll('#ciTypePills .fd-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const hidden = document.getElementById('ciTypeValue');
+    if (hidden) hidden.value = type;
+    onCiTypeChange();
+}
+
+function setCiGroupType(type, btn) {
+    document.querySelectorAll('#ciGroupSubPills .fd-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const hidden = document.getElementById('ciGroupTypeValue');
+    if (hidden) hidden.value = type;
+}
+
+function doCreateInstance(andJoin) {
+    const worldId = _ciWorldId;
+    const type = document.getElementById('ciTypeValue')?.value || 'public';
+    const region = document.getElementById('ciRegion')?.value || 'eu';
+    const instanceName = (document.getElementById('ciInstanceName')?.value || '').trim();
+    const queueEnabled = document.getElementById('ciQueueEnabled')?.checked ?? false;
+    const ageGateEnabled = document.getElementById('ciAgeGateEnabled')?.checked ?? false;
+
+    const createBtn = document.getElementById('ciCreateBtn');
+    const joinBtn = document.getElementById('ciCreateJoinBtn');
+    const loadHtml = `<span class="msi" style="font-size:14px;">hourglass_empty</span> ${t('worlds.instances.creating', 'Creating...')}`;
+    if (createBtn) { createBtn.disabled = true; createBtn.innerHTML = loadHtml; }
+    if (joinBtn) { joinBtn.disabled = true; joinBtn.innerHTML = loadHtml; }
+
+    if (type === 'group') {
+        const groupSubType = document.getElementById('ciGroupTypeValue')?.value || 'group_members';
         const groupId = document.getElementById('ciGroupId')?.value || '';
         if (!groupId) {
-            if (btn) { btn.disabled = false; btn.innerHTML = `<span class="msi" style="font-size:14px;">add</span> ${t('worlds.instances.create_join', 'Create & Join')}`; }
+            if (createBtn) { createBtn.disabled = false; createBtn.innerHTML = `<span class="msi" style="font-size:14px;">add_circle_outline</span> ${t('worlds.instances.create_only', 'Create Instance')}`; }
+            if (joinBtn) { joinBtn.disabled = false; joinBtn.innerHTML = `<span class="msi" style="font-size:14px;">play_circle</span> ${t('worlds.instances.create_join', 'Create & Join')}`; }
             return;
         }
-        // group_public → "public", group_members → "members", group_plus → "plus"
-        const accessType = type === 'group_public' ? 'public' : type === 'group_plus' ? 'plus' : 'members';
-        sendToCS({ action: 'vrcCreateGroupInstance', worldId, groupId, groupAccessType: accessType, region });
+        const accessType = groupSubType === 'group_public' ? 'public' : groupSubType === 'group_plus' ? 'plus' : 'members';
+        sendToCS({ action: 'vrcCreateGroupInstance', worldId, groupId, groupAccessType: accessType, region, instanceName, queueEnabled, ageGateEnabled, andJoin });
     } else {
-        sendToCS({ action: 'vrcCreateInstance', worldId, type, region });
+        sendToCS({ action: 'vrcCreateInstance', worldId, type, region, instanceName, andJoin });
     }
+}
+
+let _pendingCreateInstance = null;
+
+function createWorldInstance(worldId) {
+    if (!worldId) return;
+    const cached = (typeof dashWorldCache !== 'undefined' && dashWorldCache[worldId]) || {};
+    if (cached.name) {
+        _ciWorld = { id: worldId, name: cached.name, thumb: cached.thumbnailImageUrl || cached.imageUrl || '' };
+        openCreateInstanceModal();
+    } else {
+        // World not in cache yet — fetch it, then open the modal
+        _pendingCreateInstance = worldId;
+        sendToCS({ action: 'vrcResolveWorlds', worldIds: [worldId] });
+    }
+}
+
+function onCreateInstanceWorldResolved(dict) {
+    if (!_pendingCreateInstance) return;
+    const worldId = _pendingCreateInstance;
+    _pendingCreateInstance = null;
+    const w = dict[worldId];
+    _ciWorld = { id: worldId, name: w?.name || worldId, thumb: w?.thumbnailImageUrl || w?.imageUrl || '' };
+    openCreateInstanceModal();
 }
 
 /* === World Detail Modal === */

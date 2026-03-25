@@ -24,9 +24,16 @@ public class MemoryTrimService : IDisposable
     {
         Task.Run(() =>
         {
-            GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
-            TrimWorkingSet();
+            try
+            {
+                GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+                TrimWorkingSet();
+            }
+            catch (Exception ex)
+            {
+                CrashHandler.WriteEntry("MemoryTrimService.TrimNow", ex);
+            }
         });
     }
 

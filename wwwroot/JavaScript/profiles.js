@@ -203,6 +203,20 @@ function renderMyProfileContent() {
         ? `<div class="fd-bio-links">${(u.bioLinks).map(bl => renderBioLink(bl)).join('')}</div>`
         : `<div class="myp-empty">${noLinksLabel}</div>`;
 
+    const _repG = (typeof myGroups !== 'undefined') && myGroups.find(g => g.isRepresenting === true);
+    let repGroupHtml = '';
+    if (_repG) {
+        const _repIcon = _repG.iconUrl
+            ? `<img class="fd-group-icon" src="${esc(_repG.iconUrl)}" onerror="this.style.display='none'">`
+            : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">group</span></div>`;
+        repGroupHtml = `<div class="myp-section" style="padding-bottom:4px;">
+            <div class="fd-group-rep-label">${t('profiles.badges.representing', 'Representing')}</div>
+            <div class="fd-group-card fd-group-rep" onclick="closeMyProfile();openGroupDetail('${esc(_repG.id)}')">
+                ${_repIcon}<div class="fd-group-card-info"><div class="fd-group-card-name">${esc(_repG.name)}</div><div class="fd-group-card-meta">${esc(_repG.shortCode || '')}${_repG.discriminator ? '.' + esc(_repG.discriminator) : ''}${_repG.memberCount ? ' &middot; ' + esc(getGroupMemberText(_repG.memberCount)) : ''}</div></div>
+            </div>
+        </div>`;
+    }
+
     box.innerHTML = `
         ${bannerHtml}
         <div class="fd-content${bannerSrc ? ' fd-has-banner' : ''}">
@@ -218,6 +232,7 @@ function renderMyProfileContent() {
                 </div>
             </div>
 
+            ${repGroupHtml}
             ${_renderMyBadgesSection(u)}
 
             <div class="myp-section">
@@ -1046,15 +1061,19 @@ function renderFriendDetail(d) {
     if (allUserWorlds.length) {
         worldsGridHtml = `<div class="search-grid">`;
         allUserWorlds.forEach(w => {
-            const thumb = w.thumbnailImageUrl || '';
+            const thumb = w.thumbnailImageUrl || w.imageUrl || '';
             const wid = jsq(w.id);
-            const desc = (w.description || '').slice(0, 80);
-            worldsGridHtml += `<div class="s-card" onclick="closeFriendDetail();openWorldSearchDetail('${wid}')">
-                <div class="s-card-img" style="background-image:url('${cssUrl(thumb)}')"></div>
-                <div class="s-card-body">
-                    <div class="s-card-title">${esc(w.name)}</div>
-                    <div class="s-card-sub">${esc(w.authorName || d.displayName)} &middot; <span class="msi" style="font-size:11px;">person</span> ${w.occupants} &middot; <span class="msi" style="font-size:11px;">star</span> ${w.favorites}</div>
-                    ${desc ? `<div class="s-card-desc">${esc(desc)}</div>` : ''}
+            const tags = (w.tags || []).filter(t => t.startsWith('author_tag_')).map(t => t.replace('author_tag_','')).slice(0,3);
+            const tagsHtml = tags.length ? `<div class="cc-tags">${tags.map(t => `<span class="vrcn-badge">${esc(t)}</span>`).join('')}</div>` : '';
+            worldsGridHtml += `<div class="vrcn-content-card" onclick="closeFriendDetail();openWorldSearchDetail('${wid}')">
+                <div class="cc-bg" style="background-image:url('${cssUrl(thumb)}')"></div>
+                <div class="cc-scrim"></div>
+                <div class="cc-content">
+                    <div class="cc-name">${esc(w.name)}</div>
+                    <div class="cc-bottom-row">
+                        <div class="cc-meta">${esc(w.authorName || d.displayName)} · <span class="msi">person</span>${w.occupants} · <span class="msi">star</span>${w.favorites}</div>
+                        ${tagsHtml}
+                    </div>
                 </div>
             </div>`;
         });

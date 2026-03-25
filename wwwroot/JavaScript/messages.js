@@ -177,7 +177,29 @@ window.external.receiveMessage(rawMsg => {
             case 'vrcActionResult':
                 if (payload.action === 'sendChatMessage') { if (typeof handleChatActionResult === 'function') handleChatActionResult(payload); break; }
                 if (payload.action === 'boop') { showToast(payload.success, payload.message); break; }
-                if (payload.action === 'createInstance' && payload.success) { loadMyInstances(); }
+                if (payload.action === 'representGroup') {
+                    showToast(payload.success, payload.message);
+                    if (payload.success && payload.groupId && typeof myGroups !== 'undefined') {
+                        myGroups.forEach(g => { g.isRepresenting = (g.id === payload.groupId); });
+                        const myp = document.getElementById('modalMyProfile');
+                        if (myp && myp.style.display !== 'none') renderMyProfileContent();
+                        if (typeof filterMyGroups === 'function') filterMyGroups();
+                    }
+                    break;
+                }
+                if (payload.action === 'createInstance') {
+                    showToast(payload.success, payload.message);
+                    if (payload.success) {
+                        loadMyInstances();
+                        closeCreateInstanceModal();
+                    } else {
+                        const cb = document.getElementById('ciCreateBtn');
+                        const jb = document.getElementById('ciCreateJoinBtn');
+                        if (cb) { cb.disabled = false; cb.innerHTML = `<span class="msi" style="font-size:14px;">add_circle_outline</span> Create Instance`; }
+                        if (jb) { jb.disabled = false; jb.innerHTML = `<span class="msi" style="font-size:14px;">play_circle</span> Create &amp; Join`; }
+                    }
+                    break;
+                }
                 if (payload.action === 'deleteGroupEvent') {
                     if (payload.success) {
                         const card = document.querySelector(`.fd-group-card[data-event-id="${payload.eventId}"]`);
@@ -518,6 +540,7 @@ window.external.receiveMessage(rawMsg => {
                 break;
             case 'vrcWorldsResolved':
                 onWorldsResolved(payload);
+                if (typeof onCreateInstanceWorldResolved === 'function') onCreateInstanceWorldResolved(payload);
                 break;
 case 'popularWorlds':
                 onPopularWorlds(payload.worlds);
@@ -614,6 +637,9 @@ case 'popularWorlds':
                 break;
             case 'myInstances':
                 if (typeof renderMyInstances === 'function') renderMyInstances(payload);
+                break;
+            case 'refreshMyInstances':
+                if (typeof loadMyInstances === 'function') loadMyInstances();
                 break;
             case 'dashBgSelected':
                 dashBgPath = payload.path || '';

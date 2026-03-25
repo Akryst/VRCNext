@@ -170,13 +170,20 @@ public class PhotosController
     // File Watcher - Post to Discord
     public async void OnNewFile(object? sender, FileWatcherService.FileArg e)
     {
-        // Snapshot players for VRChat screenshots
-        SnapshotPhotoPlayers(e.FilePath);
+        try
+        {
+            // Snapshot players for VRChat screenshots
+            SnapshotPhotoPlayers(e.FilePath);
 
-        // Inject into library without rescanning
-        AddFileToLibrary(e.FilePath);
+            // Inject into library without rescanning
+            AddFileToLibrary(e.FilePath);
 
-        await PostFile(e.FilePath, false, e.SizeMB);
+            await PostFile(e.FilePath, false, e.SizeMB);
+        }
+        catch (Exception ex)
+        {
+            CrashHandler.WriteEntry("PhotosController.OnNewFile", ex);
+        }
     }
 
     public void StartVrcPhotoWatcher()

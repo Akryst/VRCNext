@@ -52,7 +52,14 @@ public class InstanceController
         if (loc.Contains("~private(")) return loc.Contains("~canRequestInvite") ? "invite_plus" : "private";
         if (loc.Contains("~friends(")) return "friends";
         if (loc.Contains("~hidden("))  return "hidden";
-        if (loc.Contains("~group("))   return "group";
+        if (loc.Contains("~group("))
+        {
+            var gat = System.Text.RegularExpressions.Regex
+                .Match(loc, @"groupAccessType\(([^)]+)\)").Groups[1].Value.ToLowerInvariant();
+            if (gat == "public")  return "group-public";
+            if (gat == "plus")    return "group-plus";
+            return "group-members"; // covers "members" and unknown
+        }
         return "public";
     }
 
@@ -77,22 +84,17 @@ public class InstanceController
                 {
                     var myId = _core.VrcApi.CurrentUserId ?? "";
 
-                    // Helper: check if a location string is owned by current user
-                    static bool IsOwnedLocation(string loc, string userId)
+                    // 1. Inject current location as candidate (LogWatcher is instant — same source as friends panel)
+                    //    Ownership is validated by the loop below via API ownerId check.
+                    //    This handles startup (already in-game) AND joining a new instance while VRCNext is running.
+                    var logLoc = (_core.IsVrcRunning?.Invoke() == true) ? (_core.LogWatcher.CurrentLocation ?? "") : "";
+                    if (string.IsNullOrEmpty(logLoc) || !logLoc.Contains(':')) logLoc = _cachedInstLocation;
+                    if (!string.IsNullOrEmpty(logLoc) && logLoc.Contains(':')
+                        && !_recentlyClosedLocs.Contains(logLoc)
+                        && !_core.Settings.MyInstances.Contains(logLoc))
                     {
-                        if (string.IsNullOrEmpty(loc) || !loc.Contains(':') || string.IsNullOrEmpty(userId)) return false;
-                        var m = System.Text.RegularExpressions.Regex.Match(loc, @"~(?:friends|hidden|private|group)\(([^)]+)\)");
-                        return m.Success && m.Groups[1].Value == userId;
-                    }
-
-                    // 1. Get fresh location from VRChat API (not just log file)
-                    var apiLoc = await _core.VrcApi.GetCurrentUserLocationAsync() ?? "";
-                    if (!string.IsNullOrEmpty(apiLoc) && IsOwnedLocation(apiLoc, myId)
-                        && !_core.Settings.MyInstances.Contains(apiLoc)
-                        && !_recentlyClosedLocs.Contains(apiLoc))
-                    {
-                        _core.Settings.MyInstances.Insert(0, apiLoc);
-                        _core.Settings.Save();
+                        _core.Settings.MyInstances.Insert(0, logLoc);
+                        // No save yet — loop validates ownership; removed via miDead if not owner
                     }
 
                     // 2. Verify all stored instances via API — remove dead ones, keep active
@@ -104,8 +106,12 @@ public class InstanceController
                         // Dead if API returns null OR if user is no longer listed as owner
                         if (inst == null) { miDead.Add(instLoc); continue; }
                         var apiOwnerId = inst["ownerId"]?.ToString() ?? "";
-                        if (!string.IsNullOrEmpty(myId) && !string.IsNullOrEmpty(apiOwnerId)
-                            && apiOwnerId != myId) { miDead.Add(instLoc); continue; }
+                        // Group instances are owned by the group (grp_...) — check creatorId instead
+                        var effectiveOwner = apiOwnerId.StartsWith("grp_")
+                            ? (inst["creatorId"]?.ToString() ?? apiOwnerId)
+                            : apiOwnerId;
+                        if (!string.IsNullOrEmpty(myId) && !string.IsNullOrEmpty(effectiveOwner)
+                            && effectiveOwner != myId) { miDead.Add(instLoc); continue; }
                         var iType = ParseInstanceTypeFromLoc(instLoc);
                         if (iType == "private" && inst["canRequestInvite"]?.Value<bool>() == true) iType = "invite_plus";
                         miResults.Add(new
@@ -142,12 +148,24 @@ public class InstanceController
                 var ciWorldId = msg["worldId"]?.ToString() ?? "";
                 var ciType = msg["type"]?.ToString() ?? "public";
                 var ciRegion = msg["region"]?.ToString() ?? "eu";
+                var ciAndJoin = msg["andJoin"]?.ToObject<bool>() ?? true;
                 if (!string.IsNullOrEmpty(ciWorldId))
                 {
                     _ = Task.Run(async () =>
                     {
                         var location = _core.VrcApi.BuildInstanceLocation(ciWorldId, ciType, ciRegion);
-                        var ok = await _core.VrcApi.InviteSelfAsync(location);
+                        bool ok;
+                        string message;
+                        if (ciAndJoin)
+                        {
+                            ok = await _core.VrcApi.InviteSelfAsync(location);
+                            message = ok ? "Instance created! Self-invite sent." : "Failed to create instance.";
+                        }
+                        else
+                        {
+                            ok = true;
+                            message = "Instance created.";
+                        }
                         if (ok)
                         {
                             _core.Settings.MyInstances.Remove(location);
@@ -160,7 +178,7 @@ public class InstanceController
                             {
                                 action = "createInstance",
                                 success = ok,
-                                message = ok ? "Instance created! Self-invite sent." : "Failed to create instance.",
+                                message,
                                 location
                             });
                         });
@@ -601,6 +619,24 @@ public class InstanceController
 
         // Immediately refresh instance panel so sidebar doesn't wait for the 60s poll
         _core.SendToJS("vrcWorldJoined", new { worldId });
+
+        // Auto-detect owned instances — add as candidate immediately (no API, just string check),
+        // then validate via ownerId API inside HandleMessage so the dashboard updates without any manual action.
+        var miCandId = _core.VrcApi.CurrentUserId ?? "";
+        if (!string.IsNullOrEmpty(miCandId) && !string.IsNullOrEmpty(location)
+            && location.Contains(miCandId)
+            && !_recentlyClosedLocs.Contains(location)
+            && !_core.Settings.MyInstances.Contains(location))
+        {
+            _core.Settings.MyInstances.Insert(0, location);
+            while (_core.Settings.MyInstances.Count > 4)
+                _core.Settings.MyInstances.RemoveAt(_core.Settings.MyInstances.Count - 1);
+        }
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(1500); // let VRChat register the instance before we query it
+            await HandleMessage("vrcGetMyInstances", new JObject());
+        });
 
         // After 15 s: snapshot players + resolve world name
         _instanceSnapshotTimer = new System.Threading.Timer(_ =>

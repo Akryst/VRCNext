@@ -53,13 +53,15 @@ public class GroupsController
                 enriched.Add(new {
                     id = full["id"]?.ToString() ?? ids[i],
                     name,
-                    shortCode    = full["shortCode"]?.ToString() ?? "",
-                    description  = full["description"]?.ToString() ?? "",
-                    iconUrl      = full["iconUrl"]?.ToString() ?? "",
-                    bannerUrl    = full["bannerUrl"]?.ToString() ?? "",
-                    memberCount  = full["memberCount"]?.Value<int>() ?? 0,
-                    privacy      = full["privacy"]?.ToString() ?? "",
-                    joinState    = full["joinState"]?.ToString() ?? "",
+                    shortCode      = full["shortCode"]?.ToString() ?? "",
+                    discriminator  = full["discriminator"]?.ToString() ?? "",
+                    description    = full["description"]?.ToString() ?? "",
+                    iconUrl        = full["iconUrl"]?.ToString() ?? "",
+                    bannerUrl      = full["bannerUrl"]?.ToString() ?? "",
+                    memberCount    = full["memberCount"]?.Value<int>() ?? 0,
+                    privacy        = full["privacy"]?.ToString() ?? "",
+                    joinState      = full["joinState"]?.ToString() ?? "",
+                    isRepresenting = myMember?["isRepresenting"]?.Value<bool>() ?? false,
                     canCreateInstance = canCreate,
                     canPost, canEvent,
                 });
@@ -338,6 +340,21 @@ public class GroupsController
                         var ok = await _core.VrcApi.LeaveGroupAsync(lgId);
                         _core.SendToJS("vrcActionResult", new { action = "leaveGroup", success = ok,
                             message = ok ? "Left group" : "Failed to leave group" });
+                    });
+                }
+                break;
+            }
+
+            case "vrcRepresentGroup":
+            {
+                var rgId = msg["groupId"]?.ToString();
+                if (!string.IsNullOrEmpty(rgId))
+                {
+                    _ = Task.Run(async () => {
+                        var ok = await _core.VrcApi.SetRepresentedGroupAsync(rgId);
+                        _core.SendToJS("vrcActionResult", new { action = "representGroup", success = ok,
+                            groupId = rgId,
+                            message = ok ? "Now representing group" : "Failed to represent group" });
                     });
                 }
                 break;
@@ -730,14 +747,31 @@ public class GroupsController
                 var cgiGroupId = msg["groupId"]?.ToString() ?? "";
                 var cgiAccessType = msg["groupAccessType"]?.ToString() ?? "members";
                 var cgiRegion = msg["region"]?.ToString() ?? "eu";
+                var cgiInstanceName = msg["instanceName"]?.ToString() ?? "";
+                var cgiQueueEnabled = msg["queueEnabled"]?.ToObject<bool>() ?? false;
+                var cgiAgeGateEnabled = msg["ageGateEnabled"]?.ToObject<bool>() ?? false;
+                var cgiAndJoin = msg["andJoin"]?.ToObject<bool>() ?? true;
                 if (!string.IsNullOrEmpty(cgiWorldId) && !string.IsNullOrEmpty(cgiGroupId))
                 {
                     _ = Task.Run(async () =>
                     {
-                        var location = await _core.VrcApi.CreateGroupInstanceAsync(cgiWorldId, cgiGroupId, cgiAccessType, cgiRegion);
+                        var location = await _core.VrcApi.CreateGroupInstanceAsync(
+                            cgiWorldId, cgiGroupId, cgiAccessType, cgiRegion,
+                            cgiInstanceName, cgiQueueEnabled, cgiAgeGateEnabled);
                         if (!string.IsNullOrEmpty(location))
                         {
-                            var ok = await _core.VrcApi.InviteSelfAsync(location);
+                            bool ok;
+                            string message;
+                            if (cgiAndJoin)
+                            {
+                                ok = await _core.VrcApi.InviteSelfAsync(location);
+                                message = ok ? "Group instance created! Self-invite sent." : "Instance created but invite failed.";
+                            }
+                            else
+                            {
+                                ok = true;
+                                message = "Group instance created.";
+                            }
                             if (ok)
                             {
                                 _core.Settings.MyInstances.Remove(location);
@@ -748,7 +782,7 @@ public class GroupsController
                             {
                                 action = "createInstance",
                                 success = ok,
-                                message = ok ? "Group instance created! Self-invite sent." : "Instance created but invite failed.",
+                                message,
                                 location
                             });
                         }

@@ -267,7 +267,7 @@ public partial class AppShell
             .SetUseOsDefaultSize(false)
             .SetSize(1100, 700)
             .SetMinSize(900, 540)
-            .SetChromeless(OperatingSystem.IsWindows())
+            .SetChromeless(OperatingSystem.IsWindows() && !_settings.LegacyWindow)
             .SetResizable(true)
             .SetUseOsDefaultLocation(false)
             .SetLeft(startX)

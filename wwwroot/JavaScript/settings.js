@@ -124,6 +124,8 @@ function saveSettings() {
             dashBgPath: dashBgPath,
             dashOpacity: parseInt(document.getElementById('setDashOpacity').value) || 40,
             randomDashBg: document.getElementById('setRandomBg').checked,
+            clockEnabled: document.getElementById('setClockEnabled').checked,
+            clockAmPm: document.getElementById('setClockAmPm').checked,
             vrcUsername: document.getElementById('setVrcUser').value,
             vrcPassword: document.getElementById('setVrcPass').value,
             sfMultiplier: parseFloat(document.getElementById('sfMultiplier').value) || 1,
@@ -199,6 +201,7 @@ function saveSettings() {
             imgCacheOptimizeEnabled: document.getElementById('setImgCacheOptimizeEnabled').checked,
             ffcEnabled: document.getElementById('setFfcEnabled').checked,
             memoryTrimEnabled: document.getElementById('setMemoryTrimEnabled').checked,
+            legacyWindow: document.getElementById('setLegacyWindow')?.checked ?? false,
             avtrdbReportDeleted: document.getElementById('setAvtrdbReport').checked,
             avtrdbSubmitAvatars: document.getElementById('setAvtrdbSubmit').checked
         }
@@ -221,7 +224,7 @@ function autoSave() {
 function initAutoSave() {
     const ids = ['setBotName','setBotAvatar','setVrcPath','setStartWithWindows','setMinimizeToTray',
         'setNotifySoundEnabled','setMessageSoundEnabled','setMediaRelaySoundEnabled','setSteamOverlaySoundEnabled',
-        'setDashOpacity','setRandomBg',
+        'setDashOpacity','setRandomBg','setClockEnabled','setClockAmPm',
         'setVrcUser','setVrcPass',
         'setAutoStartVR','setAutoStartDesktop',
         'setCbAutoStartVR','setCbAutoStartDesktop',
@@ -229,7 +232,7 @@ function initAutoSave() {
         'setYtAutoStartVR','setYtAutoStartDesktop',
         'setVfAutoStartVR','setVfAutoStartDesktop',
         'setDpAutoStartVR','setDpAutoStartDesktop',
-        'setImgCacheEnabled','setImgCacheLimit','setImgCacheOptimizeEnabled','setMemoryTrimEnabled'];
+        'setImgCacheEnabled','setImgCacheLimit','setImgCacheOptimizeEnabled','setMemoryTrimEnabled','setLegacyWindow'];
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -286,6 +289,9 @@ function loadSettingsToUI(s) {
     document.getElementById('dashOpacityVal').textContent = dashOpacity + '%';
     const randomBg = s.RandomDashBg || s.randomDashBg || false;
     document.getElementById('setRandomBg').checked = randomBg;
+    document.getElementById('setClockEnabled').checked = s.ClockEnabled ?? s.clockEnabled ?? true;
+    document.getElementById('setClockAmPm').checked    = s.ClockAmPm    ?? s.clockAmPm    ?? false;
+    applyClockSettings();
     if (randomBg) {
         // Request random image from watch folders
         sendToCS({ action: 'vrcRandomDashBg' });
@@ -432,6 +438,16 @@ function loadSettingsToUI(s) {
     // Memory Trim
     document.getElementById('setMemoryTrimEnabled').checked = s.MemoryTrimEnabled ?? s.memoryTrimEnabled ?? false;
 
+    // Legacy Window
+    const legacyWindow = s.LegacyWindow ?? s.legacyWindow ?? false;
+    const lwEl = document.getElementById('setLegacyWindow');
+    if (lwEl) lwEl.checked = legacyWindow;
+    const winDotsEl = document.querySelector('.win-dots');
+    if (winDotsEl) winDotsEl.style.display = legacyWindow ? 'none' : '';
+    const legacyHint = document.getElementById('legacyRestartHint');
+    if (legacyHint) legacyHint.style.display = 'none';
+    window._legacyWindow = legacyWindow;
+
     // Sync custom dropdowns to reflect programmatically set values
     document.querySelectorAll('select').forEach(s => s._vnRefresh && s._vnRefresh());
 
@@ -489,6 +505,13 @@ function handleImgCacheOptimizeProgress(data) {
         bar.style.width = '0%';
         label.textContent = 'Scanning…';
     }
+}
+
+// ── Legacy Window (Debugging) ──────────────────────────────────────────────
+function onLegacyWindowChange() {
+    autoSave();
+    const hint = document.getElementById('legacyRestartHint');
+    if (hint) hint.style.display = '';
 }
 
 // ── Text Tools (Debugging) ─────────────────────────────────────────────────
@@ -686,6 +709,16 @@ function vrcxShowError(err) {
     const start = document.getElementById('vrcxStartBtn');
     start.disabled = false;
     start.innerHTML = vrcxStartBtnHtml(true);
+}
+
+// === Design Tabs ===
+
+function switchDesignTab(tab, btn) {
+    document.getElementById('designTabBackground').style.display = tab === 'background' ? '' : 'none';
+    document.getElementById('designTabColors').style.display    = tab === 'colors'     ? '' : 'none';
+    document.getElementById('designTabOther').style.display     = tab === 'other'      ? '' : 'none';
+    btn.closest('.fd-tabs').querySelectorAll('.fd-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
 }
 
 // === Avtrdb Community Support ===
