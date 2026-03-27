@@ -55,6 +55,12 @@ namespace VRCNext
         public TimeSpan CurrentDuration { get; private set; }
         public bool IsPlaying { get; private set; }
 
+        // Position interpolation (browsers don't push continuous SMTC updates)
+        private string _smtcTrackKey = "";
+        private TimeSpan _smtcLastReportedPos;
+        private TimeSpan _smtcBasePos;
+        private DateTimeOffset _smtcBaseTime = DateTimeOffset.MinValue;
+
         // System stats
 #if WINDOWS
         private PerformanceCounter? _cpuCounter;
@@ -268,7 +274,29 @@ namespace VRCNext
                 var p = await s.TryGetMediaPropertiesAsync();
                 if (p != null) { CurrentTitle = p.Title ?? ""; CurrentArtist = p.Artist ?? ""; }
                 var tl = s.GetTimelineProperties();
-                if (tl != null) { CurrentPosition = tl.Position; CurrentDuration = tl.EndTime - tl.StartTime; }
+                if (tl != null)
+                {
+                    CurrentDuration = tl.EndTime - tl.StartTime;
+                    var trackKey = $"{CurrentTitle}||{(long)CurrentDuration.TotalSeconds}";
+                    if (trackKey != _smtcTrackKey)
+                    {
+                        _smtcTrackKey = trackKey;
+                        _smtcLastReportedPos = tl.Position;
+                        _smtcBasePos = tl.Position;
+                        _smtcBaseTime = DateTimeOffset.Now;
+                    }
+                    else if (Math.Abs((tl.Position - _smtcLastReportedPos).TotalMilliseconds) > 500)
+                    {
+                        // Browser reported a new position (seek or periodic update)
+                        _smtcLastReportedPos = tl.Position;
+                        _smtcBasePos = tl.Position;
+                        _smtcBaseTime = DateTimeOffset.Now;
+                    }
+                    var pos = _smtcBasePos + (IsPlaying ? (DateTimeOffset.Now - _smtcBaseTime) : TimeSpan.Zero);
+                    if (CurrentDuration > TimeSpan.Zero && pos > CurrentDuration) pos = CurrentDuration;
+                    if (pos < TimeSpan.Zero) pos = TimeSpan.Zero;
+                    CurrentPosition = pos;
+                }
             }
             catch { IsPlaying = false; }
 #else
