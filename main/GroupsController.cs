@@ -8,6 +8,7 @@ namespace VRCNext;
 public class GroupsController
 {
     private readonly CoreLibrary _core;
+    private int _groupsInFlight = 0;
 
     public GroupsController(CoreLibrary core)
     {
@@ -18,6 +19,7 @@ public class GroupsController
 
     public async Task FetchAndCacheAsync()
     {
+        if (Interlocked.CompareExchange(ref _groupsInFlight, 1, 0) != 0) return; // already running
         try
         {
             var groups = await _core.VrcApi.GetUserGroupsAsync();
@@ -74,6 +76,7 @@ public class GroupsController
         {
             _core.SendToJS("log", new { msg = $"Groups load error: {ex.Message}", color = "err" });
         }
+        finally { Interlocked.Exchange(ref _groupsInFlight, 0); }
     }
 
     // Message handler

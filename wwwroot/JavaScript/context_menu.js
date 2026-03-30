@@ -314,7 +314,7 @@
             if (path) return buildLibCardItems(path, url, type, name);
         }
 
-        const groupCard = el.closest('#myGroupsGrid .vrcn-content-card');
+        const groupCard = el.closest('#myGroupsGrid .vrcn-content-card, #dashGroupActivityGrid .dash-group-card');
         if (groupCard) {
             const id = extractId(groupCard, /openGroupDetail\('([^']+)'\)/);
             if (id) return buildGroupItems(id);

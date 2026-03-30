@@ -357,9 +357,14 @@ const DISC_CACHE_TTL  = 10 * 60 * 1000;
 let _popularCache = { worlds: [], ts: 0 };
 let _activeCache  = { worlds: [], ts: 0 };
 let _recentCache  = { worlds: [], ts: 0 };
+let _recentInFlight  = false;
+let _popularInFlight = false;
+let _activeInFlight  = false;
 
-// Refresh every 10 minutes (initial fetch triggered by vrcUser login event)
+// Refresh every 10 minutes — only when Dashboard tab is active
 setInterval(() => {
+    const tab0 = document.getElementById('tab0');
+    if (!tab0 || !tab0.classList.contains('active')) return;
     sendToCS({ action: 'vrcGetPopularWorlds' });
     sendToCS({ action: 'vrcGetActiveWorlds' });
 }, DISC_CACHE_TTL);
@@ -408,18 +413,21 @@ function _fetchRecentWorlds() {
 }
 
 function onRecentWorlds(worlds) {
+    _recentInFlight = false;
     _recentCache = { worlds: worlds || [], ts: Date.now() };
     if (_discTab === 'recent') renderDiscoverySection();
     renderDashRecentlyVisited();
 }
 
 function onPopularWorlds(worlds) {
+    _popularInFlight = false;
     _popularCache = { worlds: worlds || [], ts: Date.now() };
     if (_discTab === 'popular') renderDiscoverySection();
     renderDashPopularWorlds();
 }
 
 function onActiveWorlds(worlds) {
+    _activeInFlight = false;
     _activeCache = { worlds: worlds || [], ts: Date.now() };
     if (_discTab === 'active') renderDiscoverySection();
     renderDashActiveWorlds();
@@ -526,7 +534,7 @@ function renderDashRecentlyVisited() {
     if (!el) return;
     if (!currentVrcUser) { el.innerHTML = `<div class="empty-msg">${t('dashboard.worlds.login','Login to see worlds')}</div>`; return; }
     const worlds = _recentCache.worlds;
-    if (!worlds.length) { el.innerHTML = _dashWorldShelfSkeleton(); sendToCS({ action: 'vrcGetRecentWorlds' }); return; }
+    if (!worlds.length) { el.innerHTML = _dashWorldShelfSkeleton(); if (!_recentInFlight) { _recentInFlight = true; sendToCS({ action: 'vrcGetRecentWorlds' }); } return; }
     el.innerHTML = worlds.slice(0, 20).map(_dashWorldCard).join('');
 }
 
@@ -535,7 +543,7 @@ function renderDashPopularWorlds() {
     if (!el) return;
     if (!currentVrcUser) { el.innerHTML = `<div class="empty-msg">${t('dashboard.worlds.login','Login to see worlds')}</div>`; return; }
     const worlds = _popularCache.worlds;
-    if (!worlds.length) { el.innerHTML = _dashWorldShelfSkeleton(); sendToCS({ action: 'vrcGetPopularWorlds' }); return; }
+    if (!worlds.length) { el.innerHTML = _dashWorldShelfSkeleton(); if (!_popularInFlight) { _popularInFlight = true; sendToCS({ action: 'vrcGetPopularWorlds' }); } return; }
     el.innerHTML = worlds.slice(0, 20).map(_dashWorldCard).join('');
 }
 
@@ -544,7 +552,7 @@ function renderDashActiveWorlds() {
     if (!el) return;
     if (!currentVrcUser) { el.innerHTML = `<div class="empty-msg">${t('dashboard.worlds.login','Login to see worlds')}</div>`; return; }
     const worlds = _activeCache.worlds;
-    if (!worlds.length) { el.innerHTML = _dashWorldShelfSkeleton(); sendToCS({ action: 'vrcGetActiveWorlds' }); return; }
+    if (!worlds.length) { el.innerHTML = _dashWorldShelfSkeleton(); if (!_activeInFlight) { _activeInFlight = true; sendToCS({ action: 'vrcGetActiveWorlds' }); } return; }
     el.innerHTML = worlds.slice(0, 20).map(_dashWorldCard).join('');
 }
 

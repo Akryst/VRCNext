@@ -744,7 +744,7 @@ public class NotificationsController
                         capturedEvText = $"→ {worldName}";
                 }
 
-                // --- Route image through local cache proxy (VR overlay uses unauthenticated HTTP) ---
+                // --- Route image through local cache proxy (starts background download) ---
                 if (!string.IsNullOrEmpty(capturedImg))
                     capturedImg = _core.ImgCache?.Get(capturedImg) ?? capturedImg;
 

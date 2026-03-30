@@ -461,14 +461,17 @@ public partial class AppShell
 
                 var time = DateTime.Now.ToString("HH:mm");
 
+                // Pass image URL as-is — VROverlayService resolves via ImageCacheService internally
+                var cachedImg = _imgCache?.Get(friendImage) ?? friendImage;
+
                 // Main overlay (wrist alerts tab) — every event, no filtering
-                _core.VrOverlay.AddNotification(evType, name, evText, time, friendImage, friendId, location);
+                _core.VrOverlay.AddNotification(evType, name, evText, time, cachedImg, friendId, location);
 
                 // HMD toast — every event, cooldown inside EnqueueToast handles rapid-fire dedup
                 try
                 {
                     bool isFav = !string.IsNullOrEmpty(friendId) && _friends.IsFavorited(friendId);
-                    _core.VrOverlay.EnqueueToast(evType, name, evText, time, friendImage, isFav);
+                    _core.VrOverlay.EnqueueToast(evType, name, evText, time, cachedImg, isFav);
                 }
                 catch { }
             }

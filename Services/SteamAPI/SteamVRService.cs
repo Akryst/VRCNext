@@ -248,23 +248,30 @@ namespace VRCNext.Services
         private async Task PollLoopAsync(CancellationToken ct)
         {
             _log("[SteamVR] Polling started");
-            while (!ct.IsCancellationRequested)
+            try
             {
-                try
+                while (!ct.IsCancellationRequested)
                 {
-                    ProcessFrame();
-                    EmitState();
-                    await Task.Delay(11, ct);
+                    try
+                    {
+                        ProcessFrame();
+                        EmitState();
+                        await Task.Delay(11, ct);
+                    }
+                    catch (OperationCanceledException) { break; }
+                    catch (Exception ex)
+                    {
+                        _log($"[SteamVR] {ex.Message}");
+                        CrashHandler.AddBreadcrumb($"SteamVR.PollLoop: {ex.GetType().Name}: {ex.Message}");
+                        CrashHandler.WriteEntry("SteamVRService.PollLoop", ex);
+                        try { await Task.Delay(500, ct); }
+                        catch (OperationCanceledException) { break; }
+                    }
                 }
-                catch (TaskCanceledException)
-                {
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    _log($"[SteamVR] {ex.Message}");
-                    await Task.Delay(500, ct);
-                }
+            }
+            catch (Exception ex)
+            {
+                CrashHandler.WriteEntry("SteamVRService.PollLoop.Outer", ex);
             }
             _running = false;
         }

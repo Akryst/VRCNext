@@ -60,7 +60,7 @@ public class VoiceFightController : IDisposable
                     {
                         Invoke(() => _core.SendToJS("vfRecognized", new { text = displayHtml, isPartial }));
                         if (!isPartial && _vfSettings.MuteTalk)
-                            ThreadPool.QueueUserWorkItem(_ => VfSendChatbox(cleanText));
+                            ThreadPool.QueueUserWorkItem(_ => { try { VfSendChatbox(cleanText); } catch (Exception ex) { Services.CrashHandler.WriteEntry("VoiceFight.SendChatbox", ex); } });
                     };
                     _voiceFight.SetKeywords(_vfSettings.Items);
                     _voiceFight.SetStopWord(_vfSettings.StopWord);
@@ -310,7 +310,7 @@ public class VoiceFightController : IDisposable
             {
                 Invoke(() => _core.SendToJS("vfRecognized", new { text = displayHtml, isPartial }));
                 if (!isPartial && _vfSettings.MuteTalk)
-                    ThreadPool.QueueUserWorkItem(_ => VfSendChatbox(cleanText));
+                    ThreadPool.QueueUserWorkItem(_ => { try { VfSendChatbox(cleanText); } catch (Exception ex) { Services.CrashHandler.WriteEntry("VoiceFight.SendChatbox", ex); } });
             };
             _voiceFight.SetKeywords(_vfSettings.Items);
             _voiceFight.SetStopWord(_vfSettings.StopWord);

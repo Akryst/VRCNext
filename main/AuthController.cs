@@ -25,6 +25,11 @@ public class AuthController
     private string _lastVideoUrl = "";
     private DateTime _lastVideoUrlTime = DateTime.MinValue;
 
+    // In-flight guards — prevent duplicate startup fetches when JS triggers same requests
+    private int _favWorldsInFlight = 0;
+    private int _favAvatarsInFlight = 0;
+    private List<JObject>? _cachedFavGroups; // shared across FavWorlds + FavAvatars to avoid double fetch
+
     // Constructor
 
     public AuthController(
@@ -1126,9 +1131,11 @@ public class AuthController
 
     public async Task FetchAndCacheFavWorldsAsync()
     {
+        if (Interlocked.CompareExchange(ref _favWorldsInFlight, 1, 0) != 0) return; // already running
         try
         {
-            var groups = await _core.VrcApi.GetFavoriteGroupsAsync();
+            var groups = _cachedFavGroups ?? await _core.VrcApi.GetFavoriteGroupsAsync();
+            _cachedFavGroups = groups;
             var worldTypes = new HashSet<string> { "world", "vrcPlusWorld" };
             var groupList = groups
                 .Where(g => worldTypes.Contains(g["type"]?.ToString() ?? ""))
@@ -1186,13 +1193,16 @@ public class AuthController
         {
             Invoke(() => _core.SendToJS("log", new { msg = $"Favorite worlds error: {ex.Message}", color = "err" }));
         }
+        finally { Interlocked.Exchange(ref _favWorldsInFlight, 0); }
     }
 
     public async Task FetchAndCacheFavAvatarsAsync()
     {
+        if (Interlocked.CompareExchange(ref _favAvatarsInFlight, 1, 0) != 0) return; // already running
         try
         {
-            var groups = await _core.VrcApi.GetFavoriteGroupsAsync();
+            var groups = _cachedFavGroups ?? await _core.VrcApi.GetFavoriteGroupsAsync();
+            _cachedFavGroups = groups;
             var avatarTypes = new HashSet<string> { "avatar" };
             var groupList = groups
                 .Where(g => avatarTypes.Contains(g["type"]?.ToString() ?? ""))
@@ -1246,6 +1256,7 @@ public class AuthController
         {
             Invoke(() => _core.SendToJS("log", new { msg = $"Favorite avatars error: {ex.Message}", color = "err" }));
         }
+        finally { Interlocked.Exchange(ref _favAvatarsInFlight, 0); }
     }
 
     public async Task FetchAndCacheAvatarsAsync()

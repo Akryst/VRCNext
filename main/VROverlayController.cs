@@ -32,23 +32,56 @@ public class VROverlayController : IDisposable
         {
             case "vroConnect":
             {
-                _vrOverlay ??= new VROverlayService(
+                // On reconnect: dispose old instance completely to avoid accumulated event handlers
+                if (_vrOverlay != null)
+                {
+                    _vrOverlay.Disconnect();
+                    _vrOverlay.Dispose();
+                    _vrOverlay = null;
+                    _core.VrOverlay = null;
+                }
+
+                _vrOverlay = new VROverlayService(
                     s => Invoke(() => _core.SendToJS("log", new { msg = s, color = "sec" })));
+                _vrOverlay.SetImageCache(_core.ImgCache);
                 _vrOverlay.OnStateUpdate    += d => Invoke(() => _core.SendToJS("vroState", d));
                 _vrOverlay.OnKeybindRecorded += (ids, names, hand, mode) =>
                     Invoke(() => _core.SendToJS("vroKeybindRecorded", new { ids, names, hand, mode }));
                 _vrOverlay.OnToolToggle    += idx => Invoke(() => OnToolToggle?.Invoke(idx));
                 _vrOverlay.OnJoinRequest   += (fid, loc) => Invoke(async () =>
                 {
-                    bool ok = await _core.VrcApi.InviteSelfAsync(loc);
-                    _core.SendToJS("log", new { msg = ok ? "Self-invite sent — check VRChat notifications!" : "Failed to send self-invite.", color = ok ? "ok" : "err" });
+                    bool ok;
+                    if (loc.Contains(':'))
+                    {
+                        ok = await _core.VrcApi.InviteSelfAsync(loc);
+                        _core.SendToJS("log", new { msg = ok ? "Self-invite sent — check VRChat notifications!" : "Failed to send self-invite.", color = ok ? "ok" : "err" });
+                    }
+                    else
+                    {
+                        ok = await _core.VrcApi.RequestInviteAsync(fid);
+                        _core.SendToJS("log", new { msg = ok ? "Invite request sent!" : "Failed to send invite request.", color = ok ? "ok" : "err" });
+                    }
+                });
+                _vrOverlay.OnInviteFriend += fid => Invoke(async () =>
+                {
+                    var loc = _core.LogWatcher?.CurrentLocation ?? "";
+                    if (string.IsNullOrEmpty(loc) || loc == "offline" || loc == "traveling")
+                    {
+                        _core.SendToJS("log", new { msg = "Can't invite: you're not in an instance.", color = "err" });
+                        return;
+                    }
+                    var ok = await _core.VrcApi.InviteFriendAsync(fid, loc);
+                    _core.SendToJS("log", new { msg = ok ? "Invite sent!" : "Failed to send invite.", color = ok ? "ok" : "err" });
                 });
                 _vrOverlay.OnToastSound += () => Invoke(() => _core.SendToJS("vroPlayToastSound", new { }));
                 _vrOverlay.OnVRQuit += () =>
                 {
+                    // Dispose on a separate thread — OnVRQuit fires from inside PollEvents,
+                    // so calling Dispose (which waits for the poll loop) here would deadlock.
                     var overlay = _vrOverlay;
                     _vrOverlay = null;
-                    overlay?.Dispose();
+                    _core.VrOverlay = null;
+                    _ = Task.Run(() => { try { overlay?.Dispose(); } catch { } });
                     Invoke(() =>
                     {
                         _core.SendToJS("vroState", new { connected = false });
@@ -129,7 +162,7 @@ public class VROverlayController : IDisposable
 
                 bool ok = _vrOverlay.Connect();
                 _core.VrOverlay = _vrOverlay;
-                if (ok) { _vrOverlay.StartPolling(); _friends.PushVroLocations(); }
+                if (ok) { _vrOverlay.StartPolling(); _friends.PushVroLocations(); _friends.PushVroOnlineFriends(); }
                 UpdateToolStates();
                 _core.SendToJS("vroState", new
                 {

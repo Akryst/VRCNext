@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using SkiaSharp;
 
 public class ImageCacheService
@@ -9,8 +10,9 @@ public class ImageCacheService
     private readonly HashSet<string> _inFlight = new();
     private readonly HashSet<string> _permanentFail = new();
     private readonly SemaphoreSlim _downloadSem = new(4, 4);
-    private static readonly TimeSpan TTL      = TimeSpan.FromDays(7);
-    private static readonly TimeSpan TTL_LONG = TimeSpan.FromDays(14);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> _failCount = new();
+    private static readonly TimeSpan TTL      = TimeSpan.FromDays(14);
+    private static readonly TimeSpan TTL_LONG = TimeSpan.FromDays(30);
 
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _reverseMap = new();
 
@@ -35,10 +37,18 @@ public class ImageCacheService
 
     public string Get(string? url) => GetWithTtl(url, TTL);
 
+    /// <summary>Awaits download if not cached yet, then returns localhost URL.</summary>
+    public async Task<string> GetAsync(string? url) => await GetWithTtlAsync(url, TTL);
+    public async Task<string> GetWorldAsync(string? url) => await GetWithTtlAsync(url, TTL_LONG);
+
     private string GetWithTtl(string? url, TimeSpan ttl)
     {
         if (string.IsNullOrWhiteSpace(url) || !url.StartsWith("http")) return url ?? "";
         if (!Enabled) return url;
+
+        var orig = url;
+        url = NormalizeVrcImageUrl(url);
+        if (string.IsNullOrEmpty(url)) return orig; // non-image VRC URL (e.g. /variant/) — pass through
 
         var baseHash = GetFileHash(url);
         var jpgName = baseHash + ".jpg";
@@ -58,6 +68,10 @@ public class ImageCacheService
             return $"http://localhost:{Port}/imgcache/{jpgName}";
         }
 
+        // TTL expired — delete stale files so re-download starts clean
+        TryDelete(jpgPath);
+        TryDelete(pngPath);
+
         _reverseMap[jpgName] = url;
         _reverseMap[pngName] = url;
 
@@ -66,6 +80,70 @@ public class ImageCacheService
 
         _ = DownloadAsync(url, jpgPath);
         return url;
+    }
+
+    private async Task<string> GetWithTtlAsync(string? url, TimeSpan ttl)
+    {
+        if (string.IsNullOrWhiteSpace(url) || !url.StartsWith("http")) return url ?? "";
+        if (!Enabled) return url;
+
+        var orig = url;
+        url = NormalizeVrcImageUrl(url);
+        if (string.IsNullOrEmpty(url)) return orig;
+
+        var baseHash = GetFileHash(url);
+        var jpgName = baseHash + ".jpg";
+        var pngName = baseHash + ".png";
+        var jpgPath = Path.Combine(_dir, jpgName);
+        var pngPath = Path.Combine(_dir, pngName);
+
+        if (File.Exists(pngPath) && DateTime.UtcNow - File.GetCreationTimeUtc(pngPath) < ttl)
+        {
+            _reverseMap[pngName] = url;
+            return $"http://localhost:{Port}/imgcache/{pngName}";
+        }
+        if (File.Exists(jpgPath) && DateTime.UtcNow - File.GetCreationTimeUtc(jpgPath) < ttl)
+        {
+            _reverseMap[jpgName] = url;
+            return $"http://localhost:{Port}/imgcache/{jpgName}";
+        }
+
+        // TTL expired — delete stale files so re-download starts clean
+        TryDelete(jpgPath);
+        TryDelete(pngPath);
+
+        _reverseMap[jpgName] = url;
+        _reverseMap[pngName] = url;
+
+        lock (_permanentFail)
+            if (_permanentFail.Contains(url)) return url;
+
+        // If a fire-and-forget Get() already started this download, wait for it
+        // instead of returning the raw VRChat URL (which would fail unauthenticated).
+        bool inFlight;
+        lock (_inFlight) inFlight = _inFlight.Contains(url);
+        if (inFlight)
+        {
+            for (int i = 0; i < 60; i++) // wait up to 6 seconds
+            {
+                await Task.Delay(100);
+                lock (_inFlight) inFlight = _inFlight.Contains(url);
+                if (!inFlight) break;
+            }
+            if (File.Exists(pngPath)) return $"http://localhost:{Port}/imgcache/{pngName}";
+            if (File.Exists(jpgPath)) return $"http://localhost:{Port}/imgcache/{jpgName}";
+            return url; // download failed or timed out
+        }
+
+        await DownloadAsync(url, jpgPath);
+
+        // After download, check which format was actually written
+        if (File.Exists(pngPath))
+            return $"http://localhost:{Port}/imgcache/{pngName}";
+        if (File.Exists(jpgPath))
+            return $"http://localhost:{Port}/imgcache/{jpgName}";
+
+        return url; // download failed
     }
 
     public long GetCacheSizeBytes()
@@ -147,6 +225,21 @@ public class ImageCacheService
                 await stream.CopyToAsync(fs);
 
             CompressImage(tmp, filePath);
+
+            // If CompressImage failed (non-image data like JSON metadata), no output file exists.
+            // Track failures and permanently skip after 2 attempts to prevent infinite retry loops.
+            var jpgExists = File.Exists(filePath);
+            var pngPath = filePath.EndsWith(".jpg") ? filePath[..^4] + ".png" : null;
+            var pngExists = pngPath != null && File.Exists(pngPath);
+            if (!jpgExists && !pngExists)
+            {
+                var count = _failCount.AddOrUpdate(url, 1, (_, c) => c + 1);
+                if (count >= 2)
+                    lock (_permanentFail) _permanentFail.Add(url);
+                return;
+            }
+
+            _failCount.TryRemove(url, out _); // success — clear any prior failure count
 
             if (LimitBytes > 0)
                 _ = Task.Run(() => TrimIfNeeded(LimitBytes));
@@ -287,6 +380,16 @@ public class ImageCacheService
         if (!url.StartsWith(prefix)) return url;
         var fileName = url[prefix.Length..];
         return _reverseMap.TryGetValue(fileName, out var original) ? original : url;
+    }
+
+    // /variant/ URLs are asset bundle security checks — not images, skip entirely.
+    // /api/1/file/ URLs are raw file storage (worlds .vrcw, avatars .vrca, etc.) — GB-sized, never cache.
+    // Actual image thumbnails use /api/1/image/ which is safe to cache.
+    private static string NormalizeVrcImageUrl(string url)
+    {
+        if (url.Contains("/variant/")) return "";
+        if (url.Contains("/api/1/file/")) return "";
+        return url;
     }
 
     private static string GetFileHash(string url)

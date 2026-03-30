@@ -33,7 +33,8 @@ public class SpaceFlightController : IDisposable
                 {
                     _steamVR ??= new SteamVRService(s => Invoke(() => _core.SendToJS("log", new { msg = s, color = "sec" })));
                     _steamVR.SetUpdateCallback(data => {
-                        try { Invoke(() => _core.SendToJS("sfUpdate", data)); } catch { }
+                        try { Invoke(() => _core.SendToJS("sfUpdate", data)); }
+                        catch (Exception ex) { Services.CrashHandler.WriteEntry("SpaceFlight.UpdateCallback", ex); }
                     });
                     _steamVR.OnVRQuit += () =>
                     {
@@ -95,7 +96,7 @@ public class SpaceFlightController : IDisposable
         else
         {
             _steamVR ??= new SteamVRService(s => Invoke(() => _core.SendToJS("log", new { msg = s, color = "sec" })));
-            _steamVR.SetUpdateCallback(data => { try { Invoke(() => _core.SendToJS("sfUpdate", data)); } catch { } });
+            _steamVR.SetUpdateCallback(data => { try { Invoke(() => _core.SendToJS("sfUpdate", data)); } catch (Exception ex) { Services.CrashHandler.WriteEntry("SpaceFlight.UpdateCallback", ex); } });
             bool sfOk = _steamVR.Connect();
             if (sfOk)
             {

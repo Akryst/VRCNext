@@ -217,12 +217,12 @@ public sealed class VoiceFightService : IDisposable
 
     public void StopPlayback()
     {
-        ThreadPool.QueueUserWorkItem(_ => StopPlaybackAndConfirm());
+        ThreadPool.QueueUserWorkItem(_ => { try { StopPlaybackAndConfirm(); } catch (Exception ex) { CrashHandler.WriteEntry("VoiceFight.StopPlayback", ex); } });
     }
 
     public void PlayFile(string filePath, float volumePercent)
     {
-        ThreadPool.QueueUserWorkItem(_ => PlayFileInternal(filePath, volumePercent));
+        ThreadPool.QueueUserWorkItem(_ => { try { PlayFileInternal(filePath, volumePercent); } catch (Exception ex) { CrashHandler.WriteEntry("VoiceFight.PlayFile", ex); } });
     }
 
     public void ReloadBlockList() => LoadBlockList();
@@ -352,6 +352,8 @@ public sealed class VoiceFightService : IDisposable
         catch (Exception ex)
         {
             Log($"Voice Fight: worker error — {ex.Message}");
+            CrashHandler.AddBreadcrumb($"VoiceFight.WorkerLoop: {ex.GetType().Name}: {ex.Message}");
+            CrashHandler.WriteEntry("VoiceFightService.WorkerLoop", ex);
         }
         finally
         {

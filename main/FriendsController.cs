@@ -846,14 +846,15 @@ public class FriendsController
         _core.SendToJS("vrcFriends", new { friends = list, counts });
 
 #if WINDOWS
-        if (_core.VrOverlay != null) PushVroLocations();
+        if (_core.VrOverlay != null) { PushVroLocations(); PushVroOnlineFriends(); }
 #endif
     }
 
 #if WINDOWS
     public void PushVroLocations()
     {
-        if (_core.VrOverlay == null) return;
+        var overlay = _core.VrOverlay;
+        if (overlay == null) return;
         List<JObject> snapshot;
         lock (_friendStore) snapshot = _friendStore.Values.ToList();
 
@@ -883,7 +884,49 @@ public class FriendsController
             })
             .ToList();
 
-        _core.VrOverlay.SetFriendLocations(entries);
+        overlay.SetFriendLocations(entries);
+    }
+
+    public void PushVroOnlineFriends()
+    {
+        var overlay = _core.VrOverlay;
+        if (overlay == null) return;
+        List<JObject> snapshot;
+        lock (_friendStore) snapshot = _friendStore.Values.ToList();
+
+        var entries = snapshot
+            .Where(f =>
+            {
+                var loc = f["location"]?.ToString() ?? "";
+                var status = f["status"]?.ToString() ?? "offline";
+                var platform = f["last_platform"]?.ToString() ?? f["platform"]?.ToString() ?? "";
+                bool isWeb = platform.Equals("web", StringComparison.OrdinalIgnoreCase);
+                bool isInGame = !string.IsNullOrEmpty(loc) && loc != "offline" && !isWeb;
+                return status != "offline" && isInGame;
+            })
+            .Select(f =>
+            {
+                var loc = f["location"]?.ToString() ?? "";
+                var wid = loc.Contains(':') ? loc.Split(':')[0] : "";
+                (string name, string thumb) world = ("", "");
+                if (wid.StartsWith("wrld_"))
+                    lock (_core.VrWorldCache) _core.VrWorldCache.TryGetValue(wid, out world);
+                var rawImg = VRChatApiService.GetUserImage(f);
+                return (
+                    friendId: f["id"]?.ToString() ?? "",
+                    friendName: f["displayName"]?.ToString() ?? "",
+                    friendImageUrl: _core.ImgCache?.Get(rawImg) ?? rawImg,
+                    status: f["status"]?.ToString() ?? "",
+                    statusDescription: f["statusDescription"]?.ToString() ?? "",
+                    location: loc,
+                    worldName: world.name
+                );
+            })
+            .OrderBy(f => f.status switch { "join me" => 0, "active" => 1, "ask me" => 2, "busy" => 3, _ => 4 })
+            .ThenBy(f => f.friendName)
+            .ToList();
+
+        overlay.SetOnlineFriends(entries);
     }
 #endif
 

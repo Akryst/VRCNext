@@ -45,7 +45,8 @@ namespace VRCNext.Services
         public event Action<object>? OnStateUpdate;
         public event Action<List<uint>, List<string>, int, int>? OnKeybindRecorded; // (ids, names, hand, mode)
         public event Action<int>? OnToolToggle;
-        public event Action<string, string>? OnJoinRequest; // (friendId, location)
+        public event Action<string, string>? OnJoinRequest;    // (friendId, location) — join friend's instance
+        public event Action<string>?         OnInviteFriend;  // (friendId) — invite friend to MY instance
         public event Action<string, string, string, string>? OnNotifAccept; // (notifId, notifType, senderId, notifData)
 
         //  OpenVR handles 
@@ -55,6 +56,7 @@ namespace VRCNext.Services
 
         //  Poll loop 
         private CancellationTokenSource? _cts;
+        private Task? _pollTask;
         private bool _running;
         private bool _disposed;
         private readonly Action<string> _log;
@@ -109,9 +111,10 @@ namespace VRCNext.Services
         // Track last controller index that a valid transform was applied for
         private uint _lastTransformIdx = OpenVR.k_unTrackedDeviceIndexInvalid;
 
-        //  Profile image cache (notification avatars) 
+        //  Profile image cache (notification avatars)
         private readonly Dictionary<string, Bitmap?> _notifImgCache = new();
         private readonly System.Net.Http.HttpClient  _httpImgClient = new() { Timeout = TimeSpan.FromSeconds(5) };
+        private ImageCacheService? _imgCache;
 
         //  Join button cooldowns (friendId → click time) 
         private readonly Dictionary<string, DateTime> _joinCooldowns = new();
@@ -132,7 +135,7 @@ namespace VRCNext.Services
         private float InteractLeaveDist => InteractEnterDist + 0.08f;
 
         //  Overlay content
-        private int                   _activeTab = 0; // 0=Alerts 1=Location 2=Music 3=Tools
+        private int                   _activeTab = 0; // 0=Alerts 1=Location 2=Music 3=Tools 4=Friends
         private float                 _tabIndicatorX = 0f; // animated X position of the active tab indicator
         private readonly List<NotifEntry> _notifications = new();
         private string   _mediaTitle    = "";
@@ -337,13 +340,18 @@ namespace VRCNext.Services
 
         private record NotifEntry(string EvType, string FriendName, string EvText, string Time, string ImageUrl = "", string FriendId = "", string Location = "", string NotifId = "", string NotifData = "");
 
-        //  Location tab 
+        //  Location tab
         private record LocationEntry(string WorldId, string InstanceId, string WorldName, string WorldImageUrl, string FriendId, string FriendName, string FriendImageUrl, string Location);
         private readonly List<LocationEntry>         _friendLocations  = new();
         private readonly Dictionary<string, Bitmap?> _locationImgCache = new(); // world + friend images, keyed by URL
         private int _locationPage = 0; // current page (0-based, 6 cards per page)
 
-        //  Location layout constants (shared by Draw + Click) 
+        //  Friends tab (online/in-game friends list)
+        private record FriendTabEntry(string FriendId, string FriendName, string FriendImageUrl, string Status, string StatusDescription, string Location, string WorldName);
+        private readonly List<FriendTabEntry> _onlineFriends = new();
+        private int _friendsPage = 0; // current page (0-based, 4 cards per page)
+
+        //  Location layout constants (shared by Draw + Click)
         private const int LocPadX     = 12;
         private const int LocColGap   = 6;
         private const int LocRowGap   = 6;
@@ -353,6 +361,16 @@ namespace VRCNext.Services
         private const int LocPagH     = 40;
         private const int LocArrW     = 40;
         private static int LocColW    => (W - 2 * LocPadX - LocColGap) / 2; // = 241
+
+        //  Friends tab layout constants
+        private const int FrdPadX     = 12;
+        private const int FrdCardH    = 50;
+        private const int FrdGap      = 6;
+        private const int FrdContentY = 72;
+        private const int FrdPerPage  = 4;
+        private const int FrdPagY     = 296;
+        private const int FrdPagH     = 40;
+        private const int FrdArrW     = 40;
 
         //  Theme colors 
         private OverlayTheme _theme = OverlayTheme.FromName("midnight");
@@ -440,6 +458,8 @@ namespace VRCNext.Services
         // 
 
         public VROverlayService(Action<string> log) => _log = log;
+
+        public void SetImageCache(ImageCacheService? cache) => _imgCache = cache;
 
         //  Public API 
 
@@ -672,7 +692,7 @@ namespace VRCNext.Services
             if (_running) return;
             _cts     = new CancellationTokenSource();
             _running = true;
-            _ = PollLoopAsync(_cts.Token);
+            _pollTask = PollLoopAsync(_cts.Token);
             _ = Task.Run(EnsureMaterialSymbolsAsync);
         }
 
@@ -710,6 +730,9 @@ namespace VRCNext.Services
         {
             _running = false;
             _cts?.Cancel();
+            // Wait for poll loop to exit before Disconnect disposes resources
+            try { _pollTask?.Wait(2000); } catch { }
+            _pollTask = null;
         }
 
         public void Show()
@@ -811,19 +834,22 @@ namespace VRCNext.Services
 
         private async Task EnsureNotifImageAsync(string url)
         {
-            lock (_notifImgCache) { if (_notifImgCache.ContainsKey(url)) return; }
+            lock (_notifImgCache) { if (_notifImgCache.TryGetValue(url, out var existing) && existing != null) return; }
             try
             {
-                var bytes = await _httpImgClient.GetByteArrayAsync(url);
+                // Resolve through ImageCacheService (authenticated) so we get a localhost URL
+                var resolvedUrl = url;
+                if (_imgCache != null && url.StartsWith("http") && !url.Contains("localhost"))
+                    resolvedUrl = await _imgCache.GetAsync(url);
+
+                var bytes = await _httpImgClient.GetByteArrayAsync(resolvedUrl);
                 using var ms = new System.IO.MemoryStream(bytes);
                 var bmp = new Bitmap(ms);
                 lock (_notifImgCache) { _notifImgCache[url] = bmp; }
                 _dirty = true;
             }
-            catch
-            {
-                lock (_notifImgCache) { _notifImgCache[url] = null; }
-            }
+            catch { }
+            // No entry on failure — next AddNotification for same friend will retry
         }
 
         //  Friend location data (Location tab) 
@@ -867,7 +893,12 @@ namespace VRCNext.Services
             lock (_locationImgCache) { if (_locationImgCache.TryGetValue(url, out var b) && b != null) return; }
             try
             {
-                var bytes = await _httpImgClient.GetByteArrayAsync(url);
+                // Resolve through ImageCacheService (authenticated) so we get a localhost URL
+                var resolvedUrl = url;
+                if (_imgCache != null && url.StartsWith("http") && !url.Contains("localhost"))
+                    resolvedUrl = await _imgCache.GetAsync(url);
+
+                var bytes = await _httpImgClient.GetByteArrayAsync(resolvedUrl);
                 using var ms = new System.IO.MemoryStream(bytes);
                 var bmp = new Bitmap(ms);
                 lock (_locationImgCache) { _locationImgCache[url] = bmp; }
@@ -875,6 +906,33 @@ namespace VRCNext.Services
             }
             catch { }
             // No cache entry written on failure — next SetFriendLocations call will retry
+        }
+
+        //  Online friends list (Friends tab)
+
+        public void SetOnlineFriends(IReadOnlyList<(string friendId, string friendName, string friendImageUrl, string status, string statusDescription, string location, string worldName)> entries)
+        {
+            lock (_onlineFriends)
+            {
+                _onlineFriends.Clear();
+                _onlineFriends.AddRange(entries.Select(e => new FriendTabEntry(
+                    e.friendId, e.friendName, e.friendImageUrl,
+                    e.status, e.statusDescription, e.location, e.worldName)));
+            }
+            // Kick off image downloads for friend avatars not yet cached
+            foreach (var e in entries)
+            {
+                var furl = e.friendImageUrl;
+                if (!string.IsNullOrEmpty(furl))
+                {
+                    bool needed;
+                    lock (_locationImgCache) needed = !_locationImgCache.TryGetValue(furl, out var b) || b == null;
+                    if (needed) _ = Task.Run(() => EnsureLocationImageAsync(furl));
+                }
+            }
+            int totalPages = Math.Max(1, (_onlineFriends.Count + FrdPerPage - 1) / FrdPerPage);
+            _friendsPage = Math.Clamp(_friendsPage, 0, totalPages - 1);
+            _dirty = true;
         }
 
         public void UpdateMediaInfo(string title, string artist, double position, double duration, bool playing)
@@ -1122,7 +1180,7 @@ namespace VRCNext.Services
                     {
                         // Animate tab indicator slide
                         const int tabX = 8;
-                        int tabW = (W - 16) / 4;
+                        int tabW = (W - 16) / 5;
                         float targetX = tabX + 2f + _activeTab * tabW;
                         if (MathF.Abs(_tabIndicatorX - targetX) > 0.5f)
                         {
@@ -1195,11 +1253,12 @@ namespace VRCNext.Services
 
                     await Task.Delay(11, ct);
                 }
-                catch (TaskCanceledException) { break; }
+                catch (OperationCanceledException) { break; }
                 catch (Exception ex)
                 {
                     _log($"[VROverlay] PollLoop: {ex.Message}");
-                    await Task.Delay(500, ct);
+                    try { await Task.Delay(500, ct); }
+                    catch (OperationCanceledException) { break; }
                 }
             }
             _running = false;
@@ -1315,9 +1374,10 @@ namespace VRCNext.Services
             // 4 tabs, each 124px: tabTW=496/4=124 → thresholds at nx 0.25, 0.50, 0.75
             if (ny > 0.84f)
             {
-                _activeTab = nx < 0.25f ? 0 : nx < 0.50f ? 1 : nx < 0.75f ? 2 : 3;
+                _activeTab = nx < 0.20f ? 0 : nx < 0.40f ? 1 : nx < 0.60f ? 2 : nx < 0.80f ? 3 : 4;
                 _lastDisplayedSecond = -1;
                 _locationPage = 0;
+                _friendsPage = 0;
                 _dirty = true;
                 return;
             }
@@ -1470,6 +1530,56 @@ namespace VRCNext.Services
                                         };
                                         OnNotifAccept?.Invoke(notif.NotifId, notifType, notif.FriendId, notif.NotifData);
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Friends tab: invite button + pagination
+            if (_activeTab == 4)
+            {
+                int gdixF = (int)(nx * W);
+                int gdiyF = (int)((1f - ny) * H);
+
+                // Pagination bar
+                if (gdiyF >= FrdPagY && gdiyF < FrdPagY + FrdPagH)
+                {
+                    List<FriendTabEntry> snapF;
+                    lock (_onlineFriends) snapF = new List<FriendTabEntry>(_onlineFriends);
+                    int totalPages = Math.Max(1, (snapF.Count + FrdPerPage - 1) / FrdPerPage);
+                    if (gdixF >= FrdPadX && gdixF < FrdPadX + FrdArrW && _friendsPage > 0)
+                    { _friendsPage--; _dirty = true; }
+                    else if (gdixF >= W - FrdPadX - FrdArrW && gdixF < W - FrdPadX && _friendsPage < totalPages - 1)
+                    { _friendsPage++; _dirty = true; }
+                    return;
+                }
+
+                // Friend card clicks (invite button area: right 42+4=46px of card)
+                if (gdiyF >= FrdContentY && gdiyF < FrdPagY)
+                {
+                    int row = (gdiyF - FrdContentY) / (FrdCardH + FrdGap);
+                    int localY = (gdiyF - FrdContentY) % (FrdCardH + FrdGap);
+                    if (row >= 0 && row < FrdPerPage && localY < FrdCardH)
+                    {
+                        // Check if click is in the invite button area (right side)
+                        int btnX = W - FrdPadX - 42 - 4;
+                        if (gdixF >= btnX && gdixF < W - FrdPadX)
+                        {
+                            List<FriendTabEntry> snapF;
+                            lock (_onlineFriends) snapF = new List<FriendTabEntry>(_onlineFriends);
+                            int absIdx = _friendsPage * FrdPerPage + row;
+                            if (absIdx >= 0 && absIdx < snapF.Count)
+                            {
+                                var friend = snapF[absIdx];
+                                bool inCooldown = _joinCooldowns.TryGetValue(friend.FriendId, out var cd)
+                                    && (DateTime.UtcNow - cd).TotalSeconds < 5;
+                                if (!inCooldown)
+                                {
+                                    _joinCooldowns[friend.FriendId] = DateTime.UtcNow;
+                                    _dirty = true;
+                                    OnInviteFriend?.Invoke(friend.FriendId); // invite friend TO my instance
                                 }
                             }
                         }
@@ -2041,7 +2151,8 @@ namespace VRCNext.Services
                 if      (_activeTab == 0) DrawNotifications(g);
                 else if (_activeTab == 1) DrawLocations(g);
                 else if (_activeTab == 2) DrawMusicPlayer(g);
-                else                      DrawTools(g);
+                else if (_activeTab == 3) DrawTools(g);
+                else if (_activeTab == 4) DrawFriends(g);
 
                 UploadTexture();
             }
@@ -2117,7 +2228,7 @@ namespace VRCNext.Services
             int tabH  = 50;
             int tabX  = 8;
             int tabTW = W - 16;           // total usable width
-            int tabW  = tabTW / 4;        // each of 4 tabs
+            int tabW  = tabTW / 5;        // each of 5 tabs
 
             bool artBg = _activeTab == 2 && _albumArt != null && !string.IsNullOrWhiteSpace(_mediaTitle);
             if (!artBg)
@@ -2134,7 +2245,8 @@ namespace VRCNext.Services
             DrawTab(g, "\uE7F4", "Alerts",   0, tabX,               8, tabW,              tabH);
             DrawTab(g, "\uE0C8", "Location", 1, tabX + tabW,         8, tabW,              tabH);
             DrawTab(g, "\uE405", "Music",    2, tabX + tabW * 2,     8, tabW,              tabH);
-            DrawTab(g, "\uE869", "Tools",    3, tabX + tabW * 3,     8, tabTW - tabW * 3,  tabH);
+            DrawTab(g, "\uE869", "Tools",    3, tabX + tabW * 3,     8, tabW,              tabH);
+            DrawTab(g, "\uE7FB", "Friends",  4, tabX + tabW * 4,     8, tabTW - tabW * 4,  tabH);
 
             if (!artBg)
             {
@@ -2222,7 +2334,7 @@ namespace VRCNext.Services
                 DrawRoundedRect(g, pen, barX + btnPad, barY + btnPad, LocArrW - btnPad * 2, barH - btnPad * 2, 10);
             }
             using var leftBrush = new SolidBrush(canPrev ? th.Tx1 : Color.FromArgb(45, th.Tx3));
-            g.DrawString("\uE5CB", arrowFont, leftBrush, new RectangleF(barX, barY, LocArrW, barH), fmtC);
+            g.DrawString("\uE5CB", arrowFont, leftBrush, new RectangleF(barX + 1, barY + 1, LocArrW, barH), fmtC);
 
             // Right arrow
             if (canNext)
@@ -2233,7 +2345,7 @@ namespace VRCNext.Services
                 DrawRoundedRect(g, pen, barX + barW - LocArrW + btnPad, barY + btnPad, LocArrW - btnPad * 2, barH - btnPad * 2, 10);
             }
             using var rightBrush = new SolidBrush(canNext ? th.Tx1 : Color.FromArgb(45, th.Tx3));
-            g.DrawString("\uE5CC", arrowFont, rightBrush, new RectangleF(barX + barW - LocArrW, barY, LocArrW, barH), fmtC);
+            g.DrawString("\uE5CC", arrowFont, rightBrush, new RectangleF(barX + barW - LocArrW + 1, barY + 1, LocArrW, barH), fmtC);
 
             // Page indicator — dots for each page, active dot accent-colored
             int dotR    = 4;
@@ -2302,7 +2414,7 @@ namespace VRCNext.Services
             using var imgPath = RoundedRectPath(imgRect.X, imgRect.Y, imgRect.Width, imgRect.Height, 6);
             g.SetClip(imgPath);
             if (worldImg != null)
-                g.DrawImage(worldImg, imgRect);
+                DrawImageCover(g, worldImg, imgRect);
             else
             {
                 using var imgFallback = new SolidBrush(Color.FromArgb(80, th.Accent));
@@ -2310,7 +2422,7 @@ namespace VRCNext.Services
             }
             g.SetClip(oldClip, System.Drawing.Drawing2D.CombineMode.Replace);
 
-            //  Avatar (right side, 24×24) 
+            //  Avatar (right side, 24×24)
             const int avSz = 24, avRadius = 5;
             int avX = x + w - avSz - 6;
             int avY = y + (h - avSz) / 2;
@@ -2325,7 +2437,7 @@ namespace VRCNext.Services
             g.SetClip(avPath);
             if (avImg != null)
             {
-                g.DrawImage(avImg, avRect);
+                DrawImageCover(g, avImg, avRect);
             }
             else
             {
@@ -2396,6 +2508,259 @@ namespace VRCNext.Services
             if (location.Contains("~groupPublic(")) return "Group Public";
             if (location.Contains(':'))          return "Public";
             return "Unknown";
+        }
+
+        //  Friends tab rendering
+
+        private void DrawFriends(Graphics g)
+        {
+            var th = _theme;
+            int cardW = W - 2 * FrdPadX;
+
+            List<FriendTabEntry> snap;
+            lock (_onlineFriends) snap = new List<FriendTabEntry>(_onlineFriends);
+
+            if (snap.Count == 0)
+            {
+                using var emptyFont  = new Font("Segoe UI", 11f, FontStyle.Regular, GraphicsUnit.Point);
+                using var emptyBrush = new SolidBrush(th.Tx3);
+                var emptyFmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                g.DrawString("No friends online in-game", emptyFont, emptyBrush,
+                    new RectangleF(FrdPadX, FrdContentY, cardW, H - FrdContentY - FrdPadX), emptyFmt);
+                return;
+            }
+
+            int totalPages = Math.Max(1, (snap.Count + FrdPerPage - 1) / FrdPerPage);
+            int startIdx = _friendsPage * FrdPerPage;
+
+            for (int i = 0; i < FrdPerPage; i++)
+            {
+                int absIdx = startIdx + i;
+                if (absIdx >= snap.Count) break;
+                int cy = FrdContentY + i * (FrdCardH + FrdGap);
+                DrawFriendCard(g, snap[absIdx], FrdPadX, cy, cardW, FrdCardH);
+            }
+
+            if (totalPages > 1)
+                DrawFriendsPagination(g, th, _friendsPage, totalPages);
+        }
+
+        private void DrawFriendCard(Graphics g, FriendTabEntry friend, int x, int y, int w, int h)
+        {
+            var th = _theme;
+            string locKey = friend.FriendId;
+            bool inCooldown = _joinCooldowns.TryGetValue(locKey, out var cdT)
+                && (DateTime.UtcNow - cdT).TotalSeconds < 5;
+            bool hasLocation = !string.IsNullOrEmpty(friend.Location) && friend.Location != "offline";
+
+            //  Card background
+            using var cardBg = new SolidBrush(Color.FromArgb(190, th.BgCard));
+            FillRoundedRect(g, cardBg, x, y, w, h, 8);
+
+            //  Invite/Join button (right side, 42×h-8)
+            const int btnW = 42;
+            int btnX = x + w - btnW - 4;
+            int btnY = y + 4;
+            int btnH = h - 8;
+            if (hasLocation)
+            {
+                var btnColor = inCooldown ? Color.FromArgb(170, th.Ok) : Color.FromArgb(55, th.Accent);
+                using var btnBg = new SolidBrush(btnColor);
+                FillRoundedRect(g, btnBg, btnX, btnY, btnW, btnH, 8);
+                if (!inCooldown)
+                {
+                    using var btnBorder = new Pen(Color.FromArgb(80, th.Accent), 1f);
+                    DrawRoundedRect(g, btnBorder, btnX, btnY, btnW, btnH, 8);
+                }
+                string btnIcon = inCooldown ? "\uE876" : "\uE879"; // checkmark or door
+                using var btnFont = _matSymFamily != null
+                    ? new Font(_matSymFamily, 16f, FontStyle.Regular, GraphicsUnit.Point)
+                    : new Font("Segoe MDL2 Assets", 14f, FontStyle.Regular, GraphicsUnit.Point);
+                using var btnBrush = new SolidBrush(inCooldown ? Color.White : th.Tx1);
+                var btnFmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                g.DrawString(btnIcon, btnFont, btnBrush, new RectangleF(btnX, btnY, btnW, btnH), btnFmt);
+            }
+
+            //  Avatar (36×36, rounded 8px)
+            const int avSz = 36, avR = 8;
+            int avX = x + 8;
+            int avY = y + (h - avSz) / 2;
+
+            Bitmap? avImg = null;
+            if (!string.IsNullOrEmpty(friend.FriendImageUrl))
+                lock (_locationImgCache) { _locationImgCache.TryGetValue(friend.FriendImageUrl, out avImg); }
+
+            var avRect = new Rectangle(avX, avY, avSz, avSz);
+            var oldClip = g.Clip;
+            using var avPath = RoundedRectPath(avX, avY, avSz, avSz, avR);
+            g.SetClip(avPath);
+            if (avImg != null)
+                DrawImageCover(g, avImg, avRect);
+            else
+            {
+                using var avBg = new SolidBrush(th.BgHover);
+                g.FillPath(avBg, avPath);
+                g.ResetClip();
+                string init = friend.FriendName.Length > 0 ? friend.FriendName[0].ToString().ToUpper() : "?";
+                using var initFont  = new Font("Segoe UI", 12f, FontStyle.Bold, GraphicsUnit.Point);
+                using var initBrush = new SolidBrush(th.Tx2);
+                var initFmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                g.DrawString(init, initFont, initBrush, new RectangleF(avX, avY, avSz, avSz), initFmt);
+            }
+            g.SetClip(oldClip, System.Drawing.Drawing2D.CombineMode.Replace);
+            using var avBorder = new Pen(Color.FromArgb(50, th.Brd), 1f);
+            DrawRoundedRect(g, avBorder, avX, avY, avSz, avSz, avR);
+
+            //  Status dot (10px, overlaid on bottom-right of avatar)
+            int dotSz = 10;
+            int dotX = avX + avSz - dotSz + 1;
+            int dotY = avY + avSz - dotSz + 1;
+            var statusColor = StatusColor(friend.Status);
+            using var dotBg = new SolidBrush(th.BgCard); // outline ring
+            g.FillEllipse(dotBg, dotX - 2, dotY - 2, dotSz + 4, dotSz + 4);
+            using var dotBrush = new SolidBrush(statusColor);
+            g.FillEllipse(dotBrush, dotX, dotY, dotSz, dotSz);
+
+            //  Text area
+            int textX = avX + avSz + 10;
+            int textW = (hasLocation ? btnX - 6 : x + w - 8) - textX;
+            var ellipsisFmt = new StringFormat { Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap };
+
+            // Row 1: Username + Status badge
+            using var nameFont  = new Font("Segoe UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
+            using var nameBrush = new SolidBrush(th.Tx1);
+            var nameSz = g.MeasureString(friend.FriendName, nameFont);
+            float nameDrawW = Math.Min(nameSz.Width, textW - 60f);
+            g.DrawString(friend.FriendName, nameFont, nameBrush,
+                new RectangleF(textX, y + 4, Math.Max(nameDrawW, 20f), 16), ellipsisFmt);
+
+            // Status badge (colored pill)
+            string statusLabel = friend.Status switch
+            {
+                "join me" => "Join Me",
+                "active"  => "Online",
+                "online"  => "Online",
+                "ask me"  => "Ask Me",
+                "busy"    => "Do Not Disturb",
+                _         => ""
+            };
+            if (!string.IsNullOrEmpty(statusLabel))
+            {
+                using var badgeFont = new Font("Segoe UI", 6.5f, FontStyle.Bold, GraphicsUnit.Point);
+                var badgeSz = g.MeasureString(statusLabel, badgeFont);
+                float badgeX = textX + Math.Min(nameSz.Width, nameDrawW) + 5f;
+                float badgeW = badgeSz.Width + 8f;
+                float badgeH = 13f;
+                float badgeY2 = y + 4 + (16 - badgeH) / 2f;
+                if (badgeX + badgeW < textX + textW)
+                {
+                    using var badgeBg = new SolidBrush(Color.FromArgb(40, statusColor));
+                    FillRoundedRect(g, badgeBg, (int)badgeX, (int)badgeY2, (int)badgeW, (int)badgeH, 3);
+                    using var badgeBrush = new SolidBrush(statusColor);
+                    var badgeFmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                    g.DrawString(statusLabel, badgeFont, badgeBrush, new RectangleF(badgeX, badgeY2, badgeW, badgeH), badgeFmt);
+                }
+            }
+
+            // Row 2: Status description (if any)
+            string row2 = !string.IsNullOrEmpty(friend.StatusDescription) ? friend.StatusDescription : "";
+            if (!string.IsNullOrEmpty(row2))
+            {
+                using var descFont  = new Font("Segoe UI", 7.5f, FontStyle.Regular, GraphicsUnit.Point);
+                using var descBrush = new SolidBrush(th.Tx3);
+                g.DrawString(row2, descFont, descBrush, new RectangleF(textX, y + 21, textW, 13), ellipsisFmt);
+            }
+
+            // Row 3: World location
+            string worldDisplay = !string.IsNullOrEmpty(friend.WorldName) ? friend.WorldName : (hasLocation ? "In a world" : "Online");
+            using var locFont  = new Font("Segoe UI", 7f, FontStyle.Regular, GraphicsUnit.Point);
+            using var locBrush = new SolidBrush(Color.FromArgb(160, th.Accent));
+            g.DrawString(worldDisplay, locFont, locBrush, new RectangleF(textX, y + 35, textW, 13), ellipsisFmt);
+        }
+
+        private static readonly Color StatusColorJoin    = Color.FromArgb(0x42, 0xA5, 0xF5); // --status-join   #42A5F5
+        private static readonly Color StatusColorOnline  = Color.FromArgb(0x2D, 0xD4, 0x8C); // --status-online #2DD48C
+        private static readonly Color StatusColorAsk     = Color.FromArgb(0xFF, 0xA7, 0x26); // --status-ask    #FFA726
+        private static readonly Color StatusColorBusy    = Color.FromArgb(0xEF, 0x53, 0x50); // --status-busy   #EF5350
+        private static readonly Color StatusColorOffline = Color.FromArgb(0x74, 0x7F, 0x8D); // --status-offline#747F8D
+
+        private static Color StatusColor(string status) => status switch
+        {
+            "join me" => StatusColorJoin,
+            "active"  => StatusColorOnline,
+            "online"  => StatusColorOnline,
+            "ask me"  => StatusColorAsk,
+            "busy"    => StatusColorBusy,
+            _         => StatusColorOffline,
+        };
+
+        private void DrawFriendsPagination(Graphics g, OverlayTheme th, int page, int totalPages)
+        {
+            int cardW = W - 2 * FrdPadX;
+            int barX = FrdPadX;
+            int barW = cardW;
+            int barY = FrdPagY;
+            int barH = FrdPagH;
+
+            bool canPrev = page > 0;
+            bool canNext = page < totalPages - 1;
+
+            var fmtC = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+            int btnPad = 3;
+            using var arrowFont = _matSymFamily != null
+                ? new Font(_matSymFamily, 16f, FontStyle.Regular, GraphicsUnit.Point)
+                : new Font("Segoe MDL2 Assets", 16f, FontStyle.Regular, GraphicsUnit.Point);
+
+            // Left arrow
+            if (canPrev)
+            {
+                using var btnBg = new SolidBrush(Color.FromArgb(55, th.Accent));
+                FillRoundedRect(g, btnBg, barX + btnPad, barY + btnPad, FrdArrW - btnPad * 2, barH - btnPad * 2, 10);
+                using var pen = new Pen(Color.FromArgb(80, th.Accent), 1f);
+                DrawRoundedRect(g, pen, barX + btnPad, barY + btnPad, FrdArrW - btnPad * 2, barH - btnPad * 2, 10);
+            }
+            using var leftBrush = new SolidBrush(canPrev ? th.Tx1 : Color.FromArgb(45, th.Tx3));
+            g.DrawString("\uE5CB", arrowFont, leftBrush, new RectangleF(barX + 1, barY + 1, FrdArrW, barH), fmtC);
+
+            // Right arrow
+            if (canNext)
+            {
+                using var btnBg = new SolidBrush(Color.FromArgb(55, th.Accent));
+                FillRoundedRect(g, btnBg, barX + barW - FrdArrW + btnPad, barY + btnPad, FrdArrW - btnPad * 2, barH - btnPad * 2, 10);
+                using var pen = new Pen(Color.FromArgb(80, th.Accent), 1f);
+                DrawRoundedRect(g, pen, barX + barW - FrdArrW + btnPad, barY + btnPad, FrdArrW - btnPad * 2, barH - btnPad * 2, 10);
+            }
+            using var rightBrush = new SolidBrush(canNext ? th.Tx1 : Color.FromArgb(45, th.Tx3));
+            g.DrawString("\uE5CC", arrowFont, rightBrush, new RectangleF(barX + barW - FrdArrW + 1, barY + 1, FrdArrW, barH), fmtC);
+
+            // Page dots
+            int dotR = 4, dotGap = 6;
+            int dotsW = totalPages * (dotR * 2) + (totalPages - 1) * dotGap;
+            int innerX = barX + FrdArrW;
+            int innerW = barW - 2 * FrdArrW;
+            int dotStartX = innerX + (innerW - dotsW) / 2;
+            int dotY = barY + (barH - dotR * 2) / 2;
+
+            if (totalPages <= 8)
+            {
+                for (int i = 0; i < totalPages; i++)
+                {
+                    int dx = dotStartX + i * (dotR * 2 + dotGap);
+                    bool active = i == page;
+                    using var dotBrush = new SolidBrush(active ? th.Accent : Color.FromArgb(60, th.Tx3));
+                    if (active)
+                        g.FillEllipse(dotBrush, dx, dotY, dotR * 2, dotR * 2);
+                    else
+                        g.FillEllipse(dotBrush, dx + 1, dotY + 1, dotR * 2 - 2, dotR * 2 - 2);
+                }
+            }
+            else
+            {
+                using var pageFont  = new Font("Segoe UI", 9f, FontStyle.Regular, GraphicsUnit.Point);
+                using var pageBrush = new SolidBrush(th.Tx2);
+                g.DrawString($"{page + 1} / {totalPages}", pageFont, pageBrush,
+                    new RectangleF(innerX, barY, innerW, barH), fmtC);
+            }
         }
 
         private void DrawTools(Graphics g)
@@ -2552,7 +2917,7 @@ namespace VRCNext.Services
             g.SetClip(avPath);
             if (avatar != null)
             {
-                g.DrawImage(avatar, avRect);
+                DrawImageCover(g, avatar, avRect);
             }
             else
             {
@@ -2940,7 +3305,28 @@ namespace VRCNext.Services
             }
         }
 
-        //  GDI+ helpers 
+        //  GDI+ helpers
+
+        /// <summary>Draw image with "cover" scaling — fills dest rect while preserving aspect ratio (crops overflow).</summary>
+        private static void DrawImageCover(Graphics g, Bitmap img, Rectangle dest)
+        {
+            float srcAspect = (float)img.Width / img.Height;
+            float dstAspect = (float)dest.Width / dest.Height;
+            Rectangle srcRect;
+            if (srcAspect > dstAspect)
+            {
+                // Source wider → crop left/right
+                int srcW = (int)(img.Height * dstAspect);
+                srcRect = new Rectangle((img.Width - srcW) / 2, 0, srcW, img.Height);
+            }
+            else
+            {
+                // Source taller → crop top/bottom
+                int srcH = (int)(img.Width / dstAspect);
+                srcRect = new Rectangle(0, (img.Height - srcH) / 2, img.Width, srcH);
+            }
+            g.DrawImage(img, dest, srcRect, GraphicsUnit.Pixel);
+        }
 
         private static void FillRoundedRect(Graphics g, Brush brush, int x, int y, int w, int h, int r)
         {
