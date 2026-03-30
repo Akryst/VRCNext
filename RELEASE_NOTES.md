@@ -1,4 +1,4 @@
-**2026.12.5**
+**2026.12.6**
 
 **VR Overlay**
 
@@ -41,6 +41,7 @@
 
 **Bug Fixes and Stability**
 
+* Fixed Time Spent issue that fires a bug when relaunching VRChat causing in adding additional playtime with friends/worlds.
 * **VoiceFight:** Added exception handling for **ThreadPool** callbacks and worker loop crash logging.
 * **SpaceFlight:** Added exception handling in the **SteamVR** update callback.
 * **VoiceFight:** Added crash logging for **Chatbox SendChatbox** when executed in the **ThreadPool**.

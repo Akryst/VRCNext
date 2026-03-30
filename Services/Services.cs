@@ -907,7 +907,13 @@ public class UnifiedTimeEngine : IDisposable
                 using var cmd = _db.CreateCommand();
                 cmd.CommandText = "SELECT location,co_present_ids,last_flush_utc FROM active_session WHERE id=1";
                 using var r = cmd.ExecuteReader();
-                if (!r.Read()) return;
+                if (!r.Read())
+                {
+                    // No active_session row — clear any stale sessions pre-populated from catch-up
+                    _playerSessions.Clear();
+                    _worldSessionStart = null;
+                    return;
+                }
 
                 var location = r.GetString(0);
                 var sessionsJson = r.GetString(1);
@@ -917,6 +923,8 @@ public class UnifiedTimeEngine : IDisposable
                 // Validation 1: Location must match
                 if (string.IsNullOrEmpty(location) || location != currentLocation)
                 {
+                    _playerSessions.Clear();
+                    _worldSessionStart = null;
                     ClearActiveSessionLocked();
                     return;
                 }
@@ -924,6 +932,8 @@ public class UnifiedTimeEngine : IDisposable
                 // Validation 2: VRChat.exe must be running (process-level check)
                 if (_isVrcRunning?.Invoke() != true)
                 {
+                    _playerSessions.Clear();
+                    _worldSessionStart = null;
                     ClearActiveSessionLocked();
                     return;
                 }
@@ -982,6 +992,8 @@ public class UnifiedTimeEngine : IDisposable
             }
             catch
             {
+                _playerSessions.Clear();
+                _worldSessionStart = null;
                 ClearActiveSessionLocked();
             }
         }
