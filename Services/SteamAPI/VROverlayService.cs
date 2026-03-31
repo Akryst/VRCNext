@@ -113,8 +113,8 @@ namespace VRCNext.Services
 
         //  Profile image cache (notification avatars)
         private readonly Dictionary<string, Bitmap?> _notifImgCache = new();
-        private readonly System.Net.Http.HttpClient  _httpImgClient = new() { Timeout = TimeSpan.FromSeconds(5) };
         private ImageCacheService? _imgCache;
+        private HttpClient? _authHttpClient;
 
         //  Join button cooldowns (friendId → click time) 
         private readonly Dictionary<string, DateTime> _joinCooldowns = new();
@@ -344,33 +344,42 @@ namespace VRCNext.Services
         private record LocationEntry(string WorldId, string InstanceId, string WorldName, string WorldImageUrl, string FriendId, string FriendName, string FriendImageUrl, string Location);
         private readonly List<LocationEntry>         _friendLocations  = new();
         private readonly Dictionary<string, Bitmap?> _locationImgCache = new(); // world + friend images, keyed by URL
-        private int _locationPage = 0; // current page (0-based, 6 cards per page)
+        // Scroll state — replaces integer page fields
+        private float _locationScrollY  = 0f; // pixels scrolled from top
+        private float _locationScrollVY = 0f; // inertia velocity (pixels/tick)
+        private float _friendsScrollY   = 0f;
+        private float _friendsScrollVY  = 0f;
+
+        // Drag tracking (for scroll gesture)
+        private bool  _mouseDown       = false;
+        private float _mouseDownNX     = 0f;
+        private float _mouseDownNY     = 0f;
+        private bool  _scrollDragging  = false;
+        private float _scrollLastNY    = 0f;
+        private float _scrollLastDeltaY = 0f; // last drag delta → inertia seed
 
         //  Friends tab (online/in-game friends list)
         private record FriendTabEntry(string FriendId, string FriendName, string FriendImageUrl, string Status, string StatusDescription, string Location, string WorldName);
         private readonly List<FriendTabEntry> _onlineFriends = new();
-        private int _friendsPage = 0; // current page (0-based, 4 cards per page)
 
         //  Location layout constants (shared by Draw + Click)
-        private const int LocPadX     = 12;
-        private const int LocColGap   = 6;
-        private const int LocRowGap   = 6;
-        private const int LocCardH    = 68;
-        private const int LocContentY = 72;
-        private const int LocPagY     = 296;
-        private const int LocPagH     = 40;
-        private const int LocArrW     = 40;
-        private static int LocColW    => (W - 2 * LocPadX - LocColGap) / 2; // = 241
+        private const int LocPadX          = 12;
+        private const int LocColGap        = 6;
+        private const int LocRowGap        = 6;
+        private const int LocCardH         = 68;
+        private const int LocContentY      = 72;
+        private static int LocColW         => (W - 2 * LocPadX - LocColGap) / 2; // = 241
 
         //  Friends tab layout constants
         private const int FrdPadX     = 12;
         private const int FrdCardH    = 50;
         private const int FrdGap      = 6;
         private const int FrdContentY = 72;
-        private const int FrdPerPage  = 4;
-        private const int FrdPagY     = 296;
-        private const int FrdPagH     = 40;
-        private const int FrdArrW     = 40;
+
+        //  Shared scroll area (used by both location + friends tabs)
+        private const int ScrollContentBottom = H - 12;          // 372 — full height minus small bottom pad
+        private const int ScrollContentH      = ScrollContentBottom - LocContentY; // 300
+        private const int ScrollBarW          = 3;               // thin scrollbar strip on right edge
 
         //  Theme colors 
         private OverlayTheme _theme = OverlayTheme.FromName("midnight");
@@ -460,6 +469,9 @@ namespace VRCNext.Services
         public VROverlayService(Action<string> log) => _log = log;
 
         public void SetImageCache(ImageCacheService? cache) => _imgCache = cache;
+
+        /// <summary>Authenticated VRChat HTTP client for direct image downloads in the overlay.</summary>
+        public void SetAuthHttpClient(HttpClient? client) => _authHttpClient = client;
 
         //  Public API 
 
@@ -835,24 +847,57 @@ namespace VRCNext.Services
         private async Task EnsureNotifImageAsync(string url)
         {
             lock (_notifImgCache) { if (_notifImgCache.TryGetValue(url, out var existing) && existing != null) return; }
-            try
-            {
-                // Resolve through ImageCacheService (authenticated) so we get a localhost URL
-                var resolvedUrl = url;
-                if (_imgCache != null && url.StartsWith("http") && !url.Contains("localhost"))
-                    resolvedUrl = await _imgCache.GetAsync(url);
-
-                var bytes = await _httpImgClient.GetByteArrayAsync(resolvedUrl);
-                using var ms = new System.IO.MemoryStream(bytes);
-                var bmp = new Bitmap(ms);
-                lock (_notifImgCache) { _notifImgCache[url] = bmp; }
-                _dirty = true;
-            }
-            catch { }
-            // No entry on failure — next AddNotification for same friend will retry
+            var bmp = await DownloadOverlayImageAsync(url);
+            if (bmp == null) return;
+            lock (_notifImgCache) { _notifImgCache[url] = bmp; }
+            _dirty = true;
         }
 
-        //  Friend location data (Location tab) 
+        /// <summary>
+        /// Downloads an image for overlay rendering. Priority:
+        /// 1. Localhost URL → read bytes directly from ImageCacheService disk cache.
+        /// 2. Original VRChat URL → download directly with the authenticated HTTP client.
+        /// Returns null on failure. All errors are swallowed — caller retries on next update.
+        /// </summary>
+        private async Task<Bitmap?> DownloadOverlayImageAsync(string url)
+        {
+            if (string.IsNullOrEmpty(url) || !url.StartsWith("http")) return null;
+            try
+            {
+                byte[]? bytes = null;
+
+                // Case 1: URL already resolved to localhost → read from disk cache directly
+                if (_imgCache != null && url.Contains($"localhost:{_imgCache.Port}"))
+                {
+                    bytes = await _imgCache.GetBytesAsync(url);
+                }
+                // Case 2: Original VRChat URL → download with authenticated HTTP client
+                else if (_authHttpClient != null)
+                {
+                    using var resp = await _authHttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+                    if (resp.IsSuccessStatusCode)
+                        bytes = await resp.Content.ReadAsByteArrayAsync();
+                    else
+                        _log($"[VRO-IMG] {(int)resp.StatusCode} for {url[..Math.Min(80, url.Length)]}");
+                }
+                // Case 3: No auth client — fall back to ImageCacheService download pipeline
+                else if (_imgCache != null)
+                {
+                    bytes = await _imgCache.GetBytesAsync(url);
+                }
+
+                if (bytes == null || bytes.Length == 0) return null;
+                using var ms = new System.IO.MemoryStream(bytes);
+                return new Bitmap(ms);
+            }
+            catch (Exception ex)
+            {
+                _log($"[VRO-IMG] Exception loading {url[..Math.Min(60, url.Length)]}: {ex.Message}");
+                return null;
+            }
+        }
+
+        //  Friend location data (Location tab)
 
         public void SetFriendLocations(IReadOnlyList<(string worldId, string instanceId, string worldName, string worldImageUrl, string friendId, string friendName, string friendImageUrl, string location)> entries)
         {
@@ -882,30 +927,16 @@ namespace VRCNext.Services
                     if (needed) _ = Task.Run(() => EnsureLocationImageAsync(furl));
                 }
             }
-            int totalPages = Math.Max(1, (GetLocationGroupCount() + 5) / 6);
-            _locationPage = Math.Clamp(_locationPage, 0, totalPages - 1);
             _dirty = true;
         }
 
         private async Task EnsureLocationImageAsync(string url)
         {
-            // Re-check under lock — another task may have already loaded it
             lock (_locationImgCache) { if (_locationImgCache.TryGetValue(url, out var b) && b != null) return; }
-            try
-            {
-                // Resolve through ImageCacheService (authenticated) so we get a localhost URL
-                var resolvedUrl = url;
-                if (_imgCache != null && url.StartsWith("http") && !url.Contains("localhost"))
-                    resolvedUrl = await _imgCache.GetAsync(url);
-
-                var bytes = await _httpImgClient.GetByteArrayAsync(resolvedUrl);
-                using var ms = new System.IO.MemoryStream(bytes);
-                var bmp = new Bitmap(ms);
-                lock (_locationImgCache) { _locationImgCache[url] = bmp; }
-                _dirty = true;
-            }
-            catch { }
-            // No cache entry written on failure — next SetFriendLocations call will retry
+            var bmp = await DownloadOverlayImageAsync(url);
+            if (bmp == null) return;
+            lock (_locationImgCache) { _locationImgCache[url] = bmp; }
+            _dirty = true;
         }
 
         //  Online friends list (Friends tab)
@@ -930,8 +961,6 @@ namespace VRCNext.Services
                     if (needed) _ = Task.Run(() => EnsureLocationImageAsync(furl));
                 }
             }
-            int totalPages = Math.Max(1, (_onlineFriends.Count + FrdPerPage - 1) / FrdPerPage);
-            _friendsPage = Math.Clamp(_friendsPage, 0, totalPages - 1);
             _dirty = true;
         }
 
@@ -1193,6 +1222,23 @@ namespace VRCNext.Services
                             _dirty = true;
                         }
 
+                        // Scroll inertia — decays to 0, marks dirty while moving
+                        if (!_scrollDragging)
+                        {
+                            if (MathF.Abs(_locationScrollVY) > 0.3f)
+                            {
+                                _locationScrollVY *= 0.87f;
+                                _locationScrollY   = Math.Clamp(_locationScrollY + _locationScrollVY, 0f, GetLocationMaxScroll());
+                                _dirty = true;
+                            }
+                            if (MathF.Abs(_friendsScrollVY) > 0.3f)
+                            {
+                                _friendsScrollVY *= 0.87f;
+                                _friendsScrollY   = Math.Clamp(_friendsScrollY + _friendsScrollVY, 0f, GetFriendsMaxScroll());
+                                _dirty = true;
+                            }
+                        }
+
                         // Re-apply transform if the active controller index just became
                         // valid or changed (e.g. controller connected after Show() was called).
                         var curIdx = AttachToLeft ? _leftIdx : _rightIdx;
@@ -1362,7 +1408,56 @@ namespace VRCNext.Services
                     else if (oType == EVREventType.VREvent_MouseButtonDown)
                     {
                         var mu = evt.data.mouse;
-                        HandleOverlayClick(mu.x / W, mu.y / H);
+                        float nx = mu.x / W, ny = mu.y / H;
+                        _mouseDown       = true;
+                        _mouseDownNX     = nx;
+                        _mouseDownNY     = ny;
+                        _scrollDragging  = false;
+                        _scrollLastNY    = ny;
+                        _scrollLastDeltaY = 0f;
+                        // Kill inertia on touch-down for scroll tabs
+                        if (_activeTab == 1) _locationScrollVY = 0f;
+                        if (_activeTab == 4) _friendsScrollVY  = 0f;
+                    }
+                    else if (oType == EVREventType.VREvent_MouseMove)
+                    {
+                        if (_mouseDown && (_activeTab == 1 || _activeTab == 4) && _mouseDownNY < 0.82f)
+                        {
+                            var mu = evt.data.mouse;
+                            float ny = mu.y / H;
+                            // Activate drag once pointer has moved > 20px vertically (VR hand tremor tolerance)
+                            if (!_scrollDragging && MathF.Abs((ny - _mouseDownNY) * H) > 20f)
+                                _scrollDragging = true;
+                            if (_scrollDragging)
+                            {
+                                float delta = (ny - _scrollLastNY) * H; // drag up → scroll down (OpenVR y=0 is bottom)
+                                _scrollLastDeltaY = delta;
+                                _scrollLastNY     = ny;
+                                if (_activeTab == 1)
+                                    _locationScrollY = Math.Clamp(_locationScrollY + delta, 0f, GetLocationMaxScroll());
+                                else
+                                    _friendsScrollY  = Math.Clamp(_friendsScrollY  + delta, 0f, GetFriendsMaxScroll());
+                                _dirty = true;
+                            }
+                        }
+                    }
+                    else if (oType == EVREventType.VREvent_MouseButtonUp)
+                    {
+                        var muUp = evt.data.mouse;
+                        float totalMove = MathF.Abs((muUp.y / H - _mouseDownNY) * H);
+                        if (_scrollDragging && totalMove >= 20f)
+                        {
+                            // Real scroll flick — seed inertia
+                            if (_activeTab == 1) _locationScrollVY = _scrollLastDeltaY * 0.5f;
+                            if (_activeTab == 4) _friendsScrollVY  = _scrollLastDeltaY * 0.5f;
+                        }
+                        else
+                        {
+                            // Tap (total movement < 20px) → always treat as click
+                            HandleOverlayClick(_mouseDownNX, _mouseDownNY);
+                        }
+                        _mouseDown      = false;
+                        _scrollDragging = false;
                     }
                 }
             }
@@ -1376,8 +1471,8 @@ namespace VRCNext.Services
             {
                 _activeTab = nx < 0.20f ? 0 : nx < 0.40f ? 1 : nx < 0.60f ? 2 : nx < 0.80f ? 3 : 4;
                 _lastDisplayedSecond = -1;
-                _locationPage = 0;
-                _friendsPage = 0;
+                _locationScrollY = 0f; _locationScrollVY = 0f;
+                _friendsScrollY  = 0f; _friendsScrollVY  = 0f;
                 _dirty = true;
                 return;
             }
@@ -1429,38 +1524,25 @@ namespace VRCNext.Services
                 }
             }
 
-            // Location tab: 2-column × 3-row grid + pagination arrows
+            // Location tab: scrollable 2-column grid — no pagination
             if (_activeTab == 1)
             {
                 int gdixL = (int)(nx * W);
                 int gdiyL = (int)((1f - ny) * H);
-                int colW  = LocColW; // 241
+                int colW  = LocColW;
 
-                // Pagination bar (GDI y = LocPagY..LocPagY+LocPagH)
-                if (gdiyL >= LocPagY && gdiyL < LocPagY + LocPagH)
+                if (gdiyL >= LocContentY && gdiyL < ScrollContentBottom)
                 {
-                    int totalPages = Math.Max(1, (GetLocationGroupCount() + 5) / 6);
-                    // Left arrow: x = LocPadX .. LocPadX+LocArrW
-                    if (gdixL >= LocPadX && gdixL < LocPadX + LocArrW && _locationPage > 0)
-                    { _locationPage--; _dirty = true; }
-                    // Right arrow: x = W-LocPadX-LocArrW .. W-LocPadX
-                    else if (gdixL >= W - LocPadX - LocArrW && gdixL < W - LocPadX && _locationPage < totalPages - 1)
-                    { _locationPage++; _dirty = true; }
-                    return;
-                }
-
-                // Card grid (GDI y = LocContentY .. LocContentY + 3*(LocCardH+LocRowGap))
-                if (gdiyL >= LocContentY && gdiyL < LocPagY)
-                {
-                    int row = (gdiyL - LocContentY) / (LocCardH + LocRowGap);
-                    int col = gdixL < LocPadX + colW ? 0 : 1;
-                    // Verify inside card (not in gap row)
-                    int localY = (gdiyL - LocContentY) % (LocCardH + LocRowGap);
+                    // Account for scroll offset when calculating which card was tapped
+                    int scrolledY = gdiyL - LocContentY + (int)_locationScrollY;
+                    int row    = scrolledY / (LocCardH + LocRowGap);
+                    int localY = scrolledY % (LocCardH + LocRowGap);
+                    int col    = gdixL < LocPadX + colW ? 0 : 1;
                     int cardX  = LocPadX + col * (colW + LocColGap);
-                    if (row >= 0 && row < 3 && localY < LocCardH && gdixL >= cardX && gdixL < cardX + colW)
+                    if (localY < LocCardH && gdixL >= cardX && gdixL < cardX + colW)
                     {
                         var groups = GetLocationGroups();
-                        int absIdx = _locationPage * 6 + row * 2 + col;
+                        int absIdx = row * 2 + col;
                         if (absIdx >= 0 && absIdx < groups.Count)
                         {
                             var first = groups[absIdx][0];
@@ -1537,49 +1619,37 @@ namespace VRCNext.Services
                 }
             }
 
-            // Friends tab: invite button + pagination
+            // Friends tab: scrollable list — no pagination
             if (_activeTab == 4)
             {
                 int gdixF = (int)(nx * W);
                 int gdiyF = (int)((1f - ny) * H);
 
-                // Pagination bar
-                if (gdiyF >= FrdPagY && gdiyF < FrdPagY + FrdPagH)
+                if (gdiyF >= FrdContentY && gdiyF < ScrollContentBottom)
                 {
-                    List<FriendTabEntry> snapF;
-                    lock (_onlineFriends) snapF = new List<FriendTabEntry>(_onlineFriends);
-                    int totalPages = Math.Max(1, (snapF.Count + FrdPerPage - 1) / FrdPerPage);
-                    if (gdixF >= FrdPadX && gdixF < FrdPadX + FrdArrW && _friendsPage > 0)
-                    { _friendsPage--; _dirty = true; }
-                    else if (gdixF >= W - FrdPadX - FrdArrW && gdixF < W - FrdPadX && _friendsPage < totalPages - 1)
-                    { _friendsPage++; _dirty = true; }
-                    return;
-                }
+                    // Account for scroll offset
+                    int scrolledY = gdiyF - FrdContentY + (int)_friendsScrollY;
+                    int row    = scrolledY / (FrdCardH + FrdGap);
+                    int localY = scrolledY % (FrdCardH + FrdGap);
 
-                // Friend card clicks (invite button area: right 42+4=46px of card)
-                if (gdiyF >= FrdContentY && gdiyF < FrdPagY)
-                {
-                    int row = (gdiyF - FrdContentY) / (FrdCardH + FrdGap);
-                    int localY = (gdiyF - FrdContentY) % (FrdCardH + FrdGap);
-                    if (row >= 0 && row < FrdPerPage && localY < FrdCardH)
+                    if (localY < FrdCardH)
                     {
-                        // Check if click is in the invite button area (right side)
+                        // Invite button: right 46px of card
                         int btnX = W - FrdPadX - 42 - 4;
                         if (gdixF >= btnX && gdixF < W - FrdPadX)
                         {
                             List<FriendTabEntry> snapF;
                             lock (_onlineFriends) snapF = new List<FriendTabEntry>(_onlineFriends);
-                            int absIdx = _friendsPage * FrdPerPage + row;
-                            if (absIdx >= 0 && absIdx < snapF.Count)
+                            if (row >= 0 && row < snapF.Count)
                             {
-                                var friend = snapF[absIdx];
+                                var friend = snapF[row];
                                 bool inCooldown = _joinCooldowns.TryGetValue(friend.FriendId, out var cd)
                                     && (DateTime.UtcNow - cd).TotalSeconds < 5;
                                 if (!inCooldown)
                                 {
                                     _joinCooldowns[friend.FriendId] = DateTime.UtcNow;
                                     _dirty = true;
-                                    OnInviteFriend?.Invoke(friend.FriendId); // invite friend TO my instance
+                                    OnInviteFriend?.Invoke(friend.FriendId);
                                 }
                             }
                         }
@@ -1601,6 +1671,24 @@ namespace VRCNext.Services
         {
             lock (_friendLocations)
                 return _friendLocations.GroupBy(e => e.WorldId + ":" + e.InstanceId).Count();
+        }
+
+        private float GetLocationMaxScroll()
+        {
+            var groups = GetLocationGroups();
+            if (groups.Count == 0) return 0f;
+            int rows    = (groups.Count + 1) / 2;
+            int totalH  = rows * (LocCardH + LocRowGap) - LocRowGap;
+            return Math.Max(0f, totalH - ScrollContentH);
+        }
+
+        private float GetFriendsMaxScroll()
+        {
+            int count;
+            lock (_onlineFriends) count = _onlineFriends.Count;
+            if (count == 0) return 0f;
+            int totalH = count * (FrdCardH + FrdGap) - FrdGap;
+            return Math.Max(0f, totalH - ScrollContentH);
         }
 
         // merges GetControllerState with _eventButtonsHeld to work whether Steam overlay is open or closed
@@ -2274,108 +2362,51 @@ namespace VRCNext.Services
         private void DrawLocations(Graphics g)
         {
             var th     = _theme;
-            int colW   = LocColW; // 241
+            int colW   = LocColW;
             var groups = GetLocationGroups();
 
             if (groups.Count == 0)
             {
-                int emptyW = 2 * colW + LocColGap;
                 using var emptyFont  = new Font("Segoe UI", 11f, FontStyle.Regular, GraphicsUnit.Point);
                 using var emptyBrush = new SolidBrush(th.Tx3);
                 var emptyFmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
                 g.DrawString("No friends online in worlds", emptyFont, emptyBrush,
-                    new RectangleF(LocPadX, LocContentY, emptyW, H - LocContentY - LocPadX), emptyFmt);
+                    new RectangleF(LocPadX, LocContentY, 2 * colW + LocColGap, ScrollContentH), emptyFmt);
                 return;
             }
 
-            int totalPages = Math.Max(1, (groups.Count + 5) / 6);
-            int startIdx   = _locationPage * 6;
+            float maxScroll = GetLocationMaxScroll();
+            _locationScrollY = Math.Clamp(_locationScrollY, 0f, maxScroll);
+            int scrollY = (int)_locationScrollY;
 
-            for (int i = 0; i < 6; i++)
+            // Clip cards to content area so they don't bleed into tab bar or bottom
+            var oldClip = g.Clip;
+            g.SetClip(new System.Drawing.Rectangle(0, LocContentY, W, ScrollContentH));
+
+            for (int i = 0; i < groups.Count; i++)
             {
-                int absIdx = startIdx + i;
-                if (absIdx >= groups.Count) break;
-
                 int row = i / 2;
                 int col = i % 2;
                 int cx  = LocPadX + col * (colW + LocColGap);
-                int cy  = LocContentY + row * (LocCardH + LocRowGap);
-                DrawLocationCard(g, groups[absIdx], cx, cy, colW, LocCardH);
+                int cy  = LocContentY + row * (LocCardH + LocRowGap) - scrollY;
+                if (cy + LocCardH < LocContentY || cy >= ScrollContentBottom) continue;
+                DrawLocationCard(g, groups[i], cx, cy, colW, LocCardH);
             }
 
-            DrawLocationPagination(g, th, _locationPage, totalPages);
-        }
+            g.SetClip(oldClip, System.Drawing.Drawing2D.CombineMode.Replace);
+            oldClip.Dispose();
 
-        private void DrawLocationPagination(Graphics g, OverlayTheme th, int page, int totalPages)
-        {
-            int colW = LocColW;
-            int barX = LocPadX;
-            int barW = 2 * colW + LocColGap; // = W - 2*LocPadX = 488
-            int barY = LocPagY;
-            int barH = LocPagH;
-
-            bool canPrev = page > 0;
-            bool canNext = page < totalPages - 1;
-
-            var fmtC = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-
-            // Arrow buttons — same style as tab buttons (active pill bg when enabled)
-            int btnPad = 3; // inner padding so pill doesn't touch the bar edge
-            using var arrowFont = _matSymFamily != null
-                ? new Font(_matSymFamily, 16f, FontStyle.Regular, GraphicsUnit.Point)
-                : new Font("Segoe MDL2 Assets", 16f, FontStyle.Regular, GraphicsUnit.Point);
-
-            // Left arrow
-            if (canPrev)
+            // Thin scrollbar strip on right edge
+            if (maxScroll > 0)
             {
-                using var btnBg = new SolidBrush(Color.FromArgb(55, th.Accent));
-                FillRoundedRect(g, btnBg, barX + btnPad, barY + btnPad, LocArrW - btnPad * 2, barH - btnPad * 2, 10);
-                using var pen = new Pen(Color.FromArgb(80, th.Accent), 1f);
-                DrawRoundedRect(g, pen, barX + btnPad, barY + btnPad, LocArrW - btnPad * 2, barH - btnPad * 2, 10);
-            }
-            using var leftBrush = new SolidBrush(canPrev ? th.Tx1 : Color.FromArgb(45, th.Tx3));
-            g.DrawString("\uE5CB", arrowFont, leftBrush, new RectangleF(barX + 1, barY + 1, LocArrW, barH), fmtC);
-
-            // Right arrow
-            if (canNext)
-            {
-                using var btnBg = new SolidBrush(Color.FromArgb(55, th.Accent));
-                FillRoundedRect(g, btnBg, barX + barW - LocArrW + btnPad, barY + btnPad, LocArrW - btnPad * 2, barH - btnPad * 2, 10);
-                using var pen = new Pen(Color.FromArgb(80, th.Accent), 1f);
-                DrawRoundedRect(g, pen, barX + barW - LocArrW + btnPad, barY + btnPad, LocArrW - btnPad * 2, barH - btnPad * 2, 10);
-            }
-            using var rightBrush = new SolidBrush(canNext ? th.Tx1 : Color.FromArgb(45, th.Tx3));
-            g.DrawString("\uE5CC", arrowFont, rightBrush, new RectangleF(barX + barW - LocArrW + 1, barY + 1, LocArrW, barH), fmtC);
-
-            // Page indicator — dots for each page, active dot accent-colored
-            int dotR    = 4;
-            int dotGap  = 6;
-            int dotsW   = totalPages * (dotR * 2) + (totalPages - 1) * dotGap;
-            int innerX  = barX + LocArrW;
-            int innerW  = barW - 2 * LocArrW;
-            int dotStartX = innerX + (innerW - dotsW) / 2;
-            int dotY    = barY + (barH - dotR * 2) / 2;
-
-            if (totalPages <= 8)
-            {
-                for (int i = 0; i < totalPages; i++)
-                {
-                    int dx = dotStartX + i * (dotR * 2 + dotGap);
-                    bool active = i == page;
-                    using var dotBrush = new SolidBrush(active ? th.Accent : Color.FromArgb(60, th.Tx3));
-                    if (active)
-                        g.FillEllipse(dotBrush, dx, dotY, dotR * 2, dotR * 2);
-                    else
-                        g.FillEllipse(dotBrush, dx + 1, dotY + 1, dotR * 2 - 2, dotR * 2 - 2);
-                }
-            }
-            else
-            {
-                // Fallback for many pages: "3 / 12" text
-                using var pageFont  = new Font("Segoe UI", 9f, FontStyle.Regular, GraphicsUnit.Point);
-                using var pageBrush = new SolidBrush(th.Tx2);
-                g.DrawString($"{page + 1} / {totalPages}", pageFont, pageBrush,
-                    new RectangleF(innerX, barY, innerW, barH), fmtC);
+                float trackH  = ScrollContentH;
+                float thumbH  = Math.Max(20f, trackH * trackH / (trackH + maxScroll));
+                float thumbY  = LocContentY + (_locationScrollY / maxScroll) * (trackH - thumbH);
+                int   sbX     = W - LocPadX / 2 - ScrollBarW;
+                using var trackBr = new SolidBrush(Color.FromArgb(25, th.Tx3));
+                g.FillRectangle(trackBr, sbX, LocContentY, ScrollBarW, (int)trackH);
+                using var thumbBr = new SolidBrush(Color.FromArgb(90, th.Tx2));
+                g.FillRectangle(thumbBr, sbX, (int)thumbY, ScrollBarW, (int)thumbH);
             }
         }
 
@@ -2412,7 +2443,7 @@ namespace VRCNext.Services
             var imgRect = new Rectangle(x + 2, y + 2, imgW, h - 4);
             var oldClip = g.Clip;
             using var imgPath = RoundedRectPath(imgRect.X, imgRect.Y, imgRect.Width, imgRect.Height, 6);
-            g.SetClip(imgPath);
+            g.SetClip(imgPath, System.Drawing.Drawing2D.CombineMode.Intersect);
             if (worldImg != null)
                 DrawImageCover(g, worldImg, imgRect);
             else
@@ -2434,7 +2465,7 @@ namespace VRCNext.Services
             var avRect = new Rectangle(avX, avY, avSz, avSz);
             var oldClip2 = g.Clip;
             using var avPath = RoundedRectPath(avX, avY, avSz, avSz, avRadius);
-            g.SetClip(avPath);
+            g.SetClip(avPath, System.Drawing.Drawing2D.CombineMode.Intersect);
             if (avImg != null)
             {
                 DrawImageCover(g, avImg, avRect);
@@ -2443,7 +2474,7 @@ namespace VRCNext.Services
             {
                 using var avFallback = new SolidBrush(th.BgHover);
                 g.FillPath(avFallback, avPath);
-                g.ResetClip();
+                g.SetClip(oldClip2, System.Drawing.Drawing2D.CombineMode.Replace);
                 string init = first.FriendName.Length > 0 ? first.FriendName[0].ToString().ToUpper() : "?";
                 using var initFont  = new Font("Segoe UI", 8f, FontStyle.Bold, GraphicsUnit.Point);
                 using var initBrush = new SolidBrush(th.Tx2);
@@ -2514,7 +2545,7 @@ namespace VRCNext.Services
 
         private void DrawFriends(Graphics g)
         {
-            var th = _theme;
+            var th    = _theme;
             int cardW = W - 2 * FrdPadX;
 
             List<FriendTabEntry> snap;
@@ -2526,23 +2557,39 @@ namespace VRCNext.Services
                 using var emptyBrush = new SolidBrush(th.Tx3);
                 var emptyFmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
                 g.DrawString("No friends online in-game", emptyFont, emptyBrush,
-                    new RectangleF(FrdPadX, FrdContentY, cardW, H - FrdContentY - FrdPadX), emptyFmt);
+                    new RectangleF(FrdPadX, FrdContentY, cardW, ScrollContentH), emptyFmt);
                 return;
             }
 
-            int totalPages = Math.Max(1, (snap.Count + FrdPerPage - 1) / FrdPerPage);
-            int startIdx = _friendsPage * FrdPerPage;
+            float maxScroll = GetFriendsMaxScroll();
+            _friendsScrollY = Math.Clamp(_friendsScrollY, 0f, maxScroll);
+            int scrollY = (int)_friendsScrollY;
 
-            for (int i = 0; i < FrdPerPage; i++)
+            var oldClip = g.Clip;
+            g.SetClip(new System.Drawing.Rectangle(0, FrdContentY, W, ScrollContentH));
+
+            for (int i = 0; i < snap.Count; i++)
             {
-                int absIdx = startIdx + i;
-                if (absIdx >= snap.Count) break;
-                int cy = FrdContentY + i * (FrdCardH + FrdGap);
-                DrawFriendCard(g, snap[absIdx], FrdPadX, cy, cardW, FrdCardH);
+                int cy = FrdContentY + i * (FrdCardH + FrdGap) - scrollY;
+                if (cy + FrdCardH < FrdContentY || cy >= ScrollContentBottom) continue;
+                DrawFriendCard(g, snap[i], FrdPadX, cy, cardW, FrdCardH);
             }
 
-            if (totalPages > 1)
-                DrawFriendsPagination(g, th, _friendsPage, totalPages);
+            g.SetClip(oldClip, System.Drawing.Drawing2D.CombineMode.Replace);
+            oldClip.Dispose();
+
+            // Thin scrollbar strip on right edge
+            if (maxScroll > 0)
+            {
+                float trackH  = ScrollContentH;
+                float thumbH  = Math.Max(20f, trackH * trackH / (trackH + maxScroll));
+                float thumbY  = FrdContentY + (_friendsScrollY / maxScroll) * (trackH - thumbH);
+                int   sbX     = W - FrdPadX / 2 - ScrollBarW;
+                using var trackBr = new SolidBrush(Color.FromArgb(25, th.Tx3));
+                g.FillRectangle(trackBr, sbX, FrdContentY, ScrollBarW, (int)trackH);
+                using var thumbBr = new SolidBrush(Color.FromArgb(90, th.Tx2));
+                g.FillRectangle(thumbBr, sbX, (int)thumbY, ScrollBarW, (int)thumbH);
+            }
         }
 
         private void DrawFriendCard(Graphics g, FriendTabEntry friend, int x, int y, int w, int h)
@@ -2593,14 +2640,14 @@ namespace VRCNext.Services
             var avRect = new Rectangle(avX, avY, avSz, avSz);
             var oldClip = g.Clip;
             using var avPath = RoundedRectPath(avX, avY, avSz, avSz, avR);
-            g.SetClip(avPath);
+            g.SetClip(avPath, System.Drawing.Drawing2D.CombineMode.Intersect);
             if (avImg != null)
                 DrawImageCover(g, avImg, avRect);
             else
             {
                 using var avBg = new SolidBrush(th.BgHover);
                 g.FillPath(avBg, avPath);
-                g.ResetClip();
+                g.SetClip(oldClip, System.Drawing.Drawing2D.CombineMode.Replace);
                 string init = friend.FriendName.Length > 0 ? friend.FriendName[0].ToString().ToUpper() : "?";
                 using var initFont  = new Font("Segoe UI", 12f, FontStyle.Bold, GraphicsUnit.Point);
                 using var initBrush = new SolidBrush(th.Tx2);
@@ -2693,75 +2740,6 @@ namespace VRCNext.Services
             "busy"    => StatusColorBusy,
             _         => StatusColorOffline,
         };
-
-        private void DrawFriendsPagination(Graphics g, OverlayTheme th, int page, int totalPages)
-        {
-            int cardW = W - 2 * FrdPadX;
-            int barX = FrdPadX;
-            int barW = cardW;
-            int barY = FrdPagY;
-            int barH = FrdPagH;
-
-            bool canPrev = page > 0;
-            bool canNext = page < totalPages - 1;
-
-            var fmtC = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            int btnPad = 3;
-            using var arrowFont = _matSymFamily != null
-                ? new Font(_matSymFamily, 16f, FontStyle.Regular, GraphicsUnit.Point)
-                : new Font("Segoe MDL2 Assets", 16f, FontStyle.Regular, GraphicsUnit.Point);
-
-            // Left arrow
-            if (canPrev)
-            {
-                using var btnBg = new SolidBrush(Color.FromArgb(55, th.Accent));
-                FillRoundedRect(g, btnBg, barX + btnPad, barY + btnPad, FrdArrW - btnPad * 2, barH - btnPad * 2, 10);
-                using var pen = new Pen(Color.FromArgb(80, th.Accent), 1f);
-                DrawRoundedRect(g, pen, barX + btnPad, barY + btnPad, FrdArrW - btnPad * 2, barH - btnPad * 2, 10);
-            }
-            using var leftBrush = new SolidBrush(canPrev ? th.Tx1 : Color.FromArgb(45, th.Tx3));
-            g.DrawString("\uE5CB", arrowFont, leftBrush, new RectangleF(barX + 1, barY + 1, FrdArrW, barH), fmtC);
-
-            // Right arrow
-            if (canNext)
-            {
-                using var btnBg = new SolidBrush(Color.FromArgb(55, th.Accent));
-                FillRoundedRect(g, btnBg, barX + barW - FrdArrW + btnPad, barY + btnPad, FrdArrW - btnPad * 2, barH - btnPad * 2, 10);
-                using var pen = new Pen(Color.FromArgb(80, th.Accent), 1f);
-                DrawRoundedRect(g, pen, barX + barW - FrdArrW + btnPad, barY + btnPad, FrdArrW - btnPad * 2, barH - btnPad * 2, 10);
-            }
-            using var rightBrush = new SolidBrush(canNext ? th.Tx1 : Color.FromArgb(45, th.Tx3));
-            g.DrawString("\uE5CC", arrowFont, rightBrush, new RectangleF(barX + barW - FrdArrW + 1, barY + 1, FrdArrW, barH), fmtC);
-
-            // Page dots
-            int dotR = 4, dotGap = 6;
-            int dotsW = totalPages * (dotR * 2) + (totalPages - 1) * dotGap;
-            int innerX = barX + FrdArrW;
-            int innerW = barW - 2 * FrdArrW;
-            int dotStartX = innerX + (innerW - dotsW) / 2;
-            int dotY = barY + (barH - dotR * 2) / 2;
-
-            if (totalPages <= 8)
-            {
-                for (int i = 0; i < totalPages; i++)
-                {
-                    int dx = dotStartX + i * (dotR * 2 + dotGap);
-                    bool active = i == page;
-                    using var dotBrush = new SolidBrush(active ? th.Accent : Color.FromArgb(60, th.Tx3));
-                    if (active)
-                        g.FillEllipse(dotBrush, dx, dotY, dotR * 2, dotR * 2);
-                    else
-                        g.FillEllipse(dotBrush, dx + 1, dotY + 1, dotR * 2 - 2, dotR * 2 - 2);
-                }
-            }
-            else
-            {
-                using var pageFont  = new Font("Segoe UI", 9f, FontStyle.Regular, GraphicsUnit.Point);
-                using var pageBrush = new SolidBrush(th.Tx2);
-                g.DrawString($"{page + 1} / {totalPages}", pageFont, pageBrush,
-                    new RectangleF(innerX, barY, innerW, barH), fmtC);
-            }
-        }
 
         private void DrawTools(Graphics g)
         {

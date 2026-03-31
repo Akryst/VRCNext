@@ -1,4 +1,4 @@
-**2026.12.6**
+**2026.12.8**
 
 **VR Overlay**
 
@@ -7,6 +7,8 @@
 * Added **Quick Invite** to the **Friends** tab so you can quickly invite friends to your current world.
 * Added the **SetOnlineFriends()** API, which is now updated whenever the friend list receives a push update.
 * Improved shutdown handling for the overlay poll loop. It now waits for the running task to finish before releasing resources.
+* World Location Tab is now scrollable.
+* Friends Tab is now scrollable.
 
 **Image Cache**
 
@@ -51,4 +53,6 @@
 
 **Fixes**
 
+* Fixed Cookie Auth Corruptions.
 * Fixed several **400** errors.
+* Fixed Image Cache issues with VR Overlay

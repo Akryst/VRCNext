@@ -44,6 +44,7 @@ public class VROverlayController : IDisposable
                 _vrOverlay = new VROverlayService(
                     s => Invoke(() => _core.SendToJS("log", new { msg = s, color = "sec" })));
                 _vrOverlay.SetImageCache(_core.ImgCache);
+                _vrOverlay.SetAuthHttpClient(_core.VrcApi.GetHttpClient());
                 _vrOverlay.OnStateUpdate    += d => Invoke(() => _core.SendToJS("vroState", d));
                 _vrOverlay.OnKeybindRecorded += (ids, names, hand, mode) =>
                     Invoke(() => _core.SendToJS("vroKeybindRecorded", new { ids, names, hand, mode }));

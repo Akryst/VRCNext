@@ -41,6 +41,35 @@ public class ImageCacheService
     public async Task<string> GetAsync(string? url) => await GetWithTtlAsync(url, TTL);
     public async Task<string> GetWorldAsync(string? url) => await GetWithTtlAsync(url, TTL_LONG);
 
+    /// <summary>
+    /// Downloads the image if needed (using the authenticated HTTP client) and returns
+    /// the bytes read directly from disk. Returns null if unavailable or not an image.
+    /// Intended for non-browser consumers (e.g. VR overlay) that cannot use the local HTTP server.
+    /// </summary>
+    public async Task<byte[]?> GetBytesAsync(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url) || !url.StartsWith("http")) return null;
+
+        // If it's already a localhost URL (pre-resolved by Get()), read directly from disk.
+        if (url.Contains($"localhost:{Port}"))
+        {
+            var slash0 = url.LastIndexOf('/');
+            if (slash0 < 0) return null;
+            var fp = Path.Combine(_dir, url.Substring(slash0 + 1));
+            try { return File.Exists(fp) ? await File.ReadAllBytesAsync(fp) : null; }
+            catch { return null; }
+        }
+
+        // Original VRChat URL — download (authenticated) if needed, then read from disk.
+        var localUrl = await GetAsync(url);
+        if (string.IsNullOrEmpty(localUrl) || !localUrl.Contains($"localhost:{Port}")) return null;
+        var slash = localUrl.LastIndexOf('/');
+        if (slash < 0) return null;
+        var filePath = Path.Combine(_dir, localUrl.Substring(slash + 1));
+        try { return File.Exists(filePath) ? await File.ReadAllBytesAsync(filePath) : null; }
+        catch { return null; }
+    }
+
     private string GetWithTtl(string? url, TimeSpan ttl)
     {
         if (string.IsNullOrWhiteSpace(url) || !url.StartsWith("http")) return url ?? "";
@@ -124,7 +153,7 @@ public class ImageCacheService
         lock (_inFlight) inFlight = _inFlight.Contains(url);
         if (inFlight)
         {
-            for (int i = 0; i < 60; i++) // wait up to 6 seconds
+            for (int i = 0; i < 300; i++) // wait up to 30 seconds
             {
                 await Task.Delay(100);
                 lock (_inFlight) inFlight = _inFlight.Contains(url);
