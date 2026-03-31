@@ -11,7 +11,7 @@
 </head>
 <body>
     <div class="sidebar" id="sidebarEl">
-        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.12.6</div></div><button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar" data-i18n-title="common.toggle_sidebar"><span class="msi" id="sbIcon">chevron_left</span></button></div>
+        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.12.8</div></div><button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar" data-i18n-title="common.toggle_sidebar"><span class="msi" id="sbIcon">chevron_left</span></button></div>
         <div class="nav vrcn-scrollbar">
             <button class="nav-btn active" onclick="showTab(0)" data-nav="dashboard"><span class="ni msi">dashboard</span><span class="nl" data-i18n="nav.dashboard">Dashboard</span></button>
             <button class="nav-btn" onclick="showTab(1)"><span class="ni msi">travel_explore</span><span class="nl" data-i18n="nav.worlds">Worlds</span></button>
@@ -130,12 +130,37 @@
                         <div class="dash-section-label"><span data-i18n="dashboard.section.friend_activity">FRIENDS ACTIVITY</span></div>
                         <div class="dash-friends-feed" id="dashFriendsFeed"><div class="empty-msg" data-i18n="dashboard.section.friend_activity_empty">Login to VRChat to see friends</div></div>
                     </div>
+                    <div class="dash-section-wrap" data-section="friend_locations_small">
+                        <div class="dash-section-label"><span data-i18n="dashboard.section.friend_locations">FRIENDS LOCATIONS</span></div>
+                        <div class="dash-friends-feed" id="dashFriendLocSmallShelf"></div>
+                    </div>
                     <div class="dash-section-wrap" data-section="fav_worlds">
                         <div class="dash-section-label">
                             <span data-i18n="dashboard.section.fav_worlds">FAVORITE WORLDS</span>
                             <button class="dash-section-seeall" onclick="showTab(1)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
                         </div>
                         <div class="vrcn-dash-fav-shelf" id="dashFavWorldsShelf"></div>
+                    </div>
+                    <div class="dash-section-wrap" data-section="fav_avatars">
+                        <div class="dash-section-label">
+                            <span data-i18n="dashboard.section.fav_avatars">FAVORITE AVATARS</span>
+                            <button class="dash-section-seeall" onclick="showTab(4);setTimeout(()=>setAvatarFilter('favorites'),80)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
+                        </div>
+                        <div class="vrcn-dash-fav-shelf" id="dashFavAvatarsShelf"></div>
+                    </div>
+                    <div class="dash-section-wrap" data-section="own_avatars">
+                        <div class="dash-section-label">
+                            <span data-i18n="dashboard.section.own_avatars">MY AVATARS</span>
+                            <button class="dash-section-seeall" onclick="showTab(4);setTimeout(()=>setAvatarFilter('own'),80)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
+                        </div>
+                        <div class="vrcn-dash-fav-shelf" id="dashOwnAvatarsShelf"></div>
+                    </div>
+                    <div class="dash-section-wrap" data-section="recent_photos">
+                        <div class="dash-section-label">
+                            <span data-i18n="dashboard.section.recent_photos">RECENT PHOTOS</span>
+                            <button class="dash-section-seeall" onclick="showTab(7)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
+                        </div>
+                        <div class="dash-photo-grid" id="dashRecentPhotosShelf"></div>
                     </div>
                     <div class="dash-section-wrap" data-section="recently_visited">
                         <div class="dash-section-label">
@@ -586,10 +611,10 @@
                         <div class="set-desc" style="margin-bottom:10px;">Memory Trim periodically frees unused memory from VRCNext. While the app already cleans up automatically during normal use, enabling this triggers a more frequent garbage collection pass every 10 minutes.</div>
                         <button class="vrcn-button" onclick="sendToCS({action:'forceTrim'})"><span class="msi" style="font-size:16px;">memory</span> <span data-i18n="settings.debug.force_memory_trim">Force Memory Trim</span></button>
                         <div class="sf-toggle-row" style="margin-top:14px;">
-                            <span>Enable Text Tools</span>
+                            <span data-i18n="settings.debug.text_tools.label">Enable Text Tools</span>
                             <label class="toggle"><input type="checkbox" id="setTextToolsEnabled" onchange="toggleTextTools(this.checked)"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
                         </div>
-                        <div class="set-desc">When enabled, all text in VRCNext becomes selectable. You can copy it via the right-click context menu or with Ctrl&nbsp;+&nbsp;C.</div>
+                        <div class="set-desc" data-i18n="settings.debug.text_tools.desc">When enabled, all text in VRCNext becomes selectable. You can copy it via the right-click context menu or with Ctrl&nbsp;+&nbsp;C.</div>
                         <div class="sf-toggle-row" style="margin-top:14px;" data-windows-only>
                             <span data-i18n="settings.debug.legacy_window.label">Enable Legacy Window</span>
                             <label class="toggle"><input type="checkbox" id="setLegacyWindow" onchange="onLegacyWindowChange()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
@@ -668,8 +693,8 @@
                         </div>
                         <div class="sf-toggle-row" style="margin-top:10px;">
                             <div>
-                                <span>Optimize Caching</span>
-                                <div style="font-size:11px;color:var(--tx3);margin-top:2px;">PNG images &gt; 1.5 MB are compressed to JPEG automatically</div>
+                                <span data-i18n="settings.image_cache.optimize.label">Optimize Caching</span>
+                                <div style="font-size:11px;color:var(--tx3);margin-top:2px;" data-i18n="settings.image_cache.optimize.desc">PNG images &gt; 1.5 MB are compressed to JPEG automatically</div>
                             </div>
                             <label class="toggle"><input type="checkbox" id="setImgCacheOptimizeEnabled" checked onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
                         </div>
@@ -689,7 +714,7 @@
                         </div>
                         <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
                             <button class="vrcn-button" onclick="sendToCS({action:'clearImgCache'})"><span class="msi" style="font-size:16px;">delete_sweep</span> <span data-i18n="settings.image_cache.clear">Clear Image Cache</span></button>
-                            <button class="vrcn-button" id="btnForceOptimize" onclick="startForceOptimize()"><span class="msi" style="font-size:16px;">compress</span> Force Optimization</button>
+                            <button class="vrcn-button" id="btnForceOptimize" onclick="startForceOptimize()"><span class="msi" style="font-size:16px;">compress</span> <span data-i18n="settings.image_cache.force_optimize">Force Optimization</span></button>
                         </div>
                         <div id="imgOptimizeProgress" style="display:none;margin-top:8px;">
                             <div class="ts-bar-wrap">

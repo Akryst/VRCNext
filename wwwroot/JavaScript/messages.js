@@ -73,13 +73,14 @@ window.external.receiveMessage(rawMsg => {
                 updateFolderFilterOptions(settings.folders);
                 autoSave();
                 break;
-            case 'libraryData': renderLibrary(payload); break;
+            case 'libraryData': renderLibrary(payload); renderDashRecentPhotos(); break;
             case 'libraryPageData': appendLibraryPage(payload); break;
             case 'libraryWorldIds': applyLibraryWorldIds(payload); break;
-            case 'libraryNewFile': addNewLibraryFile(payload); break;
+            case 'libraryNewFile': addNewLibraryFile(payload); renderDashRecentPhotos(); break;
             case 'libraryFileDeleted':
                 libraryFiles = libraryFiles.filter(f => f.path !== payload.path);
                 filterLibrary(true); // stay on current page after delete
+                renderDashRecentPhotos();
                 break;
             case 'favoritesLoaded':
                 favorites = new Set(payload || []);
@@ -398,11 +399,13 @@ window.external.receiveMessage(rawMsg => {
                     if (payload.currentAvatarId) currentAvatarId = payload.currentAvatarId;
                     avatarsLoaded = true;
                     if (avatarFilter === 'own') renderAvatarGrid();
+                    renderDashOwnAvatars();
                 }
                 break;
             case 'vrcFavoriteAvatars':
                 avatarsLoaded = true;
                 renderFavAvatars(payload);
+                renderDashFavAvatars();
                 break;
             case 'vrcAvatarFavoriteResult':
                 onAvatarFavoriteResult(payload);
@@ -418,6 +421,8 @@ window.external.receiveMessage(rawMsg => {
                 document.querySelectorAll('.av-card').forEach(c => { c.style.pointerEvents = ''; c.style.opacity = ''; });
                 if (avatarFilter === 'own') renderAvatarGrid();
                 else if (avatarFilter === 'favorites') filterFavAvatars();
+                renderDashFavAvatars();
+                renderDashOwnAvatars();
                 break;
             case 'vrcAvatarSearchResults':
                 if (payload.page === 0) avatarSearchResults = payload.results || [];
@@ -682,8 +687,8 @@ case 'popularWorlds':
             case 'oscOutputsEnabled':
                 handleOscOutputsEnabled(payload);
                 break;
-            case 'timelineData': renderTimeline(payload); break;
-            case 'timelineEvent': handleTimelineEvent(payload); break;
+            case 'timelineData': renderTimeline(payload); renderDashRecentPhotos(); break;
+            case 'timelineEvent': handleTimelineEvent(payload); renderDashRecentPhotos(); break;
             case 'timelineSearchResults': handleTlSearchResults(payload); break;
             case 'friendTimelineData':          renderFriendTimeline(payload); break;
             case 'friendTimelineEvent':         handleFriendTimelineEvent(payload); break;

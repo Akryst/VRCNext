@@ -305,7 +305,7 @@
             return buildSelfItems();
         }
 
-        const libCard = el.closest('.lib-card');
+        const libCard = el.closest('.lib-card, .dash-photo-item');
         if (libCard) {
             const path = libCard.dataset.path || '';
             const url = libCard.dataset.url || '';
@@ -326,7 +326,7 @@
             if (loc) return buildMyInstanceItems(loc);
         }
 
-        const dashWorld = el.closest('#dashFavWorlds .vrcn-content-card, #dashDiscoveryGrid .vrcn-content-card, #dashFavWorldsShelf .vrcn-content-card, #dashRecentlyVisitedShelf .vrcn-content-card, #dashPopularWorldsShelf .vrcn-content-card, #dashActiveWorldsShelf .vrcn-content-card');
+        const dashWorld = el.closest('#dashFavWorlds .vrcn-content-card, #dashDiscoveryGrid .vrcn-content-card, #dashFavWorldsShelf .vrcn-content-card, #dashRecentlyVisitedShelf .vrcn-content-card, #dashPopularWorldsShelf .vrcn-content-card, #dashActiveWorldsShelf .vrcn-content-card, #dashFriendLocSmallShelf .dash-floc-card');
         if (dashWorld) {
             const id = extractId(dashWorld, /openWorld(?:Search)?Detail\('([^']+)'\)/);
             if (id) return buildWorldItems(id);

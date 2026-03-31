@@ -91,7 +91,10 @@ function getFriendLocationLabel(presenceType, location) {
     const isOffline = location === 'offline' || presenceType === 'offline';
     if (isOffline) return t('status.offline', 'Offline');
     if (presenceType === 'web') return t('profiles.friends.location.web', 'Web / Mobile');
-    return isPrivate ? t('profiles.friends.location.private', 'Private Instance') : t('profiles.friends.location.world', 'In World');
+    if (isPrivate) return t('profiles.friends.location.private', 'Private Instance');
+    const { worldId } = parseFriendLocation(location);
+    const cached = worldId && (typeof dashWorldCache !== 'undefined') ? dashWorldCache[worldId] : null;
+    return cached?.name || t('profiles.friends.location.world', 'In World');
 }
 
 function getFriendSectionLabel(section, count) {
@@ -934,6 +937,7 @@ function renderFriendDetail(d) {
     if (rank) badgesHtml += `<span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>`;
     const mutualCount = (d.mutuals || []).length;
     if (mutualCount > 0) badgesHtml += `<span class="vrcn-badge"><span class="msi" style="font-size:11px;">group</span>${getProfileMutualBadgeLabel(mutualCount)}</span>`;
+    if (d.id) badgesHtml += idBadge(d.id);
     badgesHtml += '</div>';
 
     const pronounsHtml = d.pronouns ? `<div class="fd-pronouns">${esc(d.pronouns)}</div>` : '';
@@ -1031,8 +1035,7 @@ function renderFriendDetail(d) {
     }
 
     // Info tab content
-    const userIdBadge = d.id ? `<div style="margin-bottom:10px;">${idBadge(d.id)}</div>` : '';
-    const infoContent = `${vrcBadgesHtml}${repGroupInfoHtml}${userIdBadge}${bioHtml}${bioLinksHtml}${langsHtml}${worldHtml}${metaHtml ? '<div style="margin-bottom:14px;">' + metaHtml + '</div>' : ''}${noteHtml}`;
+    const infoContent = `${worldHtml}${vrcBadgesHtml}${repGroupInfoHtml}${bioHtml}${bioLinksHtml}${langsHtml}${metaHtml ? '<div style="margin-bottom:14px;">' + metaHtml + '</div>' : ''}${noteHtml}`;
 
     // Banner
     const bannerSrc = d.profilePicOverride || d.currentAvatarImageUrl || d.image || '';

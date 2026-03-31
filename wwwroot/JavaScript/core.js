@@ -864,9 +864,10 @@ function addLog(m, c) {
     const l = document.createElement('div');
     l.className = 'li-f';
     l.innerHTML = `<span class="li-ts">${ts}</span><span class="li-level ${levelCls}">${esc(level)}</span><span class="li-msg">${esc(msgBody)}</span>`;
+    const atBottom = a.scrollHeight - a.scrollTop - a.clientHeight < 40;
     a.appendChild(l);
     while (a.childElementCount > 500) a.removeChild(a.firstChild);
-    a.scrollTop = a.scrollHeight;
+    if (atBottom) a.scrollTop = a.scrollHeight;
 }
 
 // VRCVideoCacher
@@ -1007,7 +1008,7 @@ function copyIdBadge(el, id) {
 
 function idBadge(id) {
     const safe = jsq(id);
-    return `<span class="vrcn-id-clip" onclick="copyIdBadge(this,'${safe}')"><span class="msi" style="font-size:12px;">link</span>${esc(id)}</span>`;
+    return `<span class="vrcn-id-clip" title="${esc(id)}" onclick="copyIdBadge(this,'${safe}')"><span class="msi" style="font-size:12px;">link</span><span class="vrcn-id-text">${esc(id)}</span></span>`;
 }
 
 // ── Location / instance type helpers (global) ──────────────────────────────

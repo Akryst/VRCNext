@@ -2608,6 +2608,12 @@ html.text-tools-active * { user-select: text !important; }
     background: var(--bg-hover);
     color: var(--tx1);
 }
+.vrcn-id-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 130px;
+}
 
 .dash-friends-feed {
     position: relative;
@@ -2661,6 +2667,39 @@ html.text-tools-active * { user-select: text !important; }
     color: var(--tx3);
     margin-top: 1px;
 }
+
+/* ── Friends Location (Small) cards ── */
+.dash-floc-card {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform .15s;
+}
+.dash-floc-card:hover { transform: translateY(-2px); }
+.dash-floc-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--bg-card);
+    transition: transform .3s ease;
+}
+.dash-floc-card:hover .dash-floc-bg { transform: scale(1.06); }
+.dash-floc-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,0,0,.72) 0%, rgba(0,0,0,.45) 100%);
+}
+.dash-floc-card .dash-feed-avatar,
+.dash-floc-card .dash-feed-info { position: relative; z-index: 1; }
+.dash-floc-card .dash-feed-name  { color: rgba(255,255,255,.95); }
+.dash-floc-card .dash-feed-status { color: rgba(255,255,255,.65); }
+.dash-floc-card .dash-feed-loc   { color: rgba(255,255,255,.45); }
 
 .wd-friends-label {
     font-size: 10px;
@@ -6422,10 +6461,70 @@ div.vn-select {
     min-height: unset;
     border-radius: 8px;
 }
+.vrcn-dash-fav-shelf .vrcn-content-card.av-active {
+    outline: none;
+    box-shadow: none;
+}
+.vrcn-dash-fav-shelf .vrcn-content-card.av-active::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    z-index: 10;
+    pointer-events: none;
+}
 .vrcn-dash-fav-shelf .vrcn-content-card .cc-content { padding: 8px 10px; }
 .vrcn-dash-fav-shelf .vrcn-content-card .cc-name { font-size: 11px; font-weight: 700; margin-bottom: 2px; }
 .vrcn-dash-fav-shelf .vrcn-content-card .cc-meta { font-size: 10px; }
 .vrcn-dash-fav-shelf .vrcn-content-card .cc-meta .msi { font-size: 12px; }
+
+/* ── Recent Photos — photo grid ── */
+.dash-photo-grid {
+    display: grid;
+    grid-template-rows: repeat(2, 100px);
+    grid-auto-flow: column;
+    grid-auto-columns: 178px;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    cursor: grab;
+}
+.dash-photo-grid::-webkit-scrollbar { display: none; }
+.dash-photo-grid:active { cursor: grabbing; }
+.dash-photo-item {
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    background-color: var(--bg2);
+}
+.dash-photo-item.dpi-hidden .dpi-img {
+    filter: blur(20px);
+    transform: scale(1.08);
+}
+.dash-photo-item .dpi-img {
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    transition: transform .25s ease;
+}
+.dash-photo-item:hover .dpi-img { transform: scale(1.08); }
+.dash-photo-item .dpi-date {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 14px 6px 5px;
+    background: linear-gradient(transparent, rgba(0,0,0,.7));
+    font-size: 9px;
+    color: rgba(255,255,255,.8);
+    opacity: 0;
+    transition: opacity .2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dash-photo-item:hover .dpi-date { opacity: 1; }
 
 /* ── Group Activity grid ── */
 .vrcn-dash-group-activity {

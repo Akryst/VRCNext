@@ -14,17 +14,28 @@ function updateDashSub() {
     const status = name
         ? (currentVrcUser.statusDescription || statusLabel(currentVrcUser.status))
         : t('dashboard.sub.connect_world', 'Connect to VRChat to see your world');
-    const suffix = _dashOnlineCount > 0
-        ? ` | ${tf('dashboard.sub.playing_worldwide', { count: _dashOnlineCount.toLocaleString() }, '{count} playing worldwide')}`
-        : '';
+
+    let suffix = '';
+    if (_dashOnlineCount > 0) {
+        suffix = ` | ${tf('dashboard.sub.playing_worldwide', { count: _dashOnlineCount.toLocaleString() }, '{count} playing worldwide')}`;
+        if (typeof vrcFriendsData !== 'undefined' && vrcFriendsData.length > 0) {
+            const inGame = vrcFriendsData.filter(f => f.presence === 'game').length;
+            const onWeb  = vrcFriendsData.filter(f => f.presence === 'web').length;
+            if (inGame > 0 || onWeb > 0) {
+                suffix += `, ${tf('dashboard.sub.friends_ingame', { count: inGame }, '{count} of your friends in-game')}`;
+                if (onWeb > 0) suffix += `, ${tf('dashboard.sub.friends_onweb', { count: onWeb }, '{count} on web')}`;
+            }
+        }
+    }
+
     document.getElementById('dashSub').textContent = status + suffix;
 }
 
 function renderDashboard() {
     const name = currentVrcUser?.displayName;
-    document.getElementById('dashWelcome').textContent = name
-        ? tf('dashboard.welcome.named', { name }, 'Welcome, {name}!')
-        : t('dashboard.welcome.default', 'Welcome!');
+    document.getElementById('dashWelcome').innerHTML = name
+        ? tf('dashboard.welcome.named', { name: `<span style="color:var(--accent)">${esc(name)}</span>` }, 'Welcome, {name}!')
+        : esc(t('dashboard.welcome.default', 'Welcome!'));
     updateDashSub();
 
     const bgEl = document.getElementById('dashHeroBg');
@@ -45,7 +56,11 @@ function renderDashboard() {
 
     renderDashWorlds();
     renderDashFriendsFeed();
+    renderDashFriendsLocationSmall();
     renderDashFavWorlds();
+    renderDashFavAvatars();
+    renderDashOwnAvatars();
+    renderDashRecentPhotos();
     renderDashRecentlyVisited();
     renderDashPopularWorlds();
     renderDashActiveWorlds();
@@ -211,6 +226,48 @@ function renderDashFriendsFeed() {
 
 function browseDashBg() {
     sendToCS({ action: 'browseDashBg' });
+}
+
+/* === Dashboard — Friends Location (Small) shelf === */
+
+function renderDashFriendsLocationSmall() {
+    const el = document.getElementById('dashFriendLocSmallShelf');
+    if (!el) return;
+    if (!currentVrcUser || !vrcFriendsLoaded) {
+        el.innerHTML = _dashWorldShelfSkeleton();
+        return;
+    }
+    const inWorld = vrcFriendsData.filter(f => {
+        const { worldId } = parseFriendLocation(f.location);
+        return worldId && worldId.startsWith('wrld_');
+    });
+    if (!inWorld.length) {
+        el.innerHTML = `<div class="empty-msg">${t('dashboard.section.friend_locations_small_empty', 'No friends in worlds right now')}</div>`;
+        return;
+    }
+    el.innerHTML = inWorld.slice(0, 24).map(f => {
+        const { worldId } = parseFriendLocation(f.location);
+        const cached   = worldId ? dashWorldCache[worldId] : null;
+        const thumb    = cached?.thumbnailImageUrl || cached?.imageUrl || '';
+        const wname    = cached?.name || t('dashboard.friends.location_world', 'In World');
+        const wid      = (worldId || '').replace(/'/g, "\\'");
+        const img      = f.image || '';
+        const imgTag   = img
+            ? `<img class="dash-feed-avatar" src="${img}" onerror="this.style.display='none'">`
+            : `<div class="dash-feed-avatar" style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:rgba(255,255,255,.6)">${esc((f.displayName||'?')[0])}</div>`;
+        const dotClass = f.presence === 'web' ? 'vrc-status-ring' : 'vrc-status-dot';
+        const fid      = (f.id || '').replace(/'/g, "\\'");
+        return `<div class="dash-floc-card" onclick="openWorldDetail('${wid}')">
+            <div class="dash-floc-bg"${thumb ? ` style="background-image:url('${cssUrl(thumb)}')"` : ''}></div>
+            <div class="dash-floc-scrim"></div>
+            ${imgTag}
+            <div class="dash-feed-info">
+                <div class="dash-feed-name"><span class="${dotClass} ${statusDotClass(f.status)}" style="width:7px;height:7px;"></span>${esc(f.displayName)}</div>
+                <div class="dash-feed-status">${esc(f.statusDescription || statusLabel(f.status))}</div>
+                <div class="dash-feed-loc">${esc(wname)}</div>
+            </div>
+        </div>`;
+    }).join('');
 }
 
 /* === My Instances === */
@@ -509,6 +566,106 @@ function renderDashFavWorlds() {
     el.innerHTML = worlds.slice(0, 20).map(_dashWorldCard).join('');
 }
 
+/* === Dashboard — Favorite Avatars shelf === */
+
+let _dashFavAvatarsRequested = false;
+
+function renderDashFavAvatars() {
+    const el = document.getElementById('dashFavAvatarsShelf');
+    if (!el) return;
+    if (!currentVrcUser) {
+        el.innerHTML = `<div class="empty-msg">${t('dashboard.section.login', 'Login to VRChat')}</div>`;
+        return;
+    }
+    const avatars = (typeof favAvatarsData !== 'undefined') ? favAvatarsData : [];
+    if (!avatars.length && !_dashFavAvatarsRequested) {
+        _dashFavAvatarsRequested = true;
+        el.innerHTML = _dashWorldShelfSkeleton();
+        sendToCS({ action: 'vrcGetAvatars', filter: 'favorites' });
+        return;
+    }
+    if (!avatars.length) {
+        el.innerHTML = `<div class="empty-msg">${t('dashboard.favavaatars.empty', 'No favorite avatars yet')}</div>`;
+        return;
+    }
+    el.innerHTML = avatars.slice(0, 20).map(_dashAvatarCard).join('');
+}
+
+/* === Dashboard — Own Avatars shelf === */
+
+let _dashOwnAvatarsRequested = false;
+
+function renderDashOwnAvatars() {
+    const el = document.getElementById('dashOwnAvatarsShelf');
+    if (!el) return;
+    if (!currentVrcUser) {
+        el.innerHTML = `<div class="empty-msg">${t('dashboard.section.login', 'Login to VRChat')}</div>`;
+        return;
+    }
+    const avatars = (typeof avatarsData !== 'undefined') ? avatarsData : [];
+    const loaded  = (typeof avatarsLoaded !== 'undefined') ? avatarsLoaded : false;
+    if (!avatars.length && !loaded && !_dashOwnAvatarsRequested) {
+        _dashOwnAvatarsRequested = true;
+        el.innerHTML = _dashWorldShelfSkeleton();
+        sendToCS({ action: 'vrcGetAvatars', filter: 'own' });
+        return;
+    }
+    if (!avatars.length) {
+        el.innerHTML = `<div class="empty-msg">${t('dashboard.ownavatars.empty', 'No avatars found')}</div>`;
+        return;
+    }
+    el.innerHTML = avatars.slice(0, 20).map(_dashAvatarCard).join('');
+}
+
+/* === Dashboard — Recent Photos shelf === */
+
+let _dashPhotosRequested = false;
+
+function renderDashRecentPhotos() {
+    const el = document.getElementById('dashRecentPhotosShelf');
+    if (!el) return;
+    if (!currentVrcUser) {
+        el.innerHTML = `<div class="empty-msg">${t('dashboard.section.login', 'Login to VRChat')}</div>`;
+        return;
+    }
+    const files = (typeof libraryFiles !== 'undefined') ? libraryFiles : [];
+    const photos = files.filter(f => f.type === 'image' && f.url).slice(0, 32);
+    if (!photos.length) {
+        if (!_dashPhotosRequested) {
+            _dashPhotosRequested = true;
+            el.innerHTML = _dashWorldShelfSkeleton();
+            sendToCS({ action: 'scanLibrary' });
+        }
+        return;
+    }
+    el.innerHTML = photos.map(f => {
+        const thumbUrl  = f.url ? f.url + '?thumb=1' : '';
+        const dateMatch = (f.name || '').match(/(\d{4}-\d{2}-\d{2})/);
+        const dateStr   = dateMatch ? dateMatch[1] : (f.time || '');
+        const isHidden  = (typeof hiddenMedia !== 'undefined') && hiddenMedia.has(f.path);
+        const urlJs = jsq(f.url || '');
+        return `<div class="dash-photo-item${isHidden ? ' dpi-hidden' : ''}" onclick="openLightbox('${urlJs}','image')" title="${esc(f.name || '')}" data-path="${esc(f.path || '')}" data-url="${esc(f.url || '')}" data-type="image" data-name="${esc(f.name || '')}">
+            <div class="dpi-img"${thumbUrl ? ` style="background-image:url('${cssUrl(thumbUrl)}')"` : ''}></div>
+            <div class="dpi-date">${esc(dateStr)}</div>
+        </div>`;
+    }).join('');
+}
+
+/* === Dashboard — Avatar card (shared by fav + own shelves) === */
+
+function _dashAvatarCard(a) {
+    const thumb     = a.thumbnailImageUrl || a.imageUrl || '';
+    const aid       = jsq(a.id || '');
+    const isActive  = a.id === currentAvatarId;
+    const activeBadge = (typeof avatarCurrentBadge === 'function') ? avatarCurrentBadge(isActive) : '';
+    return `<div class="vrcn-content-card av-card${isActive ? ' av-active' : ''}" onclick="selectAvatar('${aid}')">
+        <div class="cc-bg"${thumb ? ` style="background-image:url('${cssUrl(thumb)}')"` : ''}></div>
+        <div class="cc-scrim"></div>
+        <div class="cc-badges-top">${activeBadge}</div>
+        <div class="cc-content"><div class="cc-name">${esc(a.name || t('avatars.labels.unnamed', 'Unnamed'))}</div></div>
+    </div>`;
+}
+
 /* === Dashboard — World shelves (Recently Visited / Popular / Active) === */
 
 function _dashWorldCard(w) {
@@ -705,9 +862,13 @@ function renderDashRecentTimeline() {
 const DASH_SECTION_META = [
     { id: 'my_instances',            nameKey: 'dashboard.section.my_instances',            name: 'Your Instances' },
     { id: 'friend_locations',        nameKey: 'dashboard.section.friend_locations',        name: 'Friends Locations' },
+    { id: 'friend_locations_small',  nameKey: 'dashboard.section.friend_locations_small',  name: 'Friends Location (Small)' },
     { id: 'discovery',               nameKey: 'dashboard.section.discovery',               name: 'Discover Worlds' },
     { id: 'friend_activity',         nameKey: 'dashboard.section.friend_activity',         name: 'Friends Activity' },
     { id: 'fav_worlds',              nameKey: 'dashboard.section.fav_worlds',              name: 'Favorite Worlds' },
+    { id: 'fav_avatars',             nameKey: 'dashboard.section.fav_avatars',             name: 'Favorite Avatars' },
+    { id: 'own_avatars',             nameKey: 'dashboard.section.own_avatars',             name: 'My Avatars' },
+    { id: 'recent_photos',           nameKey: 'dashboard.section.recent_photos',           name: 'Recent Photos' },
     { id: 'groups',                  nameKey: 'dashboard.section.your_groups',             name: 'Your Groups' },
     { id: 'recently_visited',        nameKey: 'dashboard.section.recently_visited',        name: 'Recently Visited' },
     { id: 'popular_worlds',          nameKey: 'dashboard.section.popular_worlds',          name: 'Popular Worlds' },
@@ -874,7 +1035,7 @@ function saveDashLayoutFromModal() {
     let _shelf = null, _startX = 0, _scrollStart = 0, _dragging = false;
 
     document.addEventListener('mousedown', e => {
-        const shelf = e.target.closest('.vrcn-dash-fav-shelf');
+        const shelf = e.target.closest('.vrcn-dash-fav-shelf, .dash-photo-grid');
         if (!shelf) return;
         _shelf       = shelf;
         _startX      = e.clientX;
@@ -905,7 +1066,11 @@ function saveDashLayoutFromModal() {
 function rerenderDashTranslations() {
     renderDashWorlds();
     renderDashFriendsFeed();
+    renderDashFriendsLocationSmall();
     renderDashFavWorlds();
+    renderDashFavAvatars();
+    renderDashOwnAvatars();
+    renderDashRecentPhotos();
     renderDashRecentlyVisited();
     renderDashPopularWorlds();
     renderDashActiveWorlds();

@@ -365,6 +365,7 @@ function toggleHidden(p) {
     }
     try { localStorage.setItem('vrcnext_hidden', JSON.stringify([...hiddenMedia])); } catch {}
     filterLibrary(true); // stay on current page
+    renderDashRecentPhotos();
 }
 
 function setLibItemAsDashBg(path) {
