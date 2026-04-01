@@ -298,6 +298,253 @@ function applyColors(c) {
     try { sendToCS({ action: 'overlayThemeColors', colors: c }); } catch {}
 }
 
+// ── Theme Editor ─────────────────────────────────────────────────────────────
+
+const _TE_VARS = [
+    ['bg-base',   'Base BG'],   ['bg-side',  'Sidebar BG'], ['bg-card',  'Card BG'],
+    ['bg-hover',  'Hover BG'],  ['bg-input', 'Input BG'],
+    ['accent',    'Accent'],    ['accent-lt','Accent Light'],['cyan',     'Highlight'],
+    ['ok',        'Success'],   ['warn',     'Warning'],     ['err',      'Error'],
+    ['tx0',       'Text 0'],    ['tx1',      'Text 1'],      ['tx2',      'Text 2'],    ['tx3','Text 3'],
+    ['brd',       'Border'],    ['brd-lt',   'Border Light'],
+];
+
+let _teColors = {}, _teOrigColors = {}, _teSaved = false;
+
+function _teCssToHex(raw) {
+    const s = (raw || '').trim();
+    if (/^#[0-9A-Fa-f]{6}$/.test(s)) return s.toUpperCase();
+    const m = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (m) return '#' + [m[1],m[2],m[3]].map(n => parseInt(n).toString(16).padStart(2,'0')).join('').toUpperCase();
+    return '#000000';
+}
+
+function openThemeEditor() {
+    _teSaved = false;
+    const style = getComputedStyle(document.documentElement);
+    _teColors = {}; _teOrigColors = {};
+    for (const [v] of _TE_VARS) {
+        const hex = _teCssToHex(style.getPropertyValue('--' + v));
+        _teColors[v] = _teOrigColors[v] = hex;
+    }
+    _teRenderRows();
+    const panel = document.getElementById('themeEditorPanel');
+    if (panel) panel.style.display = 'flex';
+    document.getElementById('teThemeName').value = '';
+    _tePickerInit();
+}
+
+function closeThemeEditor() {
+    _tePickerClose();
+    document.getElementById('themeEditorPanel').style.display = 'none';
+    if (!_teSaved) applyColors(_teOrigColors);
+}
+
+function _teRenderRows() {
+    const container = document.getElementById('teColorRows');
+    if (!container) return;
+    container.innerHTML = '';
+    for (const [v, label] of _TE_VARS) {
+        const hex = _teColors[v];
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:5px;';
+        row.innerHTML =
+            `<span style="font-size:11px;color:var(--tx2);width:84px;flex-shrink:0;">${label}</span>` +
+            `<div id="teSwatch_${v}" data-var="${v}" style="width:22px;height:22px;flex-shrink:0;border-radius:5px;border:1px solid var(--brd);background:${hex};cursor:pointer;"></div>` +
+            `<input type="text" class="vrcn-input" id="teHex_${v}" value="${hex}" maxlength="7"` +
+                ` style="flex:1;font-size:11px;font-family:monospace;"` +
+                ` oninput="teSetColorFromHex('${v}',this.value)">`;
+        row.querySelector(`#teSwatch_${v}`).addEventListener('click', function(e) {
+            e.stopPropagation();
+            _tePickerOpen(v, this);
+        });
+        container.appendChild(row);
+    }
+}
+
+function _teApplyColor(v, hex) {
+    hex = hex.toUpperCase();
+    _teColors[v] = hex;
+    const swatch = document.getElementById('teSwatch_' + v);
+    const hexEl  = document.getElementById('teHex_' + v);
+    if (swatch) swatch.style.background = hex;
+    if (hexEl)  hexEl.value = hex;
+    applyColors(_teColors);
+}
+
+function teSetColorFromHex(v, raw) {
+    if (!/^#[0-9A-Fa-f]{6}$/.test(raw)) return;
+    _teApplyColor(v, raw);
+    // Sync open picker if it's for this var
+    if (_tePickerState.varName === v) { _tePickerSyncFromHex(raw.toUpperCase()); }
+}
+
+function teSaveTheme() {
+    const name = (document.getElementById('teThemeName')?.value.trim()) || 'My Theme';
+    const key = 'custom_' + Date.now();
+    customThemes.push({ key, label: name, dot: _teColors['accent'] || '#888888', c: { ..._teColors } });
+    saveCustomColors();
+    selectCustomTheme(key);
+    renderThemeChips();
+    saveSettings();
+    _teSaved = true;
+    closeThemeEditor();
+}
+
+// ── Custom Color Picker ───────────────────────────────────────────────────────
+
+const _tePickerState = { varName: '', h: 0, s: 1, v: 1, draggingSV: false, draggingHue: false, inited: false };
+
+function _teHsvToHex(h, s, v) {
+    const f = n => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
+    return '#' + [f(5),f(3),f(1)].map(c => Math.round(c*255).toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+
+function _teHexToHsv(hex) {
+    const r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b), d = max - min;
+    let h = 0;
+    if (d) {
+        if (max===r) h = ((g-b)/d+6)%6;
+        else if (max===g) h = (b-r)/d+2;
+        else h = (r-g)/d+4;
+        h *= 60;
+    }
+    return { h, s: max ? d/max : 0, v: max };
+}
+
+function _tePickerInit() {
+    if (_tePickerState.inited) return;
+    _tePickerState.inited = true;
+    const svC  = document.getElementById('tePickerSV');
+    const hueC = document.getElementById('tePickerHue');
+    const picker = document.getElementById('teColorPicker');
+
+    const svPos = e => {
+        const r = svC.getBoundingClientRect();
+        _tePickerState.s = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+        _tePickerState.v = Math.max(0, Math.min(1, 1 - (e.clientY - r.top) / r.height));
+        _tePickerCommit();
+    };
+    const huePos = e => {
+        const r = hueC.getBoundingClientRect();
+        _tePickerState.h = Math.max(0, Math.min(359.99, ((e.clientX - r.left) / r.width) * 360));
+        _tePickerCommit();
+    };
+
+    svC.addEventListener('mousedown',  e => { _tePickerState.draggingSV  = true; svPos(e);  e.preventDefault(); });
+    hueC.addEventListener('mousedown', e => { _tePickerState.draggingHue = true; huePos(e); e.preventDefault(); });
+    document.addEventListener('mousemove', e => {
+        if (_tePickerState.draggingSV)  svPos(e);
+        if (_tePickerState.draggingHue) huePos(e);
+    });
+    document.addEventListener('mouseup', () => { _tePickerState.draggingSV = false; _tePickerState.draggingHue = false; });
+    document.addEventListener('mousedown', e => {
+        if (!picker.contains(e.target) && !e.target.dataset.var) _tePickerClose();
+    });
+}
+
+function _tePickerOpen(varName, anchorEl) {
+    if (_tePickerState.varName === varName && document.getElementById('teColorPicker').style.display !== 'none') {
+        _tePickerClose(); return;
+    }
+    const hex = _teColors[varName] || '#888888';
+    const hsv = _teHexToHsv(hex);
+    Object.assign(_tePickerState, { varName, h: hsv.h, s: hsv.s, v: hsv.v });
+
+    const picker  = document.getElementById('teColorPicker');
+    const panel   = document.getElementById('themeEditorPanel');
+    const pRect   = panel.getBoundingClientRect();
+    picker.style.display = 'block';
+    const pW = picker.offsetWidth || 220;
+    const left = pRect.left - pW - 8;
+    const aRect = anchorEl.getBoundingClientRect();
+    const top = Math.min(Math.max(8, aRect.top - 10), window.innerHeight - (picker.offsetHeight || 300) - 8);
+    picker.style.left = Math.max(8, left) + 'px';
+    picker.style.top  = top + 'px';
+
+    document.getElementById('tePickerHex').value = hex;
+    document.getElementById('tePickerPreview').style.background = hex;
+    _tePickerDraw();
+}
+
+function _tePickerClose() {
+    document.getElementById('teColorPicker').style.display = 'none';
+    _tePickerState.varName = '';
+}
+
+function _tePickerDraw() {
+    _tePickerDrawSV();
+    _tePickerDrawHue();
+}
+
+function _tePickerDrawSV() {
+    const c = document.getElementById('tePickerSV');
+    const ctx = c.getContext('2d');
+    const W = c.width, H = c.height;
+    ctx.fillStyle = _teHsvToHex(_tePickerState.h, 1, 1);
+    ctx.fillRect(0, 0, W, H);
+    const wg = ctx.createLinearGradient(0,0,W,0);
+    wg.addColorStop(0, 'rgba(255,255,255,1)'); wg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = wg; ctx.fillRect(0,0,W,H);
+    const bg = ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0, 'rgba(0,0,0,0)'); bg.addColorStop(1, 'rgba(0,0,0,1)');
+    ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+    // cursor
+    const cx = _tePickerState.s * W, cy = (1 - _tePickerState.v) * H;
+    ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI*2);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 1; ctx.stroke();
+}
+
+function _tePickerDrawHue() {
+    const c = document.getElementById('tePickerHue');
+    const ctx = c.getContext('2d');
+    const W = c.width, H = c.height;
+    const g = ctx.createLinearGradient(0,0,W,0);
+    for (let i = 0; i <= 12; i++) g.addColorStop(i/12, `hsl(${i*30},100%,50%)`);
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    // cursor
+    const cx = (_tePickerState.h / 360) * W;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+    ctx.strokeRect(cx-5, 0, 10, H);
+    ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 1;
+    ctx.strokeRect(cx-5, 0, 10, H);
+}
+
+function _tePickerCommit() {
+    const hex = _teHsvToHex(_tePickerState.h, _tePickerState.s, _tePickerState.v);
+    document.getElementById('tePickerHex').value = hex;
+    document.getElementById('tePickerPreview').style.background = hex;
+    _tePickerDraw();
+    _teApplyColor(_tePickerState.varName, hex);
+}
+
+function tePickerHexInput(raw) {
+    if (!/^#[0-9A-Fa-f]{6}$/.test(raw)) return;
+    _tePickerSyncFromHex(raw.toUpperCase());
+    _teApplyColor(_tePickerState.varName, raw.toUpperCase());
+}
+
+function _tePickerSyncFromHex(hex) {
+    const hsv = _teHexToHsv(hex);
+    Object.assign(_tePickerState, hsv);
+    document.getElementById('tePickerPreview').style.background = hex;
+    _tePickerDraw();
+}
+
+async function tePickerEyedropper() {
+    if (!window.EyeDropper) return;
+    try {
+        const result = await new EyeDropper().open();
+        const hex = result.sRGBHex.toUpperCase();
+        document.getElementById('tePickerHex').value = hex;
+        _tePickerSyncFromHex(hex);
+        _teApplyColor(_tePickerState.varName, hex);
+    } catch {}
+}
+
 function getThemeLabel(key, fallback) {
     return t(`theme.${key}`, fallback);
 }

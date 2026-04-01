@@ -666,6 +666,12 @@
                                 <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.custom_theme">Custom Theme</div>
                                 <div class="theme-grid" id="customThemeGrid"></div>
                             </div>
+                            <div style="margin-top:12px;margin-bottom:4px;">
+                                <button class="vrcn-button" onclick="openThemeEditor()">
+                                    <span class="msi" style="font-size:15px;">palette</span>
+                                    <span data-i18n="settings.design.theme_editor">Theme Editor</span>
+                                </button>
+                            </div>
                             <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.special_themes">Special Themes</div>
                             <div class="theme-grid" id="specialThemeGrid"></div>
                             <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.play_button_theme">Play Button Theme</div>
@@ -1696,5 +1702,32 @@
         <div id="avFavPickerList"></div>
         <div style="margin-top:8px;text-align:right;"><button class="vrcn-button" onclick="closeAvFavPicker()" data-i18n="common.cancel">Cancel</button></div>
     </div>
+<!-- Theme Editor Panel -->
+<div id="themeEditorPanel" style="display:none;position:fixed;bottom:16px;right:16px;width:380px;max-height:600px;z-index:9999;flex-direction:column;background:var(--bg-card);border:1px solid var(--brd);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--brd);flex-shrink:0;">
+        <span style="font-size:13px;font-weight:600;color:var(--tx1);" data-i18n="settings.design.theme_editor">Theme Editor</span>
+        <button class="vrcn-button" onclick="closeThemeEditor()" style="padding:3px 8px;"><span class="msi" style="font-size:14px;">close</span></button>
+    </div>
+    <div id="teColorRows" style="overflow-y:auto;padding:8px 12px;flex:1;min-height:0;"></div>
+    <div style="padding:10px 12px;border-top:1px solid var(--brd);flex-shrink:0;display:flex;flex-direction:column;gap:6px;">
+        <input type="text" class="vrcn-input" id="teThemeName" placeholder="Theme name..." data-i18n-placeholder="settings.design.theme_editor_name_placeholder">
+        <button class="vrcn-button" onclick="teSaveTheme()" style="width:100%;justify-content:center;">
+            <span class="msi" style="font-size:15px;">save</span>
+            <span data-i18n="settings.design.theme_editor_save">Save Theme</span>
+        </button>
+    </div>
+</div>
+<!-- Custom Color Picker -->
+<div id="teColorPicker" style="display:none;position:fixed;z-index:10001;background:var(--bg-card);border:1px solid var(--brd);border-radius:10px;padding:10px;box-shadow:0 4px 24px rgba(0,0,0,.6);width:220px;">
+    <canvas id="tePickerSV"  width="200" height="150" style="border-radius:6px;cursor:crosshair;display:block;"></canvas>
+    <canvas id="tePickerHue" width="200" height="14"  style="border-radius:4px;cursor:crosshair;display:block;margin-top:8px;"></canvas>
+    <div style="display:flex;gap:5px;margin-top:8px;align-items:center;">
+        <div id="tePickerPreview" style="width:22px;height:22px;border-radius:4px;border:1px solid var(--brd);flex-shrink:0;"></div>
+        <div style="flex:1;display:flex;align-items:center;position:relative;">
+            <input type="text" class="vrcn-input" id="tePickerHex" maxlength="7" style="width:100%;font-family:monospace;font-size:11px;padding-right:26px;" oninput="tePickerHexInput(this.value)">
+            <span class="msi" onclick="tePickerEyedropper()" title="Pick color from screen" style="position:absolute;right:5px;font-size:14px;color:var(--tx3);cursor:pointer;user-select:none;" onmouseover="this.style.color='var(--tx1)'" onmouseout="this.style.color='var(--tx3)'">colorize</span>
+        </div>
+    </div>
+</div>
 </body>
 </html>

@@ -1,5 +1,11 @@
 **2026.12.10**
 
+**Theme Editor**
+
+As you may know, you can already create custom themes based on your background images. But if that is not enough, there is now a new solution: **Theme Editor**.
+
+You can find it under **Settings > Designs > Colors > Custom Theme** by clicking the **Theme Editor** button. When you press it, a modal opens in the bottom-right corner and shows the current colors of the theme you are using. You can then adjust the colors to your liking and save your own custom theme.
+
 **Activity Log**
 
 * Added a search bar at the top of the **Activity Log** so you can search for specific entries.
@@ -12,4 +18,5 @@
 * You can now assign keybinds to the left or right controller by clicking **Record** and using your mouse to enable specific triggers, instead of needing to use your controllers while recording the keybinds.
 
 **i18n**
-* Added missing Translations to VR Overlay.
+
+* Added missing translations to the **VR Overlay**.
