@@ -112,7 +112,7 @@ function renderGroupDetail(g) {
     const banner = g.bannerUrl || g.iconUrl || '';
     const bannerEditBtn = canEdit ? `<button class="myp-edit-btn" style="position:absolute;top:8px;right:8px;z-index:2;" onclick="openImagePicker('group-banner','${gidJs}')" title="${esc(t('groups.images.change_banner', 'Change banner'))}"><span class="msi" style="font-size:13px;">edit</span></button>` : '';
     const bannerHtml = banner
-        ? `<div class="fd-banner">${bannerEditBtn}<img src="${banner}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>`
+        ? `<div class="fd-banner">${bannerEditBtn}<img src="${banner}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/group/${esc(g.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>`
         : (canEdit ? `<div style="display:flex;justify-content:flex-end;padding:4px 0 2px 0;"><button class="myp-edit-btn" onclick="openImagePicker('group-banner','${gidJs}')" title="${esc(t('groups.images.add_banner', 'Add banner'))}"><span class="msi" style="font-size:13px;">edit</span><span style="font-size:11px;margin-left:3px;">${esc(t('groups.images.banner', 'Banner'))}</span></button></div>` : '');
 
     // Header
@@ -121,7 +121,7 @@ function renderGroupDetail(g) {
         ? `<div style="position:relative;display:inline-block;flex-shrink:0;"><img class="fd-avatar" src="${g.iconUrl}" onerror="this.style.display='none'">${iconEditBtn}</div>`
         : (canEdit ? `<div style="position:relative;display:inline-block;flex-shrink:0;"><div class="fd-avatar" style="display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--tx3);">${esc((g.name||'?')[0])}</div>${iconEditBtn}</div>` : '');
     const headerMeta = [g.shortCode ? esc(g.shortCode) : '', esc(getGroupMembersText(g.memberCount || 0))].filter(Boolean).join(' &middot; ');
-    const headerHtml = `<div class="fd-content${banner ? ' fd-has-banner' : ''}"><div class="fd-header">${iconHtml}<div style="flex:1;min-width:0;"><div class="fd-name">${esc(g.name)}</div><div class="fd-status">${headerMeta}</div></div><span id="ggrpHeaderBadge" style="margin-left:auto;flex-shrink:0;">${g.joinState ? joinStateBadge(g.joinState) : ''}</span></div>`;
+    const headerHtml = `<div class="fd-content${banner ? ' fd-has-banner' : ''}"><div class="fd-header">${iconHtml}<div style="flex:1;min-width:0;"><div class="fd-name">${esc(g.name)}</div><div class="fd-status">${headerMeta}</div></div><span id="ggrpHeaderBadge" style="margin-left:auto;flex-shrink:0;">${g.joinState ? joinStateBadge(g.joinState) : ''}</span></div><div class="fd-badges-row">${idBadge(g.id)}</div>`;
 
     // Actions - moved to bottom bar
     const canPost  = g.canPost === true;

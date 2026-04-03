@@ -1004,9 +1004,10 @@ function renderTlDetailJoin(ev, el) {
             ${ev.worldId ? `<div class="fd-meta-row"${worldClick}><span class="fd-meta-label">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);">${esc(ev.worldName || ev.worldId)}</span></div>` : ''}
         </div>
         ${playersHtml}
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <div style="margin-top:14px;display:flex;gap:8px;">
+            <button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('modalDetail').style.display='none';sendToCS({action:'vrcJoinFriend',location:'${jsq(ev.location)}'});">${esc(t('instance.actions.force_join', 'Force-Join'))}</button>
             ${_instanceLinkBtn(ev.location, '')}
-            <button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
+            <button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
         </div>
     </div>`;
 }
@@ -1044,9 +1045,9 @@ function renderTlDetailPhoto(ev, el) {
             ${ev.worldId ? `<div class="fd-meta-row"${worldClick}><span class="fd-meta-label">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);">${esc(ev.worldName || ev.worldId)}</span></div>` : ''}
         </div>
         ${playersHtml}
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <div style="margin-top:14px;display:flex;gap:8px;">
             ${ev.photoUrl ? `<button class="vrcn-button-round vrcn-btn-join" onclick="openLightbox('${photoJs}','image')"><span class="msi" style="font-size:14px;">open_in_full</span> ${esc(t('timeline.actions.full_size', 'Full Size'))}</button>` : ''}
-            <button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
+            <button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
         </div>
     </div>`;
 }
@@ -1074,9 +1075,9 @@ function renderTlDetailMeet(ev, el) {
             <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
             ${ev.worldId ? `<div class="fd-meta-row"${worldClickMeet}><span class="fd-meta-label">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);">${esc(ev.worldName || ev.worldId)}</span></div>` : ''}
         </div>
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <div style="margin-top:14px;display:flex;gap:8px;">
             ${ev.userId ? `<button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('modalDetail').style.display='none';openFriendDetail('${esc(ev.userId)}')">${esc(t('timeline.actions.view_profile', 'View Profile'))}</button>` : ''}
-            <button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
+            <button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
         </div>
     </div>`;
 }
@@ -1104,9 +1105,9 @@ function renderTlDetailMeetAgain(ev, el) {
             <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
             ${ev.worldId ? `<div class="fd-meta-row"${worldClickAgain}><span class="fd-meta-label">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);">${esc(ev.worldName || ev.worldId)}</span></div>` : ''}
         </div>
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <div style="margin-top:14px;display:flex;gap:8px;">
             ${ev.userId ? `<button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('modalDetail').style.display='none';openFriendDetail('${esc(ev.userId)}')">${esc(t('timeline.actions.view_profile', 'View Profile'))}</button>` : ''}
-            <button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
+            <button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
         </div>
     </div>`;
 }
@@ -1136,9 +1137,9 @@ function renderTlDetailNotif(ev, el) {
             ${ev.notifTitle ? `<div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.context', 'Context'))}</span><span>${esc(ev.notifTitle)}</span></div>` : ''}
             ${ev.message ? `<div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.message', 'Message'))}</span><span>${esc(ev.message)}</span></div>` : ''}
         </div>
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <div style="margin-top:14px;display:flex;gap:8px;">
             ${ev.senderId ? `<button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('modalDetail').style.display='none';openFriendDetail('${esc(ev.senderId)}')">${esc(t('timeline.actions.view_profile', 'View Profile'))}</button>` : ''}
-            <button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
+            <button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
         </div>
     </div>`;
 }
@@ -1162,9 +1163,9 @@ function renderTlDetailAvatar(ev, el) {
             <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
             ${ev.userId ? `<div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.avatar_id', 'Avatar ID'))}</span><span style="font-size:11px;color:var(--tx3);">${esc(ev.userId)}</span></div>` : ''}
         </div>
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <div style="margin-top:14px;display:flex;gap:8px;">
             ${openBtn}
-            <button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
+            <button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
         </div>
     </div>`;
 }
@@ -1194,10 +1195,10 @@ function renderTlDetailUrl(ev, el) {
             ${ev.worldName ? `<div class="fd-meta-row"${worldClick}><span class="fd-meta-label">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);">${esc(ev.worldName)}</span></div>` : ''}
             <div class="fd-meta-row" style="align-items:flex-start;"><span class="fd-meta-label">${esc(t('timeline.detail.url', 'URL'))}</span><span style="word-break:break-all;font-size:11px;color:var(--tx2);">${esc(url)}</span></div>
         </div>
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <div style="margin-top:14px;display:flex;gap:8px;">
             <button class="vrcn-button-round vrcn-btn-join" onclick="sendToCS({action:'openUrl',url:'${jsq(url)}'})">${esc(t('timeline.actions.open_url', 'Open URL'))}</button>
             <button class="vrcn-button-round" onclick="navigator.clipboard.writeText('${jsq(url)}').then(()=>showToast(true,t('timeline.toast.copied','Copied!')))">${esc(t('timeline.actions.copy', 'Copy'))}</button>
-            <button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
+            <button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
         </div>
     </div>`;
 }
@@ -1717,9 +1718,11 @@ function renderFtGpsDetailModal(ev) {
         </div>
         <div id="ftGpsTabInfo">${infoHtml}</div>
         <div id="ftGpsTabAlso" style="display:none;"><div style="font-size:12px;color:var(--tx3);padding:12px 0;">${esc(t('common.loading', 'Loading...'))}</div></div>
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <div style="margin-top:14px;display:flex;gap:8px;">
+            ${loc ? `<button class="vrcn-button-round vrcn-btn-join" onclick="closeFtGpsDetail();sendToCS({action:'vrcJoinFriend',location:'${jsq(loc)}'});">${esc(t('instance.actions.force_join', 'Force-Join'))}</button>` : ''}
             ${_instanceLinkBtn(loc, '')}
-            ${ev.worldId ? `<button class="vrcn-button-round vrcn-btn-join" onclick="closeFtGpsDetail();openWorldSearchDetail('${esc(ev.worldId)}')"><span class="msi" style="font-size:14px;">travel_explore</span> ${esc(t('timeline.actions.open_world', 'Open World'))}</button>` : ''}
+            <span style="flex:1;"></span>
+            ${ev.worldId ? `<button class="vrcn-button-round" onclick="closeFtGpsDetail();openWorldSearchDetail('${esc(ev.worldId)}')"><span class="msi" style="font-size:14px;">travel_explore</span> ${esc(t('timeline.actions.open_world', 'Open World'))}</button>` : ''}
             <button class="vrcn-button-round" onclick="closeFtGpsDetail()">${esc(t('common.close', 'Close'))}</button>
         </div>
     </div>`;
@@ -1785,7 +1788,7 @@ function ftDetailAvRow(ev) {
 }
 
 function ftDetailClose() {
-    return `<button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>`;
+    return `<button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>`;
 }
 
 function ftDetailViewProfile(ev) {
@@ -1836,7 +1839,7 @@ function renderFtDetailStatus(ev, el) {
                 </span>
             </div>
         </div>
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <div style="margin-top:14px;display:flex;gap:8px;">
             ${ftDetailViewProfile(ev)}${ftDetailClose()}
         </div>
     </div>`;
@@ -1851,7 +1854,7 @@ function renderFtDetailOnline(ev, el) {
             <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
             <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.event', 'Event'))}</span><span style="color:var(--ok);">${esc(t('timeline.friend.online_game', 'Online (Game)'))}</span></div>
         </div>
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <div style="margin-top:14px;display:flex;gap:8px;">
             ${ftDetailViewProfile(ev)}${ftDetailClose()}
         </div>
     </div>`;
@@ -1866,7 +1869,7 @@ function renderFtDetailOffline(ev, el) {
             <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
             <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.event', 'Event'))}</span><span style="color:var(--tx3);">${esc(t('timeline.friend.went_offline', 'Went Offline'))}</span></div>
         </div>
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <div style="margin-top:14px;display:flex;gap:8px;">
             ${ftDetailViewProfile(ev)}${ftDetailClose()}
         </div>
     </div>`;
@@ -1881,7 +1884,7 @@ function renderFtDetailAdded(ev, el) {
             <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
             <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.event', 'Event'))}</span><span style="color:var(--ok);">${esc(t('timeline.friend.added_full', 'Friend Added'))}</span></div>
         </div>
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <div style="margin-top:14px;display:flex;gap:8px;">
             ${ftDetailViewProfile(ev)}${ftDetailClose()}
         </div>
     </div>`;
@@ -1897,7 +1900,8 @@ function renderFtDetailRemoved(ev, el) {
             <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.event', 'Event'))}</span><span style="color:var(--err);">${esc(t('timeline.friend.unfriended', 'Unfriended'))}</span></div>
             <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.user_id', 'User ID'))}</span><span style="font-size:11px;opacity:.7;">${esc(ev.friendId || '')}</span></div>
         </div>
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <div style="margin-top:14px;display:flex;gap:8px;">
+            ${ftDetailViewProfile(ev)}
             ${ftDetailClose()}
         </div>
     </div>`;
@@ -1915,7 +1919,7 @@ function renderFtDetailStatusDesc(ev, el) {
             <div style="font-size:12px;color:var(--tx2);background:var(--bg2);padding:8px 10px;border-radius:6px;">${esc(ev.oldValue)}</div></div>` : ''}
         ${ev.newValue !== undefined ? `<div style="margin-top:10px;"><div style="font-size:10px;color:var(--tx3);margin-bottom:4px;">${esc(t('timeline.detail.new_status_text', 'NEW STATUS TEXT'))}</div>
             <div style="font-size:12px;color:var(--tx1);background:var(--bg2);padding:8px 10px;border-radius:6px;">${ev.newValue ? esc(ev.newValue) : tlDetailClearedHtml()}</div></div>` : ''}
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <div style="margin-top:14px;display:flex;gap:8px;">
             ${ftDetailViewProfile(ev)}${ftDetailClose()}
         </div>
     </div>`;
@@ -1933,7 +1937,7 @@ function renderFtDetailBio(ev, el) {
             <div style="font-size:12px;color:var(--tx2);background:var(--bg2);padding:8px 10px;border-radius:6px;white-space:pre-wrap;">${esc(ev.oldValue)}</div></div>` : ''}
         ${ev.newValue ? `<div style="margin-top:10px;"><div style="font-size:10px;color:var(--tx3);margin-bottom:4px;">${esc(t('timeline.detail.new_bio', 'NEW BIO'))}</div>
             <div style="font-size:12px;color:var(--tx1);background:var(--bg2);padding:8px 10px;border-radius:6px;white-space:pre-wrap;">${esc(ev.newValue)}</div></div>` : ''}
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <div style="margin-top:14px;display:flex;gap:8px;">
             ${ftDetailViewProfile(ev)}${ftDetailClose()}
         </div>
     </div>`;
@@ -1942,6 +1946,17 @@ function renderFtDetailBio(ev, el) {
 // ═══════════════════════════════════════════════════════════════════
 // List View — Personal Timeline
 // ═══════════════════════════════════════════════════════════════════
+
+function _tlListProfHtml(img, name) {
+    if (img) return `<div class="tl-av" style="width:26px;height:26px;background-image:url('${cssUrl(img)}')"></div>`;
+    if (name) return `<div class="tl-av tl-av-letter" style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:10px;">${esc(name[0].toUpperCase())}</div>`;
+    return '';
+}
+
+function _tlPersonalProfHtml(ev) {
+    if (ev.type === 'notification') return _tlListProfHtml(ev.senderImage, ev.senderName);
+    return _tlListProfHtml(ev.userImage, ev.userName);
+}
 
 function buildPersonalListHtml(events) {
     if (!events.length) {
@@ -1960,6 +1975,7 @@ function buildPersonalListHtml(events) {
         rows += `<tr class="tl-list-row" onclick="openTlDetail('${ei}')">
             <td class="tl-list-dt">${esc(`${tlFormatShortDate(ev.timestamp)} | ${tlFormatTime(ev.timestamp)}`)}</td>
             <td class="tl-list-type"><span class="msi tl-list-icon" style="color:${color}">${meta.icon}</span><span>${esc(listTypeLabel)}</span></td>
+            <td style="width:34px;padding:4px 8px;">${_tlPersonalProfHtml(ev)}</td>
             <td class="tl-list-user">${userHtml || tlListNaHtml()}</td>
             <td class="tl-list-detail">${detail || tlListNaHtml()}</td>
         </tr>`;
@@ -1968,7 +1984,7 @@ function buildPersonalListHtml(events) {
     return `<div class="tl-list-wrap">
         <table class="tl-list-table">
             <thead><tr>
-                <th>${esc(t('timeline.list.header.date_time', 'Date / Time'))}</th><th>${esc(t('timeline.list.header.type', 'Type'))}</th><th>${esc(t('timeline.list.header.user', 'User'))}</th><th>${esc(t('timeline.list.header.detail', 'Detail'))}</th>
+                <th>${esc(t('timeline.list.header.date_time', 'Date / Time'))}</th><th>${esc(t('timeline.list.header.type', 'Type'))}</th><th>${esc(t('timeline.list.header.profile', 'Profile'))}</th><th>${esc(t('timeline.list.header.user', 'User'))}</th><th>${esc(t('timeline.list.header.detail', 'Detail'))}</th>
             </tr></thead>
             <tbody>${rows}</tbody>
         </table>
@@ -2042,6 +2058,7 @@ function buildFriendListHtml(events) {
         rows += `<tr class="tl-list-row" onclick="${clickAction}">
             <td class="tl-list-dt">${esc(`${tlFormatShortDate(ev.timestamp)} | ${tlFormatTime(ev.timestamp)}`)}</td>
             <td class="tl-list-type"><span class="msi tl-list-icon" style="color:${color}">${meta.icon}</span><span>${esc(meta.label)}</span></td>
+            <td style="width:34px;padding:4px 8px;">${_tlListProfHtml(ev.friendImage, ev.friendName)}</td>
             <td class="tl-list-user">${esc(ev.friendName || t('timeline.unknown', 'Unknown'))}</td>
             <td class="tl-list-detail">${detail || tlListNaHtml()}</td>
         </tr>`;
@@ -2050,7 +2067,7 @@ function buildFriendListHtml(events) {
     return `<div class="tl-list-wrap">
         <table class="tl-list-table">
             <thead><tr>
-                <th>${esc(t('timeline.list.header.date_time', 'Date / Time'))}</th><th>${esc(t('timeline.list.header.type', 'Type'))}</th><th>${esc(t('timeline.list.header.user', 'User'))}</th><th>${esc(t('timeline.list.header.detail', 'Detail'))}</th>
+                <th>${esc(t('timeline.list.header.date_time', 'Date / Time'))}</th><th>${esc(t('timeline.list.header.type', 'Type'))}</th><th>${esc(t('timeline.list.header.profile', 'Profile'))}</th><th>${esc(t('timeline.list.header.user', 'User'))}</th><th>${esc(t('timeline.list.header.detail', 'Detail'))}</th>
             </tr></thead>
             <tbody>${rows}</tbody>
         </table>

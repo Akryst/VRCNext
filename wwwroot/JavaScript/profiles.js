@@ -1040,7 +1040,7 @@ function renderFriendDetail(d) {
     // Banner
     const bannerSrc = d.profilePicOverride || d.currentAvatarImageUrl || d.image || '';
     const bannerHtml = bannerSrc
-        ? `<div class="fd-banner"><img src="${bannerSrc}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>`
+        ? `<div class="fd-banner"><img src="${bannerSrc}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(d.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>`
         : '';
 
     // Presence

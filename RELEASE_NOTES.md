@@ -1,27 +1,29 @@
-**2026.12.10**
+**2026.13.0**
 
-**Theme Editor**
+**Smart Links**
+Smart Links make it much easier to open **Groups**, **Worlds**, **Profiles**, and **Avatars** directly inside **VRCN**.
 
-As you may know, you can already create custom themes based on your background images. But if that is not enough, there is now a new solution: **Theme Editor**.
+For example, if a friend sends you a **VRChat.com** link that points to an avatar, user profile, world, or group, you can simply right-click it from almost anywhere and choose **Open X Link**, such as **Open Avatar Link**. VRCN will then immediately detect the content type and open the correct modal for it. This makes sharing VRChat content across different platforms much faster, easier, and more accessible.
 
-You can find it under **Settings > Designs > Colors > Custom Theme** by clicking the **Theme Editor** button. When you press it, a modal opens in the bottom-right corner and shows the current colors of the theme you are currently using. You can then adjust the colors to your liking and save your own custom theme.
+Smart Links also work with direct IDs, including **Avatar IDs**, **Group IDs**, **World IDs**, and **Profile IDs**. This means you are not limited to full website links and can quickly open content even when only the raw ID is available.
 
-**Dashboard**
-* Added Quick Feature Widget to the dashboard
+**New**
 
-This feature is currently in **beta**.
+* Added a **Share** button to the header of **World** modals.
+* Added a **Share** button to the header of **Avatar** modals.
+* Added a **Share** button to the header of **Group** modals.
+* Added a **Share** button to the header of **User** modals.
 
-**Activity Log**
+**Timeline**
 
-* Added a search bar at the top of the **Activity Log** so you can search for specific entries.
-* Added a **Show All / Show Last 100** button, allowing you to switch between viewing the full log and only the last 100 entries.
+* Added a **Force Join** button to the **Instances** modal under **Personal**, allowing you to join an instance if it is still valid.
+* Added a **Force Join** button to the **Locations** modal under **Friends**, allowing you to join an instance if it is still valid.
+* Added the **Profile** image to the **Timeline** list view for better visual context and easier recognition.
 
-**VR Overlay**
+**Changes**
 
-* Improved scrolling.
-* Increased the refresh rate from **30 FPS** to **60 FPS**. This has only a minimal performance impact and should not be noticeable, even on low-end hardware.
-* You can now assign keybinds to the left or right controller by clicking **Record** and using your mouse to enable specific triggers, instead of needing to use your controllers while recording the keybinds.
-
-**i18n**
-
-* Added missing translations to the **VR Overlay**.
+* Changed the button location in the **Personal Timeline > Instances** modal.
+* Changed the button locations in **Friends Timeline > Locations**.
+* Updated several button placements across all **Timeline** modals for a cleaner, more consistent, and easier-to-use layout.
+* Added the missing **View Profile** button to the **Unfriended** list in **Timeline**.
+* Added the missing **Group ID** badge to **Group** modals.

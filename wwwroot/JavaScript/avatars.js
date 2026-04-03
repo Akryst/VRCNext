@@ -970,7 +970,7 @@ function renderAvatarDetail(a) {
         : `<div class="myp-empty">${t('avatars.detail.empty_tags', 'No tags')}</div>`;
 
     c.innerHTML = `
-        ${thumb ? `<div class="fd-banner"><img src="${thumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>` : ''}
+        ${thumb ? `<div class="fd-banner"><img src="${thumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/avatar/${esc(a.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>` : ''}
         <div class="fd-content${thumb ? ' fd-has-banner' : ''}">
 
             <!-- Name -->

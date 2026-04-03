@@ -32,8 +32,31 @@
         if (e.key === 'Escape') hideMenu();
     });
 
+    /* VRC clipboard link detection */
+    function detectVrcClipboard(text) {
+        text = (text || '').trim();
+        let m;
+        if ((m = text.match(/vrchat\.com\/home\/avatar\/(avtr_[\w-]+)/i)))       return { type: 'avatar', id: m[1] };
+        if ((m = text.match(/vrchat\.com\/home\/world\/(wrld_[\w-]+)/i)))        return { type: 'world',  id: m[1] };
+        if ((m = text.match(/vrchat\.com\/home\/group\/(grp_[\w-]+)/i)))         return { type: 'group',  id: m[1] };
+        if ((m = text.match(/vrchat\.com\/home\/user\/(usr_[\w-]+)/i)))          return { type: 'user',   id: m[1] };
+        if ((m = text.match(/vrchat:\/\/launch.*[?&]worldId=(wrld_[\w-]+)/i)))  return { type: 'world',  id: m[1] };
+        if ((m = text.match(/^(avtr_[\w-]+)$/i)))  return { type: 'avatar', id: m[1], bare: true };
+        if ((m = text.match(/^(wrld_[\w-]+)$/i)))  return { type: 'world',  id: m[1], bare: true };
+        if ((m = text.match(/^(grp_[\w-]+)$/i)))   return { type: 'group',  id: m[1], bare: true };
+        if ((m = text.match(/^(usr_[\w-]+)$/i)))   return { type: 'user',   id: m[1], bare: true };
+        return null;
+    }
+    const VRC_CTX_META = {
+        avatar: { icon: 'checkroom',      labelKey: 'ctx.open_avatar_link',  fallback: 'Open Avatar Link',  bareKey: 'ctx.open_avatar_id',  bareFallback: 'Open Avatar ID'  },
+        world:  { icon: 'travel_explore', labelKey: 'ctx.open_world_link',   fallback: 'Open World Link',   bareKey: 'ctx.open_world_id',   bareFallback: 'Open World ID'   },
+        group:  { icon: 'group',          labelKey: 'ctx.open_group_link',   fallback: 'Open Group Link',   bareKey: 'ctx.open_group_id',   bareFallback: 'Open Group ID'   },
+        user:   { icon: 'person',         labelKey: 'ctx.open_profile_link', fallback: 'Open Profile Link', bareKey: 'ctx.open_profile_id', bareFallback: 'Open Profile ID' },
+    };
+
     /* Main listener */
-    document.addEventListener('contextmenu', e => {
+    document.addEventListener('contextmenu', async e => {
+        e.preventDefault();
         hideMenu();
         const sel = (typeof _textToolsEnabled !== 'undefined' && _textToolsEnabled)
             ? (window.getSelection()?.toString().trim() ?? '')
@@ -46,8 +69,24 @@
         if (copyItem && cfg) cfg = [copyItem, 'sep', ...cfg];
         else if (copyItem && !cfg) cfg = [copyItem];
 
+        const clipText = await navigator.clipboard.readText().catch(() => '');
+        const vrcData = detectVrcClipboard(clipText);
+        if (vrcData) {
+            const meta = VRC_CTX_META[vrcData.type];
+            const vrcItem = {
+                icon: meta.icon,
+                label: vrcData.bare ? t(meta.bareKey, meta.bareFallback) : t(meta.labelKey, meta.fallback),
+                action: () => {
+                    if      (vrcData.type === 'avatar') openAvatarDetail(vrcData.id);
+                    else if (vrcData.type === 'world')  openWorldSearchDetail(vrcData.id);
+                    else if (vrcData.type === 'group')  openGroupDetail(vrcData.id);
+                    else if (vrcData.type === 'user')   openFriendDetail(vrcData.id);
+                }
+            };
+            cfg = cfg ? [vrcItem, 'sep', ...cfg] : [vrcItem];
+        }
+
         if (!cfg) return;
-        e.preventDefault();
         showMenu(e.clientX, e.clientY, cfg);
     });
 
