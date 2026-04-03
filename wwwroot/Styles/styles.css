@@ -28,7 +28,6 @@
     --status-offline:#747F8D;
 }
 
-.vrcn-text,
 .clock-date,
 .topbar-title,
 .modal-fname,
@@ -64,7 +63,6 @@
 .tl-main-label,
 .tl-sub-label,
 .tl-list-detail,
-.fdtl-item-loc,
 .ts-stat-val,
 .ts-item-name,
 .vf-filename,
@@ -72,11 +70,9 @@
 .dp-preview-state,
 .chat-inbox-name,
 .chat-inbox-text,
-.fd-world-name,
 #msgrName,
 #msgrSub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.vrcn-info,
 .vrc-profile-info,
 .vrc-friend-info,
 .gd-perm-info,
@@ -86,15 +82,12 @@
 .fd-group-card-info,
 .notif-body,
 .cb-media-details,
-.fdtl-item-info,
 .chat-inbox-body { flex: 1; min-width: 0; }
 
-.vrcn-name,
 .gd-role-name,
 .fd-profile-item-name,
 .fav-friend-name,
-.cb-media-title,
-.fdtl-item-loc { font-size: 13px; font-weight: 600; color: var(--tx0); }
+.cb-media-title { font-size: 13px; font-weight: 600; color: var(--tx0); }
 
 .fd-pi-sm-sub, .upd-status, .nc-sub, .cb-media-artist { font-size: 11px; color: var(--tx3); }
 
@@ -104,11 +97,10 @@
 
 .vrc-profile-name, .s-card-title { font-size: 13px; font-weight: 700; color: var(--tx0); }
 
-.fd-world-name, .inst-item-name, .fd-group-card-name { font-size: 12px; font-weight: 600; color: var(--tx1); }
+.inst-item-name, .fd-group-card-name { font-size: 12px; font-weight: 600; color: var(--tx1); }
 
 .notif-title, .inst-user-name, .osc-param-name { font-size: 12px; color: var(--tx1); }
 
-.vrcn-flex-center,
 .logo-icon,
 .win-btn,
 .btn-play,
@@ -138,7 +130,6 @@
 .tl-av-letter,
 .tl-player-av-letter,
 .tl-detail-av-letter,
-.fdtl-avatar-empty,
 .nc-close-btn,
 .ts-loading,
 .ts-empty,
@@ -932,7 +923,6 @@ html.text-tools-active * { user-select: text !important; }
 .li-f .li-level.vrc  { color: #9876AA; }
 
 .li-f .li-msg { color: var(--tx2); word-break: break-all; }
-.li-f .li-msg .li-hl { color: var(--accent-lt); }
 
 .file-list-header {
     margin-top: 24px;
@@ -1021,7 +1011,6 @@ html.text-tools-active * { user-select: text !important; }
     margin-bottom: 14px;
 }
 
-.console-input:focus,
 .vrc-login-box input:focus,
 .status-desc-input:focus,
 .vrcn-dropdown:focus,
@@ -1909,11 +1898,11 @@ html.text-tools-active * { user-select: text !important; }
 }
 
 /* — Status dot colours: all dot/ring types share these — */
-.vrc-status-dot.s-active, .vrc-status-dot.s-online, .st-active, .st-online, .dp-status-dot.online, .dp-pg-dot.online   { background: var(--status-online); }
-.vrc-status-dot.s-join, .st-join, .st-join\ me, .dp-status-dot.join_me, .dp-pg-dot.join_me                              { background: var(--status-join); }
-.vrc-status-dot.s-ask, .st-ask, .st-ask\ me, .st-look\ me, .dp-status-dot.ask_me, .dp-pg-dot.ask_me                    { background: var(--status-ask); }
-.vrc-status-dot.s-busy, .st-busy, .st-do\ not\ disturb, .dp-status-dot.busy, .dp-pg-dot.busy                           { background: var(--status-busy); }
-.vrc-status-dot.s-offline, .st-offline, .dp-status-dot.offline                                                          { background: var(--status-offline); }
+.vrc-status-dot.s-active, .vrc-status-dot.s-online, .dp-status-dot.online, .dp-pg-dot.online   { background: var(--status-online); }
+.vrc-status-dot.s-join, .dp-status-dot.join_me, .dp-pg-dot.join_me                              { background: var(--status-join); }
+.vrc-status-dot.s-ask, .dp-status-dot.ask_me, .dp-pg-dot.ask_me                                { background: var(--status-ask); }
+.vrc-status-dot.s-busy, .dp-status-dot.busy, .dp-pg-dot.busy                                   { background: var(--status-busy); }
+.vrc-status-dot.s-offline, .dp-status-dot.offline                                               { background: var(--status-offline); }
 
 .vrc-status-ring {
     width: 8px;
@@ -2207,8 +2196,7 @@ html.text-tools-active * { user-select: text !important; }
 
 /* Instance type colors */
 .vrcn-badge.public     { background: rgba(45,212,140,.12);  color: var(--ok); }
-.vrcn-badge.friends,
-.vrcn-badge.friendsplus { background: rgba(66,165,245,.12); color: #42A5F5; }
+.vrcn-badge.friends { background: rgba(66,165,245,.12); color: #42A5F5; }
 .vrcn-badge.private,
 .vrcn-badge.invite     { background: rgba(239,83,80,.12);   color: #EF5350; }
 .vrcn-badge.group      { background: rgba(255,167,38,.12);  color: #FFA726; }
@@ -2229,7 +2217,6 @@ html.text-tools-active * { user-select: text !important; }
 .vrcn-badge.vrcplus { background: #FFD70022; color: #FFD700; border: 1px solid #FFD70055; box-shadow: 0 0 6px #FFD70066; letter-spacing: .4px; }
 
 /* OSC types */
-.vrcn-badge.osc-bool  { background: rgba(78,173,229,0.15);   color: #4EADE5; }
 .vrcn-badge.osc-float { background: rgba(206,145,120,0.15);  color: #CE9178; }
 .vrcn-badge.osc-int   { background: rgba(109,191,130,0.15);  color: #6DBF82; }
 
@@ -5107,9 +5094,7 @@ html.text-tools-active * { user-select: text !important; }
     border: 1px solid var(--brd);
     color: var(--tx2);
 }
-.ft-status-chip.join-me  { color: var(--status-join);    border-color: var(--status-join);    }
 .ft-status-chip.active   { color: var(--status-online);  border-color: var(--status-online);  }
-.ft-status-chip.ask-me   { color: var(--status-ask);     border-color: var(--status-ask);     }
 .ft-status-chip.busy     { color: var(--status-busy);    border-color: var(--status-busy);    }
 .ft-status-chip.offline  { color: var(--status-offline); border-color: var(--status-offline); }
 
@@ -5125,8 +5110,6 @@ html.text-tools-active * { user-select: text !important; }
 .search-bar-row .search-input,
 .search-bar-row .vrcn-input { height: 32px; box-sizing: border-box; padding-top: 0; padding-bottom: 0; }
 .wd-create-select.vn-select .vn-select-trigger { height: 32px; box-sizing: border-box; }
-.wd-create-row .wd-create-select.vn-select,
-
 .tl-datebtn { padding: 0 10px; }
 #tlDateBtn.dp-active { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-lt); }
 
@@ -5568,45 +5551,6 @@ html.text-tools-active * { user-select: text !important; }
     height: 52px;
     width: 70%;
     align-self: flex-end;
-}
-
-/* ── Friend-detail Timeline Preview list ── */
-
-.fdtl-list {
-    max-height: 276px;
-    overflow-y: auto;
-    overflow-x: hidden;
-}
-.fdtl-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    background: var(--bg-input);
-    margin-bottom: 6px;
-}
-.fdtl-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    object-fit: cover;
-    flex-shrink: 0;
-    background: var(--bg-base);
-}
-.fdtl-avatar-empty {
-    color: var(--tx3);
-}
-.fdtl-item-date {
-    font-size: 10px;
-    color: var(--tx3);
-    margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-}
-.fdtl-badge {
-    margin-bottom: 3px;
-    text-transform: uppercase;
 }
 
 /* ── fd-banner avatar fallback ── */
@@ -6594,65 +6538,6 @@ div.vn-select {
 #dashMyRecentTl .tl-list-table,
 #dashFriendsRecentTl .tl-list-table { font-size: 11px; }
 
-.dash-tl-col-header {
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--tx3);
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-.dash-tl-col-header .msi { font-size: 13px; }
-
-.dash-tl-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 10px;
-    background: var(--bg-card);
-    border-radius: 9px;
-    cursor: pointer;
-    transition: background .12s;
-    min-width: 0;
-}
-.dash-tl-row:hover { background: var(--bg-hover); }
-
-.dash-tl-icon {
-    width: 26px;
-    height: 26px;
-    border-radius: 7px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-.dash-tl-icon .msi { font-size: 14px; }
-
-.dash-tl-body { flex: 1; min-width: 0; }
-.dash-tl-type {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-}
-.dash-tl-detail {
-    font-size: 11px;
-    color: var(--tx2);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-top: 1px;
-}
-.dash-tl-time {
-    font-size: 9px;
-    color: var(--tx3);
-    flex-shrink: 0;
-    white-space: nowrap;
-}
-
 /* ═══════════════════════════════════════════════════════════
    DASHBOARD — Sections Layout System
    ═══════════════════════════════════════════════════════════ */
@@ -7379,13 +7264,6 @@ div.vn-select {
     border-color: var(--accent);
     color: var(--accent-lt);
     font-weight: 600;
-}
-
-.vro-ctrl-legend {
-    margin-top: 8px;
-    font-size: 11px;
-    color: var(--tx3);
-    text-align: center;
 }
 
 /* Keybind display */
