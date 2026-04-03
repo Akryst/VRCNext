@@ -409,6 +409,7 @@
   "ctx.open_world_id": "打开世界ID",
   "ctx.open_group_id": "打开群组ID",
   "ctx.open_profile_id": "打开个人资料ID",
+  "ctx.open_instance_link": "打开实例链接",
   "common.clear": "清除",
   "common.delete": "删除",
   "common.done": "完成",

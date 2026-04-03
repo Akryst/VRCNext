@@ -158,6 +158,72 @@ public class InstanceController
                 });
                 break;
 
+            case "vrcGetInstanceDetail":
+                _ = Task.Run(async () =>
+                {
+                    var detailLoc = msg["location"]?.ToString() ?? "";
+                    if (string.IsNullOrEmpty(detailLoc)) return;
+                    var inst = await _core.VrcApi.GetInstanceAsync(detailLoc);
+                    if (inst == null)
+                    {
+                        _core.SendToJS("instanceDetail", new { error = true, location = detailLoc });
+                        return;
+                    }
+                    var iType = ParseInstanceTypeFromLoc(detailLoc);
+                    if (iType == "private" && inst["canRequestInvite"]?.Value<bool>() == true) iType = "invite_plus";
+                    var worldName  = inst["world"]?["name"]?.ToString() ?? "";
+                    var worldThumb = inst["world"]?["imageUrl"]?.ToString() ?? inst["world"]?["thumbnailImageUrl"]?.ToString() ?? "";
+                    if (string.IsNullOrEmpty(worldName))
+                    {
+                        var parsedWid = inst["worldId"]?.ToString() ?? detailLoc.Split(':')[0];
+                        if (!string.IsNullOrEmpty(parsedWid))
+                        {
+                            var world = await _core.VrcApi.GetWorldAsync(parsedWid);
+                            if (world != null)
+                            {
+                                worldName  = world["name"]?.ToString() ?? "";
+                                worldThumb = world["imageUrl"]?.ToString() ?? world["thumbnailImageUrl"]?.ToString() ?? "";
+                            }
+                        }
+                    }
+                    var ownerId    = inst["ownerId"]?.ToString() ?? "";
+                    var ownerName  = "";
+                    var ownerGroup = "";
+                    if (ownerId.StartsWith("grp_"))
+                    {
+                        var grp = await _core.VrcApi.GetGroupAsync(ownerId);
+                        if (grp != null)
+                        {
+                            ownerName  = grp["name"]?.ToString() ?? "";
+                            ownerGroup = grp["shortCode"]?.ToString() ?? "";
+                        }
+                    }
+                    else if (ownerId.StartsWith("usr_"))
+                    {
+                        var f = _friends.GetStoreValue(ownerId);
+                        ownerName = f?["displayName"]?.ToString() ?? "";
+                        if (string.IsNullOrEmpty(ownerName))
+                        {
+                            var ownerUser = await _core.VrcApi.GetUserAsync(ownerId);
+                            ownerName = ownerUser?["displayName"]?.ToString() ?? "";
+                        }
+                    }
+                    _core.SendToJS("instanceDetail", new
+                    {
+                        location     = inst["location"]?.ToString() ?? detailLoc,
+                        worldId      = inst["worldId"]?.ToString() ?? detailLoc.Split(':')[0],
+                        worldName,
+                        worldThumb,
+                        instanceType = iType,
+                        userCount    = inst["userCount"]?.Value<int>() ?? 0,
+                        capacity     = inst["capacity"]?.Value<int>() ?? 0,
+                        ownerId,
+                        ownerName,
+                        ownerGroup,
+                    });
+                });
+                break;
+
             case "vrcRemoveMyInstance":
                 _ = Task.Run(async () =>
                 {

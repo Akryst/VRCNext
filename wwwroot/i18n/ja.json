@@ -409,6 +409,7 @@
   "ctx.open_world_id": "ワールドIDを開く",
   "ctx.open_group_id": "グループIDを開く",
   "ctx.open_profile_id": "プロフィールIDを開く",
+  "ctx.open_instance_link": "インスタンスリンクを開く",
   "common.clear": "クリア",
   "common.delete": "削除",
   "common.done": "完了",

@@ -343,6 +343,59 @@ function closeMyInstanceDetail() {
     document.getElementById('modalMyInstance').style.display = 'none';
 }
 
+function openInstanceDetailFromData(inst) {
+    if (!inst || inst.error) { showToast(false, t('instance.load_error', 'Could not load instance.')); return; }
+    const m = document.getElementById('modalMyInstance');
+    const c = document.getElementById('myInstanceContent');
+    if (!m || !c) return;
+
+    const thumb    = inst.worldThumb || '';
+    const worldId  = inst.worldId || inst.location?.split(':')[0] || '';
+    const { cls, label: typeLabel } = getInstanceBadge(inst.instanceType);
+    const instNum  = (inst.location || '').match(/:(\d+)/)?.[1] || '';
+
+    const instFriends = (typeof vrcFriendsData !== 'undefined')
+        ? vrcFriendsData.filter(f => f.location && f.location.match(/:(\d+)/)?.[1] === instNum)
+        : [];
+
+    const bannerHtml = thumb
+        ? `<div class="fd-banner"><img src="${thumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>`
+        : '';
+
+    const copyBadge = instNum
+        ? `<span class="vrcn-id-clip" onclick="copyInstanceLink('${jsq(inst.location || '')}')"><span class="msi" style="font-size:12px;">content_copy</span>#${esc(instNum)}</span>`
+        : '';
+
+    let friendsHtml = `<div class="wd-friends-label">${tf('dashboard.instances.friends_title', { count: instFriends.length }, 'FRIENDS IN THIS INSTANCE ({count})')}</div><div class="wd-friends-list">`;
+    if (instFriends.length > 0) {
+        instFriends.forEach(f => {
+            friendsHtml += renderProfileItem(f, `closeMyInstanceDetail();openFriendDetail('${jsq(f.id || '')}')`);
+        });
+    } else {
+        friendsHtml += `<div class="vrcn-profile-item" style="pointer-events:none;opacity:0.55;">
+            <div class="fd-profile-item-avatar" style="display:flex;align-items:center;justify-content:center;"><span class="msi" style="font-size:20px;color:var(--tx3);">person</span></div>
+            <div class="fd-profile-item-info">
+                <div class="fd-profile-item-name">${t('dashboard.instances.no_friends_title', 'No friends here yet!')}</div>
+                <div class="fd-profile-item-status">${t('dashboard.instances.no_friends_desc', 'Invite friends to this instance!')}</div>
+            </div>
+        </div>`;
+    }
+    friendsHtml += '</div>';
+
+    const loc = (inst.location || '').replace(/'/g, "\\'");
+    c.innerHTML = `${bannerHtml}<div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:16px;">
+        <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(inst.worldName || worldId || t('dashboard.instances.unknown_world', 'Unknown World'))}</h2>
+        <div class="fd-badges-row"><span class="vrcn-badge ${cls}">${typeLabel}</span>${getOwnerBadgeHtml(inst.ownerId || '', inst.ownerName || '', inst.ownerGroup || '', 'closeMyInstanceDetail()')}${copyBadge}</div>
+        ${friendsHtml}
+        <div class="fd-actions">
+            <button class="vrcn-button-round vrcn-btn-join" onclick="closeMyInstanceDetail();sendToCS({action:'vrcJoinFriend',location:'${loc}'})">${t('dashboard.instances.join_world', 'Join World')}</button>
+            <button class="vrcn-button-round" onclick="closeMyInstanceDetail();openWorldSearchDetail('${jsq(worldId)}')">${t('dashboard.instances.open_world', 'Open World')}</button>
+            <button class="vrcn-button-round" style="margin-left:auto;" onclick="closeMyInstanceDetail()">${t('common.close', 'Close')}</button>
+        </div>
+    </div>`;
+    m.style.display = 'flex';
+}
+
 function openMyInstanceDetail(worldId, location) {
     const inst = _myInstancesData.find(i => i.location === location) || _myInstancesData.find(i => i.worldId === worldId);
     if (!inst) return;

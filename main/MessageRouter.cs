@@ -371,6 +371,10 @@ public partial class AppShell
                     await _instance.HandleMessage(action, msg);
                     break;
 
+                case "vrcGetInstanceDetail":
+                    await _instance.HandleMessage(action, msg);
+                    break;
+
                 case "vrcRemoveMyInstance":
                     await _instance.HandleMessage(action, msg);
                     break;

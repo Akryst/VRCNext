@@ -409,6 +409,7 @@
   "ctx.open_world_id": "Ouvrir l'ID monde",
   "ctx.open_group_id": "Ouvrir l'ID groupe",
   "ctx.open_profile_id": "Ouvrir l'ID profil",
+  "ctx.open_instance_link": "Ouvrir le lien d'instance",
   "common.clear": "Effacer",
   "common.delete": "Supprimer",
   "common.done": "Terminé",

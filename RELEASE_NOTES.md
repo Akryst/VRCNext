@@ -7,6 +7,9 @@ For example, if a friend sends you a **VRChat.com** link that points to an avata
 
 Smart Links also work with direct IDs, including **Avatar IDs**, **Group IDs**, **World IDs**, and **Profile IDs**. This means you are not limited to full website links and can quickly open content even when only the raw ID is available.
 
+**Instance Share**
+Same as Smart Links, you can now copy an Instance links or send it to friends. When they copy it they can use right click to open the context menu. It will show "Open instance Link" and then you can invite yourself to this instance without the need to open VRChat.com
+
 **New**
 
 * Added a **Share** button to the header of **World** modals.
@@ -27,3 +30,4 @@ Smart Links also work with direct IDs, including **Avatar IDs**, **Group IDs**, 
 * Updated several button placements across all **Timeline** modals for a cleaner, more consistent, and easier-to-use layout.
 * Added the missing **View Profile** button to the **Unfriended** list in **Timeline**.
 * Added the missing **Group ID** badge to **Group** modals.
+* Added missing i18n language entries
