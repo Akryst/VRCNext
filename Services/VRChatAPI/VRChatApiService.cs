@@ -824,7 +824,7 @@ public class VRChatApiService
         using var client = new HttpClient();
         client.Timeout = TimeSpan.FromSeconds(15);
         client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", UA);
-        client.DefaultRequestHeaders.TryAddWithoutValidation("Referer", "https://vrcx.app");
+        client.DefaultRequestHeaders.TryAddWithoutValidation("Referer", $"https://{AppInfo.Website}"); // Changed to VRCN Ident. lol i forgot.
         client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
         try
         {

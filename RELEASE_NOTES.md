@@ -12,6 +12,7 @@ Important: This only works when two conditions are met:
 
 If either of these conditions is not met, the lookup will return an error.
 
+Additional: You can also find avatars without even being in an instance by just opening user profiles.
 
 **Smart Links**
 Smart Links make it much easier to open **Groups**, **Worlds**, **Profiles**, and **Avatars** directly inside **VRCN**.
