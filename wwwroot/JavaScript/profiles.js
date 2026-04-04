@@ -718,6 +718,25 @@ function closeFriendDetail() {
     window._fdAllMutuals = null;
 }
 
+
+function lookupAndOpenAvatar(fileId, iconEl) {
+    if (iconEl) iconEl.style.opacity = '0.4';
+    sendToCS({ action: 'vrcLookupAvatarByFileId', fileId, openModal: true });
+}
+
+function handleAvatarByFileId(payload) {
+    if (payload.avatarId) {
+        // Update friend-detail chip if visible
+        const chip = document.getElementById('fdAvatarChip');
+        if (chip) chip.outerHTML = `<span class="vrcn-id-clip" onclick="openAvatarDetail('${payload.avatarId}')" style="cursor:pointer;">${esc(payload.avatarId)}</span>`;
+        // Open avatar modal only if triggered by a direct user action (instance modal icon)
+        if (payload.openModal) openAvatarDetail(payload.avatarId);
+    } else {
+        const chip = document.getElementById('fdAvatarChip');
+        if (chip) { chip.style.display = 'none'; const row = document.getElementById('fdAvatarRow'); if (row) row.style.display = 'none'; }
+    }
+}
+
 function filterFdMutuals() {
     const q = document.getElementById('fdMutualsSearch')?.value.trim().toLowerCase() || '';
     const grid = document.getElementById('fdMutualsGrid');
@@ -879,7 +898,26 @@ function renderFriendDetail(d) {
         bioLinksHtml = `<div class="fd-bio-links">${d.bioLinks.map(u => renderBioLink(u)).join('')}</div>`;
     }
 
+    // Avatar row — show avatar ID if available (direct open), else fall back to fileId lookup
+    let avatarRowHtml = '';
+    const avatarId = d.currentAvatarId || '';
+    const avatarFileId = d.avatarFileId || '';
+    if (avatarId && avatarId.startsWith('avtr_')) {
+        // Direct avtr_ ID available — show clickable chip immediately
+        avatarRowHtml = `<div class="fd-meta-row">
+            <span class="fd-meta-label">${t('profiles.meta.avatar', 'Avatar')}</span>
+            <span class="vrcn-id-clip" onclick="openAvatarDetail('${avatarId}')" style="cursor:pointer;">${esc(avatarId)}</span>
+        </div>`;
+    } else if (avatarFileId) {
+        // Show loading state, auto-trigger lookup immediately
+        avatarRowHtml = `<div class="fd-meta-row" id="fdAvatarRow">
+            <span class="fd-meta-label">${t('profiles.meta.avatar', 'Avatar')}</span>
+            <span id="fdAvatarChip" style="font-size:11px;color:var(--tx3);">...</span>
+        </div>`;
+    }
+
     let metaHtml = '';
+    if (avatarRowHtml) metaHtml += avatarRowHtml;
     if (d.lastPlatform) metaHtml += `<div class="fd-meta-row"><span class="fd-meta-label">${t('profiles.meta.platform', 'Platform')}</span><span>${esc(d.lastPlatform)}</span></div>`;
     if (d.dateJoined) metaHtml += `<div class="fd-meta-row"><span class="fd-meta-label">${t('profiles.meta.joined', 'Joined')}</span><span>${esc(d.dateJoined)}</span></div>`;
     const lastSeenStr = formatLastSeen(d.lastLogin, d.lastSeenTracked);
@@ -1108,6 +1146,9 @@ function renderFriendDetail(d) {
 
 
     c.innerHTML = `${bannerHtml}<div class="fd-content${bannerSrc ? ' fd-has-banner' : ''}"><div class="fd-header">${imgTag}<div><div class="fd-name">${esc(d.displayName)}</div>${pronounsHtml}<div class="fd-status" id="fd-live-status"><span class="${fdDotClass} ${fdStatusDotCls}" style="width:8px;height:8px;"></span>${fdIsOffline ? t('status.offline', 'Offline') : statusLabel(d.status)}${(!fdIsOffline && fdIsWeb) ? ' ' + t('profiles.friends.web_suffix', '(Web)') : ''}${(!fdIsOffline && d.statusDescription) ? ' - ' + esc(d.statusDescription) : ''}</div></div></div>${badgesHtml}${actionsHtml}${tabsHtml}<div id="fdTabInfo">${infoContent}</div><div id="fdTabGroups" style="display:none;">${groupsContent}</div><div id="fdTabMutuals" style="display:none;">${mutualsContent}</div><div id="fdTabContent" style="display:none;">${contentHtml}</div><div style="margin-top:10px;text-align:right;"><button class="vrcn-button-round" onclick="closeFriendDetail()">${t('common.close', 'Close')}</button></div></div>`;
+
+    // Auto-lookup avatar ID from avtrdb if we have a file_ ID (chip-only, no modal open)
+    if (avatarFileId) sendToCS({ action: 'vrcLookupAvatarByFileId', fileId: avatarFileId, openModal: false });
 
     requestAnimationFrame(() => {
         const bio = c.querySelector('.fd-bio');

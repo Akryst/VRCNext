@@ -170,6 +170,8 @@ window.external.receiveMessage(rawMsg => {
                 }
                 break;
             case 'vrcFriendDetail': renderFriendDetail(payload); break;
+            case 'vrcAvatarByFileId': handleAvatarByFileId(payload); break;
+            case 'vrcInstanceAvatarFound': handleInstanceAvatarFound(payload); break;
             case 'vrcFavoriteFriends': renderFavFriends(payload); break;
             case 'vrcFavoriteFriendToggled': handleFavFriendToggled(payload); break;
             case 'vrcFriendDetailError':

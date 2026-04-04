@@ -421,7 +421,15 @@
         const friendCard = el.closest('.vrc-friend-card, .vrcn-profile-item, .inst-user-row, .iim-user-tr, .dash-feed-card, .fav-friend-card, .s-card-h');
         if (friendCard) {
             const id = extractId(friendCard, /openFriendDetail\('([^']+)'\)/);
-            if (id) return buildFriendItems(id);
+            if (id) {
+                const items = buildFriendItems(id);
+                const isInstanceRow = friendCard.classList.contains('iim-user-tr') || friendCard.classList.contains('inst-user-row');
+                if (isInstanceRow) {
+                    items.unshift('sep');
+                    items.unshift({ icon: 'checkroom', label: cm('check_for_avatar', 'Check for Avatar'), action: () => ctxCheckAvatar(id) });
+                }
+                return items;
+            }
         }
 
         const instanceCard = el.closest('#vrcInstanceArea .inst-card');

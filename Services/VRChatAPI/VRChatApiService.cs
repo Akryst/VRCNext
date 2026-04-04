@@ -817,6 +817,30 @@ public class VRChatApiService
         return new JArray();
     }
 
+    public async Task<string?> GetAvatarIdByFileIdAsync(string fileId)
+    {
+        // Reverse Avatar Image is still unfinished. I only used what Kubectl sent me on Discord for now and will refactor it later.
+        var url = $"https://api.avtrdb.com/v3/avatar/search/vrcx?fileId={Uri.EscapeDataString(fileId)}";
+        using var client = new HttpClient();
+        client.Timeout = TimeSpan.FromSeconds(15);
+        client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", UA);
+        client.DefaultRequestHeaders.TryAddWithoutValidation("Referer", "https://vrcx.app");
+        client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+        try
+        {
+            Log($"GetAvatarIdByFileId: {url}");
+            var resp = await client.GetAsync(url);
+            var body = await resp.Content.ReadAsStringAsync();
+            Log($"GetAvatarIdByFileId [{(int)resp.StatusCode}]: {body[..Math.Min(400, body.Length)]}");
+            if (!resp.IsSuccessStatusCode || string.IsNullOrWhiteSpace(body)) return null;
+            var parsed = Newtonsoft.Json.Linq.JToken.Parse(body);
+            if (parsed is JObject single) return single["id"]?.ToString();
+            if (parsed is JArray arr && arr.Count > 0) return arr[0]?["id"]?.ToString();
+        }
+        catch (Exception ex) { Log($"GetAvatarIdByFileId exception: {ex.Message}"); }
+        return null;
+    }
+
     public async Task<bool> SelectAvatarAsync(string avatarId)
     {
         if (!IsLoggedIn) return false;

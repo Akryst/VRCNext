@@ -396,6 +396,10 @@ public partial class AppShell
                         await _friends.GetFriendDetailAsync(friendId);
                     break;
 
+                case "vrcLookupAvatarByFileId":
+                    await _friends.HandleMessage("vrcLookupAvatarByFileId", msg);
+                    break;
+
                 // Friend actions delegated to FriendsController
                 case "vrcJoinFriend":
                 case "vrcInviteFriend":

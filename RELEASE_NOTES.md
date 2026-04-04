@@ -1,5 +1,18 @@
 **2026.13.0**
 
+**Avatar Lookup**
+You can now check which avatar a user is using. Simply right-click the player in the **Instance Info** or **Instance** modal and click **Check for Avatar**.
+
+If successful, it will open the **Avatar** modal. If not, it will return an error. You can also click on the user's profile to see the **Avatar ID** if it was found.
+
+Important: This only works when two conditions are met:
+
+1. The user must not have a custom profile header image.
+2. The avatar must exist in **avtrdb**.
+
+If either of these conditions is not met, the lookup will return an error.
+
+
 **Smart Links**
 Smart Links make it much easier to open **Groups**, **Worlds**, **Profiles**, and **Avatars** directly inside **VRCN**.
 
@@ -35,7 +48,9 @@ Similar to Smart Links, you can now copy **Instance** links or send them to frie
 * Added the missing **View Profile** button to the **Unfriended** list in **Timeline**.
 * Added the missing **Group ID** badge to **Group** modals.
 * Added missing i18n language entries.
+* Instance Modal is now a little wider to fit in the new "Avatar" section.
 
 **Fixes**
 
 * In **Your Instances** on the dashboard, only friends with **Green** or **Blue** status were shown before. It will now also show friends with **Red** or **Yellow** status, but only if you are in the same instance. If you are in a different instance, they will not appear in the list.
+* Added some missing i18n entries.

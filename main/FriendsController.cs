@@ -126,6 +126,18 @@ public class FriendsController
                     await GetFriendDetailAsync(fdId);
                 break;
 
+            case "vrcLookupAvatarByFileId":
+            {
+                var fileId = msg["fileId"]?.ToString() ?? "";
+                var openModal = msg["openModal"]?.Value<bool>() ?? false;
+                if (!string.IsNullOrEmpty(fileId))
+                {
+                    var avtrId = await _core.VrcApi.GetAvatarIdByFileIdAsync(fileId);
+                    _core.SendToJS("vrcAvatarByFileId", new { fileId, avatarId = avtrId ?? "", openModal });
+                }
+                break;
+            }
+
             case "vrcGetUserAvatars":
             {
                 var uid = msg["userId"]?.ToString();
@@ -829,6 +841,7 @@ public class FriendsController
                 location, platform, presence,
                 tags = f["tags"]?.ToObject<List<string>>() ?? new List<string>(),
                 ageVerified = f["ageVerified"]?.Value<bool>() ?? false,
+                avatarFileId = ExtractAvatarFileId(f),
             };
         })
         .OrderBy(f => f.presence switch { "game" => 0, "web" => 1, _ => 2 })
@@ -960,6 +973,10 @@ public class FriendsController
             var _liveLoc = live?["location"]?.ToString() ?? "";
             bool _liveInGame = !string.IsNullOrEmpty(_liveLoc) && _liveLoc != "offline";
             diskProfile["state"] = (_liveStatus != "offline" && !_liveInGame) ? "active" : "";
+            if (string.IsNullOrEmpty(diskProfile["currentAvatarId"]?.ToString()))
+                diskProfile["currentAvatarId"] = live?["currentAvatar"]?.ToString() ?? "";
+            if (string.IsNullOrEmpty(diskProfile["avatarFileId"]?.ToString()) && live != null)
+                diskProfile["avatarFileId"] = ExtractAvatarFileId(live);
             _core.SendToJS("vrcFriendDetail", diskProfile);
 
             bool startRefresh;
@@ -998,6 +1015,21 @@ public class FriendsController
             _core.SendToJS("vrcFriendDetailError", new { error = ex.Message });
             _core.SendToJS("log", new { msg = $"VRChat: Error loading profile — {ex.Message}", color = "err" });
         }
+    }
+
+    // Extract the file_ UUID from avatar image URLs for avtrdb lookup.
+    private static readonly System.Text.RegularExpressions.Regex _fileIdRx =
+        new(@"(file_[a-f0-9\-]{36})", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    private static string ExtractAvatarFileId(JObject user)
+    {
+        foreach (var field in new[] { "currentAvatarThumbnailImageUrl", "currentAvatarImageUrl" })
+        {
+            var url = user[field]?.ToString() ?? "";
+            var m = _fileIdRx.Match(url);
+            if (m.Success) return m.Groups[1].Value;
+        }
+        return "";
     }
 
     public async Task<object?> BuildUserDetailPayloadAsync(string userId)
@@ -1145,6 +1177,9 @@ public class FriendsController
             && _core.LogWatcher.GetCurrentPlayers().Any(p => p.UserId == userId);
         var (totalSeconds, lastSeenLocal) = _core.TimeEngine.GetUserStats(userId, isCoPresent);
 
+        var _dbgFileId = ExtractAvatarFileId(user);
+        _core.SendToJS("log", new { msg = $"[Avatar] user={userId} avatarFileId='{_dbgFileId}'", color = "info" });
+
         return new
         {
             id = user["id"]?.ToString() ?? "",
@@ -1159,6 +1194,8 @@ public class FriendsController
             isFriend = user["isFriend"]?.Value<bool>() ?? !string.IsNullOrEmpty(user["friendKey"]?.ToString()),
             canJoin = isInWorld && canJoin, canRequestInvite, canInvite = true,
             currentAvatarImageUrl = _core.ImgCache?.Get(user["currentAvatarImageUrl"]?.ToString() ?? "") ?? user["currentAvatarImageUrl"]?.ToString() ?? "",
+            currentAvatarId = user["currentAvatar"]?.ToString() ?? "",
+            avatarFileId = ExtractAvatarFileId(user),
             profilePicOverride = _core.ImgCache?.Get(user["profilePicOverride"]?.ToString() ?? "") ?? user["profilePicOverride"]?.ToString() ?? "",
             tags = user["tags"]?.ToObject<List<string>>() ?? new(),
             note = user["note"]?.ToString() ?? "",
