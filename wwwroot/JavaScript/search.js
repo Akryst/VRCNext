@@ -17,7 +17,7 @@ function searchUserStatusText(user) {
     const friendBadge = user.isFriend
         ? ` | <span style="color:var(--ok)">${esc(t('profiles.badges.friend', 'Friend'))}</span>`
         : '';
-    return `<span class="status-dot-sm st-${statusKey}"></span> ${esc(statusText)}${friendBadge}`;
+    return `<span class="vrc-status-dot ${statusDotClass(statusKey)}" style="width:8px;height:8px;display:inline-block;vertical-align:middle;margin-right:2px;"></span> ${esc(statusText)}${friendBadge}`;
 }
 
 function searchGroupMembersText(count) {
