@@ -55,7 +55,7 @@ let dashBgPath = '', dashBgDataUri = '', dashOpacity = 40;
 let dashWorldCache = {};
 let dashGroupCache = {};
 let vrcFriendsLoaded = false;
-const _fscDefaults = { favorites: false, ingame: false, web: false, offline: true };
+const _fscDefaults = { samelocation: false, favorites: false, ingame: false, web: false, offline: true };
 let friendSectionCollapsed = (() => {
     try { return Object.assign({}, _fscDefaults, JSON.parse(localStorage.getItem('friendSectionCollapsed') || '{}')); }
     catch { return { ..._fscDefaults }; }
@@ -246,6 +246,7 @@ function toggleRsidebar() {
     const rs = document.getElementById('rsidebar');
     document.getElementById('rsIcon').textContent = rsidebarCollapsed ? 'chevron_left' : 'chevron_right';
     rs.classList.toggle('collapsed', rsidebarCollapsed);
+    if (typeof renderVrcFriends === 'function' && vrcFriendsData?.length) renderVrcFriends(vrcFriendsData);
 }
 
 function toggleSidebar() {

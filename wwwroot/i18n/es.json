@@ -675,6 +675,7 @@
   "profiles.badges.mutual.one": "{count} mutuo",
   "profiles.badges.mutual.other": "{count} mutuos",
   "profiles.badges.badges": "Insignias",
+  "profiles.badges.current_avatar": "Avatar Actual",
   "profiles.badges.representing": "Representando",
   "profiles.badges.groups": "Grupos",
   "profiles.badges.no_groups": "Sin grupos",

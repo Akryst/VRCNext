@@ -5094,9 +5094,12 @@ html.text-tools-active * { user-select: text !important; }
     border: 1px solid var(--brd);
     color: var(--tx2);
 }
-.ft-status-chip.active   { color: var(--status-online);  border-color: var(--status-online);  }
-.ft-status-chip.busy     { color: var(--status-busy);    border-color: var(--status-busy);    }
-.ft-status-chip.offline  { color: var(--status-offline); border-color: var(--status-offline); }
+.ft-status-chip.active        { color: var(--status-online);  border-color: var(--status-online);  }
+.ft-status-chip.join-me       { color: var(--status-join);   border-color: var(--status-join);   }
+.ft-status-chip.ask-me        { color: var(--status-ask);    border-color: var(--status-ask);    }
+.ft-status-chip.busy          { color: var(--status-busy);   border-color: var(--status-busy);   }
+.ft-status-chip.do-not-disturb { color: var(--status-busy);  border-color: var(--status-busy);   }
+.ft-status-chip.offline       { color: var(--status-offline); border-color: var(--status-offline); }
 
 /* ── Top bar ── */
 .tl-topbar {

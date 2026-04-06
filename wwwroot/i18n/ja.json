@@ -675,6 +675,7 @@
   "profiles.badges.mutual.one": "{count}人の共通フレンド",
   "profiles.badges.mutual.other": "{count}人の共通フレンド",
   "profiles.badges.badges": "バッジ",
+  "profiles.badges.current_avatar": "現在のアバター",
   "profiles.badges.representing": "代表",
   "profiles.badges.groups": "グループ",
   "profiles.badges.no_groups": "グループなし",

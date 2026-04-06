@@ -133,7 +133,29 @@ public class FriendsController
                 if (!string.IsNullOrEmpty(fileId))
                 {
                     var avtrId = await _core.VrcApi.GetAvatarIdByFileIdAsync(fileId);
-                    _core.SendToJS("vrcAvatarByFileId", new { fileId, avatarId = avtrId ?? "", openModal });
+                    string avatarName = "", avatarImage = "", avatarAuthor = "";
+                    if (!string.IsNullOrEmpty(avtrId))
+                    {
+                        var avtrObj = await _core.VrcApi.GetAvatarAsync(avtrId);
+                        avatarName = avtrObj?["name"]?.ToString() ?? "";
+                        avatarImage = avtrObj?["thumbnailImageUrl"]?.ToString() ?? "";
+                        avatarAuthor = avtrObj?["authorName"]?.ToString() ?? "";
+                    }
+                    _core.SendToJS("vrcAvatarByFileId", new { fileId, avatarId = avtrId ?? "", avatarName, avatarImage, avatarAuthor, openModal });
+                }
+                break;
+            }
+
+            case "vrcGetAvatarInfo":
+            {
+                var avtrId = msg["avatarId"]?.ToString() ?? "";
+                if (!string.IsNullOrEmpty(avtrId))
+                {
+                    var avtrObj = await _core.VrcApi.GetAvatarAsync(avtrId);
+                    var avatarName = avtrObj?["name"]?.ToString() ?? "";
+                    var avatarImage = avtrObj?["thumbnailImageUrl"]?.ToString() ?? "";
+                    var avatarAuthor = avtrObj?["authorName"]?.ToString() ?? "";
+                    _core.SendToJS("vrcAvatarInfo", new { avatarId = avtrId, avatarName, avatarImage, avatarAuthor });
                 }
                 break;
             }

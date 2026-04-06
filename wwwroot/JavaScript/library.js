@@ -315,6 +315,7 @@ function onWorldsResolved(dict) {
     });
     Object.assign(dashWorldCache, dict);
     renderDashboard();
+    if (typeof renderVrcFriends === 'function' && vrcFriendsData?.length) renderVrcFriends(vrcFriendsData);
     document.querySelectorAll('.lib-world-badge[data-wid]').forEach(btn => {
         const wid  = btn.getAttribute('data-wid');
         const info = worldInfoCache[wid];

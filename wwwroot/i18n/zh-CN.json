@@ -675,6 +675,7 @@
   "profiles.badges.mutual.one": "{count} 个共同好友",
   "profiles.badges.mutual.other": "{count} 个共同好友",
   "profiles.badges.badges": "徽章",
+  "profiles.badges.current_avatar": "当前形象",
   "profiles.badges.representing": "代表",
   "profiles.badges.groups": "群组",
   "profiles.badges.no_groups": "无群组",

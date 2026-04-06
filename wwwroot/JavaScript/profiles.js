@@ -331,7 +331,7 @@ function _renderMyBadgesSection(u) {
     const badgesTitle = t('profiles.my_profile.sections.badges', 'Badges');
     const iconsHtml = badges.map(b => {
         const hidden = !b.showcased;
-        return `<div class="myp-badge-item${hidden ? ' myp-badge-hidden' : ''}${_myBadgesEditing ? ' myp-badge-editing' : ''}" data-badge-id="${esc(b.id)}" data-badge-img="${esc(b.imageUrl)}" data-badge-name="${encodeURIComponent(b.name)}" data-badge-desc="${encodeURIComponent(b.description || '')}" onclick="${_myBadgesEditing ? `toggleMyBadge('${esc(b.id)}')` : ''}"><img class="fd-vrc-badge-icon" src="${esc(b.imageUrl)}" alt="${esc(b.name)}" onerror="this.closest('.myp-badge-item').style.display='none'"></div>`;
+        return `<div class="myp-badge-item fd-vrc-badge-wrap${hidden ? ' myp-badge-hidden' : ''}${_myBadgesEditing ? ' myp-badge-editing' : ''}" data-badge-id="${esc(b.id)}" data-badge-img="${esc(b.imageUrl)}" data-badge-name="${encodeURIComponent(b.name)}" data-badge-desc="${encodeURIComponent(b.description || '')}" onclick="${_myBadgesEditing ? `toggleMyBadge('${esc(b.id)}')` : ''}"><img class="fd-vrc-badge-icon" src="${esc(b.imageUrl)}" alt="${esc(b.name)}" onerror="this.closest('.myp-badge-item').style.display='none'"></div>`;
     }).join('');
     return `<div class="myp-section">
         <div class="myp-section-header">
@@ -544,6 +544,34 @@ function renderVrcFriends(friends, counts) {
         h += `</div>`;
     };
 
+    // Same Location — only shown when sidebar is expanded
+    if (!rsidebarCollapsed) {
+        const _instGroups = {};
+        friends.filter(f => f.presence === 'game' && f.location && f.location.startsWith('wrld_')).forEach(f => {
+            const locBase = f.location.split('~')[0];
+            if (!_instGroups[locBase]) _instGroups[locBase] = [];
+            _instGroups[locBase].push(f);
+        });
+        const _sharedInst = Object.entries(_instGroups).filter(([, list]) => list.length >= 2);
+        if (_sharedInst.length) {
+            const _slTotal = _sharedInst.reduce((s, [, l]) => s + l.length, 0);
+            const _slChev = friendSectionCollapsed.samelocation ? 'expand_more' : 'expand_less';
+            h += `<div class="vrc-section-label vrc-offline-toggle" onclick="toggleFriendSection('samelocation')" style="cursor:pointer;"><span class="vrc-section-text">${tf('profiles.friends.sections.same_location', { count: _slTotal }, 'IN INSTANCE - {count}')}</span><span class="vrc-section-short">${t('profiles.friends.sections_short.same_location', 'HERE')}</span><span class="msi" style="font-size:14px;" id="samelocationChevron">${_slChev}</span></div>`;
+            h += `<div id="samelocationFriendsSection" style="display:${friendSectionCollapsed.samelocation ? 'none' : ''};">`;
+            _sharedInst.forEach(([locBase, list]) => {
+                const _wid = locBase.split(':')[0];
+                const _iid = locBase.split(':')[1] || '';
+                const _wname = (typeof dashWorldCache !== 'undefined' && dashWorldCache[_wid]?.name) || '';
+                const _grpLabel = _wname
+                    ? `${_wname}${_iid ? ' - #' + _iid : ''} - ${list.length}`
+                    : (_iid ? `#${_iid} - ${list.length}` : `- ${list.length}`);
+                h += `<div class="fd-group-rep-label" style="padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(_grpLabel)}</div>`;
+                list.forEach(f => { h += renderCard(f, 'game'); });
+            });
+            h += `</div>`;
+        }
+    }
+
     appendSection('favorites', favFriends.length, favFriends, f => f.presence);
     appendSection('ingame', gc, gameFriends, 'game');
     appendSection('web', wc, webFriends, 'web');
@@ -556,7 +584,7 @@ function renderVrcFriends(friends, counts) {
 function toggleFriendSection(key) {
     friendSectionCollapsed[key] = !friendSectionCollapsed[key];
     try { localStorage.setItem('friendSectionCollapsed', JSON.stringify(friendSectionCollapsed)); } catch {}
-    const ids = { favorites: ['favoritesFriendsSection', 'favoritesChevron'], ingame: ['ingameFriendsSection', 'ingameChevron'], web: ['webFriendsSection', 'webChevron'], offline: ['offlineFriendsSection', 'offlineChevron'] };
+    const ids = { samelocation: ['samelocationFriendsSection', 'samelocationChevron'], favorites: ['favoritesFriendsSection', 'favoritesChevron'], ingame: ['ingameFriendsSection', 'ingameChevron'], web: ['webFriendsSection', 'webChevron'], offline: ['offlineFriendsSection', 'offlineChevron'] };
     const [secId, chevId] = ids[key] || [];
     const sec = secId && document.getElementById(secId);
     const chev = chevId && document.getElementById(chevId);
@@ -569,9 +597,11 @@ function filterFriendsList() {
     const cards = document.querySelectorAll('#vrcFriendsList .vrc-friend-card');
     const sections = document.querySelectorAll('#vrcFriendsList .vrc-section-label');
 
-    // Hide favorites section during search to avoid duplicates
-    const favSec  = document.getElementById('favoritesFriendsSection');
-    const favLabel = favSec?.previousElementSibling;
+    // Hide favorites + samelocation sections during search to avoid duplicates
+    const favSec    = document.getElementById('favoritesFriendsSection');
+    const favLabel  = favSec?.previousElementSibling;
+    const slocSec   = document.getElementById('samelocationFriendsSection');
+    const slocLabel = slocSec?.previousElementSibling;
 
     const sectionMap = {
         ingame:  document.getElementById('ingameFriendsSection'),
@@ -586,14 +616,18 @@ function filterFriendsList() {
         Object.entries(sectionMap).forEach(([key, el]) => {
             if (el) el.style.display = friendSectionCollapsed[key] ? 'none' : '';
         });
-        if (favSec)   favSec.style.display  = friendSectionCollapsed.favorites ? 'none' : '';
-        if (favLabel) favLabel.style.display = '';
+        if (favSec)    favSec.style.display    = friendSectionCollapsed.favorites    ? 'none' : '';
+        if (favLabel)  favLabel.style.display   = '';
+        if (slocSec)   slocSec.style.display    = friendSectionCollapsed.samelocation ? 'none' : '';
+        if (slocLabel) slocLabel.style.display  = '';
         return;
     }
 
-    // Hide favorites section while searching (prevents duplicates)
-    if (favSec)   favSec.style.display  = 'none';
-    if (favLabel) favLabel.style.display = 'none';
+    // Hide favorites + samelocation while searching (prevents duplicates)
+    if (favSec)    favSec.style.display    = 'none';
+    if (favLabel)  favLabel.style.display  = 'none';
+    if (slocSec)   slocSec.style.display   = 'none';
+    if (slocLabel) slocLabel.style.display = 'none';
 
     // Force-expand all other sections so collapsed cards are still searchable
     Object.values(sectionMap).forEach(el => { if (el) el.style.display = ''; });
@@ -726,15 +760,22 @@ function lookupAndOpenAvatar(fileId, iconEl) {
 
 function handleAvatarByFileId(payload) {
     if (payload.avatarId) {
-        // Update friend-detail chip if visible
-        const chip = document.getElementById('fdAvatarChip');
-        if (chip) chip.outerHTML = `<span class="vrcn-id-clip" onclick="openAvatarDetail('${payload.avatarId}')" style="cursor:pointer;">${esc(payload.avatarId)}</span>`;
-        // Open avatar modal only if triggered by a direct user action (instance modal icon)
+        const section = document.getElementById('fdAvatarSection');
+        if (section) {
+            const avImg = currentFriendDetail?.currentAvatarImageUrl || '';
+            const avIcon = avImg
+                ? `<img class="fd-group-icon" src="${esc(avImg)}" onerror="this.style.display='none'">`
+                : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">checkroom</span></div>`;
+            const authorHtml = payload.avatarAuthor
+                ? `<div class="fd-group-card-meta">${esc(payload.avatarAuthor)}</div>` : '';
+            section.innerHTML = `<div class="fd-group-rep-label">${t('profiles.badges.current_avatar', 'Current Avatar')}</div>
+                <div class="fd-group-card fd-group-rep" onclick="openAvatarDetail('${payload.avatarId}')">
+                    ${avIcon}<div class="fd-group-card-info"><div class="fd-group-card-name">${esc(payload.avatarName || payload.avatarId)}</div>${authorHtml}</div>
+                </div>`;
+        }
         if (payload.openModal) openAvatarDetail(payload.avatarId);
-    } else {
-        const chip = document.getElementById('fdAvatarChip');
-        if (chip) { chip.style.display = 'none'; const row = document.getElementById('fdAvatarRow'); if (row) row.style.display = 'none'; }
     }
+    // on failure: do nothing — placeholder stays empty, nothing visible
 }
 
 function filterFdMutuals() {
@@ -898,26 +939,14 @@ function renderFriendDetail(d) {
         bioLinksHtml = `<div class="fd-bio-links">${d.bioLinks.map(u => renderBioLink(u)).join('')}</div>`;
     }
 
-    // Avatar row — show avatar ID if available (direct open), else fall back to fileId lookup
-    let avatarRowHtml = '';
+    // Avatar card — empty placeholder, filled only when lookup returns real data (no flicker on failure)
     const avatarId = d.currentAvatarId || '';
     const avatarFileId = d.avatarFileId || '';
-    if (avatarId && avatarId.startsWith('avtr_')) {
-        // Direct avtr_ ID available — show clickable chip immediately
-        avatarRowHtml = `<div class="fd-meta-row">
-            <span class="fd-meta-label">${t('profiles.meta.avatar', 'Avatar')}</span>
-            <span class="vrcn-id-clip" onclick="openAvatarDetail('${avatarId}')" style="cursor:pointer;">${esc(avatarId)}</span>
-        </div>`;
-    } else if (avatarFileId) {
-        // Show loading state, auto-trigger lookup immediately
-        avatarRowHtml = `<div class="fd-meta-row" id="fdAvatarRow">
-            <span class="fd-meta-label">${t('profiles.meta.avatar', 'Avatar')}</span>
-            <span id="fdAvatarChip" style="font-size:11px;color:var(--tx3);">...</span>
-        </div>`;
-    }
+    const avatarRowHtml = (avatarId.startsWith('avtr_') || avatarFileId)
+        ? `<div id="fdAvatarSection" style="margin-bottom:14px;"></div>`
+        : '';
 
     let metaHtml = '';
-    if (avatarRowHtml) metaHtml += avatarRowHtml;
     if (d.lastPlatform) metaHtml += `<div class="fd-meta-row"><span class="fd-meta-label">${t('profiles.meta.platform', 'Platform')}</span><span>${esc(d.lastPlatform)}</span></div>`;
     if (d.dateJoined) metaHtml += `<div class="fd-meta-row"><span class="fd-meta-label">${t('profiles.meta.joined', 'Joined')}</span><span>${esc(d.dateJoined)}</span></div>`;
     const lastSeenStr = formatLastSeen(d.lastLogin, d.lastSeenTracked);
@@ -1073,7 +1102,7 @@ function renderFriendDetail(d) {
     }
 
     // Info tab content
-    const infoContent = `${worldHtml}${vrcBadgesHtml}${repGroupInfoHtml}${bioHtml}${bioLinksHtml}${langsHtml}${metaHtml ? '<div style="margin-bottom:14px;">' + metaHtml + '</div>' : ''}${noteHtml}`;
+    const infoContent = `${worldHtml}${vrcBadgesHtml}${repGroupInfoHtml}${avatarRowHtml}${bioHtml}${bioLinksHtml}${langsHtml}${metaHtml ? '<div style="margin-bottom:14px;">' + metaHtml + '</div>' : ''}${noteHtml}`;
 
     // Banner
     const bannerSrc = d.profilePicOverride || d.currentAvatarImageUrl || d.image || '';
@@ -1149,6 +1178,7 @@ function renderFriendDetail(d) {
 
     // Auto-lookup avatar ID from avtrdb if we have a file_ ID (chip-only, no modal open)
     if (avatarFileId) sendToCS({ action: 'vrcLookupAvatarByFileId', fileId: avatarFileId, openModal: false });
+    else if (avatarId && avatarId.startsWith('avtr_')) sendToCS({ action: 'vrcGetAvatarInfo', avatarId });
 
     requestAnimationFrame(() => {
         const bio = c.querySelector('.fd-bio');

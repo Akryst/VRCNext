@@ -204,6 +204,14 @@ public partial class AppShell
         var logFileName = $"vrcn-log-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt";
         _activityLogPath = Path.Combine(_activityLogDir, logFileName);
         try { _activityLogWriter = new StreamWriter(_activityLogPath, append: false, System.Text.Encoding.UTF8) { AutoFlush = true }; } catch { }
+        try
+        {
+            foreach (var old in Directory.GetFiles(_activityLogDir, "vrcn-log-*.txt")
+                         .OrderByDescending(f => f)
+                         .Skip(10))
+                File.Delete(old);
+        }
+        catch { }
 
         _imgCache = new ImageCacheService(_imgCacheDir, _vrcApi.GetHttpClient())
         {

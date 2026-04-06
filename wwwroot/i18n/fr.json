@@ -675,6 +675,7 @@
   "profiles.badges.mutual.one": "{count} ami en commun",
   "profiles.badges.mutual.other": "{count} amis en commun",
   "profiles.badges.badges": "Badges",
+  "profiles.badges.current_avatar": "Avatar Actuel",
   "profiles.badges.representing": "Représente",
   "profiles.badges.groups": "Groupes",
   "profiles.badges.no_groups": "Aucun groupe",
