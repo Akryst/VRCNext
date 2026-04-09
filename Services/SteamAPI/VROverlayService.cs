@@ -1181,10 +1181,24 @@ namespace VRCNext.Services
         private async Task PollLoopAsync(CancellationToken ct)
         {
             _log("[VROverlay] Poll loop started");
+            int vrserverCheckTick = 0;
             while (!ct.IsCancellationRequested)
             {
                 try
                 {
+                    // Periodically verify vrserver.exe is still running so we don't.. should fix the x05
+                    if (_vrSystem != null && ++vrserverCheckTick >= 450)
+                    {
+                        vrserverCheckTick = 0;
+                        if (System.Diagnostics.Process.GetProcessesByName("vrserver").Length == 0)
+                        {
+                            _log("[VROverlay] vrserver.exe gone — disconnecting");
+                            _vrSystem = null;
+                            _cts?.Cancel();
+                            break;
+                        }
+                    }
+
                     PollEvents();
                     UpdateControllerIndices();
 
@@ -1344,8 +1358,7 @@ namespace VRCNext.Services
                         polledAll |= s.ulButtonPressed;
                     }
                 }
-                // Keep non-allowed bits untouched; clear allowed bits that the
-                // runtime says are released.
+
                 _eventButtonsHeld = (_eventButtonsHeld & ~ALLOWED_BUTTON_MASK)
                                   | (_eventLeftHeld & ALLOWED_BUTTON_MASK)
                                   | (_eventRightHeld & ALLOWED_BUTTON_MASK);
@@ -1355,15 +1368,15 @@ namespace VRCNext.Services
             var evtSize = (uint)Marshal.SizeOf<VREvent_t>();
 
             // Drain system-level events.
-            // VREvent_ButtonPress / VREvent_ButtonUnpress arrive here even when
-            // the Steam overlay is open — unlike GetControllerState which returns
-            // zeroes while Steam holds exclusive input focus.
             while (_vrSystem.PollNextEvent(ref evt, evtSize))
             {
                 var eType = (EVREventType)evt.eventType;
                 if (eType == EVREventType.VREvent_Quit)
                 {
-                    try { _vrSystem.AcknowledgeQuit_Exiting(); } catch { }
+                    // Null _vrSystem FIRST so any subsequent call in this or the next
+                    var sys = _vrSystem;
+                    _vrSystem = null;
+                    try { sys?.AcknowledgeQuit_Exiting(); } catch { }
                     _cts?.Cancel();
                     OnVRQuit?.Invoke();
                     return;
@@ -1385,9 +1398,6 @@ namespace VRCNext.Services
             }
 
             // Drain overlay-specific events (laser pointer mouse interactions).
-            // Also mirror ButtonPress/Unpress into _eventButtonsHeld so keybind detection
-            // works even when the overlay is interactive/focused and events route here
-            // instead of PollNextEvent.
             if (OpenVR.Overlay != null && _overlayHandle != 0)
             {
                 while (OpenVR.Overlay.PollNextOverlayEvent(_overlayHandle, ref evt, evtSize))
@@ -1479,10 +1489,7 @@ namespace VRCNext.Services
                 return;
             }
 
-            // Music player: progress bar seek
-            // Bar GDI+: y=artBottom+62, x=pad+4=22, w=W-22-22=468, h=6
-            // artBottom = 68+10+128 = 206 → barY=268 → ny = 1 - 268/384 ≈ 0.302
-            // Hit zone: ny 0.27–0.35 (generous vertical range for bar + knob)
+            // Music player
             if (_activeTab == 2 && ny >= 0.27f && ny <= 0.35f && _mediaDuration > 0)
             {
                 const int barPad = 22;

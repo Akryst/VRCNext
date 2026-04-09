@@ -1,5 +1,8 @@
 **2026.14.0**
 
+**Performance**
+- Reduced Image quality of the fallback banner which means slightly less memory usage.
+
 **Setup Wizard**
 
 * Redesigned titlebar buttons to macOS-style colored circles
@@ -12,6 +15,13 @@
 * Fixed a fatal crash (`0x80131506`) caused by `SendWebMessage` being called from a background timer thread — all messages are now marshalled to the UI thread via `Invoke`
 * Fixed a fatal access violation in `SubclassWndProc` → `CallWindowProc` during window teardown — replaced `SetWindowLongPtr` subclassing with the correct `SetWindowSubclass` / `DefSubclassProc` / `RemoveWindowSubclass` API
 * Fixed a fatal crash in `CVRSystem.PollNextEvent` when SteamVR is closed while Space Flight / VR Overlay is active — added a `volatile bool _vrQuit` guard that prevents further native calls after the quit event
+
+**Project Changes**
+
+* Removed unused CSS from `styles.css`
+* Merged several CSS classes to reduce redundancy
+* Slightly refactored `styles.css` to improve maintainability
+
 
 **i18n**
 
