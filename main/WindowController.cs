@@ -25,9 +25,11 @@ public class WindowController
     [DllImport("user32.dll")] private static extern int SetWindowLong(nint hWnd, int nIndex, int dwNewLong);
     [DllImport("user32.dll")] private static extern bool SetWindowPos(nint hWnd, nint hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
     [DllImport("user32.dll")] private static extern bool GetWindowRect(nint hWnd, out RECT lpRect);
-    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")] private static extern nint SetWindowLongPtr(nint hWnd, int nIndex, nint dwNewLong);
-    [DllImport("user32.dll")] private static extern nint CallWindowProc(nint lpPrevWndFunc, nint hWnd, uint Msg, nint wParam, nint lParam);
     [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(nint hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+    // comctl32 proper subclassing API — safe under nested message loops and window teardown
+    [DllImport("comctl32.dll")] private static extern bool SetWindowSubclass(nint hWnd, SUBCLASSPROC pfn, nuint uId, nuint dwRefData);
+    [DllImport("comctl32.dll")] private static extern bool RemoveWindowSubclass(nint hWnd, SUBCLASSPROC pfn, nuint uId);
+    [DllImport("comctl32.dll")] private static extern nint DefSubclassProc(nint hWnd, uint uMsg, nint wParam, nint lParam);
     [DllImport("user32.dll")] private static extern bool ShowWindow(nint hWnd, int nCmdShow);
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(nint hWnd);
     [DllImport("user32.dll")] private static extern bool IsIconic(nint hWnd);
@@ -48,11 +50,11 @@ public class WindowController
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT { public int Left, Top, Right, Bottom; }
 
-    private delegate nint WndProcDelegate(nint hWnd, uint msg, nint wParam, nint lParam);
-    private static WndProcDelegate? _subclassProc; // must stay rooted — prevents GC collection
-    private static nint _origWndProc;
+    private delegate nint SUBCLASSPROC(nint hWnd, uint uMsg, nint wParam, nint lParam, nuint uIdSubclass, nuint dwRefData);
+    private static SUBCLASSPROC? _subclassProc; // must stay rooted — prevents GC collection of the delegate
+    private const nuint SubclassId = 1;
 
-    private static nint SubclassWndProc(nint hWnd, uint msg, nint wParam, nint lParam)
+    private static nint SubclassWndProc(nint hWnd, uint msg, nint wParam, nint lParam, nuint uIdSubclass, nuint dwRefData)
     {
         const uint WM_NCDESTROY  = 0x0082;
         const uint WM_NCCALCSIZE = 0x0083;
@@ -60,21 +62,15 @@ public class WindowController
         const uint WM_SYSCOMMAND = 0x0112;
         const int  SC_MINIMIZE   = 0xF020;
 
-        // For Watchdog WM_NCDESTROY is the very last message before the window is destroyed. Mark: Watchdog test
         if (msg == WM_NCDESTROY)
         {
-            var prev = _origWndProc;
-            _origWndProc  = 0;
+            RemoveWindowSubclass(hWnd, _subclassProc!, SubclassId);
             _subclassProc = null;
-            SetWindowLongPtr(hWnd, -4 /*GWLP_WNDPROC*/, prev);
-            return CallWindowProc(prev, hWnd, msg, wParam, lParam);
+            return DefSubclassProc(hWnd, msg, wParam, lParam);
         }
 
-        // Safety
-        if (_origWndProc == 0) return 0;
-
         if (msg == WM_NCCALCSIZE && wParam == 1)
-            return 0; 
+            return 0;
 
         if (msg == WM_SYSCOMMAND && (wParam.ToInt32() & 0xFFF0) == SC_MINIMIZE && _minimizeToTray)
         {
@@ -84,7 +80,7 @@ public class WindowController
 
         if (msg == WM_NCHITTEST)
         {
-            var hit = CallWindowProc(_origWndProc, hWnd, msg, wParam, lParam);
+            var hit = DefSubclassProc(hWnd, msg, wParam, lParam);
             if (hit == 1 /*HTCLIENT*/)
             {
                 const int border = 8;
@@ -101,15 +97,14 @@ public class WindowController
             return hit;
         }
 
-        return CallWindowProc(_origWndProc, hWnd, msg, wParam, lParam);
+        return DefSubclassProc(hWnd, msg, wParam, lParam);
     }
 
     private void InstallWndProcSubclass(nint hWnd)
     {
-        if (_origWndProc != 0) return; // already installed — don't re-hook or _origWndProc points to itself
+        if (_subclassProc != null) return; // already installed
         _subclassProc = SubclassWndProc;
-        _origWndProc  = SetWindowLongPtr(hWnd, -4 /*GWLP_WNDPROC*/,
-            Marshal.GetFunctionPointerForDelegate(_subclassProc));
+        SetWindowSubclass(hWnd, _subclassProc, SubclassId, 0);
     }
 
     /// <summary>

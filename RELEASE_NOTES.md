@@ -1,9 +1,16 @@
-**2026.13.3**
+**2026.13.4**
 
-**Crash Logging**
+**This update focuses on fixing crashes that could happen while VRCNext is running.**
 
-This version adds advanced crash logging. I found that, in some rare cases, VRCNext can crash. To better understand these issues and debug them faster, I added automatic crash reports.
+Thank you to everyone who used **Anonymous Crash Reporting**. It helped a lot with finding and fixing several crash causes related to the app runtime, Photino.NET, and the Steam Overlay.
 
-If VRCNext crashes for you, it will automatically send me a crash report here on Discord using webhooks. The crash report does **not** contain any sensitive data. It only includes stack traces. No username, no personal data, and no other sensitive information at all.
+**Fixed**
+- Fixed a startup crash that could happen in the background during timer updates.
+- Fixed a crash that could happen while the window was closing.
+- Fixed a crash that could happen when closing SteamVR while **Space Flight** was active.
 
-If you do not want any data to be sent, you can disable it in **Settings**. You can find the option at the top under **Update VRCNext**.
+
+**Fixed Dev Notes**
+- Fixed a crash on startup/timer tick where `SendWebMessage` was called from a background thread, causing a fatal CLR error (0x80131506 / access violation in coreclr.dll)
+- Fixed a crash in `SubclassWndProc` during window teardown caused by a stale WndProc pointer under nested message loops; replaced `SetWindowLongPtr` subclassing with the proper `SetWindowSubclass`/`DefSubclassProc` comctl32 API
+- Fixed a crash when closing SteamVR while Space Flight is active: `PollNextEvent` was called on a torn-down native runtime due to a race between quit handling and the poll loop; guarded with a `_vrQuit` flag checked before every native call

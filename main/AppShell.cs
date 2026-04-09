@@ -64,7 +64,6 @@ public partial class AppShell
 
     // Helpers
 
-    // Photino compatibility shim: SendWebMessage is thread-safe, so Invoke is a direct call
     private static void Invoke(Action action) => action();
     private static T Invoke<T>(Func<T> func) => func();
 
@@ -434,7 +433,7 @@ public partial class AppShell
         var msg = JsonConvert.SerializeObject(new { type, payload });
         if (_imgCache != null)
             msg = _vrcImgUrlRegex.Replace(msg, m => $"\"{_imgCache.Get(m.Groups[1].Value)}\"");
-        try { _window.SendWebMessage(msg); } catch { }
+        try { _window.Invoke(() => _window.SendWebMessage(msg)); } catch { }
 
 #if WINDOWS
         // Forward friend timeline events to the VR wrist overlay
