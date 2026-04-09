@@ -146,6 +146,13 @@
 #msgrSendBtn,
 .chat-inbox-count { display: flex; align-items: center; justify-content: center; }
 
+.sb-toggle, .rs-toggle,
+.file-del, .folder-remove, .exe-remove,
+.cb-line-del, .myp-edit-btn, .myp-lang-remove,
+.inv-msg-edit, .gd-post-del, .vf-block-chip-remove { background: none; border: none; cursor: pointer; display: flex; align-items: center; }
+
+.file-del, .cb-line-del, .inv-msg-edit, .gd-post-del { border-radius: 4px; }
+
 * {
     margin: 0;
     padding: 0;
@@ -278,14 +285,9 @@ body {
 
 .sb-toggle, .rs-toggle {
     flex-shrink: 0;
-    background: none;
-    border: none;
-    cursor: pointer;
     color: var(--tx3);
     padding: 10px;
     border-radius: 8px;
-    display: flex;
-    align-items: center;
     justify-content: center;
     font-size: 13px;
     font-family: inherit;
@@ -319,7 +321,7 @@ body {
     scrollbar-gutter: stable both-edges;
 }
 
-.nav-btn {
+.nav-btn, .nav-group-btn {
     display: flex;
     align-items: center;
     gap: 11px;
@@ -372,26 +374,6 @@ body {
 
 .nav-group {
     margin: 2px 0;
-}
-
-.nav-group-btn {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding: 10px 14px;
-    margin: 2px 8px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all .15s;
-    border: none;
-    background: none;
-    width: calc(100% - 16px);
-    text-align: left;
-    font-size: 13px;
-    color: var(--tx2);
-    font-family: inherit;
-    white-space: nowrap;
-    overflow: hidden;
 }
 
 .nav-group-btn:hover {
@@ -793,20 +775,23 @@ c
     height: 100%;
 }
 
-.vrcn-button {
-    height: 32px;
-    padding: 0 14px;
-    border-radius: 7px;
+.vrcn-button, .vrcn-button-round {
     border: none;
-    background: var(--bg-btn);
-    color: var(--tx2);
-    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     font-family: inherit;
     transition: all .15s;
     display: inline-flex;
     align-items: center;
+}
+
+.vrcn-button {
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 7px;
+    background: var(--bg-btn);
+    color: var(--tx2);
+    font-size: 12px;
     box-sizing: border-box;
     gap: 4px;
 }
@@ -817,16 +802,9 @@ c
 .vrcn-button-round {
     padding: 6px 14px;
     border-radius: 20px;
-    border: none;
     background: var(--bg-hover);
     color: var(--tx1);
     font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all .15s;
-    display: inline-flex;
-    align-items: center;
     gap: 5px;
 }
 .vrcn-button-round:hover { background: var(--brd); }
@@ -965,17 +943,7 @@ html.text-tools-active * { user-select: text !important; }
     color: var(--tx3);
 }
 
-.file-del {
-    background: none;
-    border: none;
-    color: var(--tx3);
-    cursor: pointer;
-    padding: 2px 4px;
-    border-radius: 4px;
-    transition: all .15s;
-    display: flex;
-    align-items: center;
-}
+.file-del { color: var(--tx3); padding: 2px 4px; transition: all .15s; }
 
 .file-del:hover {
     color: var(--err);
@@ -1118,15 +1086,7 @@ html.text-tools-active * { user-select: text !important; }
     background: var(--bg-hover);
 }
 
-.folder-remove {
-    background: none;
-    border: none;
-    color: var(--tx3);
-    cursor: pointer;
-    padding: 0 4px;
-    display: flex;
-    align-items: center;
-}
+.folder-remove { color: var(--tx3); padding: 0 4px; }
 
 .folder-remove:hover {
     color: var(--err);
@@ -1168,15 +1128,7 @@ html.text-tools-active * { user-select: text !important; }
     background: var(--bg-hover);
 }
 
-.exe-remove {
-    background: none;
-    border: none;
-    color: var(--tx3);
-    cursor: pointer;
-    padding: 0 4px;
-    display: flex;
-    align-items: center;
-}
+.exe-remove { color: var(--tx3); padding: 0 4px; }
 
 .exe-remove:hover {
     color: var(--err);
@@ -1846,14 +1798,8 @@ html.text-tools-active * { user-select: text !important; }
     background: var(--bg-hover);
 }
 
-.vrc-avatar {
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
-    object-fit: cover;
-    background: var(--bg-input);
-    flex-shrink: 0;
-}
+.vrc-avatar, .vrc-friend-avatar, .fd-avatar { object-fit: cover; background: var(--bg-input); flex-shrink: 0; }
+.vrc-avatar { width: 42px; height: 42px; border-radius: 10px; }
 
 .vrc-profile-status {
     font-size: 10px;
@@ -1908,14 +1854,7 @@ html.text-tools-active * { user-select: text !important; }
     background: var(--bg-hover);
 }
 
-.vrc-friend-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    object-fit: cover;
-    background: var(--bg-input);
-    flex-shrink: 0;
-}
+.vrc-friend-avatar { width: 32px; height: 32px; border-radius: 8px; }
 
 .vrc-friend-name {
     font-size: 12px;
@@ -2123,14 +2062,7 @@ html.text-tools-active * { user-select: text !important; }
     margin-bottom: 16px;
 }
 
-.fd-avatar {
-    width: 64px;
-    height: 64px;
-    border-radius: 14px;
-    object-fit: cover;
-    background: var(--bg-input);
-    flex-shrink: 0;
-}
+.fd-avatar { width: 64px; height: 64px; border-radius: 14px; }
 
 .fd-status {
     font-size: 11px;
@@ -3487,14 +3419,8 @@ html.text-tools-active * { user-select: text !important; }
     transition: background .15s;
 }
 .fav-friend-card:hover { background: var(--bg-hover); }
-.fav-friend-av {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-size: cover;
-    background-position: center;
-    flex-shrink: 0;
-}
+.fav-friend-av, .s-card-avatar { border-radius: 50%; background-size: cover; background-position: center; flex-shrink: 0; }
+.fav-friend-av { width: 40px; height: 40px; }
 .fav-friend-av-letter {
     background: var(--bg3);
     font-size: 16px;
@@ -3502,7 +3428,6 @@ html.text-tools-active * { user-select: text !important; }
     color: var(--tx2);
 }
 .fav-friend-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow: hidden; }
-.fav-friend-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fav-friend-status { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--tx3); overflow: hidden; }
 .fav-friend-status-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 
@@ -3547,15 +3472,7 @@ html.text-tools-active * { user-select: text !important; }
     flex: 1;
 }
 
-.s-card-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background-size: cover;
-    background-position: center;
-    background-color: var(--bg-input);
-    flex-shrink: 0;
-}
+.s-card-avatar { width: 44px; height: 44px; background-color: var(--bg-input); }
 
 .status-dot-sm {
     display: inline-block;
@@ -4280,17 +4197,7 @@ html.text-tools-active * { user-select: text !important; }
     min-width: 0;
 }
 
-.cb-line-del {
-    background: none;
-    border: none;
-    color: var(--tx3);
-    cursor: pointer;
-    padding: 2px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-}
+.cb-line-del { color: var(--tx3); padding: 2px; flex-shrink: 0; }
 
 .cb-line-del:hover {
     color: var(--err);
@@ -4598,14 +4505,9 @@ html.text-tools-active * { user-select: text !important; }
     text-transform: uppercase;
 }
 .myp-edit-btn {
-    background: none;
-    border: none;
     padding: 3px 6px;
     border-radius: 6px;
     color: var(--tx3);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
     gap: 3px;
     font-size: 11px;
     font-family: inherit;
@@ -4692,18 +4594,7 @@ html.text-tools-active * { user-select: text !important; }
     font-size: 12px;
     font-weight: 600;
 }
-.myp-lang-remove {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    color: currentColor;
-    opacity: .6;
-    display: flex;
-    align-items: center;
-    line-height: 1;
-    transition: opacity .15s;
-}
+.myp-lang-remove { padding: 0; color: currentColor; opacity: .6; line-height: 1; transition: opacity .15s; }
 .myp-lang-remove:hover { opacity: 1; }
 .myp-lang-add-row {
     display: flex;
@@ -5683,11 +5574,7 @@ div.vn-select {
 .inv-msg-item.selected .inv-msg-edit:hover { color: #fff; }
 .inv-msg-item.selected .inv-msg-cooldown { color: rgba(255,255,255,.5); }
 .inv-msg-text { flex: 1; }
-.inv-msg-edit {
-    background: none; border: none; color: var(--tx3); cursor: pointer;
-    padding: 2px; display: flex; align-items: center; border-radius: 4px;
-    transition: color .12s; flex-shrink: 0;
-}
+.inv-msg-edit { color: var(--tx3); padding: 2px; transition: color .12s; flex-shrink: 0; }
 .inv-msg-edit:hover { color: var(--tx1); }
 .inv-msg-input {
     flex: 1; background: transparent; border: none;
@@ -5743,11 +5630,7 @@ div.vn-select {
 .vn-ctx-sep {
     height: 1px; background: var(--brd); margin: 4px 6px;
 }
-.gd-post-del {
-    background: none; border: none; cursor: pointer; flex-shrink: 0;
-    color: var(--tx3); padding: 2px; border-radius: 4px;
-    display: flex; align-items: center; transition: color .15s;
-}
+.gd-post-del { flex-shrink: 0; color: var(--tx3); padding: 2px; transition: color .15s; }
 .gd-post-del:hover { color: var(--err); }
 .gd-post-del .msi { font-size: 15px; }
 
@@ -6190,18 +6073,7 @@ div.vn-select {
     font-weight: 600;
     flex-shrink: 0;
 }
-.vf-block-chip-remove {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    color: inherit;
-    opacity: .5;
-    display: flex;
-    align-items: center;
-    line-height: 1;
-    transition: opacity .15s;
-}
+.vf-block-chip-remove { padding: 0; color: inherit; opacity: .5; line-height: 1; transition: opacity .15s; }
 .vf-block-chip-remove:hover { opacity: 1; }
 .vf-block-inline-input {
     background: none;
@@ -6786,9 +6658,9 @@ div.vn-select {
     flex-shrink: 0;
 }
 .chat-inbox-row  { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
-.chat-inbox-name { font-size: 13px; font-weight: 600; color: var(--tx1); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
+.chat-inbox-name { font-size: 13px; font-weight: 600; color: var(--tx1); min-width: 0; }
 .chat-inbox-time { font-size: 10px; color: var(--tx3); flex-shrink: 0; }
-.chat-inbox-text { font-size: 12px; color: var(--tx3); margin-top: 2px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.chat-inbox-text { font-size: 12px; color: var(--tx3); margin-top: 2px; }
 .chat-inbox-count {
     background: var(--accent);
     color: #fff;
