@@ -72,25 +72,23 @@ namespace VRCNext.Services
         private const int STABLE_FRAMES_REQUIRED = 25; // ~275ms at 11ms poll
 
         // Event-driven button state — updated from VREvent_ButtonPress/Unpress,
-        // which fire even while the Steam overlay is open (unlike GetControllerState).
         private ulong _eventButtonsHeld = 0;
-        private ulong _eventLeftHeld    = 0;  // buttons held on left controller only
-        private ulong _eventRightHeld   = 0;  // buttons held on right controller only
-        private bool  _keybindTriggered = false;    // prevents repeated toggle while combo held
-        private int   _keybindReleaseFrames = 0;    // frames the combo has been NOT held
-        private const int KEYBIND_RELEASE_REQUIRED = 8; // ~88ms stable release before re-arm
+        private ulong _eventLeftHeld    = 0; 
+        private ulong _eventRightHeld   = 0;
+        private bool  _keybindTriggered = false;
+        private int   _keybindReleaseFrames = 0;
+        private const int KEYBIND_RELEASE_REQUIRED = 8;
         // Double-tap state
         private ulong    _prevTriggerHeld      = 0;
         private uint     _doubleTapLastButton  = uint.MaxValue;
         private DateTime _doubleTapLastTime    = DateTime.MinValue;
 
         //  D3D11 (staging + overlay textures for flicker-free upload) 
-        // Valve docs & openvr#772: use Texture2D.NativePointer + CopyResource + Flush,
-        // NOT SetOverlayRaw (shockingly inefficient, causes blank frame each call).
+
         private ID3D11Device?        _d3dDevice;
         private ID3D11DeviceContext? _d3dContext;
-        private ID3D11Texture2D?     _stagingTex;  // CPU-writable staging buffer
-        private ID3D11Texture2D?     _overlayTex;  // GPU texture SteamVR reads from
+        private ID3D11Texture2D?     _stagingTex;  
+        private ID3D11Texture2D?     _overlayTex; 
 
         //  Rendering 
         private Bitmap?   _bitmap;
@@ -127,16 +125,14 @@ namespace VRCNext.Services
         private Bitmap? _albumArt;
 
         //  Proximity interaction 
-        // Free hand < ENTER_DIST from wrist → Mouse mode + interactive flag on.
-        // Free hand > LEAVE_DIST            → back to None (hysteresis prevents flicker).
         private bool  _interactMode      = false;
         public float ControlRadius { get; private set; } = 0.28f; // enter dist in metres
         private float InteractEnterDist => Math.Max(0.03f, ControlRadius);
         private float InteractLeaveDist => InteractEnterDist + 0.08f;
 
         //  Overlay content
-        private int                   _activeTab = 0; // 0=Alerts 1=Location 2=Music 3=Tools 4=Friends
-        private float                 _tabIndicatorX = 0f; // animated X position of the active tab indicator
+        private int                   _activeTab = 0;
+        private float                 _tabIndicatorX = 0f;
         private readonly List<NotifEntry> _notifications = new();
         private string   _mediaTitle    = "";
         private string   _mediaArtist   = "";
@@ -157,9 +153,9 @@ namespace VRCNext.Services
         private Bitmap? _toastBitmap;
         private ID3D11Texture2D? _toastStagingTex;
         private ID3D11Texture2D? _toastOverlayTex;
-        private const int TW = 420;       // toast width pixels
-        private const int TH = 72;        // single toast height pixels
-        private const int TH_GAP = 6;     // gap between stacked toasts
+        private const int TW = 420;  
+        private const int TH = 72;    
+        private const int TH_GAP = 6;   
         private const int MAX_STACK = 4;
         private const int TH_FULL = TH * MAX_STACK + TH_GAP * (MAX_STACK - 1); // max bitmap height
         private readonly byte[] _toastUploadBuf = new byte[TW * TH_FULL * 4];
@@ -321,8 +317,6 @@ namespace VRCNext.Services
         }
 
         //  Allowed buttons & keybind limits 
-        // Allowed: Grip(2), B/Y(1), A/X(7), Thumbstick(32), Trigger(33)
-        // Excluded: System(0), Trackpad(34)
         private const ulong ALLOWED_BUTTON_MASK =
             (1UL << 1) | (1UL << 2) | (1UL << 7) | (1UL << 32) | (1UL << 33);
         private const int MAX_KEYBIND_BUTTONS  = 4;
@@ -343,10 +337,10 @@ namespace VRCNext.Services
         //  Location tab
         private record LocationEntry(string WorldId, string InstanceId, string WorldName, string WorldImageUrl, string FriendId, string FriendName, string FriendImageUrl, string Location);
         private readonly List<LocationEntry>         _friendLocations  = new();
-        private readonly Dictionary<string, Bitmap?> _locationImgCache = new(); // world + friend images, keyed by URL
+        private readonly Dictionary<string, Bitmap?> _locationImgCache = new(); 
         // Scroll state — replaces integer page fields
-        private float _locationScrollY  = 0f; // pixels scrolled from top
-        private float _locationScrollVY = 0f; // inertia velocity (pixels/tick)
+        private float _locationScrollY  = 0f; 
+        private float _locationScrollVY = 0f;
         private float _friendsScrollY   = 0f;
         private float _friendsScrollVY  = 0f;
 
@@ -356,7 +350,7 @@ namespace VRCNext.Services
         private float _mouseDownNY     = 0f;
         private bool  _scrollDragging  = false;
         private float _scrollLastNY    = 0f;
-        private float _scrollLastDeltaY = 0f; // last drag delta → inertia seed
+        private float _scrollLastDeltaY = 0f; 
 
         //  Friends tab (online/in-game friends list)
         private record FriendTabEntry(string FriendId, string FriendName, string FriendImageUrl, string Status, string StatusDescription, string Location, string WorldName);
@@ -377,9 +371,9 @@ namespace VRCNext.Services
         private const int FrdContentY = 72;
 
         //  Shared scroll area (used by both location + friends tabs)
-        private const int ScrollContentBottom = H - 12;          // 372 — full height minus small bottom pad
-        private const int ScrollContentH      = ScrollContentBottom - LocContentY; // 300
-        private const int ScrollBarW          = 3;               // thin scrollbar strip on right edge
+        private const int ScrollContentBottom = H - 12;    
+        private const int ScrollContentH      = ScrollContentBottom - LocContentY; 
+        private const int ScrollBarW          = 3;      
 
         //  Theme colors 
         private OverlayTheme _theme = OverlayTheme.FromName("midnight");
@@ -540,10 +534,6 @@ namespace VRCNext.Services
                 _bitmap = new Bitmap(W, H, PixelFormat.Format32bppArgb);
 
                 // D3D11: staging (CPU-writable) + overlay (GPU, SteamVR reads from it).
-                // Pattern from ValveSoftware/openvr#772 and #1353:
-                //   Map staging → write pixels → Unmap → CopyResource → SetOverlayTexture → Flush
-                // CopyResource is GPU-atomic; SteamVR compositor never sees a partial write.
-                // Handle = ID3D11Texture2D.NativePointer (COM ptr), NOT SRV.
                 try
                 {
                     D3D11.D3D11CreateDevice(null, DriverType.Hardware, DeviceCreationFlags.None,
@@ -706,6 +696,31 @@ namespace VRCNext.Services
             _running = true;
             _pollTask = PollLoopAsync(_cts.Token);
             _ = Task.Run(EnsureMaterialSymbolsAsync);
+            StartVrserverMonitor(_cts.Token);
+        }
+
+        // Monitors vrserver.exe with WaitForExitAsync — zero overhead in the poll
+        private void StartVrserverMonitor(CancellationToken ct)
+        {
+            var procs = System.Diagnostics.Process.GetProcessesByName("vrserver");
+            if (procs.Length == 0) return;
+            var proc = procs[0];
+            for (int i = 1; i < procs.Length; i++) procs[i].Dispose();
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await proc.WaitForExitAsync(ct);
+                    if (!ct.IsCancellationRequested && _vrSystem != null)
+                    {
+                        _log("[VROverlay] vrserver.exe exited — nulling OpenVR interface");
+                        _vrSystem = null;
+                        _cts?.Cancel();
+                    }
+                }
+                catch { }
+                finally { proc.Dispose(); }
+            }, ct);
         }
 
         private async Task EnsureMaterialSymbolsAsync()
@@ -1181,24 +1196,10 @@ namespace VRCNext.Services
         private async Task PollLoopAsync(CancellationToken ct)
         {
             _log("[VROverlay] Poll loop started");
-            int vrserverCheckTick = 0;
             while (!ct.IsCancellationRequested)
             {
                 try
                 {
-                    // Periodically verify vrserver.exe is still running so we don't.. should fix the x05
-                    if (_vrSystem != null && ++vrserverCheckTick >= 450)
-                    {
-                        vrserverCheckTick = 0;
-                        if (System.Diagnostics.Process.GetProcessesByName("vrserver").Length == 0)
-                        {
-                            _log("[VROverlay] vrserver.exe gone — disconnecting");
-                            _vrSystem = null;
-                            _cts?.Cancel();
-                            break;
-                        }
-                    }
-
                     PollEvents();
                     UpdateControllerIndices();
 
@@ -3269,13 +3270,7 @@ namespace VRCNext.Services
                 }
                 finally { _d3dContext.Unmap(_stagingTex, 0); }
 
-                // 3. GPU-atomic copy: staging → overlay texture.
-                //    SteamVR compositor reads overlay texture; CopyResource guarantees it
-                //    sees either the old or new content in full — never a partial write.
                 _d3dContext.CopyResource(_overlayTex, _stagingTex);
-
-                // 4. SetOverlayTexture with ID3D11Texture2D COM pointer (NOT SRV).
-                //    ETextureType.DirectX = D3D11 in the OpenVR API.
                 var tex = new Valve.VR.Texture_t
                 {
                     handle      = _overlayTex.NativePointer,
@@ -3283,14 +3278,10 @@ namespace VRCNext.Services
                     eColorSpace = EColorSpace.Auto,
                 };
                 OpenVR.Overlay.SetOverlayTexture(_overlayHandle, ref tex);
-
-                // 5. Flush GPU command queue so compositor gets the completed texture.
-                //    Without Flush, SteamVR may composite before CopyResource finishes.
                 _d3dContext.Flush();
             }
             else
             {
-                // Fallback: SetOverlayRaw (D3D11 unavailable — may flicker)
                 var pinned = GCHandle.Alloc(_uploadBuf, GCHandleType.Pinned);
                 try { OpenVR.Overlay.SetOverlayRaw(_overlayHandle, pinned.AddrOfPinnedObject(), (uint)W, (uint)H, 4); }
                 finally { pinned.Free(); }
@@ -3298,8 +3289,6 @@ namespace VRCNext.Services
         }
 
         //  GDI+ helpers
-
-        /// <summary>Draw image with "cover" scaling — fills dest rect while preserving aspect ratio (crops overflow).</summary>
         private static void DrawImageCover(Graphics g, Bitmap img, Rectangle dest)
         {
             float srcAspect = (float)img.Width / img.Height;
