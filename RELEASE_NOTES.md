@@ -20,6 +20,7 @@
 * Removed unused CSS
 * Made the **Info** section smaller, including items like **Last Seen**, **Joined**, and **Time Together**, to create more space inside the profile modal
 * Added new Navbar Section "Favs." In Favorites you can see the favorited worlds of an user or an friend if they have set it to "Friends" or "Public"
+* Added some context options to Profiles
 
 **Timeline in User Profiles**
 

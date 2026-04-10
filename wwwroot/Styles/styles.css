@@ -1570,7 +1570,7 @@ html.text-tools-active * { user-select: text !important; }
     background: var(--bg-card);
     border-radius: 14px;
     padding: 28px 32px 22px;
-    width: 380px;
+    width: 418px;
     max-width: 90%;
     max-height: 90vh;
     overflow-y: auto;
@@ -1988,7 +1988,7 @@ html.text-tools-active * { user-select: text !important; }
 }
 
 .modal-box.wide {
-    width: 580px;
+    width: 638px;
 }
 
 .gd-role-card {
@@ -5561,7 +5561,7 @@ div.vn-select {
 .play-card-sub { font-size: 10px; color: var(--tx3); margin-top: 2px; }
 .play-modal-btns { display: flex; gap: 8px; justify-content: center; }
 
-.inv-single-modal { overflow: hidden; padding: 0; min-width: 320px; max-width: 420px; width: 90%; max-height: 85vh; display: flex; flex-direction: column; }
+.inv-single-modal { overflow: hidden; padding: 0; min-width: 320px; max-width: 462px; width: 90%; max-height: 85vh; display: flex; flex-direction: column; }
 .inv-single-body {
     padding: 14px 16px 16px;
     display: flex; flex-direction: column; gap: 8px;

@@ -393,7 +393,7 @@
             if (id) return buildWorldItems(id);
         }
 
-        const worldCard = el.closest('#favWorldsGrid .vrcn-content-card, #worldSearchArea .vrcn-content-card, #worldMineGrid .vrcn-content-card, #fdContentWorlds .vrcn-content-card');
+        const worldCard = el.closest('#favWorldsGrid .vrcn-content-card, #worldSearchArea .vrcn-content-card, #worldMineGrid .vrcn-content-card, #fdContentWorlds .vrcn-content-card, #fdTabFavs .vrcn-world-card-small');
         if (worldCard) {
             const id = extractId(worldCard, /openWorldSearchDetail\('([^']+)'\)/) || worldCard.dataset.wid;
             if (id) return buildWorldItems(id);
