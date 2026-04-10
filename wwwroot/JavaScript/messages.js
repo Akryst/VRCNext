@@ -336,17 +336,19 @@ window.external.receiveMessage(rawMsg => {
                 }
                 break;
             case 'vrcNoteUpdated':
-                const savedEl = document.getElementById('fdNoteSaved');
-                if (savedEl) {
-                    if (payload.success) { savedEl.textContent = t('profiles.notes.saved', 'Saved'); savedEl.style.color = 'var(--ok)'; }
-                    else { savedEl.textContent = t('profiles.notes.failed', 'Failed'); savedEl.style.color = 'var(--err)'; }
-                    setTimeout(() => { if (savedEl) savedEl.textContent = ''; }, 3000);
-                }
-                return;
-                if (savedEl) {
-                    if (payload.success) { savedEl.textContent = '✓ Saved'; savedEl.style.color = 'var(--ok)'; }
-                    else { savedEl.textContent = '✗ Failed'; savedEl.style.color = 'var(--err)'; }
-                    setTimeout(() => { if (savedEl) savedEl.textContent = ''; }, 3000);
+                if (payload.success && currentFriendDetail?.id === payload.userId) {
+                    if (currentFriendDetail) currentFriendDetail.note = payload.note;
+                    const view = document.getElementById('fdVrcNoteView');
+                    if (view) {
+                        view.innerHTML = payload.note
+                            ? `<div style="font-size:12px;color:var(--tx2);line-height:1.5;">${esc(payload.note)}</div>`
+                            : `<div class="myp-empty">${t('profiles.notes.no_note', 'No notes added yet')}</div>`;
+                    }
+                    fdCancelNote();
+                } else if (!payload.success) {
+                    const btn = document.getElementById('fdVrcNoteSaveBtn');
+                    if (btn) btn.disabled = false;
+                    showToast(false, t('profiles.notes.failed', 'Failed to save note'));
                 }
                 break;
             case 'vrcUnfriendDone':
@@ -707,6 +709,7 @@ case 'popularWorlds':
             case 'friendTimelineData':          renderFriendTimeline(payload); break;
             case 'friendTimelineEvent':         handleFriendTimelineEvent(payload); break;
             case 'friendTimelineSearchResults': handleFtlSearchResults(payload); break;
+            case 'timelineForUser': renderFdTimeline(payload.userId, payload.events); break;
             case 'invFiles':
                 if (!payload.error) {
                     // Cache by actual tag (not activeInvTab) to prevent cross-contamination

@@ -2142,47 +2142,6 @@ html.text-tools-active * { user-select: text !important; }
     min-width: 90px;
 }
 
-.fd-note-section {
-    margin-bottom: 14px;
-    padding: 10px 12px;
-    background: var(--bg-input);
-    border-radius: 10px;
-}
-
-.fd-note-input {
-    width: 100%;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--tx1);
-    font-size: 12px;
-    font-family: inherit;
-    padding: 8px 10px;
-    resize: vertical;
-    min-height: 40px;
-    max-height: 120px;
-    outline: none;
-    transition: border-color .15s;
-    box-sizing: border-box;
-}
-
-.fd-note-input:focus {
-    border-color: var(--accent);
-}
-
-.fd-note-actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 4px;
-    min-height: 16px;
-}
-
-.fd-note-saved {
-    font-size: 11px;
-    transition: color .2s;
-}
 
 .fd-loading {
     text-align: center;

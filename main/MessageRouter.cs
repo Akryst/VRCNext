@@ -1240,6 +1240,7 @@ public partial class AppShell
                 case "getFtAlsoWasHere":
                 case "getTimelineByDate":
                 case "getFriendTimelineByDate":
+                case "getTimelineForUser":
                     await _timelineCtrl.HandleMessage(action, msg);
                     break;
 

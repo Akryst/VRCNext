@@ -720,21 +720,29 @@ function formatLastSeen(apiLastLogin, localLastSeen) {
     return best.toLocaleDateString(t('clock.date_locale', getLanguageLocale()));
 }
 
-let _noteSaveTimer = null;
-function debounceSaveNote(userId) {
-    const saved = document.getElementById('fdNoteSaved');
-    if (saved) { saved.textContent = ''; }
-    clearTimeout(_noteSaveTimer);
-    _noteSaveTimer = setTimeout(() => saveUserNote(userId), 1200);
+function fdEditNote() {
+    document.getElementById('fdVrcNoteView')?.style.setProperty('display', 'none');
+    const edit = document.getElementById('fdVrcNoteEdit');
+    if (edit) edit.style.display = '';
+    const inp = document.getElementById('fdVrcNoteInput');
+    if (inp) { inp.value = currentFriendDetail?.note || ''; inp.focus(); }
 }
 
-function saveUserNote(userId) {
-    const input = document.getElementById('fdNoteInput');
-    const saved = document.getElementById('fdNoteSaved');
-    if (!input) return;
-    const note = input.value;
-    sendToCS({ action: 'vrcUpdateNote', userId, note });
-    if (saved) { saved.textContent = t('profiles.notes.saving', 'Saving...'); saved.style.color = 'var(--tx3)'; }
+function fdCancelNote() {
+    const view = document.getElementById('fdVrcNoteView');
+    if (view) view.style.display = '';
+    const edit = document.getElementById('fdVrcNoteEdit');
+    if (edit) edit.style.display = 'none';
+    const btn = document.getElementById('fdVrcNoteSaveBtn');
+    if (btn) btn.disabled = false;
+}
+
+function fdSaveNote() {
+    const inp = document.getElementById('fdVrcNoteInput');
+    if (!inp || !currentFriendDetail) return;
+    const btn = document.getElementById('fdVrcNoteSaveBtn');
+    if (btn) btn.disabled = true;
+    sendToCS({ action: 'vrcUpdateNote', userId: currentFriendDetail.id, note: inp.value });
 }
 
 function openFriendDetail(userId) {
@@ -946,32 +954,51 @@ function renderFriendDetail(d) {
         ? `<div id="fdAvatarSection" style="margin-bottom:14px;"></div>`
         : '';
 
-    let metaHtml = '';
-    if (d.lastPlatform) metaHtml += `<div class="fd-meta-row"><span class="fd-meta-label">${t('profiles.meta.platform', 'Platform')}</span><span>${esc(d.lastPlatform)}</span></div>`;
-    if (d.dateJoined) metaHtml += `<div class="fd-meta-row"><span class="fd-meta-label">${t('profiles.meta.joined', 'Joined')}</span><span>${esc(d.dateJoined)}</span></div>`;
     const lastSeenStr = formatLastSeen(d.lastLogin, d.lastSeenTracked);
-    if (lastSeenStr) metaHtml += `<div class="fd-meta-row"><span class="fd-meta-label">${t('profiles.meta.last_seen', 'Last Seen')}</span><span>${esc(lastSeenStr)}</span></div>`;
-    const isSelf = currentVrcUser && d.id === currentVrcUser.id;
-    if (!isSelf) {
-        if (d.totalTimeSeconds > 0 || d.inSameInstance) {
-            metaHtml += `<div class="fd-meta-row"><span class="fd-meta-label">${t('profiles.meta.time_together', 'Time Together')}</span><span id="fdTimeTogether">${formatDuration(d.totalTimeSeconds)}</span></div>`;
-        } else {
-            metaHtml += `<div class="fd-meta-row"><span class="fd-meta-label">${t('profiles.meta.time_together', 'Time Together')}</span><span style="color:var(--tx3)">${t('profiles.meta.not_tracked', 'Not tracked yet')}</span></div>`;
-        }
-    }
+    const isSelf    = currentVrcUser && d.id === currentVrcUser.id;
     const fdMeetCnt = d.meets || 0;
-    if (fdMeetCnt > 0) {
-        metaHtml += `<div class="fd-meta-row"><span class="fd-meta-label">${t('profiles.meta.meets', 'Meets')}</span><span>${fdMeetCnt}</span></div>`;
+
+    const _mc = (label, valueHtml) =>
+        `<div><div class="myp-section-title" style="margin-bottom:3px;">${label}</div><div style="font-size:12px;color:var(--tx2);">${valueHtml}</div></div>`;
+
+    const _metaCells = [
+        _mc(t('profiles.meta.platform', 'Platform'), esc(d.lastPlatform || '—')),
+        _mc(t('profiles.meta.joined',   'Joined'),   esc(d.dateJoined   || '—')),
+        _mc(t('profiles.meta.last_seen','Last Seen'), esc(lastSeenStr    || '—')),
+    ];
+    if (!isSelf) {
+        _metaCells.push(_mc(t('profiles.meta.meets', 'Meets'),
+            fdMeetCnt > 0 ? String(fdMeetCnt) : `<span style="color:var(--tx3);">—</span>`));
+        _metaCells.push(_mc(t('profiles.meta.time_together', 'Time Together'),
+            (d.totalTimeSeconds > 0 || d.inSameInstance)
+                ? `<span id="fdTimeTogether">${formatDuration(d.totalTimeSeconds)}</span>`
+                : `<span style="color:var(--tx3);">${t('profiles.meta.not_tracked', 'Not tracked yet')}</span>`));
     }
 
-    const noteVal = (d.userNote || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-    const noteHtml = `<div class="fd-note-section">
-        <div class="fd-meta-label" style="margin-bottom:6px;display:flex;align-items:center;gap:6px;"><span class="msi" style="font-size:14px;">edit_note</span>${t('profiles.notes.note', 'Note')}</div>
-        <textarea id="fdNoteInput" class="fd-note-input" placeholder="${esc(t('profiles.notes.placeholder', 'Write a note about this user...'))}" rows="2" oninput="debounceSaveNote('${(d.id||'').replace(/'/g,"\\'")}')">${noteVal}</textarea>
-        <div class="fd-note-actions"><span id="fdNoteSaved" class="fd-note-saved"></span></div>
+    const metaHtml = `<div class="myp-section" style="padding-bottom:14px;">
+        <div class="myp-section-header"><span class="myp-section-title">${t('profiles.meta.infos_title', 'Infos')}</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 6px;">
+            ${_metaCells.join('')}
+        </div>
     </div>`;
 
-    if (d.note) metaHtml += `<div class="fd-meta-row"><span class="fd-meta-label">${t('profiles.notes.vrc_note', 'VRC Note')}</span><span style="color:var(--tx3);font-style:italic">${esc(d.note)}</span></div>`;
+    const vrcNoteHtml = `<div class="myp-section" style="padding-bottom:14px;">
+        <div class="myp-section-header">
+            <span class="myp-section-title">${t('profiles.notes.vrc_note', 'VRC Note')}</span>
+            <button class="myp-edit-btn" onclick="fdEditNote()"><span class="msi" style="font-size:14px;">edit</span></button>
+        </div>
+        <div id="fdVrcNoteView">
+            ${d.note ? `<div style="font-size:12px;color:var(--tx2);line-height:1.5;">${esc(d.note)}</div>`
+                     : `<div class="myp-empty">${t('profiles.notes.no_note', 'No notes added yet')}</div>`}
+        </div>
+        <div id="fdVrcNoteEdit" style="display:none;">
+            <textarea id="fdVrcNoteInput" class="myp-textarea" rows="3" placeholder="${esc(t('profiles.notes.placeholder', 'Write a note about this user...'))}"></textarea>
+            <div class="myp-edit-actions">
+                <button class="vrcn-button" onclick="fdCancelNote()">${t('common.cancel', 'Cancel')}</button>
+                <button id="fdVrcNoteSaveBtn" class="vrcn-button vrcn-btn-primary" onclick="fdSaveNote()">${t('common.save', 'Save')}</button>
+            </div>
+        </div>
+    </div>`;
 
     // Actions
     let actionsHtml = '<div class="fd-actions">';
@@ -1101,8 +1128,16 @@ function renderFriendDetail(d) {
         mutualsContent += '</div>';
     }
 
+    // Mini-timeline — filled async via timelineForUser response
+    const miniTlHtml = `<div class="myp-section">
+        <div class="myp-section-header">
+            <span class="myp-section-title">${t('nav.timeline', 'Timeline')}</span>
+        </div>
+        <div id="fdMiniTl" style="max-height:160px;overflow-y:auto;"></div>
+    </div>`;
+
     // Info tab content
-    const infoContent = `${worldHtml}${vrcBadgesHtml}${repGroupInfoHtml}${avatarRowHtml}${bioHtml}${bioLinksHtml}${langsHtml}${metaHtml ? '<div style="margin-bottom:14px;">' + metaHtml + '</div>' : ''}${noteHtml}`;
+    const infoContent = `${worldHtml}${vrcBadgesHtml}${repGroupInfoHtml}${avatarRowHtml}${bioHtml}${bioLinksHtml}${langsHtml}${metaHtml ? '<div style="margin-bottom:14px;">' + metaHtml + '</div>' : ''}${vrcNoteHtml}${miniTlHtml}`;
 
     // Banner
     const bannerSrc = d.profilePicOverride || d.currentAvatarImageUrl || d.image || '';
@@ -1199,6 +1234,9 @@ function renderFriendDetail(d) {
     // Pre-fetch avatars for Content tab count
     if (userId) sendToCS({ action: 'vrcGetUserAvatars', userId: userId });
 
+    // Request mini-timeline events for this user
+    if (userId) { _fdTimelineEvents = []; sendToCS({ action: 'getTimelineForUser', userId }); }
+
     // Live ticker - only when friend is confirmed in same instance (never for own profile)
     if (_fdLiveTimer) { clearInterval(_fdLiveTimer); _fdLiveTimer = null; }
     if (d.inSameInstance && !(currentVrcUser && d.id === currentVrcUser.id)) {
@@ -1210,6 +1248,32 @@ function renderFriendDetail(d) {
             else { clearInterval(_fdLiveTimer); _fdLiveTimer = null; }
         }, 1000);
     }
+}
+
+function renderFdTimeline(userId, events) {
+    if (!currentFriendDetail || currentFriendDetail.id !== userId) return;
+    const el = document.getElementById('fdMiniTl');
+    if (!el) return;
+
+    _fdTimelineEvents = events || [];
+
+    if (!_fdTimelineEvents.length) {
+        el.innerHTML = `<div style="padding:4px 0;font-size:12px;color:var(--tx3);">${t('timeline.empty.initial', 'No events yet')}</div>`;
+        return;
+    }
+
+    el.innerHTML = _fdTimelineEvents.map(ev => {
+        const meta  = typeof tlTypeMeta === 'function' ? tlTypeMeta(ev.type) : { icon: 'event', label: ev.type };
+        const color = { instance_join:'var(--accent)', photo:'var(--ok)', first_meet:'var(--cyan)', meet_again:'#AB47BC', notification:'var(--warn)', avatar_switch:'#FF7043', video_url:'#29B6F6' }[ev.type] || 'var(--tx3)';
+        const d     = new Date(ev.timestamp);
+        const dt    = `${typeof tlFormatShortDate === 'function' ? tlFormatShortDate(d) : d.toLocaleDateString()} | ${typeof tlFormatTime === 'function' ? tlFormatTime(d) : d.toLocaleTimeString()}`;
+        const ei    = ev.id.replace(/'/g, "\\'");
+        return `<div style="display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid var(--brd);cursor:pointer;" onclick="openTlDetail('${ei}')">
+            <span style="font-size:11px;color:var(--tx3);white-space:nowrap;">${esc(dt)}</span>
+            <span class="msi" style="font-size:14px;color:${color};flex-shrink:0;">${meta.icon}</span>
+            <span style="font-size:12px;">${esc(meta.label)}</span>
+        </div>`;
+    }).join('');
 }
 
 function friendAction(action, location, userId) {

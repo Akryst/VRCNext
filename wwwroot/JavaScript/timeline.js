@@ -51,6 +51,9 @@ let _ftlSearchDate   = '';
 let _ftlSearchTotal  = 0;
 let _ftlSearchPage   = 0;
 
+// Events for the profile mini-timeline (populated per-profile-open, used by openTlDetail)
+let _fdTimelineEvents = [];
+
 // Filter button map
 const TL_FILTER_IDS = {
     all:           'tlFAll',
@@ -931,7 +934,8 @@ function _instanceLinkBtn(location, closeJs) {
 
 function openTlDetail(id) {
     const ev = timelineEvents.find(e => e.id === id)
-             || _tlSearchEvents.find(e => e.id === id);
+             || _tlSearchEvents.find(e => e.id === id)
+             || _fdTimelineEvents.find(e => e.id === id);
     if (!ev) return;
     const el = document.getElementById('detailModalContent');
     if (!el) return;

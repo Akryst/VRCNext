@@ -54,10 +54,12 @@ public class WindowController
     private static SUBCLASSPROC? _subclassProc; // must stay rooted — prevents GC collection of the delegate
     private static volatile bool _ncDestroyed;  // set on WM_NCDESTROY; guards re-entrant calls and post-destroy messages
     private const nuint SubclassId = 1;
+    internal static volatile Action? OnMinimized; // set from AppShell; called on any minimize/hide-to-tray
 
     private static nint SubclassWndProc(nint hWnd, uint msg, nint wParam, nint lParam, nuint uIdSubclass, nuint dwRefData)
     {
         const uint WM_DESTROY    = 0x0002;
+        const uint WM_SIZE       = 0x0005;
         const uint WM_NCDESTROY  = 0x0082;
         const uint WM_NCCALCSIZE = 0x0083;
         const uint WM_NCHITTEST  = 0x0084;
@@ -81,12 +83,19 @@ public class WindowController
             return 0;
         }
 
+        if (msg == WM_SIZE && wParam == 1 /*SIZE_MINIMIZED*/)
+        {
+            OnMinimized?.Invoke();
+            return DefSubclassProc(hWnd, msg, wParam, lParam);
+        }
+
         if (msg == WM_NCCALCSIZE && wParam == 1)
             return 0;
 
         if (msg == WM_SYSCOMMAND && (wParam.ToInt32() & 0xFFF0) == SC_MINIMIZE && _minimizeToTray)
         {
             ShowWindow(hWnd, SW_HIDE);
+            OnMinimized?.Invoke(); // SW_HIDE does not send WM_SIZE, so trigger here
             return 0;
         }
 
@@ -239,10 +248,13 @@ public class WindowController
             case "windowMinimize":
 #if WINDOWS
                 if (_minimizeToTray)
+                {
                     ShowWindow(window.WindowHandle, SW_HIDE);
+                    OnMinimized?.Invoke(); // SW_HIDE does not send WM_SIZE
+                }
                 else
 #endif
-                    window.SetMinimized(true);
+                    window.SetMinimized(true); // → WM_SIZE SIZE_MINIMIZED → OnMinimized via subclass
                 break;
             case "windowMaximize":
                 var nowMax = window.Maximized;

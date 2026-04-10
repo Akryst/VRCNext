@@ -139,6 +139,9 @@ public partial class AppShell
         _vfCtrl = new VoiceFightController(_core, _vroCtrl);
         _relayCtrl = new RelayController(_core, _friends, _instance, _notifications, _vroCtrl);
         _windowCtrl = new WindowController(_core);
+#if WINDOWS
+        WindowController.OnMinimized = () => _memTrim.TrimNow();
+#endif
         _authCtrl = new AuthController(_core, _friends, _instance, _photos, _relayCtrl, _groups, _discordCtrl);
         _relayCtrl.OnOwnUserUpdated = user => _authCtrl.SendVrcUserData(user);
         _core.PushDiscordPresence = () => _discordCtrl.PushPresence();

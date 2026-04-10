@@ -583,6 +583,88 @@ public class TimelineService : IDisposable
         catch { return 0; }
     }
 
+    /// Returns the most recent personal timeline events that involve a specific userId
+    /// (appears in event_players, or as the met user, or as notification sender).
+    public List<TimelineEvent> GetEventsForUser(string userId, int limit = 10)
+    {
+        var ids = new List<string>();
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"
+                SELECT DISTINCT e.id FROM events e
+                LEFT JOIN event_players ep ON e.id = ep.event_id
+                WHERE ep.user_id = $uid OR e.user_id = $uid OR e.sender_id = $uid
+                ORDER BY e.timestamp DESC LIMIT $limit";
+            cmd.Parameters.AddWithValue("$uid",   userId);
+            cmd.Parameters.AddWithValue("$limit", limit);
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) ids.Add(r.GetString(0));
+        }
+        catch { return new List<TimelineEvent>(); }
+
+        if (ids.Count == 0) return new List<TimelineEvent>();
+
+        var playerMap = new Dictionary<string, List<PlayerSnap>>();
+        try
+        {
+            var inP = string.Join(",", ids.Select((_, i) => $"$p{i}"));
+            using var pcmd = _db.CreateCommand();
+            pcmd.CommandText = $"SELECT event_id,user_id,display_name,image FROM event_players WHERE event_id IN ({inP})";
+            for (int i = 0; i < ids.Count; i++) pcmd.Parameters.AddWithValue($"$p{i}", ids[i]);
+            using var pr = pcmd.ExecuteReader();
+            while (pr.Read())
+            {
+                var eid = pr.GetString(0);
+                if (!playerMap.TryGetValue(eid, out var list)) playerMap[eid] = list = new();
+                list.Add(new PlayerSnap { UserId = pr.GetString(1), DisplayName = pr.GetString(2), Image = pr.GetString(3) });
+            }
+        }
+        catch { }
+
+        var result = new List<TimelineEvent>();
+        try
+        {
+            var inE = string.Join(",", ids.Select((_, i) => $"$e{i}"));
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = $@"SELECT id,type,timestamp,world_id,world_name,world_thumb,
+                location,photo_path,photo_url,user_id,user_name,user_image,
+                notif_id,notif_type,notif_title,sender_name,sender_id,sender_image,message
+                FROM events WHERE id IN ({inE}) ORDER BY timestamp DESC";
+            for (int i = 0; i < ids.Count; i++) cmd.Parameters.AddWithValue($"$e{i}", ids[i]);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var id = r.GetString(0);
+                result.Add(new TimelineEvent
+                {
+                    Id          = id,
+                    Type        = r.GetString(1),
+                    Timestamp   = r.GetString(2),
+                    WorldId     = r.GetString(3),
+                    WorldName   = r.GetString(4),
+                    WorldThumb  = r.GetString(5),
+                    Location    = r.GetString(6),
+                    PhotoPath   = r.GetString(7),
+                    PhotoUrl    = r.GetString(8),
+                    UserId      = r.GetString(9),
+                    UserName    = r.GetString(10),
+                    UserImage   = r.GetString(11),
+                    NotifId     = r.GetString(12),
+                    NotifType   = r.GetString(13),
+                    NotifTitle  = r.GetString(14),
+                    SenderName  = r.GetString(15),
+                    SenderId    = r.GetString(16),
+                    SenderImage = r.GetString(17),
+                    Message     = r.GetString(18),
+                    Players     = playerMap.TryGetValue(id, out var pl) ? pl : new(),
+                });
+            }
+        }
+        catch { }
+        return result;
+    }
+
     public (List<TimelineEvent> Events, bool HasMore) GetEventsPaged(int limit, int offset, string typeFilter = "")
     {
         var ids = new List<string>();

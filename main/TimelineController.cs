@@ -81,6 +81,10 @@ public class TimelineController
             case "getFriendTimelineByDate":
                 HandleGetFriendTimelineByDate(msg);
                 break;
+
+            case "getTimelineForUser":
+                HandleGetTimelineForUser(msg);
+                break;
         }
     }
 
@@ -880,4 +884,18 @@ public class TimelineController
 
     private static string VrcxHash(object key)
         => Math.Abs(key?.GetHashCode() ?? 0).ToString("x8");
+
+    // getTimelineForUser — mini-timeline in profile modal
+
+    private void HandleGetTimelineForUser(JObject msg)
+    {
+        var userId = msg["userId"]?.ToString() ?? "";
+        if (string.IsNullOrEmpty(userId)) return;
+        _ = Task.Run(() =>
+        {
+            var events  = _core.Timeline.GetEventsForUser(userId, 10);
+            var payload = events.Select(e => _instance.BuildTimelinePayload(e)).ToList();
+            _core.SendToJS("timelineForUser", new { userId, events = payload });
+        });
+    }
 }
