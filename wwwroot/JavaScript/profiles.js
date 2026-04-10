@@ -561,12 +561,18 @@ function renderVrcFriends(friends, counts) {
             _sharedInst.forEach(([locBase, list]) => {
                 const _wid = locBase.split(':')[0];
                 const _iid = locBase.split(':')[1] || '';
-                const _wname = (typeof dashWorldCache !== 'undefined' && dashWorldCache[_wid]?.name) || '';
+                const _wc = (typeof dashWorldCache !== 'undefined' && dashWorldCache[_wid]) || null;
+                const _wname = _wc?.name || '';
+                const _wthumb = _wc?.thumbnailImageUrl || _wc?.imageUrl || '';
                 const _grpLabel = _wname
-                    ? `${_wname}${_iid ? ' - #' + _iid : ''} - ${list.length}`
-                    : (_iid ? `#${_iid} - ${list.length}` : `- ${list.length}`);
-                h += `<div class="fd-group-rep-label" style="padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(_grpLabel)}</div>`;
+                    ? `${_wname}${_iid ? ' · #' + _iid : ''}`
+                    : (_iid ? '#' + _iid : _wid);
+                h += `<div class="sloc-inst-card">`;
+                if (_wthumb) h += `<div class="sloc-inst-bg" style="background-image:url('${cssUrl(_wthumb)}')"></div>`;
+                h += `<div class="sloc-inst-content">`;
+                h += `<div class="sloc-inst-label">${esc(_grpLabel)} <span class="sloc-inst-count">${list.length}</span></div>`;
                 list.forEach(f => { h += renderCard(f, 'game'); });
+                h += `</div></div>`;
             });
             h += `</div>`;
         }

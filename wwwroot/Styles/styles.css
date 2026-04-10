@@ -1840,6 +1840,43 @@ html.text-tools-active * { user-select: text !important; }
 .vrc-status-ring.s-busy    { border-color: var(--status-busy); }
 .vrc-status-ring.s-offline { border-color: var(--status-offline); }
 
+/* Same-location instance card */
+.sloc-inst-card {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+.sloc-inst-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.25);
+    z-index: 0;
+}
+.sloc-inst-content {
+    position: relative;
+    z-index: 1;
+}
+.sloc-inst-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--tx2);
+    padding: 6px 10px 2px;
+    letter-spacing: .04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sloc-inst-count {
+    color: var(--tx3);
+    font-weight: 400;
+}
+.sloc-inst-card .vrc-friend-card:hover {
+    background: rgba(255,255,255,.08);
+}
+
 .vrc-friend-card {
     display: flex;
     align-items: center;
