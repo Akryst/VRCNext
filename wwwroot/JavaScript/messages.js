@@ -87,11 +87,16 @@ window.external.receiveMessage(rawMsg => {
                 filterLibrary();
                 break;
             case 'exeAdded':
-                if (payload.target === 'vrchat') document.getElementById('setVrcPath').value = payload.path;
-                else {
-                    if (!settings.extraExe) settings.extraExe = [];
-                    settings.extraExe.push(payload.path);
-                    renderExtraExe(settings.extraExe);
+                if (payload.target === 'vrchat') {
+                    document.getElementById('setVrcPath').value = payload.path;
+                } else if (payload.target === 'extra-desktop') {
+                    if (!settings.extraExeDesktop) settings.extraExeDesktop = [];
+                    settings.extraExeDesktop.push(payload.path);
+                    renderExtraExeDesktop(settings.extraExeDesktop);
+                } else if (payload.target === 'extra-vr') {
+                    if (!settings.extraExeVR) settings.extraExeVR = [];
+                    settings.extraExeVR.push(payload.path);
+                    renderExtraExeVR(settings.extraExeVR);
                 }
                 autoSave();
                 break;

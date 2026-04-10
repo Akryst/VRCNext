@@ -68,7 +68,8 @@ function applyTranslations(root = document) {
     if (typeof renderCursorThemeChips === 'function') renderCursorThemeChips();
     document.querySelectorAll('select').forEach(el => el._vnRefresh && el._vnRefresh());
     if (typeof renderFolders === 'function' && settings?.folders) renderFolders(settings.folders);
-    if (typeof renderExtraExe === 'function' && settings?.extraExe) renderExtraExe(settings.extraExe);
+    if (typeof renderExtraExeDesktop === 'function' && settings?.extraExeDesktop) renderExtraExeDesktop(settings.extraExeDesktop);
+    if (typeof renderExtraExeVR === 'function' && settings?.extraExeVR) renderExtraExeVR(settings.extraExeVR);
     if (typeof renderWebhookCards === 'function') renderWebhookCards(settings?.webhooks || settings?.Webhooks || []);
     if (typeof updateCurrentPageTitle === 'function') updateCurrentPageTitle();
     if (typeof updateClock === 'function') updateClock();

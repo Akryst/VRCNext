@@ -825,6 +825,12 @@ public class AuthController
             var extraExe = data["extraExe"]?.ToObject<List<string>>();
             if (extraExe != null) _core.Settings.ExtraExe = extraExe;
 
+            var extraExeDesktop = data["extraExeDesktop"]?.ToObject<List<string>>();
+            if (extraExeDesktop != null) _core.Settings.ExtraExeDesktop = extraExeDesktop;
+
+            var extraExeVR = data["extraExeVR"]?.ToObject<List<string>>();
+            if (extraExeVR != null) _core.Settings.ExtraExeVR = extraExeVR;
+
             var vrcU = data["vrcUsername"]?.ToString();
             var vrcP = data["vrcPassword"]?.ToString();
             if (vrcU != null) _core.Settings.VrcUsername = vrcU;

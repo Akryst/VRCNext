@@ -127,7 +127,8 @@ public class RelayController : IDisposable
                             break;
                         }
                     }
-                    foreach (var exe in _core.Settings.ExtraExe)
+                    var llExtraApps = llVr ? _core.Settings.ExtraExeVR : _core.Settings.ExtraExeDesktop;
+                    foreach (var exe in llExtraApps)
                     {
                         try
                         {
@@ -382,7 +383,7 @@ public class RelayController : IDisposable
 #endif
             _core.SendToJS("log", new { msg = "Launched VRChat", color = "ok" });
 
-            foreach (var exe in _core.Settings.ExtraExe)
+            foreach (var exe in _core.Settings.ExtraExeDesktop)
             {
                 try
                 {

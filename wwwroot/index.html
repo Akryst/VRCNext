@@ -588,11 +588,17 @@
                                 <input type="text" id="setVrcPath" class="vrcn-edit-field" placeholder="C:\...\VRChat.exe" oninput="autoSave()" style="flex:1;">
                                 <button class="vrcn-button" id="browseVrcBtn" onclick="browseExe('vrchat')"><span class="msi" style="font-size:16px;">folder_open</span> <span data-i18n="common.browse">Browse</span></button>
                             </div>
-                            <div class="sf-section-label" data-i18n="settings.launch.additional_apps">Additional Apps</div>
-                            <div class="set-desc" style="margin-bottom:8px;" data-i18n="settings.launch.additional_apps_desc">Apps to launch alongside VRChat when you click "Play VRChat". Useful for OVR Advanced Settings, SlimeVR, VRCFaceTracking, and similar tools.</div>
-                            <div class="exe-list" id="extraExeList"><div class="folder-empty" data-i18n="common.none">None</div></div>
+                            <div class="sf-section-label" data-i18n="settings.launch.apps_desktop">Start With Desktop</div>
+                            <div class="set-desc" style="margin-bottom:8px;" data-i18n="settings.launch.apps_desktop_desc">Apps launched when starting VRChat in Desktop mode.</div>
+                            <div class="exe-list" id="extraExeDesktopList"><div class="folder-empty" data-i18n="common.none">None</div></div>
+                            <div class="folder-btns" style="margin-top:10px;margin-bottom:14px;">
+                                <button class="vrcn-button" onclick="browseExe('extra-desktop')"><span class="msi" style="font-size:16px;">add</span> <span data-i18n="settings.launch.add_app">Add App</span></button>
+                            </div>
+                            <div class="sf-section-label" data-i18n="settings.launch.apps_vr">Start With VR</div>
+                            <div class="set-desc" style="margin-bottom:8px;" data-i18n="settings.launch.apps_vr_desc">Apps launched when starting VRChat in VR mode.</div>
+                            <div class="exe-list" id="extraExeVRList"><div class="folder-empty" data-i18n="common.none">None</div></div>
                             <div class="folder-btns" style="margin-top:10px;">
-                                <button class="vrcn-button" onclick="browseExe('extra')"><span class="msi" style="font-size:16px;">add</span> <span data-i18n="settings.launch.add_app">Add App</span></button>
+                                <button class="vrcn-button" onclick="browseExe('extra-vr')"><span class="msi" style="font-size:16px;">add</span> <span data-i18n="settings.launch.add_app">Add App</span></button>
                             </div>
                             <div style="height:12px;"></div>
                             <div class="sf-toggle-row"><span id="labelStartWithSystem" data-i18n="settings.launch.auto_start_windows">Auto-start VRCNext with Windows</span><label class="toggle"><input type="checkbox" id="setStartWithWindows" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>

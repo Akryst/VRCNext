@@ -60,25 +60,40 @@ function removeFolderAt(i) {
     }
 }
 
-function renderExtraExe(l) {
-    const e = document.getElementById('extraExeList');
-    if (!l || !l.length) {
+function _renderExeList(listId, list, removeFn) {
+    const e = document.getElementById(listId);
+    if (!e) return;
+    if (!list || !list.length) {
         e.innerHTML = `<div class="folder-empty">${t('common.none', 'None')}</div>`;
         return;
     }
-    e.innerHTML = l.map((x, i) =>
-        `<div class="exe-item"><span>${esc(x.split(/[\\\\/]/).pop())}</span><button class="exe-remove" onclick="removeExtraExe(${i})" title="${esc(t('common.remove', 'Remove'))}"><span class="msi" style="font-size:16px;">close</span></button></div>`
+    e.innerHTML = list.map((x, i) =>
+        `<div class="exe-item"><span>${esc(x.split(/[\\\\/]/).pop())}</span><button class="exe-remove" onclick="${removeFn}(${i})" title="${esc(t('common.remove', 'Remove'))}"><span class="msi" style="font-size:16px;">close</span></button></div>`
     ).join('');
 }
+
+function renderExtraExeDesktop(l) { _renderExeList('extraExeDesktopList', l, 'removeExtraExeDesktop'); }
+function renderExtraExeVR(l)      { _renderExeList('extraExeVRList',      l, 'removeExtraExeVR');      }
+
+// legacy — kept so i18n.js re-render calls don't break on old references
+function renderExtraExe(l) {}
 
 function browseExe(t) {
     sendToCS({ action: 'browseExe', target: t });
 }
 
-function removeExtraExe(i) {
-    if (settings.extraExe) {
-        settings.extraExe.splice(i, 1);
-        renderExtraExe(settings.extraExe);
+function removeExtraExeDesktop(i) {
+    if (settings.extraExeDesktop) {
+        settings.extraExeDesktop.splice(i, 1);
+        renderExtraExeDesktop(settings.extraExeDesktop);
+        autoSave();
+    }
+}
+
+function removeExtraExeVR(i) {
+    if (settings.extraExeVR) {
+        settings.extraExeVR.splice(i, 1);
+        renderExtraExeVR(settings.extraExeVR);
         autoSave();
     }
 }
@@ -103,7 +118,8 @@ function saveSettings() {
             webhooks: w,
             folders: settings.folders || [],
             vrcPath: document.getElementById('setVrcPath').value,
-            extraExe: settings.extraExe || [],
+            extraExeDesktop: settings.extraExeDesktop || [],
+            extraExeVR: settings.extraExeVR || [],
             autoStart: false, // legacy â€” kept for JSON compat
             relayAutoStartVR:        document.getElementById('setAutoStartVR')?.checked       ?? false,
             relayAutoStartDesktop:   document.getElementById('setAutoStartDesktop')?.checked  ?? false,
@@ -276,6 +292,14 @@ function loadSettingsToUI(s) {
     document.getElementById('setMediaRelaySoundEnabled').checked = s.MediaRelaySoundEnabled ?? s.mediaRelaySoundEnabled ?? false;
     settings.folders = s.WatchFolders || s.watchFolders || s.folders || [];
     settings.extraExe = s.ExtraExe || s.extraExe || [];
+    // Migration: if new lists are empty but legacy extraExe has items, pre-populate both lists from it
+    const _legacyExe = settings.extraExe;
+    settings.extraExeDesktop = (s.ExtraExeDesktop || s.extraExeDesktop || []).length
+        ? (s.ExtraExeDesktop || s.extraExeDesktop)
+        : (_legacyExe.length ? [..._legacyExe] : []);
+    settings.extraExeVR = (s.ExtraExeVR || s.extraExeVR || []).length
+        ? (s.ExtraExeVR || s.extraExeVR)
+        : (_legacyExe.length ? [..._legacyExe] : []);
     settings.notifySoundEnabled = s.NotifySoundEnabled ?? s.notifySoundEnabled ?? false;
     settings.messageSoundEnabled = s.MessageSoundEnabled ?? s.messageSoundEnabled ?? false;
     settings.mediaRelaySoundEnabled = s.MediaRelaySoundEnabled ?? s.mediaRelaySoundEnabled ?? false;
@@ -305,7 +329,8 @@ function loadSettingsToUI(s) {
     }
     renderWebhookCards((s.Webhooks || s.webhooks || []).slice(0, 4));
     renderFolders(settings.folders);
-    renderExtraExe(settings.extraExe);
+    renderExtraExeDesktop(settings.extraExeDesktop);
+    renderExtraExeVR(settings.extraExeVR);
     updateFolderFilterOptions(settings.folders);
     currentTheme = s.Theme || s.theme || 'midnight';
     currentSpecialTheme = s.SpecialTheme || s.specialTheme || '';
