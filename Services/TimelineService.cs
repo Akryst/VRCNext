@@ -473,6 +473,22 @@ public class TimelineService : IDisposable
         catch { return 0; }
     }
 
+    // Returns ISO timestamp of the last time we were in the same instance as userId
+    // (most recent meet_again or first_meet event)
+    public string GetLastSeenTimestamp(string userId)
+    {
+        if (string.IsNullOrEmpty(userId)) return "";
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT MAX(timestamp) FROM events WHERE user_id = $uid AND type IN ('meet_again', 'first_meet')";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            var val = cmd.ExecuteScalar();
+            return val is string s ? s : "";
+        }
+        catch { return ""; }
+    }
+
     public long GetEventCount(string typeFilter = "")
     {
         try

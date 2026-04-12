@@ -397,6 +397,11 @@ public class AuthController
     {
         SendTranslation(_core.Settings.Language);
         _core.SendToJS("loadSettings", _core.Settings);
+        _core.SendToJS("dateTimeFormat", new
+        {
+            shortDatePattern = VRCNext.Services.Helpers.DateTimeHelper.ShortDatePattern,
+            is24Hour = VRCNext.Services.Helpers.DateTimeHelper.Is24Hour,
+        });
         _core.SendToJS("favoritesLoaded", _photos.Favorites);
         var customColors = _core.Cache.LoadRaw(CacheHandler.KeyCustomColors);
         if (customColors != null) _core.SendToJS("customColors", customColors);

@@ -53,13 +53,6 @@ const INV_TABS = {
     }
 };
 
-function invDateLocale() {
-    return t('clock.date_locale', 'en-US');
-}
-
-function invTimeLocale() {
-    return t('clock.time_locale', 'en-GB');
-}
 
 function invTabLabel(tab) {
     return INV_TABS[tab]?.label || tab;
@@ -80,33 +73,13 @@ function invCountText(kind, count) {
 function invGroupDateLabel(value) {
     const date = value ? new Date(value) : new Date(0);
     if (isNaN(date.getTime())) return t('inventory.date.unknown', 'Unknown date');
-
-    try {
-        return date.toLocaleDateString(invDateLocale(), {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    } catch {
-        return date.toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    }
+    return fmtLongDate(date);
 }
 
 function invTimeLabel(value) {
     const date = value ? new Date(value) : null;
     if (!date || isNaN(date.getTime())) return '';
-
-    try {
-        return date.toLocaleTimeString(invTimeLocale(), { hour: '2-digit', minute: '2-digit' });
-    } catch {
-        return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    }
+    return fmtTime(date);
 }
 
 function invNoPreviewMarkup() {

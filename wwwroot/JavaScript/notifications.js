@@ -75,8 +75,10 @@ function getNotificationTypeMeta(type) {
 }
 
 function getNotificationTime(createdAt) {
-    const locale = t('clock.date_locale', 'en-US');
-    return createdAt ? new Date(createdAt).toLocaleString(locale) : '';
+    if (!createdAt) return '';
+    const dt = new Date(createdAt);
+    if (isNaN(dt)) return '';
+    return fmtShortDate(dt) + ' ' + fmtTime(dt);
 }
 
 function formatInstanceTimer(joinedAt, now) {

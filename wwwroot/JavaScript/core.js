@@ -1,3 +1,71 @@
+/* === Global date/time format (received from Windows system via C#) === */
+let _dtShortPattern = 'dd.MM.yyyy'; // e.g. "dd.MM.yyyy", "M/d/yyyy", "yyyy-MM-dd"
+let _dtIs24Hour = true;
+
+function applyDateTimeFormat(payload) {
+    if (payload?.shortDatePattern) _dtShortPattern = payload.shortDatePattern;
+    if (typeof payload?.is24Hour === 'boolean') _dtIs24Hour = payload.is24Hour;
+}
+
+// Apply pattern tokens in safe order (longest first to avoid partial replacement)
+function _applyDatePat(dt, pattern) {
+    const d = dt.getDate();
+    const m = dt.getMonth() + 1;
+    const y = dt.getFullYear();
+    return pattern
+        .replace(/yyyy/g, String(y))
+        .replace(/yy/g, String(y).slice(-2))
+        .replace(/MM/g, String(m).padStart(2, '0'))
+        .replace(/M/g, String(m))
+        .replace(/dd/g, String(d).padStart(2, '0'))
+        .replace(/d/g, String(d));
+}
+
+function fmtShortDate(d) {
+    const dt = d instanceof Date ? d : new Date(d);
+    if (!dt || isNaN(dt)) return '';
+    return _applyDatePat(dt, _dtShortPattern);
+}
+
+// Long date: day-padded + full month name in app language + year, order from pattern
+function fmtLongDate(d) {
+    const dt = d instanceof Date ? d : new Date(d);
+    if (!dt || isNaN(dt)) return '';
+    const monthName = dt.toLocaleDateString(getLanguageLocale(), { month: 'long' });
+    const day = String(dt.getDate()).padStart(2, '0');
+    const year = dt.getFullYear();
+    const pat = _dtShortPattern.toLowerCase().replace(/[^dmy]/g, '');
+    const dIdx = pat.indexOf('d');
+    const mIdx = pat.indexOf('m');
+    const yIdx = pat.indexOf('y');
+    if (yIdx < dIdx && yIdx < mIdx) return `${year}, ${monthName} ${day}`;
+    if (mIdx < dIdx) return `${monthName} ${day}, ${year}`;
+    return `${day}. ${monthName} ${year}`;
+}
+
+function fmtTime(d) {
+    const dt = d instanceof Date ? d : new Date(d);
+    if (!dt || isNaN(dt)) return '';
+    const h = dt.getHours();
+    const min = String(dt.getMinutes()).padStart(2, '0');
+    if (_dtIs24Hour) return String(h).padStart(2, '0') + ':' + min;
+    const meridiem = h >= 12 ? 'PM' : 'AM';
+    return String(h % 12 || 12).padStart(2, '0') + ':' + min + ' ' + meridiem;
+}
+
+function fmtTimeSeconds(d) {
+    const dt = d instanceof Date ? d : new Date(d);
+    if (!dt || isNaN(dt)) return '';
+    const sec = String(dt.getSeconds()).padStart(2, '0');
+    if (_dtIs24Hour) {
+        return fmtTime(dt) + ':' + sec;
+    }
+    const h = dt.getHours();
+    const min = String(dt.getMinutes()).padStart(2, '0');
+    const meridiem = h >= 12 ? 'PM' : 'AM';
+    return String(h % 12 || 12).padStart(2, '0') + ':' + min + ':' + sec + ' ' + meridiem;
+}
+
 let relayOn = false, settings = { webhooks: [{}, {}, {}, {}], folders: [], extraExe: [] }, postedFiles = [], selectedFolderIdx = -1;
 let favorites = new Set(), showFavOnly = false, libraryFiles = [];
 let _prevTab = -1;
@@ -961,10 +1029,17 @@ function applyClockSettings() {
 function updateClock() {
     if (!_clockEnabled) return;
     const n = new Date();
-    const timeLocale = t('clock.time_locale', 'en-GB');
-    const dateLocale = t('clock.date_locale', 'en-US');
-    document.getElementById('clock').textContent = n.toLocaleTimeString(timeLocale, { hour12: _clockAmPm });
-    document.getElementById('clockDate').textContent = n.toLocaleDateString(dateLocale, { weekday: 'long', month: 'short', day: 'numeric' });
+    // Clock time: respect the user's explicit AM/PM setting in preferences
+    let clockTime;
+    if (_clockAmPm) {
+        const h = n.getHours();
+        const min = String(n.getMinutes()).padStart(2, '0');
+        clockTime = String(h % 12 || 12).padStart(2, '0') + ':' + min + ' ' + (h >= 12 ? 'PM' : 'AM');
+    } else {
+        clockTime = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
+    }
+    document.getElementById('clock').textContent = clockTime;
+    document.getElementById('clockDate').textContent = fmtShortDate(n);
 }
 
 function toggleNavGroup(id) {
@@ -1095,7 +1170,7 @@ function onLogSearch(val) {
 function addLog(m, c) {
     const a = document.getElementById('logArea');
     if (!a) return;
-    const ts = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    const ts = fmtTimeSeconds(new Date());
 
     // Strip emoji
     m = m.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();

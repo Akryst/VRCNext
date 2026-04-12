@@ -741,8 +741,14 @@ public partial class AppShell
 
                             long pcSize = ExtractSizeFromFile(pcFileObj, pcVer);
                             long androidSize = ExtractSizeFromFile(andFileObj, andVer);
-                            static string ToIso(JToken? t) =>
-                                t?.ToObject<DateTime?>()?.ToUniversalTime().ToString("yyyy-MM-dd") ?? "";
+                            static string ToIso(JToken? t)
+                            {
+                                var s = t?.ToString();
+                                if (string.IsNullOrEmpty(s)) return "";
+                                if (DateTime.TryParse(s, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dt))
+                                    return dt.ToUniversalTime().ToString("yyyy-MM-dd");
+                                return "";
+                            }
                             Invoke(() => SendToJS("vrcWorldDetail", new
                             {
                                 id = world["id"]?.ToString() ?? "",

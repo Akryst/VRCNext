@@ -26,9 +26,6 @@ internal static class WatchdogRunner
         catch { return; }
         if (!File.Exists(sentinelPath)) return;
 
-        // exitCode >= 0 is deliberate termination eg taskkill /F is 1, clean close is 0, VSCode restart is prob. 0/1).
-        if (exitCode >= 0) return;
-
         string sentinelContent = "";
         try { sentinelContent = File.ReadAllText(sentinelPath, Encoding.UTF8); } catch { }
         try { File.Delete(sentinelPath); } catch { }

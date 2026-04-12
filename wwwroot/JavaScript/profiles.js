@@ -726,7 +726,7 @@ function formatLastSeen(apiLastLogin, localLastSeen) {
     if (diff < 3600000) return tf('profiles.last_seen.minutes_ago', { count: Math.floor(diff / 60000) }, '{count}m ago');
     if (diff < 86400000) return tf('profiles.last_seen.hours_ago', { count: Math.floor(diff / 3600000) }, '{count}h ago');
     if (diff < 604800000) return tf('profiles.last_seen.days_ago', { count: Math.floor(diff / 86400000) }, '{count}d ago');
-    return best.toLocaleDateString(t('clock.date_locale', getLanguageLocale()));
+    return fmtShortDate(best);
 }
 
 function fdEditNote() {
@@ -1038,7 +1038,10 @@ function renderFriendDetail(d) {
         ? `<div id="fdAvatarSection" style="margin-bottom:14px;"></div>`
         : '';
 
-    const lastSeenStr = formatLastSeen(d.lastLogin, d.lastSeenTracked);
+    const lastSeenStr   = d.inSameInstance
+        ? t('profiles.last_seen.just_now', 'Just now')
+        : (d.lastSeenTracked ? formatLastSeen(null, d.lastSeenTracked) : '');
+    const lastActiveStr = d.lastActivity ? formatLastSeen(d.lastActivity, null) : '';
     const isSelf    = currentVrcUser && d.id === currentVrcUser.id;
     const fdMeetCnt = d.meets || 0;
 
@@ -1046,9 +1049,10 @@ function renderFriendDetail(d) {
         `<div><div class="myp-section-title" style="margin-bottom:3px;">${label}</div><div style="font-size:12px;color:var(--tx2);">${valueHtml}</div></div>`;
 
     const _metaCells = [
-        _mc(t('profiles.meta.platform', 'Platform'), esc(d.lastPlatform || '—')),
-        _mc(t('profiles.meta.joined',   'Joined'),   esc(d.dateJoined   || '—')),
-        _mc(t('profiles.meta.last_seen','Last Seen'), esc(lastSeenStr    || '—')),
+        _mc(t('profiles.meta.platform',     'Platform'),    esc(d.lastPlatform   || '—')),
+        _mc(t('profiles.meta.joined',       'Joined'),      d.dateJoined ? fmtShortDate(new Date(d.dateJoined + 'T00:00:00')) : '—'),
+        _mc(t('profiles.meta.last_seen',    'Last Seen'),   esc(lastSeenStr      || '—')),
+        _mc(t('profiles.meta.last_active',  'Last Active'), esc(lastActiveStr    || '—')),
     ];
     if (!isSelf) {
         _metaCells.push(_mc(t('profiles.meta.meets', 'Meets'),
@@ -1348,15 +1352,17 @@ function renderFdTimeline(userId, events) {
     }
 
     el.innerHTML = _fdTimelineEvents.map(ev => {
-        const meta  = typeof tlTypeMeta === 'function' ? tlTypeMeta(ev.type) : { icon: 'event', label: ev.type };
-        const color = { instance_join:'var(--accent)', photo:'var(--ok)', first_meet:'var(--cyan)', meet_again:'#AB47BC', notification:'var(--warn)', avatar_switch:'#FF7043', video_url:'#29B6F6' }[ev.type] || 'var(--tx3)';
-        const d     = new Date(ev.timestamp);
-        const dt    = `${typeof tlFormatShortDate === 'function' ? tlFormatShortDate(d) : d.toLocaleDateString()} | ${typeof tlFormatTime === 'function' ? tlFormatTime(d) : d.toLocaleTimeString()}`;
-        const ei    = ev.id.replace(/'/g, "\\'");
+        const meta   = typeof tlTypeMeta === 'function' ? tlTypeMeta(ev.type) : { icon: 'event', label: ev.type };
+        const color  = { instance_join:'var(--accent)', photo:'var(--ok)', first_meet:'var(--cyan)', meet_again:'#AB47BC', notification:'var(--warn)', avatar_switch:'#FF7043', video_url:'#29B6F6' }[ev.type] || 'var(--tx3)';
+        const d      = new Date(ev.timestamp);
+        const dt     = `${fmtShortDate(d)} | ${fmtTime(d)}`;
+        const ei     = ev.id.replace(/'/g, "\\'");
+        const detail = typeof _tlListData === 'function' ? (_tlListData(ev).detail || '') : '';
         return `<div style="display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid var(--brd);cursor:pointer;" onclick="openTlDetail('${ei}')">
             <span style="font-size:11px;color:var(--tx3);white-space:nowrap;">${esc(dt)}</span>
             <span class="msi" style="font-size:14px;color:${color};flex-shrink:0;">${meta.icon}</span>
             <span style="font-size:12px;">${esc(meta.label)}</span>
+            ${detail ? `<span style="font-size:11px;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;">${detail}</span>` : ''}
         </div>`;
     }).join('');
 }

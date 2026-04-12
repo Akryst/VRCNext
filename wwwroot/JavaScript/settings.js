@@ -825,7 +825,7 @@ function renderAvtrdbReports() {
             : t('settings.avtrdb.reports.type.submitted', 'Submitted Avatar');
         const typeColor = isDeletion ? 'var(--err)' : 'var(--ok)';
         const typeIcon = isDeletion ? 'delete' : 'upload';
-        const time = new Date(r.ts || Date.now()).toLocaleTimeString(settingsUiLocale(), { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const time = fmtTimeSeconds(new Date(r.ts || Date.now()));
         const summaryParts = [tf('settings.avtrdb.reports.enqueued', { count: r.enqueued }, `${r.enqueued} enqueued`)];
         if (r.invalid > 0) {
             summaryParts.push(tf('settings.avtrdb.reports.invalid', { count: r.invalid }, `${r.invalid} invalid`));

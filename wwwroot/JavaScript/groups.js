@@ -284,7 +284,7 @@ function renderGroupDetail(g) {
         postsTab = renderGroupEmptyMessage('groups.empty.no_posts', 'No posts');
     } else {
         posts.forEach((p, i) => {
-            const date = p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '';
+            const date = p.createdAt ? fmtShortDate(new Date(p.createdAt)) : '';
             const imgHtml = p.imageUrl ? `<img src="${p.imageUrl}" style="width:100%;border-radius:6px;margin-top:8px;" onerror="this.style.display='none'">` : '';
             const fullText = p.text || '';
             const isLong = fullText.length > 120;
@@ -315,13 +315,12 @@ function renderGroupDetail(g) {
         events.forEach(e => {
             const startD = e.startsAt ? new Date(e.startsAt) : null;
             const endD   = e.endsAt   ? new Date(e.endsAt)   : null;
+            const endDiffDay = endD && !isNaN(endD) && startD &&
+                (endD.getFullYear() !== startD.getFullYear() || endD.getMonth() !== startD.getMonth() || endD.getDate() !== startD.getDate());
             const timeStr = startD && !isNaN(startD)
-                ? startD.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' }) +
-                  (endD && !isNaN(endD) ? ' – ' + endD.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' }) : '')
+                ? fmtTime(startD) + (endD && !isNaN(endD) ? ' – ' + (endDiffDay ? fmtLongDate(endD) + ', ' : '') + fmtTime(endD) : '')
                 : '';
-            const dateStr = startD && !isNaN(startD)
-                ? startD.toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' })
-                : '';
+            const dateStr = startD && !isNaN(startD) ? fmtLongDate(startD) : '';
             const imgHtml = e.imageUrl ? `<img src="${e.imageUrl}" style="width:100%;max-height:120px;object-fit:cover;border-radius:6px;margin-bottom:8px;" onerror="this.style.display='none'">` : '';
             const badge = e.accessType ? `<span style="font-size:9px;padding:1px 6px;border-radius:4px;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent-lt);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);margin-left:6px;">${esc(e.accessType)}</span>` : '';
             const gid = esc(e.ownerId || g.id || '');
@@ -916,14 +915,10 @@ let _gevDpYear = 0, _gevDpMonth = 0;
 let _gevDpSelDate = ''; // YYYY-MM-DD
 let _gevDpHour = 12;   // 0-23 (internal always 24h)
 let _gevDpMin  = 0;
-let _gevDp24h  = false;
+let _gevDp24h  = true; // initialized to Windows 24h on first open
 
 function _gevDpDateLocale() {
-    return t('clock.date_locale', 'en-US');
-}
-
-function _gevDpTimeLocale() {
-    return t('clock.time_locale', _gevDpDateLocale());
+    return getLanguageLocale();
 }
 
 function _gevDpAmLabel() {
@@ -992,6 +987,7 @@ function _gevDpFmtDate(year, month, day) {
 function openGevDp(target) {
     _ensureGevDp();
     _gevDpTarget = target;
+    _gevDp24h = _dtIs24Hour;
     const existing = document.getElementById(target === 'start' ? 'gevStart' : 'gevEnd')?.value || '';
     if (existing) {
         const [datePart, timePart] = existing.split('T');

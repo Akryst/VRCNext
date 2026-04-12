@@ -4,6 +4,7 @@ window.external.receiveMessage(rawMsg => {
     switch (type) {
             case 'translationData': handleTranslationData(payload); break;
             case 'loadSettings': loadSettingsToUI(payload); break;
+            case 'dateTimeFormat': applyDateTimeFormat(payload); break;
             case 'cursorFiles': _localHttpPort = payload.port || _localHttpPort; renderCursorThemeChips(payload.files); applyCursorTheme(currentCursorTheme); break;
             case 'vrcLaunched': {
                 // Fired when the user launches VRChat from VRCNext (VR or Desktop)

@@ -21,16 +21,8 @@ let _msgrCdEnd = 0; // Date.now() timestamp when cooldown expires
 const _chatInbox = new Map();
 let _chatPanelDismiss = null;
 
-function msgrDateLocale() {
-    return t('clock.date_locale', 'en-US');
-}
-
-function msgrTimeLocale() {
-    return t('clock.time_locale', msgrDateLocale());
-}
-
 function msgrFormatTime(value) {
-    return new Date(value).toLocaleTimeString(msgrTimeLocale(), { hour: '2-digit', minute: '2-digit' });
+    return fmtTime(new Date(value));
 }
 
 function msgrStatusText(status, statusDesc) {

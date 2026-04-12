@@ -1,13 +1,5 @@
 /* === Calendar Event Detail Modal === */
 
-function eventDetailDateLocale() {
-    return t('clock.date_locale', 'en-US');
-}
-
-function eventDetailTimeLocale() {
-    return t('clock.time_locale', eventDetailDateLocale());
-}
-
 function openEventDetail(groupId, calendarId) {
     if (!groupId || !calendarId) return;
     const el = document.getElementById('detailModalContent');
@@ -29,12 +21,11 @@ function renderEventDetail(ev) {
 
     const start = ev.startsAt ? new Date(ev.startsAt) : null;
     const end = ev.endsAt ? new Date(ev.endsAt) : null;
-    const dateLine = start && !isNaN(start)
-        ? start.toLocaleDateString(eventDetailDateLocale(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-        : '';
+    const dateLine = start && !isNaN(start) ? fmtLongDate(start) : '';
+    const endDiffDay = end && !isNaN(end) && start &&
+        (end.getFullYear() !== start.getFullYear() || end.getMonth() !== start.getMonth() || end.getDate() !== start.getDate());
     const timeLine = start && !isNaN(start)
-        ? start.toLocaleTimeString(eventDetailTimeLocale(), { hour: '2-digit', minute: '2-digit' }) +
-          (end && !isNaN(end) ? ' - ' + end.toLocaleTimeString(eventDetailTimeLocale(), { hour: '2-digit', minute: '2-digit' }) : '')
+        ? fmtTime(start) + (end && !isNaN(end) ? ' – ' + (endDiffDay ? fmtLongDate(end) + ', ' : '') + fmtTime(end) : '')
         : '';
 
     const tags = Array.isArray(ev.tags) ? ev.tags : [];

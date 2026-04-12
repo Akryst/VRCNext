@@ -91,11 +91,7 @@ let _calLoading = false;
 }());
 
 function _calDateLocale() {
-    return t('clock.date_locale', 'en-US');
-}
-
-function _calTimeLocale() {
-    return t('clock.time_locale', _calDateLocale());
+    return getLanguageLocale();
 }
 
 function _renderCalUI() {
@@ -149,10 +145,7 @@ function _initCalUI() {
 function _updateMonthLabel() {
     const el = document.getElementById('calMonthLabel');
     if (!el) return;
-    el.textContent = new Date(_calYear, _calMonth, 1).toLocaleString(_calDateLocale(), {
-        month: 'long',
-        year: 'numeric',
-    });
+    el.textContent = new Date(_calYear, _calMonth, 1).toLocaleDateString(_calDateLocale(), { month: 'long', year: 'numeric' });
 }
 
 function refreshCalendar() {
@@ -292,20 +285,13 @@ function _buildDayPanel(events, key) {
         return;
     }
 
-    const dayLabel = new Date(`${key}T12:00:00Z`).toLocaleDateString(_calDateLocale(), {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-    });
+    const dayLabel = fmtLongDate(new Date(`${key}T12:00:00Z`));
 
     const cards = events
         .sort((a, b) => new Date(a.startsAt || a.startDate || 0) - new Date(b.startsAt || b.startDate || 0))
         .map(evt => {
             const date = new Date(evt.startsAt || evt.startDate || '');
-            const timeStr = !isNaN(date)
-                ? date.toLocaleTimeString(_calTimeLocale(), { hour: '2-digit', minute: '2-digit' })
-                : '';
+            const timeStr = !isNaN(date) ? fmtTime(date) : '';
             const tags = Array.isArray(evt.tags) ? evt.tags : [];
             const tagHtml = tags.slice(0, 4).map(tag => {
                 const featured = /featured/i.test(tag);

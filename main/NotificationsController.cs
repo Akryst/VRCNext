@@ -657,7 +657,7 @@ public class NotificationsController
         var notifId    = (string)n.id;
         var senderName = (string?)n.senderUsername ?? "Unknown";
         var senderId   = (string?)n.senderUserId ?? "";
-        var time       = DateTime.Now.ToString("HH:mm");
+        var time       = VRCNext.Services.Helpers.DateTimeHelper.FormatTime(DateTime.Now);
 
         // Parse details & _data upfront
         JObject? det = null;

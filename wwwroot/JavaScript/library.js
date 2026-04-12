@@ -193,7 +193,7 @@ function _renderLibPage() {
     const groups = {};
     pageItems.forEach(x => {
         const d = new Date(x.modified);
-        const k = d.toLocaleDateString(t('clock.date_locale', 'en-US'), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const k = fmtLongDate(d);
         if (!groups[k]) groups[k] = [];
         groups[k].push(x);
     });
@@ -412,8 +412,8 @@ function openPhotoDetail(idx) {
     const wInfo   = worldId ? worldInfoCache[worldId] : null;
     const worldName = wInfo?.name || worldId || '';
     const date    = new Date(x.modified);
-    const dateStr = date.toLocaleDateString(t('clock.date_locale', 'en-US'), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const timeStr = date.toLocaleTimeString(t('clock.time_locale', 'en-US'), { hour: '2-digit', minute: '2-digit' });
+    const dateStr = fmtLongDate(date);
+    const timeStr = fmtTime(date);
 
     // Use thumbnail for banner — avoids loading full-res image (30-100 MB) into RAM for a modal
     const thumbUrl  = imgUrl ? imgUrl + '?thumb=1' : '';

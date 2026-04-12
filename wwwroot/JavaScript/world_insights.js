@@ -65,14 +65,11 @@ function _wiFmt(d) {
 
 function _wiRangeLabel() {
     const { from, to } = _wiRange();
-    if (_wiMode === 'day') return to.toLocaleDateString(wiLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
+    if (_wiMode === 'day') return fmtShortDate(to);
     if (_wiMode === 'week') {
-        const fFrom = from.toLocaleDateString(wiLocale(), { month: 'short', day: 'numeric' });
-        const fTo = to.toLocaleDateString(wiLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
-        return fFrom + ' - ' + fTo;
-        return fFrom + ' â€“ ' + fTo;
+        return fmtShortDate(from) + ' – ' + fmtShortDate(to);
     }
-    if (_wiMode === 'month') return from.toLocaleDateString(wiLocale(), { month: 'long', year: 'numeric' });
+    if (_wiMode === 'month') return from.toLocaleDateString(getLanguageLocale(), { month: 'long', year: 'numeric' });
     return String(from.getFullYear());
 }
 

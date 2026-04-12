@@ -575,8 +575,8 @@ function renderWorldSearchDetail(w) {
         <div class="fd-meta" style="margin-bottom:14px;">
             ${w.recommendedCapacity ? `<div class="fd-meta-row"><span class="fd-meta-label">${t('worlds.meta.recommended', 'Recommended')}</span><span>${getWorldPlayersLabel(w.recommendedCapacity)}</span></div>` : ''}
             <div class="fd-meta-row"><span class="fd-meta-label">${t('worlds.meta.max_capacity', 'Max Capacity')}</span><span>${getWorldPlayersLabel(w.capacity)}</span></div>
-            ${w.createdAt ? `<div class="fd-meta-row"><span class="fd-meta-label">${t('worlds.meta.published', 'Published')}</span><span>${esc(w.createdAt)}</span></div>` : ''}
-            ${w.updatedAt ? `<div class="fd-meta-row"><span class="fd-meta-label">${t('worlds.meta.updated', 'Updated')}</span><span>${esc(w.updatedAt)}</span></div>` : ''}
+            ${w.createdAt ? `<div class="fd-meta-row"><span class="fd-meta-label">${t('worlds.meta.published', 'Published')}</span><span>${fmtShortDate(new Date(w.createdAt + 'T00:00:00'))}</span></div>` : ''}
+            ${w.updatedAt ? `<div class="fd-meta-row"><span class="fd-meta-label">${t('worlds.meta.updated', 'Updated')}</span><span>${fmtShortDate(new Date(w.updatedAt + 'T00:00:00'))}</span></div>` : ''}
         </div>
         ${instancesHtml}
         </div>

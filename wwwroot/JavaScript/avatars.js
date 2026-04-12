@@ -951,8 +951,7 @@ function renderAvatarDetail(a) {
         if (!iso) return '-';
         const d = new Date(iso);
         if (isNaN(d)) return iso;
-        const pad = n => String(n).padStart(2, '0');
-        return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        return fmtShortDate(d) + ', ' + fmtTimeSeconds(d);
     }
 
     const authorHtml = a.authorId

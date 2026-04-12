@@ -1128,6 +1128,15 @@ public class FriendsController
     }
 
     // Extract the file_ UUID from avatar image URLs for avtrdb lookup.
+    private static string ParseIsoDate(JToken? token)
+    {
+        var s = token?.ToString();
+        if (string.IsNullOrEmpty(s)) return "";
+        if (DateTime.TryParse(s, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dt))
+            return dt.ToString("o");
+        return "";
+    }
+
     private static readonly System.Text.RegularExpressions.Regex _fileIdRx =
         new(@"(file_[a-f0-9\-]{36})", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
@@ -1298,7 +1307,8 @@ public class FriendsController
             status = user["status"]?.ToString() ?? "offline",
             statusDescription = user["statusDescription"]?.ToString() ?? "",
             bio = user["bio"]?.ToString() ?? "",
-            lastLogin = user["last_login"]?.ToString() ?? "",
+            lastLogin = ParseIsoDate(user["last_login"]),
+            lastActivity = ParseIsoDate(user["last_activity"]),
             dateJoined = user["date_joined"]?.ToString() ?? "",
             location, worldName, worldThumb, instanceType, userCount, worldCapacity,
             isFriend = user["isFriend"]?.Value<bool>() ?? !string.IsNullOrEmpty(user["friendKey"]?.ToString()),
@@ -1318,7 +1328,7 @@ public class FriendsController
             meets = _core.Timeline?.GetMeetAgainCount(userId) ?? 0,
             inSameInstance = (_core.IsVrcRunning?.Invoke() ?? false)
                 && _core.LogWatcher.GetCurrentPlayers().Any(p => p.UserId == userId),
-            lastSeenTracked = lastSeenLocal,
+            lastSeenTracked = _core.Timeline?.GetLastSeenTimestamp(userId) ?? "",
             pronouns = user["pronouns"]?.ToString() ?? "",
             ageVerificationStatus = user["ageVerificationStatus"]?.ToString() ?? "",
             ageVerified = user["ageVerified"]?.Value<bool>() ?? false,

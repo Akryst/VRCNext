@@ -471,7 +471,7 @@ public partial class AppShell
                 };
                 if (evText == null) return;
 
-                var time = DateTime.Now.ToString("HH:mm");
+                var time = DateTimeHelper.FormatTime(DateTime.Now);
 
                 // Pass image URL as-is — VROverlayService resolves via ImageCacheService internally
                 var cachedImg = _imgCache?.Get(friendImage) ?? friendImage;

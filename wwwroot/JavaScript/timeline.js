@@ -123,28 +123,13 @@ const TL_NOTIF_TYPE_META = {
 };
 
 function tlDateLocale() {
-    return t('clock.date_locale', 'en-US');
+    return getLanguageLocale();
 }
 
-function tlTimeLocale() {
-    return t('clock.time_locale', tlDateLocale());
-}
-
-function tlFormatLongDate(value) {
-    return new Date(value).toLocaleDateString(tlDateLocale(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-}
-
-function tlFormatShortDate(value) {
-    return new Date(value).toLocaleDateString(tlDateLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function tlFormatTime(value) {
-    return new Date(value).toLocaleTimeString(tlTimeLocale(), { hour: '2-digit', minute: '2-digit' });
-}
-
-function tlFormatDateFilterLabel(dateStr) {
-    return new Date(dateStr + 'T00:00:00').toLocaleDateString(tlDateLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
-}
+function tlFormatLongDate(value) { return fmtLongDate(new Date(value)); }
+function tlFormatShortDate(value) { return fmtShortDate(new Date(value)); }
+function tlFormatTime(value) { return fmtTime(new Date(value)); }
+function tlFormatDateFilterLabel(dateStr) { return fmtShortDate(new Date(dateStr + 'T00:00:00')); }
 
 function tlTypeMeta(type) {
     const meta = TL_TYPE_META[type] ?? { icon: 'circle', key: `timeline.types.${type}`, fallback: type };
