@@ -1,6 +1,9 @@
 using Newtonsoft.Json.Linq;
 using VRCNext.Services;
 using VRCNext.Services.Helpers;
+#if WINDOWS
+using System.Runtime.InteropServices;
+#endif
 
 namespace VRCNext;
 
@@ -28,6 +31,14 @@ public class PhotosController
 
     private static readonly HashSet<string> _imgExts =
         new(StringComparer.OrdinalIgnoreCase) { ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp" };
+
+#if WINDOWS
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    private static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
+    private const int SPI_SETDESKWALLPAPER = 0x0014;
+    private const int SPIF_UPDATEINIFILE   = 0x01;
+    private const int SPIF_SENDCHANGE      = 0x02;
+#endif
 
     // Public Accessors (for other domains)
     public List<string> Favorites => _favorites;
@@ -414,6 +425,32 @@ public class PhotosController
                     _core.SendToJS("deleteResult", new { messageId = msgId, success = ok });
                     if (ok) _postHistory.RemoveAll(p => p.MessageId == msgId);
                 }
+                break;
+
+            case "setDesktopBackground":
+#if WINDOWS
+                var wallPath = msg["path"]?.ToString();
+                if (!string.IsNullOrEmpty(wallPath) && File.Exists(wallPath))
+                {
+                    try
+                    {
+                        using var regKey = Microsoft.Win32.Registry.CurrentUser
+                            .OpenSubKey(@"Control Panel\Desktop", writable: true);
+                        if (regKey != null)
+                        {
+                            regKey.SetValue("Wallpaper",       wallPath);
+                            regKey.SetValue("WallpaperStyle",  "10"); // Fill
+                            regKey.SetValue("TileWallpaper",   "0");
+                        }
+                        SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, wallPath, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+                        _core.SendToJS("toast", new { ok = true, msg = "Desktop background updated" });
+                    }
+                    catch (Exception ex)
+                    {
+                        _core.SendToJS("toast", new { ok = false, msg = $"Wallpaper error: {ex.Message}" });
+                    }
+                }
+#endif
                 break;
         }
     }

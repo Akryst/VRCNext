@@ -845,7 +845,8 @@
             { icon: 'content_copy', label: cm('library.copy', 'Copy to Clipboard'), action: () => copyToClipboard(url, path, type) },
         ];
         if (type === 'image') {
-            items.push({ icon: 'wallpaper', label: cm('library.set_background', 'Set as Background'), action: () => setLibItemAsDashBg(path) });
+            items.push({ icon: 'wallpaper',  label: cm('library.set_background',  'Set as Background'),        action: () => setLibItemAsDashBg(path) });
+            items.push({ icon: 'desktop_windows', label: cm('library.set_wallpaper', 'Set as Desktop Background'), action: () => sendToCS({ action: 'setDesktopBackground', path }) });
         }
         items.push({ icon: 'folder_open', label: cm('library.reveal_in_explorer', 'Reveal in Explorer'), action: () => sendToCS({ action: 'revealInExplorer', path }) });
         items.push('sep');

@@ -486,14 +486,19 @@
             </div>
             <!-- Tab 7: Media Library -->
             <div class="tab" id="tab7">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-                    <div><span style="font-size:14px;font-weight:700;color:var(--tx0);" data-i18n="page.media_library">Media Library</span></div>
+                <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
                     <div style="display:flex;gap:8px;align-items:center;">
                         <button class="vrcn-button" id="libFavBtn" onclick="toggleFavFilter()"><span class="msi" style="font-size:16px;">star</span> <span data-i18n="library.favorites">Favorites</span></button>
                         <select id="libFolderFilter" class="vrcn-dropdown" onchange="filterLibrary()"><option value="__all__" data-i18n="library.filters.all_folders">All Folders</option></select>
                         <select id="libTypeFilter" class="vrcn-dropdown" onchange="filterLibrary()"><option value="all" data-i18n="library.filters.all_media">All Media</option><option value="image" data-i18n="library.filters.images">Images</option><option value="video" data-i18n="library.filters.videos">Videos</option></select>
                         <button class="vrcn-button" onclick="forceRefreshLibrary()"><span class="msi" style="font-size:16px;">refresh</span> <span data-i18n="common.refresh">Refresh</span></button>
+                        <button class="vrcn-button sub-tab-btn active" id="libViewGrid" onclick="setLibViewMode('grid')" title="Grid View"><span class="msi" style="font-size:16px;">grid_view</span></button>
+                        <button class="vrcn-button sub-tab-btn" id="libViewFolder" onclick="setLibViewMode('folder')" title="Folder View"><span class="msi" style="font-size:16px;">folder</span></button>
                     </div>
+                </div>
+                <div id="libFolderBreadcrumb" style="display:none;align-items:center;gap:8px;margin-bottom:8px;flex-shrink:0;">
+                    <button class="vrcn-button" onclick="_backToFolderList()"><span class="msi" style="font-size:16px;">arrow_back</span></button>
+                    <span id="libFolderBreadcrumbName" style="font-size:13px;font-weight:600;color:var(--tx1);"></span>
                 </div>
                 <div class="lib-wrap">
                     <div class="lib-top-fade" id="libTopFade"></div>

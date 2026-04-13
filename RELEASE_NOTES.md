@@ -2,8 +2,13 @@
 
 **Media Library**
 
+* Added a **Folder View** option to the **Media Library**.
+  When using Folder View, the Media Library will show all subfolders inside the watch folders you added to VRCN. For example, if you added `VRChat`, it will show subfolders such as `2025-04`, `2025-05`, and so on. This can help some users find images faster.
 * Added **Reveal in Explorer** button to the context menu.
   This opens the file location of the image or video and highlights it in File Explorer.
+* Added a **Set as Desktop Background** button to the context menu. Clicking it will replace your current Windows desktop background with the selected image.
+* Removed the **Media Library** subtitle, as it is already included in the main title.
+
 
 **Caching Update**
 

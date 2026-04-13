@@ -254,6 +254,7 @@ public partial class AppShell
                 case "copyImageToClipboard":
                 case "addFavorite":
                 case "removeFavorite":
+                case "setDesktopBackground":
                     await _photos.HandleMessage(action, msg);
                     break;
 

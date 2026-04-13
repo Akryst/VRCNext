@@ -3,12 +3,14 @@ const PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAAL
 const LIB_PAGE_SIZE = 50;
 
 // ── State ──────────────────────────────────────────────────────────────────
-let _libTotal   = 0;
-let _libHasMore = false;
-let _libLoading = false;
-let _libObserver = null;  // unused — kept for destroyLibrary safety
-let _libPage     = 0;     // current page, 0-indexed
-let _libFiltered = [];    // filtered + sorted master array (metadata only, no images)
+let _libTotal      = 0;
+let _libHasMore    = false;
+let _libLoading    = false;
+let _libObserver   = null;  // unused — kept for destroyLibrary safety
+let _libPage       = 0;     // current page, 0-indexed
+let _libFiltered   = [];    // filtered + sorted master array (metadata only, no images)
+let _libViewMode   = localStorage.getItem('libViewMode') || 'grid';  // 'grid' | 'folder'
+let _libFolderPath = null;  // null = folder list view; string = subfolder contents
 
 // ── Destroy / cleanup ──────────────────────────────────────────────────────
 function destroyLibrary() {
@@ -21,18 +23,21 @@ function destroyLibrary() {
         g.innerHTML = '';
     }
     _setLibPaginator('');
-    libraryFiles  = [];
-    _libFiltered  = [];
-    _libPage      = 0;
-    _libTotal     = 0;
-    _libHasMore   = false;
-    _libLoading   = false;
+    libraryFiles   = [];
+    _libFiltered   = [];
+    _libPage       = 0;
+    _libTotal      = 0;
+    _libHasMore    = false;
+    _libLoading    = false;
+    _libFolderPath = null;
 }
 
 // ── Data loading ───────────────────────────────────────────────────────────
 // First tab open: show localStorage cache immediately, then ask C# (returns
 // instantly from its own in-memory cache after the first scan).
 function refreshLibrary() {
+    document.getElementById('libViewGrid')?.classList.toggle('active', _libViewMode === 'grid');
+    document.getElementById('libViewFolder')?.classList.toggle('active', _libViewMode === 'folder');
     try {
         const raw = localStorage.getItem('vrcnext_lib_cache');
         if (raw) {
@@ -67,6 +72,8 @@ function forceRefreshLibrary() {
 }
 
 function renderLibrary(data) {
+    document.getElementById('libViewGrid')?.classList.toggle('active', _libViewMode === 'grid');
+    document.getElementById('libViewFolder')?.classList.toggle('active', _libViewMode === 'folder');
     const files  = Array.isArray(data) ? data : (data.files || []);
     libraryFiles = files;
     _libTotal    = Array.isArray(data) ? files.length : (data.total || files.length);
@@ -108,9 +115,11 @@ function appendLibraryPage(data) {
     more.forEach(f => _libFiltered.push(f));
     _libFiltered.sort((a, b) => new Date(b.modified) - new Date(a.modified));
 
-    // Update paginator to reflect the newly available total
-    const totalPages = Math.ceil(_libFiltered.length / LIB_PAGE_SIZE) || 1;
-    _setLibPaginator(buildLibPagination(_libPage, totalPages));
+    // Update paginator to reflect the newly available total (grid mode only)
+    if (_libViewMode !== 'folder') {
+        const totalPages = Math.ceil(_libFiltered.length / LIB_PAGE_SIZE) || 1;
+        _setLibPaginator(buildLibPagination(_libPage, totalPages));
+    }
 
     // Continue chaining until all metadata is loaded
     _fetchNextMetaPage();
@@ -241,12 +250,12 @@ function _setLibPaginator(html) {
 // keepPage=true: stay on current page (delete / favorite / hide actions)
 // keepPage=false (default): reset to page 0 (filter/sort changes)
 function filterLibrary(keepPage = false) {
-    const ff = document.getElementById('libFolderFilter').value;
-    const tf = document.getElementById('libTypeFilter').value;
-    let f    = [...libraryFiles]; // always a copy — never share ref with libraryFiles
+    const ff         = document.getElementById('libFolderFilter').value;
+    const typeFilter = document.getElementById('libTypeFilter').value;
+    let f            = [...libraryFiles]; // always a copy — never share ref with libraryFiles
     if (showFavOnly)      f = f.filter(x => favorites.has(x.path));
     if (ff !== '__all__') f = f.filter(x => x.folder === ff);
-    if (tf !== 'all')     f = f.filter(x => x.type === tf);
+    if (typeFilter !== 'all') f = f.filter(x => x.type === typeFilter);
     f.sort((a, b) => new Date(b.modified) - new Date(a.modified));
 
     _libFiltered = f;
@@ -254,7 +263,146 @@ function filterLibrary(keepPage = false) {
     // Clamp page in case items were removed and total pages shrank
     const totalPages = Math.ceil(_libFiltered.length / LIB_PAGE_SIZE) || 1;
     if (_libPage >= totalPages) _libPage = totalPages - 1;
-    _renderLibPage();
+
+    if (_libViewMode === 'folder') {
+        if (_libFolderPath) {
+            _renderFolderContents();
+        } else {
+            _renderFolderView();
+        }
+    } else {
+        _renderLibPage();
+    }
+}
+
+// ── Folder mode ────────────────────────────────────────────────────────────
+function setLibViewMode(mode) {
+    _libViewMode   = mode;
+    _libFolderPath = null;
+    localStorage.setItem('libViewMode', mode);
+    document.getElementById('libViewGrid')?.classList.toggle('active', mode === 'grid');
+    document.getElementById('libViewFolder')?.classList.toggle('active', mode === 'folder');
+    _updateLibBreadcrumb();
+    filterLibrary();
+}
+
+function _updateLibBreadcrumb() {
+    const bc = document.getElementById('libFolderBreadcrumb');
+    if (!bc) return;
+    if (_libViewMode === 'folder' && _libFolderPath) {
+        const name = _libFolderPath.split(/[\\/]/).pop() || _libFolderPath;
+        const nameEl = document.getElementById('libFolderBreadcrumbName');
+        if (nameEl) nameEl.textContent = name;
+        bc.style.display = 'flex';
+    } else {
+        bc.style.display = 'none';
+    }
+}
+
+// Returns the full path of the immediate parent directory for a file.
+function _getFileSubfolderPath(x) {
+    const fp   = x.path || '';
+    const last = Math.max(fp.lastIndexOf('/'), fp.lastIndexOf('\\'));
+    return last > 0 ? fp.substring(0, last) : (x.folder || '');
+}
+
+function _renderFolderView() {
+    const g = document.getElementById('libGrid');
+    if (!g) return;
+    g.querySelectorAll('.lib-thumb').forEach(img => { img.src = PLACEHOLDER; });
+    g.querySelectorAll('video').forEach(v => { try { v.pause(); } catch {} v.src = ''; });
+    _setLibPaginator('');
+
+    if (!_libFiltered.length) {
+        g.innerHTML = '<div class="empty-msg">' + t('library.empty.watch_folders', 'Add watch folders in Settings.') + '</div>';
+        return;
+    }
+
+    // Group files by immediate parent directory
+    const groups = {};
+    _libFiltered.forEach(x => {
+        const sub = _getFileSubfolderPath(x);
+        if (!groups[sub]) groups[sub] = [];
+        groups[sub].push(x);
+    });
+
+    // Sort groups by most-recent file descending
+    const sorted = Object.entries(groups).sort((a, b) => {
+        const latestA = a[1].reduce((mx, f) => Math.max(mx, new Date(f.modified).getTime()), 0);
+        const latestB = b[1].reduce((mx, f) => Math.max(mx, new Date(f.modified).getTime()), 0);
+        return latestB - latestA;
+    });
+
+    let h = '<div class="lib-date-group-cards">';
+    for (const [subPath, files] of sorted) {
+        h += _buildFolderCard(subPath, files);
+    }
+    h += '</div>';
+    g.innerHTML = h;
+}
+
+function _buildFolderCard(subPath, files) {
+    const name     = subPath.split(/[\\/]/).pop() || subPath;
+    const previews = files.filter(x => x.type === 'image').slice(0, 4);
+    const count    = files.length;
+    const sp       = jsq(subPath);
+
+    let slots = '';
+    for (let i = 0; i < 4; i++) {
+        const p = previews[i];
+        if (p && p.url) {
+            const blurStyle = hiddenMedia.has(p.path) ? ' style="filter:blur(20px);transform:scale(1.08);"' : '';
+            slots += `<img src="${esc(p.url)}?thumb=1" loading="lazy"${blurStyle} onerror="this.className='lib-folder-preview-slot'">`;
+        } else {
+            slots += `<div class="lib-folder-preview-slot"></div>`;
+        }
+    }
+
+    const countLabel = count === 1
+        ? t('library.folder.one_file', '1 file')
+        : tf('library.folder.file_count', { count }, '{count} files');
+    return `<div class="lib-card" style="cursor:pointer;" onclick="_openLibFolder('${sp}')"><div class="lib-folder-preview">${slots}</div><div class="lib-info"><div class="lib-name">${esc(name)}</div><div class="lib-meta"><span>${esc(countLabel)}</span></div></div></div>`;
+}
+
+function _openLibFolder(subPath) {
+    _libFolderPath = subPath;
+    _updateLibBreadcrumb();
+    _renderFolderContents();
+}
+
+function _backToFolderList() {
+    _libFolderPath = null;
+    _updateLibBreadcrumb();
+    _renderFolderView();
+}
+
+function _renderFolderContents() {
+    const g = document.getElementById('libGrid');
+    if (!g) return;
+    g.querySelectorAll('.lib-thumb').forEach(img => { img.src = PLACEHOLDER; });
+    g.querySelectorAll('video').forEach(v => { try { v.pause(); } catch {} v.src = ''; });
+    _setLibPaginator('');
+
+    const files = _libFiltered.filter(x => _getFileSubfolderPath(x) === _libFolderPath);
+    if (!files.length) {
+        g.innerHTML = '<div class="empty-msg">' + t('library.empty.filtered', 'No media files found.') + '</div>';
+        return;
+    }
+
+    const groups = {};
+    files.forEach(x => {
+        const k = fmtLongDate(new Date(x.modified));
+        if (!groups[k]) groups[k] = [];
+        groups[k].push(x);
+    });
+
+    let h = '';
+    for (const [dt, items] of Object.entries(groups)) {
+        h += `<div class="lib-date-group-container" data-date="${esc(dt)}"><div class="lib-date-group">${esc(dt)}</div><div class="lib-date-group-cards">`;
+        items.forEach(x => { h += _buildLibCard(x); });
+        h += `</div></div>`;
+    }
+    g.innerHTML = h;
 }
 
 // ── Card building ──────────────────────────────────────────────────────────
