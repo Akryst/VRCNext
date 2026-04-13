@@ -701,6 +701,8 @@ public class PhotosController
                 }
             }
 
+            var (imgW, imgH) = isImg ? ReadImageDimensions(f.FullName) : (0, 0);
+
             result.Add(new
             {
                 name     = f.Name,
@@ -713,6 +715,8 @@ public class PhotosController
                 url,
                 worldId  = worldId ?? "",
                 players  = players ?? new List<object>(),
+                imgW,
+                imgH,
             });
         }
         return result;
@@ -752,4 +756,41 @@ public class PhotosController
     // Keep old paginated builder for loadLibraryPage compatibility
     private List<object> BuildLibraryItems(int offset, int count)
         => BuildLibraryItemsFast().Skip(offset).Take(count).ToList();
+
+    // Reads image dimensions from PNG/JPEG file headers without decoding pixels.
+    // PNG: IHDR chunk at bytes 16-23. JPEG: scan for SOF0-SOF3 marker.
+    private static (int W, int H) ReadImageDimensions(string path)
+    {
+        try
+        {
+            var ext = Path.GetExtension(path).ToLowerInvariant();
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 512);
+            if (ext == ".png")
+            {
+                Span<byte> buf = stackalloc byte[24];
+                if (fs.Read(buf) < 24) return (0, 0);
+                int w = (buf[16] << 24) | (buf[17] << 16) | (buf[18] << 8) | buf[19];
+                int h = (buf[20] << 24) | (buf[21] << 16) | (buf[22] << 8) | buf[23];
+                return (w, h);
+            }
+            if (ext == ".jpg" || ext == ".jpeg")
+            {
+                Span<byte> buf = stackalloc byte[4096];
+                int read = fs.Read(buf);
+                for (int i = 0; i < read - 9; i++)
+                {
+                    if (buf[i] != 0xFF) continue;
+                    byte m = buf[i + 1];
+                    if (m >= 0xC0 && m <= 0xC3)
+                    {
+                        int h = (buf[i + 5] << 8) | buf[i + 6];
+                        int w = (buf[i + 7] << 8) | buf[i + 8];
+                        return (w, h);
+                    }
+                }
+            }
+        }
+        catch { }
+        return (0, 0);
+    }
 }

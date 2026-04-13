@@ -405,6 +405,17 @@ function _renderFolderContents() {
     g.innerHTML = h;
 }
 
+// ── Resolution tag ─────────────────────────────────────────────────────────
+function _resTag(x) {
+    const h = x.imgH || 0;
+    if (!h) return '';
+    if (h <= 720)  return 'SD';
+    if (h <= 1080) return 'HD';
+    if (h <= 1440) return '2K';
+    if (h <= 2160) return '4K';
+    return '8K';
+}
+
 // ── Card building ──────────────────────────────────────────────────────────
 function _buildLibCard(x) {
     const su     = x.url || '';
@@ -444,7 +455,9 @@ function _buildLibCard(x) {
                 `</div>`;
         }
         const thumbSrc = suAttr ? suAttr + '?thumb=1' : '';
-        return `<div class="lib-card" data-path="${esc(x.path||'')}" data-url="${suAttr}" data-type="image" data-name="${esc(x.name||'')}">${acts}<div class="lib-thumb-wrap${blurClass}" onclick="openLightbox('${suJs}','image')"><img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px;font-weight:700\\'>${jsq(t('library.no_preview', 'No Preview'))}</div>'">${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}${worldBadge}${playersOverlay}</div><div class="lib-info" onclick="event.stopPropagation();openPhotoDetail(${idx})" style="cursor:pointer;"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span>${x.size}</span><span>${x.time}</span></div></div></div>`;
+        const resTag   = _resTag(x);
+        const resBadge = resTag ? `<span class="vrcn-badge accent" style="margin-left:4px;">${resTag}</span>` : '';
+        return `<div class="lib-card" data-path="${esc(x.path||'')}" data-url="${suAttr}" data-type="image" data-name="${esc(x.name||'')}">${acts}<div class="lib-thumb-wrap${blurClass}" onclick="openLightbox('${suJs}','image')"><img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px;font-weight:700\\'>${jsq(t('library.no_preview', 'No Preview'))}</div>'">${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}${worldBadge}${playersOverlay}</div><div class="lib-info" onclick="event.stopPropagation();openPhotoDetail(${idx})" style="cursor:pointer;"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span style="display:flex;align-items:center;">${x.size}${resBadge}</span><span>${x.time}</span></div></div></div>`;
     } else {
         const ck     = x.path || '';
         const cached = thumbCache[ck];

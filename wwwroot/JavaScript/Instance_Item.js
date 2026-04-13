@@ -45,7 +45,9 @@ function renderInstanceItem(opts) {
 
     if (worldName) {
         // Layout B — profile: stacked name + meta
-        return `<div class="inst-item"${clickAttr}>${thumbEl}<div class="inst-item-body"><div class="inst-item-name">${esc(worldName)}</div><div class="inst-item-meta">${badgeHtml}${countHtml}</div></div></div>`;
+        const instNum    = instanceId ? `<span class="inst-item-owner-num" style="margin-left:5px;">#${esc(instanceId.split('~')[0])}</span>` : '';
+        const regionMeta = regionHtml ? regionHtml : '';
+        return `<div class="inst-item"${clickAttr}>${thumbEl}<div class="inst-item-body"><div class="inst-item-name" style="display:flex;align-items:center;gap:2px;">${esc(worldName)}${instNum}</div><div class="inst-item-meta">${badgeHtml}${countHtml}${regionMeta}</div></div></div>`;
     }
 
     // Layout A — world modal: two rows

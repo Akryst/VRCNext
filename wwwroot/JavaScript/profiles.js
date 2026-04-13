@@ -1005,10 +1005,16 @@ function renderFriendDetail(d) {
     if (d.worldName) {
         const { worldId: fdWorldId } = parseFriendLocation(d.location);
         const onclick = fdWorldId ? `closeFriendDetail();openWorldSearchDetail('${esc(fdWorldId)}')` : '';
+        const _loc = d.location || '';
+        const _instId     = _loc.includes(':') ? (_loc.split(':')[1] || '').split('~')[0] : '';
+        const _regionRaw  = (_loc.match(/~region\(([^)]+)\)/) || [])[1] || '';
+        const _region     = _regionRaw ? getWorldRegionLabel(_regionRaw) : '';
         worldHtml = `<div style="margin-bottom:14px;"><div class="fd-group-rep-label">${t('profiles.meta.current_world', 'Current World')}</div>` + renderInstanceItem({
             thumb:        d.worldThumb || '',
             worldName:    d.worldName,
             instanceType: d.instanceType,
+            instanceId:   _instId,
+            region:       _region,
             userCount:    d.userCount || 0,
             capacity:     d.worldCapacity || 0,
             onclick,

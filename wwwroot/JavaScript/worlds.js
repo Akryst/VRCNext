@@ -1069,8 +1069,11 @@ function openWorldDetail(worldId) {
         const myInstOwnerId = myInst.ownerId || parseFriendLocation(myInst.location).ownerId || '';
         const myInstOwnerBadge = getOwnerBadgeHtml(myInstOwnerId, myInst.ownerName || '', myInst.ownerGroup || '', 'closeWorldDetail()');
         if (totalSections > 1) {
+            const _myRegion = getWorldRegionLabel((myInst.location?.match(/~region\(([^)]+)\)/) || [])[1] || '');
+            const myRegionBadge = _myRegion ? `<span class="vrcn-badge accent">${esc(_myRegion)}</span>` : '';
             friendsHtml += `<div class="wd-instance-header">
                 <span class="vrcn-badge ${iCls}">${iLabel}</span>
+                ${myRegionBadge}
                 ${myInstOwnerBadge}
                 ${mCopyBadge}
             </div>`;
@@ -1103,8 +1106,11 @@ function openWorldDetail(worldId) {
             : '';
         const instOwnerBadge = getOwnerBadgeHtml(inst.ownerId || '', '', '', 'closeWorldDetail()');
         if (totalSections > 1) {
+            const _instRegion = getWorldRegionLabel((inst.location.match(/~region\(([^)]+)\)/) || [])[1] || '');
+            const instRegionBadge = _instRegion ? `<span class="vrcn-badge accent">${esc(_instRegion)}</span>` : '';
             friendsHtml += `<div class="wd-instance-header">
                 <span class="vrcn-badge ${iCls}">${iLabel}</span>
+                ${instRegionBadge}
                 ${instOwnerBadge}
                 ${instCopyBadge}
                 ${canJoinInst ? `<button class="vrcn-button-round vrcn-btn-join" style="margin-left:auto;" onclick="worldJoinAction('${instLoc}')">${t('common.join', 'Join')}</button>` : ''}
@@ -1135,6 +1141,8 @@ function openWorldDetail(worldId) {
         : '';
     const singleOwnerId = instanceList.length === 1 ? (instanceList[0].ownerId || '') : '';
     const singleOwnerBadge = singleOwnerId ? getOwnerBadgeHtml(singleOwnerId, '', '', 'closeWorldDetail()') : '';
+    const _singleRegion = getWorldRegionLabel((instanceLoc.match(/~region\(([^)]+)\)/) || [])[1] || '');
+    const singleRegionBadge = _singleRegion ? `<span class="vrcn-badge accent">${esc(_singleRegion)}</span>` : '';
 
     let actionsHtml = '<div class="fd-actions">';
     if (canJoin) actionsHtml += `<button class="vrcn-button-round vrcn-btn-join" onclick="worldJoinAction('${loc}')">${t('dashboard.instances.join_world', 'Join World')}</button>`;
@@ -1147,7 +1155,7 @@ function openWorldDetail(worldId) {
         <div class="fd-badges-row">${multiInstance ? '' : (() => {
             const _oid = myInst ? (myInst.ownerId || parseFriendLocation(myInst.location).ownerId || '') : singleOwnerId;
             const _ob = getOwnerBadgeHtml(_oid, myInst?.ownerName || '', myInst?.ownerGroup || '', 'closeWorldDetail()');
-            return `<span class="vrcn-badge ${instClass}">${instLabel}</span>${_ob}${singleInstCopy}`;
+            return `<span class="vrcn-badge ${instClass}">${instLabel}</span>${singleRegionBadge}${_ob}${singleInstCopy}`;
         })()}</div>
         ${friendsHtml}${actionsHtml}</div>`;
     m.style.display = 'flex';
