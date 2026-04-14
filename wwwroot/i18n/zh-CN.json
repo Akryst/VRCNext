@@ -521,6 +521,7 @@
   "chatbox.modules.afk_detection": "AFK 检测",
   "chatbox.modules.custom_text": "自定义文本",
   "chatbox.modules.suppress_sound": "静音提示音",
+  "chatbox.modules.hide_background": "隐藏聊天框背景",
   "chatbox.afk.title": "AFK 设置",
   "chatbox.afk.message": "消息",
   "chatbox.afk.default_message": "当前暂离",

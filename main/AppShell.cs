@@ -363,7 +363,7 @@ public partial class AppShell
     }
 #endif
 
-    // ── World Stats collection (aligned to UTC hour + random offset) ────────
+    // World stats collection, aligned to the UTC hour with a random per-device offset.
 
     private void ScheduleNextWorldStats()
     {

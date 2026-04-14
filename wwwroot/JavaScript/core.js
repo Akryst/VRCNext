@@ -1,4 +1,4 @@
-/* === Global date/time format (received from Windows system via C#) === */
+﻿/* === Global date/time format (received from Windows system via C#) === */
 let _dtShortPattern = 'dd.MM.yyyy'; // e.g. "dd.MM.yyyy", "M/d/yyyy", "yyyy-MM-dd"
 let _dtIs24Hour = true;
 
@@ -367,7 +367,7 @@ function applyColors(c) {
     try { sendToCS({ action: 'overlayThemeColors', colors: c }); } catch {}
 }
 
-// ── Theme Editor ─────────────────────────────────────────────────────────────
+// Theme Editor.
 
 const _TE_VARS = [
     ['bg-base',   'Base BG'],   ['bg-side',  'Sidebar BG'], ['bg-card',  'Card BG'],
@@ -460,7 +460,7 @@ function teSaveTheme() {
     closeThemeEditor();
 }
 
-// ── Custom Color Picker ───────────────────────────────────────────────────────
+// Custom Color Picker.
 
 const _tePickerState = { varName: '', h: 0, s: 1, v: 1, draggingSV: false, draggingHue: false, inited: false };
 
@@ -762,7 +762,7 @@ function loadCustomThemes(data) {
     }
 }
 
-// ── Auto Color ────────────────────────────────────────────────────────────────
+// Auto Color.
 function _rgbToHsl(r, g, b) {
     r /= 255; g /= 255; b /= 255;
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
@@ -1367,7 +1367,7 @@ function idBadge(id) {
     return `<span class="vrcn-id-clip" title="${esc(id)}" onclick="copyIdBadge(this,'${safe}')"><span class="msi" style="font-size:12px;">link</span><span class="vrcn-id-text">${esc(id)}</span></span>`;
 }
 
-// ── Location / instance type helpers (global) ──────────────────────────────
+// Location / instance type helpers (global).
 
 function parseFriendLocation(loc) {
     if (!loc || loc === 'private' || loc === 'offline' || loc === 'traveling') return { worldId: '', instanceType: loc || 'private', ownerId: '' };
@@ -1414,7 +1414,7 @@ function getInstanceBadge(instanceType) {
     return { cls, label };
 }
 
-/* ── Custom Dropdown (vn-select) ─────────────────────────────────────────── */
+// Custom Dropdown
 function initVnSelect(el) {
     if (!el || el._vnSelect) return;
     el._vnSelect = true;
@@ -1434,14 +1434,13 @@ function initVnSelect(el) {
     arrow.textContent = 'expand_more';
     trigger.append(label, arrow);
 
-    // Panel (the open list)
     const panel = document.createElement('div');
     panel.className = 'vn-select-panel';
 
     wrap.append(trigger, panel);
     el.parentNode.insertBefore(wrap, el);
     el.style.display = 'none';
-    wrap.appendChild(el); // keep hidden select inside for form compat
+    wrap.appendChild(el); 
 
     function isVrcPlus(value, text) {
         return /vrcplus/i.test(value) || /vrc\+/i.test(text);

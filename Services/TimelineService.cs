@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Newtonsoft.Json;
 
 namespace VRCNext.Services;
@@ -1626,7 +1626,7 @@ public class TimelineService : IDisposable
         };
     }
 
-    // ── World Insights ─────────────────────────────────────────────────────
+    // World Insights.
 
     public class WorldStatPoint
     {

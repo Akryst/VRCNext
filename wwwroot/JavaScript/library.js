@@ -1,8 +1,8 @@
-// ── Placeholder (4-byte GIF) — forces Chromium to release decoded bitmaps ──
+﻿// Placeholder (4-byte GIF) — forces Chromium to release decoded bitmaps.
 const PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 const LIB_PAGE_SIZE = 50;
 
-// ── State ──────────────────────────────────────────────────────────────────
+// State.
 let _libTotal      = 0;
 let _libHasMore    = false;
 let _libLoading    = false;
@@ -12,7 +12,7 @@ let _libFiltered   = [];    // filtered + sorted master array (metadata only, no
 let _libViewMode   = localStorage.getItem('libViewMode') || 'grid';  // 'grid' | 'folder'
 let _libFolderPath = null;  // null = folder list view; string = subfolder contents
 
-// ── Destroy / cleanup ──────────────────────────────────────────────────────
+// Destroy / cleanup.
 function destroyLibrary() {
     _libHasMore = false; // stop any in-flight _fetchNextMetaPage chain
     const g = document.getElementById('libGrid');
@@ -32,7 +32,7 @@ function destroyLibrary() {
     _libFolderPath = null;
 }
 
-// ── Data loading ───────────────────────────────────────────────────────────
+// Data loading.
 // First tab open: show localStorage cache immediately, then ask C# (returns
 // instantly from its own in-memory cache after the first scan).
 function refreshLibrary() {
@@ -171,7 +171,7 @@ function _resolveWorldIds(files) {
     if (unknown.length > 0) sendToCS({ action: 'vrcResolveWorlds', worldIds: unknown.slice(0, 30) });
 }
 
-// ── Page rendering ─────────────────────────────────────────────────────────
+// Page rendering.
 function _renderLibPage() {
     const g = document.getElementById('libGrid');
     if (!g) return;
@@ -218,7 +218,7 @@ function _renderLibPage() {
     _setLibPaginator(buildLibPagination(_libPage, totalPages));
 }
 
-// ── Paginator (1:1 from buildTlPagination / tlGoPage) ─────────────────────
+// Paginator (1:1 from buildTlPagination / tlGoPage).
 function buildLibPagination(page, totalPages) {
     if (totalPages <= 1) return '';
     const prevDis  = page === 0 ? 'disabled' : '';
@@ -246,7 +246,7 @@ function _setLibPaginator(html) {
     if (bar) bar.innerHTML = html;
 }
 
-// ── Filter ─────────────────────────────────────────────────────────────────
+// Filter.
 // keepPage=true: stay on current page (delete / favorite / hide actions)
 // keepPage=false (default): reset to page 0 (filter/sort changes)
 function filterLibrary(keepPage = false) {
@@ -275,7 +275,7 @@ function filterLibrary(keepPage = false) {
     }
 }
 
-// ── Folder mode ────────────────────────────────────────────────────────────
+// Folder mode.
 function setLibViewMode(mode) {
     _libViewMode   = mode;
     _libFolderPath = null;
@@ -405,7 +405,7 @@ function _renderFolderContents() {
     g.innerHTML = h;
 }
 
-// ── Resolution tag ─────────────────────────────────────────────────────────
+// Resolution tag.
 function _resTag(x) {
     const h = x.imgH || 0;
     if (!h) return '';
@@ -416,7 +416,7 @@ function _resTag(x) {
     return '8K';
 }
 
-// ── Card building ──────────────────────────────────────────────────────────
+// Card building.
 function _buildLibCard(x) {
     const su     = x.url || '';
     const suAttr = esc(su);
@@ -468,7 +468,7 @@ function _buildLibCard(x) {
     }
 }
 
-// ── World info ─────────────────────────────────────────────────────────────
+// World info.
 function onWorldsResolved(dict) {
     if (!dict || typeof dict !== 'object') return;
     Object.entries(dict).forEach(([id, w]) => {
@@ -489,7 +489,7 @@ function onWorldsResolved(dict) {
     });
 }
 
-// ── Folder filter ──────────────────────────────────────────────────────────
+// Folder filter.
 function updateFolderFilterOptions(fs) {
     const s = document.getElementById('libFolderFilter'), c = s.value;
     s.innerHTML = `<option value="__all__">${t('library.filters.all_folders', 'All Folders')}</option>`;
@@ -501,7 +501,7 @@ function updateFolderFilterOptions(fs) {
     if (s._vnRefresh) s._vnRefresh();
 }
 
-// ── Favorites / hidden ─────────────────────────────────────────────────────
+// Favorites / hidden.
 function toggleFavFilter() {
     showFavOnly = !showFavOnly;
     document.getElementById('libFavBtn').classList.toggle('active', showFavOnly);
@@ -540,7 +540,7 @@ function setLibItemAsDashBg(path) {
     showToast(true, t('library.background_updated', 'Background updated'));
 }
 
-// ── Video thumbnail ────────────────────────────────────────────────────────
+// Video thumbnail.
 function cacheVidThumb(v, fp) {
     try {
         v.currentTime = 1;
@@ -562,7 +562,7 @@ function cacheVidThumb(v, fp) {
     } catch (e) {}
 }
 
-// ── Photo detail modal ─────────────────────────────────────────────────────
+// Photo detail modal.
 function openPhotoDetail(idx) {
     const x = libraryFiles[idx];
     if (!x) return;
@@ -607,7 +607,7 @@ function openPhotoDetail(idx) {
     document.getElementById('modalDetail').style.display = 'flex';
 }
 
-// ── Lightbox ───────────────────────────────────────────────────────────────
+// Lightbox.
 function openLightbox(u, t) {
     const lb    = document.createElement('div');
     lb.className = 'lib-lightbox';
@@ -635,7 +635,7 @@ function openLightbox(u, t) {
     document.addEventListener('keydown', ok);
 }
 
-// ── Delete modal ───────────────────────────────────────────────────────────
+// Delete modal.
 function showDeleteModal(fp, fn) {
     pendingDeletePath = fp;
     const x = document.getElementById('deleteModal');
@@ -687,7 +687,7 @@ function confirmDeleteAll() {
     closeDeleteModal();
 }
 
-// ── Clipboard ──────────────────────────────────────────────────────────────
+// Clipboard.
 function copyToClipboard(_url, path, type) {
     if (type === 'image') {
         sendToCS({ action: 'copyImageToClipboard', path });

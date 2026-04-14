@@ -1,11 +1,10 @@
-// ─── Permini ────────────────────────────────────────────────────────────────
-// Permanent mini-invite list: selected friends can auto-receive an invite when
+﻿// Permini.n// Permanent mini-invite list: selected friends can auto-receive an invite when
 // they send a requestInvite and the local user's status matches their settings.
 
 let perminiList = []; // [{ userId, allowActive, allowAskMe, allowDnD }]
 let _pmPickerFilter = '';
 
-// ── Data ──────────────────────────────────────────────────────────────────────
+// Data.
 
 function onPerminiData(list) {
     perminiList = Array.isArray(list) ? list : [];
@@ -16,7 +15,7 @@ function savePermini() {
     sendToCS({ action: 'perminiSave', list: perminiList });
 }
 
-// ── Render main list ──────────────────────────────────────────────────────────
+// Render main list.
 
 function renderPerminiList() {
     const el = document.getElementById('pmList');
@@ -66,7 +65,7 @@ function renderPerminiList() {
     }).join('');
 }
 
-// ── Toggle a setting for a single entry ──────────────────────────────────────
+// Toggle a setting for a single entry.
 
 function perminiToggle(userId, field, val) {
     const entry = perminiList.find(e => e.userId === userId);
@@ -75,7 +74,7 @@ function perminiToggle(userId, field, val) {
     savePermini();
 }
 
-// ── Remove an entry ───────────────────────────────────────────────────────────
+// Remove an entry.
 
 function removePerminiEntry(userId) {
     perminiList = perminiList.filter(e => e.userId !== userId);
@@ -83,7 +82,7 @@ function removePerminiEntry(userId) {
     renderPerminiList();
 }
 
-// ── Friend picker modal ───────────────────────────────────────────────────────
+// Friend picker modal.
 
 function openPerminiPicker() {
     _pmPickerFilter = '';
@@ -141,7 +140,7 @@ function renderPerminiPicker(filter) {
     }).join('');
 }
 
-// ── Add entry from picker ─────────────────────────────────────────────────────
+// Add entry from picker.
 
 function addPerminiEntry(userId) {
     if (perminiList.find(e => e.userId === userId)) {
@@ -154,7 +153,7 @@ function addPerminiEntry(userId) {
     closePerminiPicker();
 }
 
-// ── Called when tab is opened ─────────────────────────────────────────────────
+// Called when tab is opened.
 
 function onPerminiTabOpen() {
     sendToCS({ action: 'perminiGet' });

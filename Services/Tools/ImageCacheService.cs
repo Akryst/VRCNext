@@ -17,6 +17,7 @@ public class ImageCacheService
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _reverseMap = new();
 
     public int Port { get; set; } = 49152;
+    public string CacheDir => _dir;
 
     public bool Enabled         { get; set; } = true;
     public bool OptimizeEnabled { get; set; } = true;

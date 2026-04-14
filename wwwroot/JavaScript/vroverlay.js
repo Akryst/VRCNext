@@ -1,4 +1,4 @@
-/* === VR Wrist Overlay === */
+﻿/* === VR Wrist Overlay === */
 
 let vroConnected    = false;
 let vroVisible      = false;
@@ -27,12 +27,12 @@ function vroRadiusLabelText(value) {
     return tf('vro.transform.radius_value', { value }, `${value} cm`);
 }
 
-// ── Helpers to get/set active slot ───────────────────────────────────────────
+// Helpers to get/set active slot.
 
 function vroActiveIds()  { return vroKeybindMode === 0 ? vroComboIds  : vroDtIds;  }
 function vroActiveHand() { return vroKeybindMode === 0 ? vroComboHand : vroDtHand; }
 
-// ── State sync from C# ───────────────────────────────────────────────────────
+// State sync from C#.
 
 function handleVroState(d) {
     vroConnected    = !!d.connected;
@@ -113,7 +113,7 @@ function handleVroKeybindRecorded(d) {
     vroSendConfig();
 }
 
-// ── Connect / disconnect ──────────────────────────────────────────────────────
+// Connect / disconnect.
 
 function vroConnect() {
     if (vroConnected) {
@@ -141,14 +141,14 @@ function vroConnect() {
     }
 }
 
-// ── Show / hide overlay ───────────────────────────────────────────────────────
+// Show / hide overlay.
 
 function vroToggleVisibility() {
     if (!vroConnected) return;
     sendToCS({ action: vroVisible ? 'vroHide' : 'vroShow' });
 }
 
-// ── Config ────────────────────────────────────────────────────────────────────
+// Config.
 
 function vroSendConfig() {
     const attachLeft = document.getElementById('vroAttachLeft')?.value === 'left';
@@ -206,7 +206,7 @@ function vroAutoSaveSettings() {
     _vroAutoTimer = setTimeout(() => saveSettings(), 600);
 }
 
-// ── Mode pill ─────────────────────────────────────────────────────────────────
+// Mode pill.
 
 function vroSetMode(mode) {
     if (mode === vroKeybindMode) return; // already active — don't clear anything
@@ -225,7 +225,7 @@ function updateModePill() {
     dtBtn.classList.toggle('active',    vroKeybindMode === 1);
 }
 
-// ── Keybind recording ─────────────────────────────────────────────────────────
+// Keybind recording.
 
 let _vroManualIds  = [];
 let _vroManualHand = 0;
@@ -244,7 +244,7 @@ function vroCancelRecording() {
     sendToCS({ action: 'vroCancelRecording' });
 }
 
-// ── Manual edit (no C# interaction, pure JS) ─────────────────────────────────
+// Manual edit (no C# interaction, pure JS).
 
 function vroStartManualEdit() {
     _vroManualEditing = true;
@@ -308,7 +308,7 @@ function vroClearKeybind() {
     vroSendConfig();
 }
 
-// ── Transform value display ───────────────────────────────────────────────────
+// Transform value display.
 
 function vroUpdateTransformLabel(id) {
     const input = document.getElementById(id);
@@ -317,7 +317,7 @@ function vroUpdateTransformLabel(id) {
     label.textContent = parseFloat(input.value).toFixed(2);
 }
 
-// ── Toast notification settings ──────────────────────────────────────────────
+// Toast notification settings.
 
 let _vroToastTimer = null;
 

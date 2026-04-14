@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
@@ -272,6 +272,7 @@ public class AppSettings
     public string CbSeparator { get; set; } = " | ";
     public int CbIntervalMs { get; set; } = 5000;
     public List<string> CbCustomLines { get; set; } = new();
+    public bool CbHideBackground { get; set; } = false;
 
     // Space Flight settings
     public float SfMultiplier { get; set; } = 1f;
@@ -553,7 +554,7 @@ public class VoiceFightSettings
 //
 public class UnifiedTimeEngine : IDisposable
 {
-    // ── Record types (unchanged DB schema) ──
+    // Record types (unchanged DB schema).
 
     public class UserRecord
     {
@@ -573,12 +574,12 @@ public class UnifiedTimeEngine : IDisposable
         public string WorldThumb { get; set; } = "";
     }
 
-    // ── Public state (in-memory caches, same access pattern) ──
+    // Public state (in-memory caches, same access pattern).
 
     public Dictionary<string, UserRecord> Users { get; } = new();
     public Dictionary<string, WorldRecord> Worlds { get; } = new();
 
-    // ── Active session state (timestamp-based) ──
+    // Active session state (timestamp-based).
     // Per-player session start times. Key = userId, value = UTC timestamp when session began.
     // These timestamps are persisted to active_session as JSON. They are NEVER reset during a session.
     // TotalSeconds is only updated when a session ENDS (player leave, world change, VRC close, dispose).
@@ -589,7 +590,7 @@ public class UnifiedTimeEngine : IDisposable
     private string _currentWorldId = "";
     private string _currentLocation = "";
 
-    // ── Infrastructure ──
+    // Infrastructure.
     private readonly SqliteConnection _db;
     private readonly object _lock = new();
     private System.Threading.Timer? _watchdogTimer;  // 5s fallback process check
@@ -610,7 +611,7 @@ public class UnifiedTimeEngine : IDisposable
 
     private UnifiedTimeEngine(SqliteConnection db) { _db = db; }
 
-    // ── Factory ──
+    // Factory.
 
     public static UnifiedTimeEngine Load(Func<bool>? isVrcRunning = null, Action<string>? logger = null)
     {
@@ -1639,12 +1640,12 @@ public class UnifiedTimeEngine : IDisposable
         _db.Dispose();
     }
 
-    // ── Legacy migration types ──
+    // Legacy migration types.
 
     private class UserLegacy { public Dictionary<string, UserRecord>? Users { get; set; } }
     private class WorldLegacy { public Dictionary<string, WorldRecord>? Worlds { get; set; } }
 
-    // ── Static utility (kept from WorldTimeTracker for photo world detection) ──
+    // Static utility (kept from WorldTimeTracker for photo world detection).
 
     public static string? ExtractWorldIdFromPng(string filePath)
     {

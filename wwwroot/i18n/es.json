@@ -521,6 +521,7 @@
   "chatbox.modules.afk_detection": "Detección AFK",
   "chatbox.modules.custom_text": "Texto personalizado",
   "chatbox.modules.suppress_sound": "Silenciar sonido",
+  "chatbox.modules.hide_background": "Ocultar fondo del chatbox",
   "chatbox.afk.title": "Ajustes AFK",
   "chatbox.afk.message": "Mensaje",
   "chatbox.afk.default_message": "Actualmente AFK",

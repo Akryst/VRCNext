@@ -1,30 +1,133 @@
 #if WINDOWS
 using Newtonsoft.Json.Linq;
-using VRCNext.Services;
 
 namespace VRCNext;
 
 // Owns all VR wrist-overlay state, message handling, and lifecycle.
+// VROverlayService runs in an isolated subprocess — see VRSubprocessHost / VRSubprocess.
 
 public class VROverlayController : IDisposable
 {
     private readonly CoreLibrary _core;
     private readonly FriendsController _friends;
+    private bool _eventsWired;
+    private bool _disposed;
 
-    // Field (moved from MainForm.Fields.cs)
-    private VROverlayService? _vrOverlay;
-
-    // Callbacks (set by MainForm after creation)
+    // Callbacks set by AppShell
     public Action<int>? OnToolToggle { get; set; }
     public Func<(bool discord, bool voice, bool ytFix, bool space, bool relay, bool chatbox)>? GetToolStates { get; set; }
 
     public VROverlayController(CoreLibrary core, FriendsController friends)
     {
-        _core = core;
+        _core    = core;
         _friends = friends;
     }
 
-    // Message Handler
+    private VRSubprocessHost EnsureHost()
+    {
+        if (_core.VrOverlay == null)
+        {
+            _core.VrOverlay = new VRSubprocessHost(
+                s => Invoke(() => _core.SendToJS("log", new { msg = s, color = "sec" })));
+            _eventsWired = false;
+        }
+
+        if (!_eventsWired)
+        {
+            _eventsWired = true;
+            var h = _core.VrOverlay;
+
+            h.OnVroState += d => Invoke(() => _core.SendToJS("vroState", d));
+
+            h.OnVroKeybindRecorded += (ids, names, hand, mode) =>
+                Invoke(() => _core.SendToJS("vroKeybindRecorded", new { ids, names, hand, mode }));
+
+            h.OnVroToolToggle += idx => Invoke(() => OnToolToggle?.Invoke(idx));
+
+            h.OnVroJoinRequest += (fid, loc) => Invoke(async () =>
+            {
+                bool ok;
+                if (loc.Contains(':'))
+                {
+                    ok = await _core.VrcApi.InviteSelfAsync(loc);
+                    _core.SendToJS("log", new { msg = ok ? "Self-invite sent — check VRChat notifications!" : "Failed to send self-invite.", color = ok ? "ok" : "err" });
+                }
+                else
+                {
+                    ok = await _core.VrcApi.RequestInviteAsync(fid);
+                    _core.SendToJS("log", new { msg = ok ? "Invite request sent!" : "Failed to send invite request.", color = ok ? "ok" : "err" });
+                }
+            });
+
+            h.OnVroInviteFriend += fid => Invoke(async () =>
+            {
+                var loc = _core.LogWatcher?.CurrentLocation ?? "";
+                if (string.IsNullOrEmpty(loc) || loc == "offline" || loc == "traveling")
+                {
+                    _core.SendToJS("log", new { msg = "Can't invite: you're not in an instance.", color = "err" });
+                    return;
+                }
+                var ok = await _core.VrcApi.InviteFriendAsync(fid, loc);
+                _core.SendToJS("log", new { msg = ok ? "Invite sent!" : "Failed to send invite.", color = ok ? "ok" : "err" });
+            });
+
+            h.OnVroToastSound += () => Invoke(() => _core.SendToJS("vroPlayToastSound", new { }));
+
+            h.OnVroNotifAccept += (notifId, notifType, senderId, notifData) => Invoke(async () =>
+            {
+                bool ok = false;
+                string resultMsg = "";
+                if (notifType == "friendRequest")
+                {
+                    ok = await _core.VrcApi.AcceptNotificationAsync(notifId);
+                    resultMsg = ok ? "Friend request accepted!" : "Failed to accept.";
+                }
+                else if (notifType == "invite")
+                {
+                    if (!string.IsNullOrEmpty(notifData) && notifData.Contains(":"))
+                    {
+                        ok = await _core.VrcApi.InviteSelfAsync(notifData);
+                        if (ok) await _core.VrcApi.AcceptNotificationAsync(notifId);
+                        resultMsg = ok ? "Joining world..." : "Failed to join.";
+                    }
+                    else
+                    {
+                        ok = await _core.VrcApi.AcceptNotificationAsync(notifId);
+                        resultMsg = ok ? "Invite accepted!" : "Failed.";
+                    }
+                }
+                else if (notifType == "group.invite")
+                {
+                    if (!string.IsNullOrEmpty(notifData))
+                    {
+                        ok = await _core.VrcApi.JoinGroupAsync(notifData);
+                        if (ok) await _core.VrcApi.HideNotificationAsync(notifId, false);
+                        resultMsg = ok ? "Group joined!" : "Failed to join group.";
+                    }
+                    else
+                    {
+                        ok = await _core.VrcApi.AcceptNotificationAsync(notifId);
+                        resultMsg = ok ? "Accepted!" : "Failed.";
+                    }
+                }
+                _core.SendToJS("log", new { msg = resultMsg, color = ok ? "ok" : "err" });
+                _core.SendToJS("vrcActionResult", new { action = "acceptNotif", success = ok, message = resultMsg });
+            });
+
+            h.OnVroQuit += () =>
+            {
+                _eventsWired = false;
+                if (!h.SfConnected) _core.VrOverlay = null;
+                Invoke(() =>
+                {
+                    _core.SendToJS("vroState", new { connected = false });
+                    UpdateToolStates();
+                });
+            };
+        }
+
+        return _core.VrOverlay;
+    }
 
     public async Task HandleMessage(string action, JObject msg)
     {
@@ -32,119 +135,21 @@ public class VROverlayController : IDisposable
         {
             case "vroConnect":
             {
-                // On reconnect: dispose old instance completely to avoid accumulated event handlers
-                if (_vrOverlay != null)
-                {
-                    _vrOverlay.Disconnect();
-                    _vrOverlay.Dispose();
-                    _vrOverlay = null;
-                    _core.VrOverlay = null;
-                }
+                if (_core.VrOverlay?.VroConnected == true)
+                    _core.VrOverlay.VroDisconnect();
 
-                _vrOverlay = new VROverlayService(
-                    s => Invoke(() => _core.SendToJS("log", new { msg = s, color = "sec" })));
-                _vrOverlay.SetImageCache(_core.ImgCache);
-                _vrOverlay.SetAuthHttpClient(_core.VrcApi.GetHttpClient());
-                _vrOverlay.OnStateUpdate    += d => Invoke(() => _core.SendToJS("vroState", d));
-                _vrOverlay.OnKeybindRecorded += (ids, names, hand, mode) =>
-                    Invoke(() => _core.SendToJS("vroKeybindRecorded", new { ids, names, hand, mode }));
-                _vrOverlay.OnToolToggle    += idx => Invoke(() => OnToolToggle?.Invoke(idx));
-                _vrOverlay.OnJoinRequest   += (fid, loc) => Invoke(async () =>
-                {
-                    bool ok;
-                    if (loc.Contains(':'))
-                    {
-                        ok = await _core.VrcApi.InviteSelfAsync(loc);
-                        _core.SendToJS("log", new { msg = ok ? "Self-invite sent — check VRChat notifications!" : "Failed to send self-invite.", color = ok ? "ok" : "err" });
-                    }
-                    else
-                    {
-                        ok = await _core.VrcApi.RequestInviteAsync(fid);
-                        _core.SendToJS("log", new { msg = ok ? "Invite request sent!" : "Failed to send invite request.", color = ok ? "ok" : "err" });
-                    }
-                });
-                _vrOverlay.OnInviteFriend += fid => Invoke(async () =>
-                {
-                    var loc = _core.LogWatcher?.CurrentLocation ?? "";
-                    if (string.IsNullOrEmpty(loc) || loc == "offline" || loc == "traveling")
-                    {
-                        _core.SendToJS("log", new { msg = "Can't invite: you're not in an instance.", color = "err" });
-                        return;
-                    }
-                    var ok = await _core.VrcApi.InviteFriendAsync(fid, loc);
-                    _core.SendToJS("log", new { msg = ok ? "Invite sent!" : "Failed to send invite.", color = ok ? "ok" : "err" });
-                });
-                _vrOverlay.OnToastSound += () => Invoke(() => _core.SendToJS("vroPlayToastSound", new { }));
-                _vrOverlay.OnVRQuit += () =>
-                {
-                    // Dispose on a separate thread — OnVRQuit fires from inside PollEvents,
-                    // so calling Dispose (which waits for the poll loop) here would deadlock.
-                    var overlay = _vrOverlay;
-                    _vrOverlay = null;
-                    _core.VrOverlay = null;
-                    _ = Task.Run(() => { try { overlay?.Dispose(); } catch { } });
-                    Invoke(() =>
-                    {
-                        _core.SendToJS("vroState", new { connected = false });
-                        UpdateToolStates();
-                    });
-                };
-                _vrOverlay.OnNotifAccept += (notifId, notifType, senderId, notifData) => Invoke(async () =>
-                {
-                    bool ok = false;
-                    string resultMsg = "";
-                    if (notifType == "friendRequest")
-                    {
-                        ok = await _core.VrcApi.AcceptNotificationAsync(notifId);
-                        resultMsg = ok ? "Friend request accepted!" : "Failed to accept.";
-                    }
-                    else if (notifType == "invite")
-                    {
-                        // World invite: self-invite to the location
-                        if (!string.IsNullOrEmpty(notifData) && notifData.Contains(":"))
-                        {
-                            ok = await _core.VrcApi.InviteSelfAsync(notifData);
-                            if (ok) await _core.VrcApi.AcceptNotificationAsync(notifId);
-                            resultMsg = ok ? "Joining world..." : "Failed to join.";
-                        }
-                        else
-                        {
-                            ok = await _core.VrcApi.AcceptNotificationAsync(notifId);
-                            resultMsg = ok ? "Invite accepted!" : "Failed.";
-                        }
-                    }
-                    else if (notifType == "group.invite")
-                    {
-                        if (!string.IsNullOrEmpty(notifData))
-                        {
-                            ok = await _core.VrcApi.JoinGroupAsync(notifData);
-                            if (ok) await _core.VrcApi.HideNotificationAsync(notifId, false);
-                            resultMsg = ok ? "Group joined!" : "Failed to join group.";
-                        }
-                        else
-                        {
-                            ok = await _core.VrcApi.AcceptNotificationAsync(notifId);
-                            resultMsg = ok ? "Accepted!" : "Failed.";
-                        }
-                    }
-                    _core.SendToJS("log", new { msg = resultMsg, color = ok ? "ok" : "err" });
-                    _core.SendToJS("vrcActionResult", new { action = "acceptNotif", success = ok, message = resultMsg });
-                });
+                var host = EnsureHost();
+                var (auth, tfa) = _core.VrcApi.GetCookies();
+                host.EnsureRunning(_core.ImgCache?.CacheDir ?? "", _core.HttpPort, auth, tfa);
 
-                // JS sends the resolved theme colors inline with the connect
-                // message so we can seed the overlay immediately — no round-trip.
+                // Send theme colors
                 if (msg["themeColors"] is JObject tc)
-                {
-                    var dict = tc.Properties()
-                        .ToDictionary(p => p.Name, p => p.Value.ToString());
-                    _vrOverlay.SetThemeColors(dict);
-                }
+                    host.VroThemeColors(tc.Properties().ToDictionary(p => p.Name, p => p.Value.ToString()));
                 else
-                {
-                    // Fallback: use the hardcoded palette (built-in themes only)
-                    _vrOverlay.SetTheme(_core.Settings.Theme);
-                }
-                _vrOverlay.ApplyConfig(
+                    host.VroThemeColors(new Dictionary<string, string>()); // subprocess will use built-in theme
+
+                // Send overlay config
+                host.VroConfig(
                     _core.Settings.VroAttachLeft, _core.Settings.VroAttachHand,
                     _core.Settings.VroPosX, _core.Settings.VroPosY, _core.Settings.VroPosZ,
                     _core.Settings.VroRotX, _core.Settings.VroRotY, _core.Settings.VroRotZ,
@@ -152,7 +157,8 @@ public class VROverlayController : IDisposable
                     _core.Settings.VroKeybindMode, _core.Settings.VroKeybindDt, _core.Settings.VroKeybindDtHand,
                     _core.Settings.VroControlRadius);
 
-                _vrOverlay.ApplyToastConfig(
+                // Send toast config
+                host.VroApplyToastConfig(
                     _core.Settings.VroToastEnabled, _core.Settings.VroToastFavOnly,
                     _core.Settings.VroToastSize, _core.Settings.VroToastOffsetX, _core.Settings.VroToastOffsetY,
                     _core.Settings.VroToastOnline, _core.Settings.VroToastOffline,
@@ -161,23 +167,13 @@ public class VROverlayController : IDisposable
                     _core.Settings.VroToastDuration, _core.Settings.VroToastStack,
                     _core.Settings.VroToastFriendReq, _core.Settings.VroToastInvite, _core.Settings.VroToastGroupInv);
 
-                bool ok = _vrOverlay.Connect();
-                _core.VrOverlay = _vrOverlay;
-                if (ok) { _vrOverlay.StartPolling(); _friends.PushVroLocations(); _friends.PushVroOnlineFriends(); }
+                // Connect — subprocess sends back vro_state with result
+                host.VroConnect();
+
+                // Push current data to the overlay
+                _friends.PushVroLocations();
+                _friends.PushVroOnlineFriends();
                 UpdateToolStates();
-                _core.SendToJS("vroState", new
-                {
-                    connected    = ok,
-                    visible      = false,
-                    recording    = false,
-                    keybind       = _core.Settings.VroKeybind,
-                    keybindNames  = new List<string>(),
-                    keybindHand   = _core.Settings.VroKeybindHand,
-                    keybindMode   = _core.Settings.VroKeybindMode,
-                    keybindDt     = _core.Settings.VroKeybindDt,
-                    keybindDtHand = _core.Settings.VroKeybindDtHand,
-                    error         = ok ? null : _vrOverlay.LastError
-                });
                 break;
             }
 
@@ -185,34 +181,28 @@ public class VROverlayController : IDisposable
             {
                 if (msg["colors"] is JObject colors)
                 {
-                    var dict = colors.Properties()
-                        .ToDictionary(p => p.Name, p => p.Value.ToString());
-                    if (_vrOverlay != null)
-                        _vrOverlay.SetThemeColors(dict);
+                    var dict = colors.Properties().ToDictionary(p => p.Name, p => p.Value.ToString());
+                    _core.VrOverlay?.VroThemeColors(dict);
                     _core.OnTrayThemeUpdate?.Invoke(dict);
                 }
                 break;
             }
 
             case "vroDisconnect":
-                _vrOverlay?.Disconnect();
-                _vrOverlay?.Dispose();
-                _vrOverlay = null;
-                _core.VrOverlay = null;
+            {
+                if (_core.VrOverlay != null)
+                {
+                    _eventsWired = false;
+                    _core.VrOverlay.VroDisconnect(); // kills subprocess if SF also disconnected
+                    if (!_core.VrOverlay.SfConnected) _core.VrOverlay = null;
+                }
                 _core.SendToJS("vroState", new { connected = false, visible = false, recording = false });
                 break;
+            }
 
-            case "vroShow":
-                _vrOverlay?.Show();
-                break;
-
-            case "vroHide":
-                _vrOverlay?.Hide();
-                break;
-
-            case "vroToggle":
-                _vrOverlay?.Toggle();
-                break;
+            case "vroShow":    _core.VrOverlay?.VroShow();   break;
+            case "vroHide":    _core.VrOverlay?.VroHide();   break;
+            case "vroToggle":  _core.VrOverlay?.VroToggle(); break;
 
             case "vroConfig":
             {
@@ -225,12 +215,12 @@ public class VROverlayController : IDisposable
                 float ry    = msg["rotY"]?.Value<float>() ?? 0f;
                 float rz    = msg["rotZ"]?.Value<float>() ?? 0f;
                 float width = msg["width"]?.Value<float>() ?? 0.22f;
-                var kb        = msg["keybind"]?.ToObject<List<uint>>() ?? new();
-                int kbHand    = msg["keybindHand"]?.Value<int>() ?? 0;
-                int kbMode    = msg["keybindMode"]?.Value<int>() ?? 0;
-                var kbDt      = msg["keybindDt"]?.ToObject<List<uint>>() ?? new();
-                int kbDtHand  = msg["keybindDtHand"]?.Value<int>() ?? 0;
-                int ctrlR     = msg["controlRadius"]?.Value<int>() ?? 28;
+                var kb       = msg["keybind"]?.ToObject<List<uint>>() ?? new();
+                int kbHand   = msg["keybindHand"]?.Value<int>() ?? 0;
+                int kbMode   = msg["keybindMode"]?.Value<int>() ?? 0;
+                var kbDt     = msg["keybindDt"]?.ToObject<List<uint>>() ?? new();
+                int kbDtHand = msg["keybindDtHand"]?.Value<int>() ?? 0;
+                int ctrlR    = msg["controlRadius"]?.Value<int>() ?? 28;
 
                 _core.Settings.VroAttachLeft    = left;
                 _core.Settings.VroAttachHand    = hand;
@@ -245,28 +235,27 @@ public class VROverlayController : IDisposable
                 _core.Settings.VroControlRadius = ctrlR;
                 _core.Settings.Save();
 
-                _vrOverlay?.ApplyConfig(left, hand, px, py, pz, rx, ry, rz, width, kb, kbHand, kbMode, kbDt, kbDtHand, ctrlR);
+                _core.VrOverlay?.VroConfig(left, hand, px, py, pz, rx, ry, rz, width,
+                    kb, kbHand, kbMode, kbDt, kbDtHand, ctrlR);
                 break;
             }
 
             case "vroAutoSave":
-            {
-                _core.Settings.VroAutoStart   = msg["autoStart"]?.Value<bool>()   ?? false; // legacy
+                _core.Settings.VroAutoStart   = msg["autoStart"]?.Value<bool>()   ?? false;
                 _core.Settings.VroAutoStartVR = msg["autoStartVR"]?.Value<bool>() ?? false;
                 _core.Settings.Save();
                 break;
-            }
 
             case "vroRecordKeybind":
-                _vrOverlay?.StartKeybindRecording();
+                _core.VrOverlay?.VroRecordKeybind();
                 break;
 
             case "vroCancelRecording":
-                _vrOverlay?.StopKeybindRecording();
+                _core.VrOverlay?.VroCancelRecording();
                 break;
 
             case "vroSetTab":
-                _vrOverlay?.SetActiveTab(msg["tab"]?.Value<int>() ?? 0);
+                _core.VrOverlay?.VroSetTab(msg["tab"]?.Value<int>() ?? 0);
                 break;
 
             case "vroToastConfig":
@@ -306,34 +295,30 @@ public class VROverlayController : IDisposable
                 _core.Settings.VroToastGroupInv   = groupInv;
                 _core.Settings.Save();
 
-                _vrOverlay?.ApplyToastConfig(enabled, favOnly, size, offX, offY,
-                    online, offline,
-                    gps, status, statusDesc, bio, duration, stack,
+                _core.VrOverlay?.VroApplyToastConfig(enabled, favOnly, size, offX, offY,
+                    online, offline, gps, status, statusDesc, bio, duration, stack,
                     friendReq, invite, groupInv);
                 break;
             }
         }
     }
 
-    // VR Overlay tool-state sync
-
     public void UpdateToolStates()
     {
-        if (_vrOverlay == null) return;
+        if (_core.VrOverlay == null) return;
         var states = GetToolStates?.Invoke() ?? default;
-        _vrOverlay.SetToolStates(states.discord, states.voice, states.ytFix, states.space, states.relay, states.chatbox);
+        _core.VrOverlay.SetToolStates(states.discord, states.voice, states.ytFix, states.space, states.relay, states.chatbox);
     }
-
-    // Dispose
 
     public void Dispose()
     {
-        _vrOverlay?.Dispose();
-        _vrOverlay = null;
+        if (_disposed) return;
+        _disposed    = true;
+        _eventsWired = false;
+        _core.VrOverlay?.Dispose();
         _core.VrOverlay = null;
     }
 
-    // Photino compatibility shim
     private static void Invoke(Action action) => action();
 }
 #else

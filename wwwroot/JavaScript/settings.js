@@ -362,6 +362,7 @@ function loadSettingsToUI(s) {
     document.getElementById('cbShowAfk').checked = s.CbShowAfk ?? s.cbShowAfk ?? false;
     document.getElementById('cbAfkMessage').value = s.CbAfkMessage || s.cbAfkMessage || 'Currently AFK';
     document.getElementById('cbSuppressSound').checked = s.CbSuppressSound ?? s.cbSuppressSound ?? true;
+    document.getElementById('cbHideBackground').checked = s.CbHideBackground ?? s.cbHideBackground ?? false;
     const cbAfkOn = s.CbShowAfk ?? s.cbShowAfk ?? false;
     document.getElementById('cbAfkCard').style.display = cbAfkOn ? '' : 'none';
     const cbTf = s.CbTimeFormat || s.cbTimeFormat || 'hh:mm tt';
@@ -544,14 +545,14 @@ function handleImgCacheOptimizeProgress(data) {
     }
 }
 
-// ── Legacy Window (Debugging) ──────────────────────────────────────────────
+// Legacy Window (Debugging).
 function onLegacyWindowChange() {
     autoSave();
     const hint = document.getElementById('legacyRestartHint');
     if (hint) hint.style.display = '';
 }
 
-// ── Text Tools (Debugging) ─────────────────────────────────────────────────
+// Text Tools (Debugging).
 let _textToolsEnabled = false;
 
 function toggleTextTools(enabled) {

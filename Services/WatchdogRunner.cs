@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -96,7 +96,7 @@ internal static class WatchdogRunner
         catch { }
     }
 
-    // ── Discord webhook ────────────────────────────────────────────────────
+    // Discord webhook.
 
     private const string WebhookUrl =
         "https://discord.com/api/webhooks/1491312855969169408/BHNBz7Ke4p8NYXH2x-pIyj6MwaMhCh6hKJKxTRiaF9aI7HeVf6ebMQ1Wsx3AJLH7pYv7";
@@ -216,7 +216,7 @@ internal static class WatchdogRunner
         var start = report.IndexOf(sectionHeader, StringComparison.Ordinal);
         if (start < 0) return "";
 
-        // Next section starts at the next "─── " line after start, or end of report
+        // Finds where the next section begins by searching for the section-header separator string.
         var nextSection = report.IndexOf("\n─── ", start + sectionHeader.Length, StringComparison.Ordinal);
         var end = nextSection >= 0 ? nextSection + 1 : report.Length;
 
@@ -315,7 +315,7 @@ internal static class WatchdogRunner
 #endif
     }
 
-    // ── Compiled regexes ──────────────────────────────────────────────────
+    // Compiled regexes.
     private static readonly System.Text.RegularExpressions.Regex RxSendCrashData =
         new(@"""[Ss]end[Cc]rash[Dd]ata""\s*:\s*(true|false)", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
     private static readonly System.Text.RegularExpressions.Regex RxRestartAfterCrash =

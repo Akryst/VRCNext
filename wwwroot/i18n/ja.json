@@ -521,6 +521,7 @@
   "chatbox.modules.afk_detection": "AFK検出",
   "chatbox.modules.custom_text": "カスタムテキスト",
   "chatbox.modules.suppress_sound": "サウンド抑制",
+  "chatbox.modules.hide_background": "チャットボックス背景を非表示",
   "chatbox.afk.title": "AFK設定",
   "chatbox.afk.message": "メッセージ",
   "chatbox.afk.default_message": "現在AFK中",

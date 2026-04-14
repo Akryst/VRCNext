@@ -1,4 +1,4 @@
-/* === Update UI === */
+﻿/* === Update UI === */
 
 let _updatePanelOpen = false;
 let _updateInstalling = false;
@@ -44,8 +44,7 @@ function showUpdateAvailable(version) {
     _setUpdCardAvailable(version);
 }
 
-// ─── Settings card helpers ────────────────────────────────────────────────────
-function _setUpdCardStatus(text) {
+// Settings card helpers.nfunction _setUpdCardStatus(text) {
     const el = document.getElementById('setUpdStatus');
     if (el) el.textContent = text;
 }

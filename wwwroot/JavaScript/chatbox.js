@@ -62,6 +62,7 @@ function updateChatboxConfig() {
         separator: document.getElementById('cbSeparator').value,
         intervalMs: parseInt(document.getElementById('cbInterval').value, 10) || 5000,
         customLines: chatboxCustomLines,
+        hideBackground: document.getElementById('cbHideBackground').checked,
     });
 }
 

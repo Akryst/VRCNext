@@ -63,10 +63,11 @@ public class ChatboxController : IDisposable
                     var separator = msg["separator"]?.ToString() ?? " | ";
                     var intervalMs = msg["intervalMs"]?.Value<int>() ?? 5000;
                     var customLines = msg["customLines"]?.ToObject<List<string>>() ?? new();
+                    var hideBackground = msg["hideBackground"]?.Value<bool>() ?? false;
 
                     _chatbox.ApplyConfig(enabled, showTime, showMedia, showPlaytime,
                         showCustomText, showSystemStats, showAfk, afkMessage,
-                        suppressSound, timeFormat, separator, intervalMs, customLines);
+                        suppressSound, timeFormat, separator, intervalMs, customLines, hideBackground);
                     _vroCtrl.UpdateToolStates();
 
                     // Persist chatbox settings
@@ -82,6 +83,7 @@ public class ChatboxController : IDisposable
                     _core.Settings.CbSeparator = separator;
                     _core.Settings.CbIntervalMs = intervalMs;
                     _core.Settings.CbCustomLines = customLines;
+                    _core.Settings.CbHideBackground = hideBackground;
                     _core.Settings.Save();
                 }
                 break;
@@ -180,7 +182,7 @@ public class ChatboxController : IDisposable
             _chatbox.SetUpdateCallback(data => { try { Invoke(() => _core.SendToJS("chatboxUpdate", data)); } catch { } });
             _chatbox.ApplyConfig(true, _core.Settings.CbShowTime, _core.Settings.CbShowMedia, _core.Settings.CbShowPlaytime,
                 _core.Settings.CbShowCustomText, _core.Settings.CbShowSystemStats, _core.Settings.CbShowAfk, _core.Settings.CbAfkMessage,
-                _core.Settings.CbSuppressSound, _core.Settings.CbTimeFormat, _core.Settings.CbSeparator, _core.Settings.CbIntervalMs, _core.Settings.CbCustomLines);
+                _core.Settings.CbSuppressSound, _core.Settings.CbTimeFormat, _core.Settings.CbSeparator, _core.Settings.CbIntervalMs, _core.Settings.CbCustomLines, _core.Settings.CbHideBackground);
             _core.SendToJS("chatboxUpdate", new { enabled = true });
         }
     }

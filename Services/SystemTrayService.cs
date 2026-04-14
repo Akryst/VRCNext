@@ -1,4 +1,4 @@
-#if WINDOWS
+﻿#if WINDOWS
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
@@ -52,7 +52,7 @@ public class SystemTrayService : IDisposable
 
     private bool _pendingVisible;
 
-    // ── Lifecycle ──────────────────────────────────────────────────────────
+    // Lifecycle.
 
     public void Initialize()
     {
@@ -135,7 +135,7 @@ public class SystemTrayService : IDisposable
         catch { return null; }
     }
 
-    // ── Public API (thread-safe) ──────────────────────────────────────────
+    // Public API (thread-safe).
 
     public void SetVisible(bool visible)
     {
@@ -189,7 +189,7 @@ public class SystemTrayService : IDisposable
         }
     }
 
-    // ── Internal helpers ──────────────────────────────────────────────────
+    // Internal helpers.
 
     private async Task DownloadAvatarAsync(string url)
     {
@@ -296,7 +296,7 @@ public class SystemTrayService : IDisposable
         OnShowWindow?.Invoke();
     }
 
-    // ── Dispose ───────────────────────────────────────────────────────────
+    // Dispose.
 
     public void Dispose()
     {
@@ -467,7 +467,7 @@ public class SystemTrayService : IDisposable
             Invalidate();
         }
 
-        // ── Rounded region ────────────────────────────────────────────────
+        // Rounded region.
 
         private static Region RoundedRegion(int w, int h, int r)
         {
@@ -492,7 +492,7 @@ public class SystemTrayService : IDisposable
             return p;
         }
 
-        // ── Status helpers ────────────────────────────────────────────────
+        // Status helpers.
 
         private static Color StatusColor(string s) => s switch
         {
@@ -512,7 +512,7 @@ public class SystemTrayService : IDisposable
             _ => "Offline",
         };
 
-        // ── Paint ─────────────────────────────────────────────────────────
+        // Paint.
 
         protected override void OnPaint(PaintEventArgs e)
         {
@@ -526,7 +526,7 @@ public class SystemTrayService : IDisposable
 
             int y = Pad;
 
-            // ── Profile section ──────────────────────────────────────────
+            // Profile section.
             var avRect = new Rectangle(Pad, y, AvatarSize, AvatarSize);
 
             // Try to get latest avatar from service
@@ -597,12 +597,12 @@ public class SystemTrayService : IDisposable
             y += Math.Max(AvatarSize, 38) + Pad;
             _profileSectionBottom = y;
 
-            // ── Separator ────────────────────────────────────────────────
+            // Separator.
             using (var sp = new Pen(_theme.Brd))
                 g.DrawLine(sp, Pad, y, FormWidth - Pad, y);
             y += 1 + SepGap;
 
-            // ── Status buttons ───────────────────────────────────────────
+            // Status buttons.
             for (int i = 0; i < _statusOpts.Length; i++)
             {
                 var (key, label, color) = _statusOpts[i];
@@ -640,13 +640,13 @@ public class SystemTrayService : IDisposable
             }
             y += SepGap;
 
-            // ── Separator ────────────────────────────────────────────────
+            // Separator.
             y -= BtnGap;
             using (var sp = new Pen(_theme.Brd))
                 g.DrawLine(sp, Pad, y, FormWidth - Pad, y);
             y += 1 + SepGap;
 
-            // ── Close button ─────────────────────────────────────────────
+            // Close button.
             var cr = new Rectangle(Pad / 2, y, FormWidth - Pad, BtnHeight);
             _btnRects[4] = cr;
 
@@ -670,13 +670,13 @@ public class SystemTrayService : IDisposable
             using (var cb = new SolidBrush(closeCol))
                 g.DrawString(_owner.T("tray.close_vrcn", "Close VRCN"), cf, cb, cr.X + 30, cr.Y + (BtnHeight - 18) / 2);
 
-            // ── Outer border ─────────────────────────────────────────────
+            // Outer border.
             using var borderPen = new Pen(_theme.Brd, 1);
             using var borderPath = RoundedRect(new Rectangle(0, 0, Width - 1, Height - 1), Corner);
             g.DrawPath(borderPen, borderPath);
         }
 
-        // ── Mouse tracking ────────────────────────────────────────────────
+        // Mouse tracking.
 
         protected override void OnMouseMove(MouseEventArgs e)
         {

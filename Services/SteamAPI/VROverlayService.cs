@@ -1,4 +1,4 @@
-#if WINDOWS
+﻿#if WINDOWS
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -569,7 +569,7 @@ namespace VRCNext.Services
                     _d3dDevice = null; _d3dContext = null; _stagingTex = null; _overlayTex = null;
                 }
 
-                // ── Toast overlay (HMD-attached, separate from wrist overlay) ──
+                // Toast overlay (HMD-attached, separate from wrist overlay).
                 var tErr = OpenVR.Overlay.CreateOverlay("vrcnext.toast", "VRCNext Toast", ref _toastHandle);
                 if (tErr == EVROverlayError.KeyInUse)
                     OpenVR.Overlay.FindOverlay("vrcnext.toast", ref _toastHandle);
@@ -1309,8 +1309,7 @@ namespace VRCNext.Services
                         }
                     }
 
-                    // ── Toast overlay tick (always runs, independent of wrist overlay visibility)
-                    TickToast();
+                    // Toast overlay tick (always runs, independent of wrist overlay visibility).n                    TickToast();
 
                     // Use minimal delay while scrolling to hit ~90fps; 11ms otherwise (~64fps steady)
                     bool activeScroll = _scrollDragging || MathF.Abs(_locationScrollVY) > 0.5f || MathF.Abs(_friendsScrollVY) > 0.5f;
@@ -1930,7 +1929,7 @@ namespace VRCNext.Services
             return names;
         }
 
-        //  Toast overlay ────────────────────────────────────────────────────────
+        // Toast overlay (HMD-attached, separate from the wrist overlay).
 
         private void TickToast()
         {

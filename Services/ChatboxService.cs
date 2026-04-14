@@ -42,6 +42,7 @@ namespace VRCNext
         public bool ShowAfk { get; set; }
         public string AfkMessage { get; set; } = "Currently AFK";
         public bool SuppressNotifSound { get; set; } = true;
+        public bool HideChatboxBackground { get; set; } = false;
         public string TimeFormat { get; set; } = "hh:mm tt";
         public string Separator { get; set; } = " | ";
         public int IntervalMs { get; set; } = 5000;
@@ -143,13 +144,18 @@ namespace VRCNext
 
         private string BuildChatboxText()
         {
+            // When hiding background, append \u0003\u001f — VRChat renders text without the bubble background.
+            // Reserve 2 chars for the suffix, so max usable text is 142 instead of 144.
+            int limit = HideChatboxBackground ? MAX_CHATBOX_CHARS - 2 : MAX_CHATBOX_CHARS;
+
             if (ShowAfk && _isAfk)
             {
                 var d = DateTime.Now - _afkSince;
                 var t = d.TotalHours >= 1 ? $"{(int)d.TotalHours}h {d.Minutes}m" : $"{(int)d.TotalMinutes}m";
                 var msg = $"{AfkMessage} ({t})";
                 if (ShowTime) msg = DateTime.Now.ToString(TimeFormat) + Separator + msg;
-                return msg.Length > MAX_CHATBOX_CHARS ? msg[..MAX_CHATBOX_CHARS] : msg;
+                if (msg.Length > limit) msg = msg[..limit];
+                return HideChatboxBackground ? msg + "\u0003\u001f" : msg;
             }
 
             var parts = new List<string>();
@@ -179,7 +185,8 @@ namespace VRCNext
             }
 
             var result = string.Join(Separator, parts);
-            return result.Length > MAX_CHATBOX_CHARS ? result[..MAX_CHATBOX_CHARS] : result;
+            if (result.Length > limit) result = result[..limit];
+            return HideChatboxBackground ? result + "\u0003\u001f" : result;
         }
 
         private static string FormatTime(TimeSpan ts) =>
@@ -370,7 +377,7 @@ namespace VRCNext
         public void ApplyConfig(bool enabled, bool showTime, bool showMedia, bool showPlaytime,
             bool showCustomText, bool showSystemStats, bool showAfk, string afkMessage,
             bool suppressSound, string timeFormat, string separator,
-            int intervalMs, List<string> customLines)
+            int intervalMs, List<string> customLines, bool hideBackground = false)
         {
             var was = Enabled; Enabled = enabled;
             ShowTime = showTime; ShowMedia = showMedia; ShowPlaytime = showPlaytime;
@@ -382,6 +389,7 @@ namespace VRCNext
             if (separator != null) Separator = separator;
             IntervalMs = Math.Max(intervalMs, MIN_INTERVAL_MS);
             CustomLines = customLines ?? new();
+            HideChatboxBackground = hideBackground;
             if (enabled && !was) Start(); else if (!enabled && was) Stop();
         }
 
