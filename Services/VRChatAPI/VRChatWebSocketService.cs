@@ -71,7 +71,7 @@ public sealed class VRChatWebSocketService : IDisposable
     private const int FriendsDebounceMs = 500;
 
     private long _lastReceiveTicks = DateTime.UtcNow.Ticks;
-    private const int HeartbeatTimeoutSec = 75;
+    private const int HeartbeatTimeoutSec = 300;
 
     // Public API
 
