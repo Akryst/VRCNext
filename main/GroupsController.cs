@@ -733,7 +733,7 @@ public class GroupsController
                 {
                     try
                     {
-                        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VRCNext");
+                        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VRCNext", "Caches");
                         Directory.CreateDirectory(dir);
                         File.WriteAllText(Path.Combine(dir, "mutual_cache.json"), mcJson, System.Text.Encoding.UTF8);
                     }
@@ -748,7 +748,7 @@ public class GroupsController
                 {
                     try
                     {
-                        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VRCNext", "mutual_cache.json");
+                        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VRCNext", "Caches", "mutual_cache.json");
                         var json = File.Exists(path) ? File.ReadAllText(path, System.Text.Encoding.UTF8) : "{}";
                         _core.SendToJS("vrcMutualCacheLoaded", new { json });
                     }
@@ -766,7 +766,7 @@ public class GroupsController
                 {
                     try
                     {
-                        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VRCNext", "mutual_cache.json");
+                        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VRCNext", "Caches", "mutual_cache.json");
                         if (File.Exists(path)) File.Delete(path);
                     }
                     catch { /* non-critical */ }

@@ -84,6 +84,7 @@ class MutualGraph {
         this.fetchDone   = 0;
         this.fetchTotal  = 0;
         this.cancelled   = false;
+        this._saveTimer  = null;
 
         this._bindEvents();
         this._resizeObserver = new ResizeObserver(() => this.resize());
@@ -221,8 +222,11 @@ class MutualGraph {
     onMutualsReceived(data) {
         // Save to in-memory cache
         _mutualCache[data.userId] = { mutualIds: data.mutualIds || [], optedOut: !!data.optedOut };
-        // Persist to disk (non-blocking, fire and forget)
-        sendToCS({ action: 'vrcSaveMutualCache', cache: JSON.stringify(_mutualCache) });
+        // Debounced save — prevents concurrent File.WriteAllText race in C# when many responses arrive at once
+        clearTimeout(this._saveTimer);
+        this._saveTimer = setTimeout(() => {
+            sendToCS({ action: 'vrcSaveMutualCache', cache: JSON.stringify(_mutualCache) });
+        }, 1500);
 
         this.fetchDone++;
         this._applyMutuals(data.userId, data.mutualIds, data.optedOut);
@@ -234,6 +238,7 @@ class MutualGraph {
 
     cancelLoading() {
         this.cancelled = true;
+        clearTimeout(this._saveTimer);
         this._hideProgress();
     }
 

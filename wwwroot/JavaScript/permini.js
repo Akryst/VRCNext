@@ -108,7 +108,6 @@ function renderPerminiPicker(filter) {
 
     const already = new Set(perminiList.map(e => e.userId));
     const friends = (vrcFriendsData || []).filter(f => {
-        if (f.presence === 'offline') return false;
         if (already.has(f.id)) return false;
         if (filter) return (f.displayName || '').toLowerCase().includes(filter.toLowerCase());
         return true;
