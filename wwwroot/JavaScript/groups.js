@@ -931,7 +931,7 @@ function _gevDpPmLabel() {
 
 function _gevDpWeekdaysHtml() {
     const fmt = new Intl.DateTimeFormat(_gevDpDateLocale(), { weekday: 'short' });
-    return Array.from({ length: 7 }, (_, index) => fmt.format(new Date(2024, 0, 7 + index)))
+    return Array.from({ length: 7 }, (_, index) => fmt.format(new Date(2024, 0, 8 + index)))
         .map(label => `<div class="tl-dp-wd">${esc(label)}</div>`)
         .join('');
 }
@@ -1095,10 +1095,11 @@ function renderGevDpCalendar() {
     const today = new Date();
     const todayStr = _gevDpFmtDate(today.getFullYear(), today.getMonth(), today.getDate());
     const firstDow = new Date(_gevDpYear, _gevDpMonth, 1).getDay();
+    const firstDowMon = (firstDow + 6) % 7;
     const daysInMonth = new Date(_gevDpYear, _gevDpMonth + 1, 0).getDate();
     const daysInPrev = new Date(_gevDpYear, _gevDpMonth, 0).getDate();
     let html = '';
-    for (let i = firstDow - 1; i >= 0; i--) {
+    for (let i = firstDowMon - 1; i >= 0; i--) {
         const d = daysInPrev - i;
         const ds = _gevDpFmtDate(_gevDpYear, _gevDpMonth - 1, d);
         html += `<button class="tl-dp-day other-month${ds === _gevDpSelDate ? ' selected' : ''}" onclick="gevDpSelectDate('${ds}')">${d}</button>`;
@@ -1108,7 +1109,7 @@ function renderGevDpCalendar() {
         const cls = (ds === todayStr ? ' today' : '') + (ds === _gevDpSelDate ? ' selected' : '');
         html += `<button class="tl-dp-day${cls}" onclick="gevDpSelectDate('${ds}')">${d}</button>`;
     }
-    const used = firstDow + daysInMonth;
+    const used = firstDowMon + daysInMonth;
     const remaining = used % 7 === 0 ? 0 : 7 - (used % 7);
     for (let d = 1; d <= remaining; d++) {
         const ds = _gevDpFmtDate(_gevDpYear, _gevDpMonth + 1, d);

@@ -13,7 +13,7 @@ function wiLocale() {
 }
 
 function wiWeekdayLabels() {
-    const base = new Date(Date.UTC(2024, 0, 7)); // Sunday
+    const base = new Date(Date.UTC(2024, 0, 8)); // Monday
     const fmt = new Intl.DateTimeFormat(wiLocale(), { weekday: 'short' });
     return Array.from({ length: 7 }, (_, i) => fmt.format(new Date(base.getTime() + i * 86400000)));
 }
@@ -133,11 +133,12 @@ function _wiRenderDpCalendar() {
     const todayStr = _wiFmt(new Date());
     const selStr = _wiFmt(_wiAnchor);
     const firstDow = new Date(_wiDpYear, _wiDpMonth, 1).getDay();
+    const firstDowMon = (firstDow + 6) % 7;
     const daysInMonth = new Date(_wiDpYear, _wiDpMonth + 1, 0).getDate();
     const daysInPrevMo = new Date(_wiDpYear, _wiDpMonth, 0).getDate();
 
     let html = '';
-    for (let i = firstDow - 1; i >= 0; i--) {
+    for (let i = firstDowMon - 1; i >= 0; i--) {
         const d = daysInPrevMo - i;
         const ds = _wiFmt(new Date(_wiDpYear, _wiDpMonth - 1, d));
         html += `<button class="tl-dp-day other-month${ds === selStr ? ' selected' : ''}" onclick="wiSelectDate('${ds}')">${d}</button>`;
@@ -147,7 +148,7 @@ function _wiRenderDpCalendar() {
         const cls = (ds === todayStr ? ' today' : '') + (ds === selStr ? ' selected' : '');
         html += `<button class="tl-dp-day${cls}" onclick="wiSelectDate('${ds}')">${d}</button>`;
     }
-    const used = firstDow + daysInMonth;
+    const used = firstDowMon + daysInMonth;
     const remaining = used % 7 === 0 ? 0 : 7 - (used % 7);
     for (let d = 1; d <= remaining; d++) {
         const ds = _wiFmt(new Date(_wiDpYear, _wiDpMonth + 1, d));

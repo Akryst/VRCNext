@@ -598,12 +598,13 @@ function renderDatePickerCalendar() {
     const selStr   = tlDateFilter || '';
 
     const firstDow      = new Date(_dpYear, _dpMonth, 1).getDay();     // 0=Sun
+    const firstDowMon   = (firstDow + 6) % 7;                          // 0=Mon
     const daysInMonth   = new Date(_dpYear, _dpMonth + 1, 0).getDate();
     const daysInPrevMo  = new Date(_dpYear, _dpMonth, 0).getDate();
 
     let html = '';
     // Leading prev-month days
-    for (let i = firstDow - 1; i >= 0; i--) {
+    for (let i = firstDowMon - 1; i >= 0; i--) {
         const d   = daysInPrevMo - i;
         const ds  = _dpFmt(_dpYear, _dpMonth - 1, d);
         html += `<button class="tl-dp-day other-month${ds === selStr ? ' selected' : ''}" onclick="selectDpDate('${ds}')">${d}</button>`;
@@ -615,7 +616,7 @@ function renderDatePickerCalendar() {
         html += `<button class="tl-dp-day${cls}" onclick="selectDpDate('${ds}')">${d}</button>`;
     }
     // Trailing next-month days
-    const used      = firstDow + daysInMonth;
+    const used      = firstDowMon + daysInMonth;
     const remaining = used % 7 === 0 ? 0 : 7 - (used % 7);
     for (let d = 1; d <= remaining; d++) {
         const ds  = _dpFmt(_dpYear, _dpMonth + 1, d);

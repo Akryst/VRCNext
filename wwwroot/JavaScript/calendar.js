@@ -247,15 +247,16 @@ function _buildGrid() {
     const today = new Date();
     const todayKey = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, '0')}-${String(today.getUTCDate()).padStart(2, '0')}`;
     const firstDay = new Date(_calYear, _calMonth, 1).getDay();
+    const firstDayMon = (firstDay + 6) % 7;
     const daysInMonth = new Date(_calYear, _calMonth + 1, 0).getDate();
 
     const hdr = Array.from({ length: 7 }, (_, idx) => {
-        const label = new Date(Date.UTC(2024, 0, 7 + idx)).toLocaleDateString(_calDateLocale(), { weekday: 'short' });
+        const label = new Date(Date.UTC(2024, 0, 8 + idx)).toLocaleDateString(_calDateLocale(), { weekday: 'short' });
         return `<div class="cal-day-hdr">${esc(label.toUpperCase())}</div>`;
     }).join('');
 
     let cells = '';
-    for (let i = 0; i < firstDay; i++) {
+    for (let i = 0; i < firstDayMon; i++) {
         cells += '<div class="cal-day cal-empty"></div>';
     }
 
