@@ -1651,5 +1651,20 @@
   "setup.tfa.msg_email": "メールに送られた6桁のコードを入力してください。",
   "crash.modal.title": "VRCNextがクラッシュしました",
   "crash.modal.msg": "開発者に問題の修正を手伝うため、クラッシュレポートを送信しますか？\n\nクラッシュログは匿名で、クラッシュのスタックトレースのみを含みます。個人情報やユーザーデータは一切含まれません。",
-  "crash.modal.send": "レポートを送信"
+  "crash.modal.send": "レポートを送信",
+  "nav.kikitan_xd": "Kikitan XD",
+  "page.kikitan_xd": "Kikitan XD",
+  "kikitan.status.listening": "聴取中...",
+  "kikitan.status.not_running": "未実行",
+  "kikitan.api_key": "Groq APIキー",
+  "kikitan.input_device": "入力デバイス",
+  "kikitan.mic_level": "マイクレベル",
+  "kikitan.source_lang": "ソース言語",
+  "kikitan.target_lang": "ターゲット言語",
+  "kikitan.translate_enabled": "翻訳を有効にする",
+  "kikitan.osc_enabled": "OSCチャットボックスで送信",
+  "kikitan.recognized.title": "認識した音声",
+  "kikitan.translation.title": "翻訳",
+  "kikitan.devices.no_microphone": "マイクが見つかりません",
+  "kikitan.noise_gate": "ノイズゲート"
 }

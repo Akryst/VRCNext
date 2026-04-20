@@ -1655,5 +1655,20 @@
   "setup.tfa.msg_email": "Introduce el código de 6 dígitos enviado a tu correo electrónico.",
   "crash.modal.title": "VRCNext ha fallado",
   "crash.modal.msg": "¿Deseas enviar el informe de fallos a los desarrolladores para ayudarles a solucionar el problema?\n\nEl registro de fallos es anónimo y solo contiene el seguimiento de pila del fallo. No incluye ninguna información personal ni datos de usuario.",
-  "crash.modal.send": "Enviar informe"
+  "crash.modal.send": "Enviar informe",
+  "nav.kikitan_xd": "Kikitan XD",
+  "page.kikitan_xd": "Kikitan XD",
+  "kikitan.status.listening": "Escuchando...",
+  "kikitan.status.not_running": "No activo",
+  "kikitan.api_key": "Clave API de Groq",
+  "kikitan.input_device": "Dispositivo de entrada",
+  "kikitan.mic_level": "Nivel de micrófono",
+  "kikitan.source_lang": "Idioma de origen",
+  "kikitan.target_lang": "Idioma de destino",
+  "kikitan.translate_enabled": "Activar traducción",
+  "kikitan.osc_enabled": "Enviar via OSC Chatbox",
+  "kikitan.recognized.title": "Voz reconocida",
+  "kikitan.translation.title": "Traducción",
+  "kikitan.devices.no_microphone": "No se encontró micrófono",
+  "kikitan.noise_gate": "Umbral de ruido"
 }

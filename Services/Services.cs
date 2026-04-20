@@ -465,7 +465,6 @@ public class VoiceFightSettings
     public int InputDeviceIndex { get; set; }
     public int OutputDeviceIndex { get; set; } = -1;
     public string StopWord { get; set; } = "";
-    public bool MuteTalk { get; set; } = false;
     public List<VfSoundItem> Items { get; set; } = new();
 
     public class VfSoundItem

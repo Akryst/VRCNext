@@ -1276,10 +1276,17 @@ public partial class AppShell
                 case "vfSetBlockList":
                 case "vfSetWord":
                 case "vfSetVolume":
-                case "vfSetMuteTalk":
                 case "vfSetInputDevice":
                 case "vfSetOutputDevice":
                     _vfCtrl.HandleMessage(action, msg);
+                    break;
+
+                // Kikitan XD
+                case "kxdGetDevices":
+                case "kxdStart":
+                case "kxdStop":
+                case "kxdSaveSettings":
+                    _kxdCtrl.HandleMessage(action, msg);
                     break;
 
                 // OSC Tool

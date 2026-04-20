@@ -36,7 +36,7 @@ public class VoiceFightController : IDisposable
                 {
                     var devices = VoiceFightService.GetInputDevices();
                     var outputDevices = VoiceFightService.GetOutputDevices();
-                    _core.SendToJS("vfDevices", new { devices, savedIndex = _vfSettings.InputDeviceIndex, outputDevices, savedOutputIndex = _vfSettings.OutputDeviceIndex, stopWord = _vfSettings.StopWord, muteTalk = _vfSettings.MuteTalk });
+                    _core.SendToJS("vfDevices", new { devices, savedIndex = _vfSettings.InputDeviceIndex, outputDevices, savedOutputIndex = _vfSettings.OutputDeviceIndex, stopWord = _vfSettings.StopWord });
                 }
                 break;
 
@@ -57,11 +57,7 @@ public class VoiceFightController : IDisposable
                     _voiceFight.OnLog += s => Invoke(() => _core.SendToJS("log", new { msg = s, color = "sec" }));
                     _voiceFight.OnKeywordTriggered += word => Invoke(() => _core.SendToJS("vfKeyword", new { word }));
                     _voiceFight.OnRecognized += (displayHtml, cleanText, isPartial) =>
-                    {
                         Invoke(() => _core.SendToJS("vfRecognized", new { text = displayHtml, isPartial }));
-                        if (!isPartial && _vfSettings.MuteTalk)
-                            ThreadPool.QueueUserWorkItem(_ => { try { VfSendChatbox(cleanText); } catch (Exception ex) { Services.CrashHandler.WriteEntry("VoiceFight.SendChatbox", ex); } });
-                    };
                     _voiceFight.SetKeywords(_vfSettings.Items);
                     _voiceFight.SetStopWord(_vfSettings.StopWord);
                     _voiceFight.Start(devIdx, outIdx);
@@ -257,11 +253,6 @@ public class VoiceFightController : IDisposable
                 }
                 break;
 
-            case "vfSetMuteTalk":
-                _vfSettings.MuteTalk = msg["enabled"]?.Value<bool>() ?? false;
-                _vfSettings.Save();
-                break;
-
             case "vfSetInputDevice":
                 {
                     int devIdx = msg["deviceIndex"]?.Value<int>() ?? 0;
@@ -307,11 +298,7 @@ public class VoiceFightController : IDisposable
             _voiceFight.OnLog += s => Invoke(() => _core.SendToJS("log", new { msg = s, color = "sec" }));
             _voiceFight.OnKeywordTriggered += word => Invoke(() => _core.SendToJS("vfKeyword", new { word }));
             _voiceFight.OnRecognized += (displayHtml, cleanText, isPartial) =>
-            {
                 Invoke(() => _core.SendToJS("vfRecognized", new { text = displayHtml, isPartial }));
-                if (!isPartial && _vfSettings.MuteTalk)
-                    ThreadPool.QueueUserWorkItem(_ => { try { VfSendChatbox(cleanText); } catch (Exception ex) { Services.CrashHandler.WriteEntry("VoiceFight.SendChatbox", ex); } });
-            };
             _voiceFight.SetKeywords(_vfSettings.Items);
             _voiceFight.SetStopWord(_vfSettings.StopWord);
             _voiceFight.Start(_vfSettings.InputDeviceIndex, _vfSettings.OutputDeviceIndex);

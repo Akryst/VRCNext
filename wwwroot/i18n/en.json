@@ -1676,5 +1676,20 @@
   "setup.tfa.msg_email": "Enter the 6-digit code sent to your email.",
   "crash.modal.title": "VRCNext has crashed",
   "crash.modal.msg": "Would you like to send the crash report to the developers to help them fix the issue?\n\nThe crash log is anonymous and only contains the stack trace of the crash. It does not include any personal information or user data.",
-  "crash.modal.send": "Send Report"
+  "crash.modal.send": "Send Report",
+  "nav.kikitan_xd": "Kikitan XD",
+  "page.kikitan_xd": "Kikitan XD",
+  "kikitan.status.listening": "Listening...",
+  "kikitan.status.not_running": "Not running",
+  "kikitan.api_key": "Groq API Key",
+  "kikitan.input_device": "Input Device",
+  "kikitan.mic_level": "Mic Level",
+  "kikitan.source_lang": "Source Language",
+  "kikitan.target_lang": "Target Language",
+  "kikitan.translate_enabled": "Enable Translation",
+  "kikitan.osc_enabled": "Send via OSC Chatbox",
+  "kikitan.recognized.title": "Recognized Speech",
+  "kikitan.translation.title": "Translation",
+  "kikitan.devices.no_microphone": "No microphone found",
+  "kikitan.noise_gate": "Noise Gate"
 }

@@ -725,6 +725,11 @@ case 'popularWorlds':
             case 'vfKeyword': vfOnKeyword(payload.word); break;
             case 'vfRecognized': vfOnRecognized(payload.text, payload.isPartial); break;
             case 'vfBlockList': handleVfBlockList(payload.words); break;
+            case 'kxdState': handleKxdState(payload); break;
+            case 'kxdDevices': populateKxdDevices(payload); break;
+            case 'kxdMeter': updateKxdMeter(payload.level); break;
+            case 'kxdRecognized': handleKxdRecognized(payload); break;
+            case 'kxdTranslated': handleKxdTranslated(payload); break;
             case 'oscState':
                 handleOscState(payload);
                 break;

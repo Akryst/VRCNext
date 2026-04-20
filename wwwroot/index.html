@@ -37,6 +37,7 @@
                     <button class="nav-btn nav-sub" onclick="showTab(19)"><span class="ni msi">sensors</span><span class="nl" data-i18n="nav.discord_presence">Discord Presence</span></button>
                     <button class="nav-btn nav-sub" data-windows-only onclick="showTab(20)"><span class="ni msi">watch</span><span class="nl" data-i18n="nav.vr_overlay">VR Overlay</span><span class="sf-dot offline nl" id="badgeVro" style="margin-left:auto;margin-right:4px;width:7px;height:7px;flex-shrink:0;"></span></button>
                     <button class="nav-btn nav-sub" onclick="showTab(21)"><span class="ni msi">lock</span><span class="nl" data-i18n="nav.permini">Permini</span></button>
+                    <button class="nav-btn nav-sub" data-windows-only onclick="showTab(22)"><span class="ni msi">translate</span><span class="nl" data-i18n="nav.kikitan_xd">Kikitan XD</span></button>
                 </div>
             </div>
             <button class="nav-btn" onclick="showTab(9)"><span class="ni msi">settings</span><span class="nl" data-i18n="nav.settings">Settings</span></button>
@@ -1194,25 +1195,16 @@
                             <span id="vfRecognizedText" class="vf-recognized-text">-</span>
                         </div>
                     </div>
-                    <!-- Stop Command + Mute Talk (side by side) -->
-                    <div style="display:flex;gap:12px;">
-                        <div class="vrcn-panel-card" style="flex:1;margin-bottom:0;">
-                            <div class="vrcn-panel-card-header"><span class="msi">stop_circle</span> <span data-i18n="voicefight.stop_command.title">Stop Command</span></div>
-                            <div style="display:flex;align-items:center;gap:8px;">
-                                <input id="vfStopWordInput" class="vrcn-edit-field" style="flex:1;" placeholder="Stop word..." data-i18n-placeholder="voicefight.stop_command.placeholder"
-                                    oninput="vfStopWordChanged(this.value)"
-                                    onblur="vfSetStopWord(this.value)">
-                                <button class="vf-btn-icon" onclick="vfStopSound()" title="Stop playback now" data-i18n-title="voicefight.stop_command.stop_now"><span class="msi">stop</span></button>
-                            </div>
-                            <div style="font-size:11px;color:var(--tx3);margin-top:6px;" data-i18n="voicefight.stop_command.hint">Say this word to instantly stop any playing sound.</div>
+                    <!-- Stop Command -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">stop_circle</span> <span data-i18n="voicefight.stop_command.title">Stop Command</span></div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <input id="vfStopWordInput" class="vrcn-edit-field" style="flex:1;" placeholder="Stop word..." data-i18n-placeholder="voicefight.stop_command.placeholder"
+                                oninput="vfStopWordChanged(this.value)"
+                                onblur="vfSetStopWord(this.value)">
+                            <button class="vf-btn-icon" onclick="vfStopSound()" title="Stop playback now" data-i18n-title="voicefight.stop_command.stop_now"><span class="msi">stop</span></button>
                         </div>
-                        <div class="vrcn-panel-card" style="flex:1;margin-bottom:0;">
-                            <div class="vrcn-panel-card-header" style="display:flex;align-items:center;justify-content:space-between;">
-                                <span><span class="msi">record_voice_over</span> <span data-i18n="voicefight.mute_talk.title">Mute Talk</span></span>
-                                <label class="toggle"><input type="checkbox" id="vfMuteTalkToggle" onchange="vfSetMuteTalk(this.checked)"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
-                            </div>
-                            <div style="font-size:11px;color:var(--tx3);margin-top:6px;" data-i18n="voicefight.mute_talk.hint">Sends recognized speech via OSC as a chatbox message in VRChat, great for muted players.</div>
-                        </div>
+                        <div style="font-size:11px;color:var(--tx3);margin-top:6px;" data-i18n="voicefight.stop_command.hint">Say this word to instantly stop any playing sound.</div>
                     </div>
                     <!-- Sound Items -->
                     <div class="vrcn-panel-card">
@@ -1628,6 +1620,77 @@
                 </div>
             </div>
 
+            <!-- Tab 22: Kikitan XD -->
+            <div class="tab" id="tab22" data-windows-only>
+                <div class="sf-layout">
+                    <!-- Status / Connect -->
+                    <div class="vrcn-panel-card status">
+                        <div class="sf-status-row">
+                            <div class="sf-status"><span class="sf-dot offline" id="kxdDot"></span><span id="kxdStatusText" data-i18n="kikitan.status.not_running">Not running</span></div>
+                            <button class="vrcn-button" id="kxdConnBtn" onclick="kxdConnect()"><span class="msi" style="font-size:16px;">play_arrow</span> <span data-i18n="common.start">Start</span></button>
+                        </div>
+                    </div>
+                    <!-- API Key -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">key</span> <span data-i18n="kikitan.api_key">Groq API Key</span></div>
+                        <input id="kxdApiKey" type="password" class="vrcn-edit-field" style="width:100%;box-sizing:border-box;" placeholder="gsk_..." onblur="kxdSaveSettings()">
+                    </div>
+                    <!-- Mic + Volume -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">mic</span> <span data-i18n="kikitan.input_device">Input Device</span></div>
+                        <select id="kxdDeviceSelect" class="lib-filter-select" style="width:100%;margin-bottom:12px;"><option data-i18n="common.loading">Loading...</option></select>
+                        <div class="vrcn-panel-card-header" style="margin-top:4px;"><span class="msi">graphic_eq</span> <span data-i18n="kikitan.mic_level">Mic Level</span></div>
+                        <div class="vf-meter-wrap" style="position:relative;">
+                            <div class="vf-meter-bar" id="kxdMeterBar"></div>
+                            <div id="kxdGateMark" style="position:absolute;top:0;bottom:0;width:2px;background:var(--tx2);opacity:0.8;left:10%;pointer-events:none;border-radius:1px;"></div>
+                        </div>
+                        <div class="vf-vol-row" style="margin-top:8px;">
+                            <span style="font-size:11px;color:var(--tx3);min-width:72px;" data-i18n="kikitan.noise_gate">Noise Gate</span>
+                            <input type="range" class="vf-vol-slider" min="0" max="50" value="10" id="kxdGateSlider" oninput="kxdSetNoiseGate(this.value)">
+                            <span id="kxdGateVal" style="font-size:11px;color:var(--tx3);min-width:32px;text-align:right;">10%</span>
+                        </div>
+                    </div>
+                    <!-- Language selectors -->
+                    <div class="vrcn-panel-card">
+                        <div style="display:flex;gap:12px;">
+                            <div style="flex:1;">
+                                <div class="vrcn-panel-card-header" style="margin-bottom:6px;"><span class="msi">record_voice_over</span> <span data-i18n="kikitan.source_lang">Source Language</span></div>
+                                <select id="kxdSourceLang" class="lib-filter-select" style="width:100%;" onchange="kxdSaveSettings()"></select>
+                            </div>
+                            <div style="flex:1;">
+                                <div class="vrcn-panel-card-header" style="margin-bottom:6px;"><span class="msi">translate</span> <span data-i18n="kikitan.target_lang">Target Language</span></div>
+                                <select id="kxdTargetLang" class="lib-filter-select" style="width:100%;" onchange="kxdSaveSettings()"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Options -->
+                    <div class="vrcn-panel-card">
+                        <div class="sf-toggle-row">
+                            <span><span class="msi" style="font-size:16px;vertical-align:middle;">translate</span> <span data-i18n="kikitan.translate_enabled">Enable Translation</span></span>
+                            <label class="toggle"><input type="checkbox" id="kxdTranslateToggle" checked onchange="kxdUpdateTranslateVisibility();kxdSaveSettings()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="sf-toggle-row" style="margin-top:8px;">
+                            <span><span class="msi" style="font-size:16px;vertical-align:middle;">send</span> <span data-i18n="kikitan.osc_enabled">Send via OSC Chatbox</span></span>
+                            <label class="toggle"><input type="checkbox" id="kxdOscToggle" checked onchange="kxdSaveSettings()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                    </div>
+                    <!-- Recognition (source) -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">hearing</span> <span data-i18n="kikitan.recognized.title">Recognized Speech</span></div>
+                        <div class="vf-recognized-wrap" style="min-height:54px;">
+                            <span id="kxdSourceText" style="color:var(--tx1);font-size:13px;white-space:pre-wrap;word-break:break-word;">-</span>
+                        </div>
+                    </div>
+                    <!-- Translation output -->
+                    <div class="vrcn-panel-card" id="kxdOutputCard">
+                        <div class="vrcn-panel-card-header"><span class="msi">translate</span> <span data-i18n="kikitan.translation.title">Translation</span></div>
+                        <div class="vf-recognized-wrap" style="min-height:54px;">
+                            <span id="kxdOutputText" style="color:var(--accent);font-size:13px;white-space:pre-wrap;word-break:break-word;">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -1792,6 +1855,7 @@
     <script src="JavaScript/discord.js"></script>
     <script src="JavaScript/vroverlay.js"></script>
     <script src="JavaScript/permini.js"></script>
+    <script src="JavaScript/kikitanXD.js"></script>
     <script src="JavaScript/init.js"></script>
 
     <!-- Dashboard layout editor modal -->

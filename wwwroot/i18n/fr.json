@@ -1655,5 +1655,20 @@
   "setup.tfa.msg_email": "Entrez le code à 6 chiffres envoyé à votre adresse e-mail.",
   "crash.modal.title": "VRCNext a planté",
   "crash.modal.msg": "Souhaitez-vous envoyer le rapport de plantage aux développeurs pour les aider à résoudre le problème ?\n\nLe journal de plantage est anonyme et contient uniquement la trace d'appel. Il ne contient aucune information personnelle ni donnée utilisateur.",
-  "crash.modal.send": "Envoyer le rapport"
+  "crash.modal.send": "Envoyer le rapport",
+  "nav.kikitan_xd": "Kikitan XD",
+  "page.kikitan_xd": "Kikitan XD",
+  "kikitan.status.listening": "Écoute en cours...",
+  "kikitan.status.not_running": "Pas actif",
+  "kikitan.api_key": "Clé API Groq",
+  "kikitan.input_device": "Périphérique d'entrée",
+  "kikitan.mic_level": "Niveau microphone",
+  "kikitan.source_lang": "Langue source",
+  "kikitan.target_lang": "Langue cible",
+  "kikitan.translate_enabled": "Activer la traduction",
+  "kikitan.osc_enabled": "Envoyer via OSC Chatbox",
+  "kikitan.recognized.title": "Parole reconnue",
+  "kikitan.translation.title": "Traduction",
+  "kikitan.devices.no_microphone": "Aucun microphone trouvé",
+  "kikitan.noise_gate": "Seuil de bruit"
 }

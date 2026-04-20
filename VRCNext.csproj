@@ -44,6 +44,10 @@
     <Content  Remove="translations\**" />
     <EmbeddedResource Remove="translations\**" />
     <None     Remove="translations\**" />
+    <Compile  Remove="kikitan-translator\**" />
+    <Content  Remove="kikitan-translator\**" />
+    <EmbeddedResource Remove="kikitan-translator\**" />
+    <None     Remove="kikitan-translator\**" />
   </ItemGroup>
 
   <ItemGroup>

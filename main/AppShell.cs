@@ -43,6 +43,7 @@ public partial class AppShell
     private DiscordController _discordCtrl = null!;
     private ChatboxController _chatboxCtrl = null!;
     private VoiceFightController _vfCtrl = null!;
+    private KikitanXDController _kxdCtrl = null!;
     private RelayController _relayCtrl = null!;
     private WindowController _windowCtrl = null!;
     private ImageCacheService? _imgCache;
@@ -162,6 +163,7 @@ public partial class AppShell
         _discordCtrl = new DiscordController(_core, _instance, _vroCtrl);
         _chatboxCtrl = new ChatboxController(_core, _vroCtrl);
         _vfCtrl = new VoiceFightController(_core, _vroCtrl);
+        _kxdCtrl = new KikitanXDController(_core);
         _relayCtrl = new RelayController(_core, _friends, _instance, _notifications, _vroCtrl);
         _windowCtrl = new WindowController(_core);
 #if WINDOWS
@@ -262,6 +264,8 @@ public partial class AppShell
         {
             if (_vfCtrl.IsRunning)
                 SendToJS("vfMeter", new { level = _vfCtrl.MeterLevel });
+            if (_kxdCtrl.IsRunning)
+                SendToJS("kxdMeter", new { level = _kxdCtrl.MeterLevel });
             if (Interlocked.Increment(ref uptimeTick) % 10 == 0 && _relayCtrl.IsRunning)
                 SendToJS("uptimeTick", (DateTime.Now - _relayCtrl.RelayStart).ToString(@"hh\:mm\:ss"));
         }, null, 100, 100);
@@ -411,6 +415,7 @@ public partial class AppShell
         _worldStatsTimer?.Dispose();
         _sfCtrl?.Dispose();
         _vfCtrl?.Dispose();
+        _kxdCtrl?.Dispose();
         _discordCtrl?.Dispose();
         _chatboxCtrl?.Dispose();
         _vroCtrl?.Dispose();

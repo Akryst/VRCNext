@@ -1103,6 +1103,7 @@ function showTab(i) {
     if (i === 17 && !calendarLoaded) refreshCalendar();
     if (i === 18) vfOnTabOpen();
     if (i === 21) onPerminiTabOpen();
+    if (i === 22) { kxdInitLangSelects(); kxdOnTabOpen(); }
     document.documentElement.dispatchEvent(new Event('tabchange'));
 }
 

@@ -1652,5 +1652,20 @@
   "setup.tfa.msg_email": "请输入发送到您邮筇0的6位个代码。",
   "crash.modal.title": "VRCNext 已崩溃",
   "crash.modal.msg": "是否要将崩溃报告发送给开发者以帮助他们修复此问题？\n\n崩溃日志是匿名的，仅包含崩溃的堆栈跟踪，不包含任何个人信息或用户数据。",
-  "crash.modal.send": "发送报告"
+  "crash.modal.send": "发送报告",
+  "nav.kikitan_xd": "Kikitan XD",
+  "page.kikitan_xd": "Kikitan XD",
+  "kikitan.status.listening": "正在听取...",
+  "kikitan.status.not_running": "未运行",
+  "kikitan.api_key": "Groq API密钥",
+  "kikitan.input_device": "输入设备",
+  "kikitan.mic_level": "麦克风电平",
+  "kikitan.source_lang": "源语言",
+  "kikitan.target_lang": "目标语言",
+  "kikitan.translate_enabled": "启用翻译",
+  "kikitan.osc_enabled": "通过OSC聊天框发送",
+  "kikitan.recognized.title": "识别的语音",
+  "kikitan.translation.title": "翻译",
+  "kikitan.devices.no_microphone": "未找到麦克风",
+  "kikitan.noise_gate": "噪声门"
 }
