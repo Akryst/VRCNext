@@ -44,6 +44,9 @@ public class WindowController
     /// No window style changes — animations and taskbar behaviour stay native.
     /// </summary>
     private static volatile bool _minimizeToTray;
+    private static volatile bool _forceClose;
+
+    public static void AllowNextClose() => _forceClose = true;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct MARGINS { public int leftWidth, rightWidth, topHeight, bottomHeight; }
@@ -58,6 +61,7 @@ public class WindowController
 
     private static nint SubclassWndProc(nint hWnd, uint msg, nint wParam, nint lParam, nuint uIdSubclass, nuint dwRefData)
     {
+        const uint WM_CLOSE      = 0x0010;
         const uint WM_DESTROY    = 0x0002;
         const uint WM_SIZE       = 0x0005;
         const uint WM_NCDESTROY  = 0x0082;
@@ -75,6 +79,17 @@ public class WindowController
         if (_ncDestroyed)
             return 0;
 
+        if (msg == WM_CLOSE)
+        {
+            if (_forceClose) { _forceClose = false; }
+            else if (_minimizeToTray)
+            {
+                ShowWindow(hWnd, SW_HIDE);
+                OnMinimized?.Invoke();
+                return 0;
+            }
+        }
+
         if (msg == WM_DESTROY)
         {
             _ncDestroyed = true;
@@ -90,11 +105,15 @@ public class WindowController
         if (msg == WM_NCCALCSIZE && wParam == 1)
             return 0;
 
-        if (msg == WM_SYSCOMMAND && (wParam.ToInt32() & 0xFFF0) == SC_MINIMIZE && _minimizeToTray)
+        if (msg == WM_SYSCOMMAND && _minimizeToTray)
         {
-            ShowWindow(hWnd, SW_HIDE);
-            OnMinimized?.Invoke();
-            return 0;
+            var sc = wParam.ToInt32() & 0xFFF0;
+            if (sc == SC_MINIMIZE || sc == 0xF060 /*SC_CLOSE*/)
+            {
+                ShowWindow(hWnd, SW_HIDE);
+                OnMinimized?.Invoke();
+                return 0;
+            }
         }
 
         if (msg == WM_NCHITTEST)
@@ -119,6 +138,15 @@ public class WindowController
         return DefSubclassProc(hWnd, msg, wParam, lParam);
     }
 
+    public void InstallMinimalSubclass()
+    {
+#if WINDOWS
+        var window = _core.Window;
+        if (window == null) return;
+        InstallWndProcSubclass(window.WindowHandle);
+#endif
+    }
+
     private void InstallWndProcSubclass(nint hWnd)
     {
         if (_subclassProc != null) return; // already installed
@@ -135,6 +163,24 @@ public class WindowController
     public void SetHideFromTaskbar(bool hide)
     {
         _minimizeToTray = hide;
+    }
+
+    /// <summary>
+    /// Called by the Photino WindowClosingHandler. If minimize-to-tray is active,
+    /// hides the window and returns true (cancel close). Otherwise returns false (allow close).
+    /// </summary>
+    public bool InterceptClose()
+    {
+#if WINDOWS
+        if (!_minimizeToTray) return false;
+        var window = _core.Window;
+        if (window == null) return false;
+        ShowWindow(window.WindowHandle, SW_HIDE);
+        OnMinimized?.Invoke();
+        return true;
+#else
+        return false;
+#endif
     }
 
     public bool IsWindowHidden()
@@ -266,7 +312,15 @@ public class WindowController
                 _core.SendToJS("windowMaxState", !nowMax);
                 break;
             case "windowClose":
-                window.Close();
+#if WINDOWS
+                if (_minimizeToTray)
+                {
+                    ShowWindow(window.WindowHandle, SW_HIDE);
+                    OnMinimized?.Invoke();
+                }
+                else
+#endif
+                    window.Close();
                 break;
             case "windowDragStart":
 #if WINDOWS

@@ -199,6 +199,7 @@ public partial class AppShell
         };
         _trayService.OnClose = () =>
         {
+            WindowController.AllowNextClose();
             try { _window.Close(); } catch { }
         };
         _trayService.ImageDownloader = async url =>

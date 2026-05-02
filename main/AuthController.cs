@@ -237,6 +237,7 @@ public class AuthController
                         Arguments = $"--waitpid {Environment.ProcessId}",
                         UseShellExecute = true
                     });
+                    WindowController.AllowNextClose();
                     try { _core.Window?.Close(); } catch { Environment.Exit(0); }
                 }
                 break;
