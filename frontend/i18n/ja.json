@@ -1529,6 +1529,7 @@
   "worlds.instances.types.group": "グループ",
   "worlds.instances.types.group_plus": "グループ+",
   "worlds.tabs.info": "情報",
+  "worlds.tabs.instances": "インスタンス ({count})",
   "worlds.tabs.insights": "インサイト",
   "worlds.meta.by": "作者:",
   "worlds.meta.active": "アクティブ",

@@ -79,8 +79,9 @@ function renderInstanceItem(opts) {
     let ownerRow = '';
     if (owner && ownerGroup && ownerId) {
         // Group instance: themed clickable badge showing "Full Name · ShortCode"
-        const safeId = ownerId.replace(/'/g, "\\'");
-        ownerRow = `<div class="inst-item-owner"><span class="inst-owner-group-badge" onclick="event.stopPropagation();openGroupDetail('${safeId}')">${esc(owner)}<span class="inst-owner-group-sep">·</span>${esc(ownerGroup)}</span></div>`;
+        const safeId    = ownerId.replace(/'/g, "\\'");
+        const safeOwner = owner.replace(/'/g, "\\'");
+        ownerRow = `<div class="inst-item-owner"><span class="inst-owner-group-badge" onclick="event.stopPropagation();navOpenModal('group','${safeId}','${safeOwner}')">${esc(owner)}<span class="inst-owner-group-sep">·</span>${esc(ownerGroup)}</span></div>`;
     } else if (owner && ownerGroup) {
         // Fallback: no ownerId, plain text
         ownerRow = `<div class="inst-item-owner">${esc(owner)}<span class="inst-item-owner-sep">·</span><span class="inst-item-owner-tag">${esc(ownerGroup)}</span></div>`;
@@ -92,5 +93,5 @@ function renderInstanceItem(opts) {
         ownerRow = `<div class="inst-item-owner"><span class="inst-item-owner-num">${instNum}</span></div>`;
     }
 
-    return `<div class="inst-item"${clickAttr}><div class="inst-item-body">${ownerRow}<div class="inst-item-row">${badgeHtml}${regionHtml}${countHtml}${rightHtml}</div></div></div>`;
+    return `<div class="inst-item"${clickAttr}>${thumbEl}<div class="inst-item-body">${ownerRow}<div class="inst-item-row">${badgeHtml}${regionHtml}${countHtml}${rightHtml}</div></div></div>`;
 }

@@ -1532,6 +1532,7 @@
   "worlds.instances.types.group": "Gruppe",
   "worlds.instances.types.group_plus": "Gruppe+",
   "worlds.tabs.info": "Info",
+  "worlds.tabs.instances": "Instanzen ({count})",
   "worlds.tabs.insights": "Insights",
   "worlds.meta.by": "von",
   "worlds.meta.active": "Aktiv",

@@ -15,6 +15,7 @@ function _getWorldBannerImg(worldId, src) {
 }
 let _wdLiveTimer = null;
 let _wdCurrentId = '';
+let _wdCurrentTab = 'info';
 
 /* === Detail Modals (shared) === */
 function openWorldSearchDetail(id) {
@@ -93,24 +94,21 @@ function renderWorldSearchDetail(w) {
 
     let instancesHtml = '';
     if (allInstances.length > 0) {
-        instancesHtml = `<div class="wd-section-label wd-instances-label" style="margin-top:4px;"><span>${tf('worlds.instances.active_title', { count: allInstances.length }, 'ACTIVE INSTANCES ({count})')}</span><button class="mi-refresh-btn" id="wdInstancesRefreshBtn" onclick="refreshWorldInstances()" title="Refresh instances">&#8635;</button></div><div class="wd-instances-list">`;
-        allInstances.forEach(inst => {
-            instancesHtml += renderInstanceItem({
-                instanceType: inst.type,
-                instanceId:   inst.instanceId || '',
-                owner:        inst.ownerName  || '',
-                ownerGroup:   inst.ownerGroup || '',
-                ownerId:      inst.ownerId    || '',
-                region:       getWorldRegionLabel(inst.region),
-                userCount:    inst.users,
-                capacity:     w.capacity || 0,
-                friends:      worldFriendsByLoc[inst.location] || [],
-                location:     inst.location,
-            });
-        });
-        instancesHtml += '</div>';
+        instancesHtml = `<div class="wd-instances-list" style="max-height:370px;overflow-y:auto;">${allInstances.map(inst => renderInstanceItem({
+            thumb:        thumb,
+            instanceType: inst.type,
+            instanceId:   inst.instanceId || '',
+            owner:        inst.ownerName  || '',
+            ownerGroup:   inst.ownerGroup || '',
+            ownerId:      inst.ownerId    || '',
+            region:       getWorldRegionLabel(inst.region),
+            userCount:    inst.users,
+            capacity:     w.capacity || 0,
+            friends:      worldFriendsByLoc[inst.location] || [],
+            location:     inst.location,
+        })).join('')}</div>`;
     } else {
-        instancesHtml = `<div style="font-size:11px;color:var(--tx3);margin-bottom:14px;">${t('worlds.instances.none_active', 'No active instances')}</div>`;
+        instancesHtml = `<div style="font-size:11px;color:var(--tx3);padding:14px 0;">${t('worlds.instances.none_active', 'No active instances')}</div>`;
     }
 
     const isFavWorld = favWorldsData.some(fw => fw.id === w.id);
@@ -122,11 +120,11 @@ function renderWorldSearchDetail(w) {
     _wdCurrentWorldId = wid;
     _ciWorld = { id: w.id, name: w.name, thumb };
 
-    // Tab pills (only for own worlds)
-    const tabsHtml = isOwnWorld ? `<div class="fd-tabs" style="margin-bottom:14px;">
+    const tabsHtml = `<div class="fd-tabs" style="margin-bottom:14px;">
         <button class="fd-tab active" onclick="switchWdTab('info',this)">${t('worlds.tabs.info', 'Info')}</button>
-        <button class="fd-tab" onclick="switchWdTab('insights',this)">${t('worlds.tabs.insights', 'Insights')}</button>
-    </div>` : '';
+        <button class="fd-tab" onclick="switchWdTab('instances',this)">${tf('worlds.tabs.instances', { count: allInstances.length }, 'Instances ({count})')}</button>
+        ${isOwnWorld ? `<button class="fd-tab" onclick="switchWdTab('insights',this)">${t('worlds.tabs.insights', 'Insights')}</button>` : ''}
+    </div>`;
 
     el.innerHTML = `${thumb ? `<div class="fd-banner" id="wd-banner-slot"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/world/${esc(wid)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>` : ''}
         <div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:20px 0;">
@@ -184,13 +182,20 @@ function renderWorldSearchDetail(w) {
                 })()}
             </div>
         </div>
-        ${instancesHtml}
+        </div>
+        <div id="wdTabInstances" style="display:none;">
+            <div class="wd-section-label wd-instances-label" style="margin-top:4px;"><span>${tf('worlds.instances.active_title', { count: allInstances.length }, 'ACTIVE INSTANCES ({count})')}</span><button class="mi-refresh-btn" id="wdInstancesRefreshBtn" onclick="refreshWorldInstances()" title="Refresh instances">&#8635;</button></div>
+            ${instancesHtml}
         </div>
         ${isOwnWorld ? `<div id="wdTabInsights" style="display:none;"><div id="wiContainer"></div></div>` : ''}
         <div style="margin-top:14px;text-align:right;"><button class="vrcn-button-round" onclick="closeWorldSearchDetail()">${t('common.close', 'Close')}</button></div>
         </div>`;
 
     if (thumb) { const s = document.getElementById('wd-banner-slot'); const bi = _getWorldBannerImg(wid, thumb); if (s && bi) s.insertBefore(bi, s.firstChild); }
+    if (_wdCurrentTab !== 'info') {
+        const activeTabBtn = el.querySelector(`.fd-tab[onclick*="'${_wdCurrentTab}'"]`);
+        switchWdTab(_wdCurrentTab, activeTabBtn);
+    }
     // Live timer - only when currently in this world
     if (_wdLiveTimer) { clearInterval(_wdLiveTimer); _wdLiveTimer = null; }
     if (currentInstanceData?.worldId === wid) {
@@ -207,10 +212,13 @@ function renderWorldSearchDetail(w) {
 let _wdCurrentWorldId = '';
 
 function switchWdTab(tab, btn) {
-    const info = document.getElementById('wdTabInfo');
-    const insights = document.getElementById('wdTabInsights');
-    if (info) info.style.display = tab === 'info' ? '' : 'none';
-    if (insights) insights.style.display = tab === 'insights' ? '' : 'none';
+    _wdCurrentTab = tab;
+    const info      = document.getElementById('wdTabInfo');
+    const instances = document.getElementById('wdTabInstances');
+    const insights  = document.getElementById('wdTabInsights');
+    if (info)      info.style.display      = tab === 'info'      ? '' : 'none';
+    if (instances) instances.style.display = tab === 'instances' ? '' : 'none';
+    if (insights)  insights.style.display  = tab === 'insights'  ? '' : 'none';
     document.querySelectorAll('#detailModalContent .fd-tab').forEach(t => t.classList.remove('active'));
     if (btn) btn.classList.add('active');
     if (tab === 'insights' && _wdCurrentWorldId) {
@@ -221,6 +229,7 @@ function switchWdTab(tab, btn) {
 function closeWorldSearchDetail(fromNav = false) {
     if (_wdLiveTimer) { clearInterval(_wdLiveTimer); _wdLiveTimer = null; }
     _wdCurrentWorldId = '';
+    _wdCurrentTab = 'info';
     if (typeof _wiReset === 'function') _wiReset();
     document.getElementById('modalDetail').style.display = 'none';
     if (!fromNav && typeof navClear === 'function') navClear();
