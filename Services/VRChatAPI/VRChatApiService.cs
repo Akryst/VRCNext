@@ -2796,7 +2796,7 @@ public class VRChatApiService
             worldId = parts[0];
             instanceId = parts[1];
 
-            if (instanceId.Contains("~private(")) instanceType = "private";
+            if (instanceId.Contains("~private(")) instanceType = instanceId.Contains("~canRequestInvite") ? "invite_plus" : "private";
             else if (instanceId.Contains("~friends+(")) instanceType = "friends+";
             else if (instanceId.Contains("~friends(")) instanceType = "friends";
             else if (instanceId.Contains("~hidden(")) instanceType = "hidden";
