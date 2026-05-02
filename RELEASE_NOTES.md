@@ -1,10 +1,30 @@
 **2026.21.0**
 
 **Timeline**
+
 * In **Friends**, avatar changes are now logged.
 * When a friend switches their avatar, it will now appear in the Timeline.
 * However, this only works if the user does **not** have a VRC+ custom banner.
 * At the moment, this feature is not fully reliable. If a user changes their profile image back and forth, it may incorrectly create multiple avatar change entries.
+
+**New: Game Log tab**
+A new **Game Log** tab has been added to the Timeline, alongside Personal and Friends.
+
+The Game Log shows a live feed of in-game events as they happen, up to 1000 entries. Older entries are replaced by newer ones automatically.
+
+The following events are tracked:
+
+* **World** — Joining a new instance and instance closures
+* **Players** — Players joining or leaving the current instance
+* **Video** — Video URLs resolved in the current world (e.g. YouTube)
+* **Screenshot** — Screenshots taken with the VRChat camera
+* **Portal** — Portals dropped in the current instance
+* **Errors** — Avatar blocked by performance limits, image load failures, and connection loss
+
+You can filter the Game Log using the filter buttons at the top:
+**All · World · Players · Media · Portal · Errors**
+
+The Game Log supports both **Timeline view** and **List view**, just like Personal and Friends.
 
 **Database Migration**
 * I made some database changes to store profile data more efficiently.
@@ -89,3 +109,4 @@ If you used a legacy theme and want it back, you can go back to an older version
 * Fixed some database migrations issue on the backend! this should prevent any lags when using the search.
 * Fixed an issue that showed "Saved" on startup.
 * Fixed some i18n in the german and english language.
+* Fixed an performance issue caused by the image cache debugger which did run on the background even if not enabled.

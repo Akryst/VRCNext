@@ -192,10 +192,26 @@ function setTlMode(mode) {
     tlMode = mode;
     document.getElementById('tlModePersonal')?.classList.toggle('active', mode === 'personal');
     document.getElementById('tlModeFriends')?.classList.toggle('active',  mode === 'friends');
-    const pf = document.getElementById('tlPersonalFilters');
-    const ff = document.getElementById('tlFriendsFilters');
+    document.getElementById('tlModeGameLog')?.classList.toggle('active',  mode === 'gamelog');
+    const pf  = document.getElementById('tlPersonalFilters');
+    const ff  = document.getElementById('tlFriendsFilters');
+    const gf  = document.getElementById('glFilters');
+    const tc  = document.getElementById('tlContainer');
+    const gc  = document.getElementById('glContent');
+    const sb  = document.getElementById('tlSearchInput');
+    const tb  = document.getElementById('tlTopbar') ?? document.querySelector('.tl-topbar');
     if (pf) pf.style.display = mode === 'personal' ? '' : 'none';
     if (ff) ff.style.display = mode === 'friends'  ? '' : 'none';
+    if (gf) gf.style.display = mode === 'gamelog'  ? '' : 'none';
+    if (tc) tc.style.display = mode === 'gamelog'  ? 'none' : '';
+    if (gc) gc.style.display = mode === 'gamelog'  ? '' : 'none';
+    if (sb) sb.closest('.search-bar-row') && (sb.closest('.search-bar-row').style.display = mode === 'gamelog' ? 'none' : '');
+    if (mode === 'gamelog') {
+        const pb = document.getElementById('tlPaginatorBar');
+        if (pb) pb.innerHTML = '';
+        renderGameLog();
+        return;
+    }
     _tlSearchMode = false; _tlSearchQuery = ''; _tlSearchDate = '';
     _ftlSearchMode = false; _ftlSearchQuery = ''; _ftlSearchDate = '';
     const activeSearch = (document.getElementById('tlSearchInput')?.value ?? '').trim();
@@ -211,6 +227,7 @@ function setTlViewMode(mode) {
     localStorage.setItem('tlViewMode', mode);
     document.getElementById('tlViewTimeline')?.classList.toggle('active', mode === 'timeline');
     document.getElementById('tlViewList')?.classList.toggle('active', mode === 'list');
+    if (tlMode === 'gamelog') { renderGameLog(); return; }
     if (tlMode === 'friends') filterFriendTimeline();
     else filterTimeline();
 }

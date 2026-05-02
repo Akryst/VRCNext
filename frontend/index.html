@@ -1230,6 +1230,7 @@
                 <div class="tl-mode-row">
                     <button class="vrcn-button sub-tab-btn active" id="tlModePersonal" onclick="setTlMode('personal')"><span class="msi" style="font-size:14px;">person</span> <span data-i18n="timeline.mode.personal">Personal</span></button>
                     <button class="vrcn-button sub-tab-btn" id="tlModeFriends" onclick="setTlMode('friends')"><span class="msi" style="font-size:14px;">group</span> <span data-i18n="timeline.mode.friends">Friends</span></button>
+                    <button class="vrcn-button sub-tab-btn" id="tlModeGameLog" onclick="setTlMode('gamelog')"><span class="msi" style="font-size:14px;">terminal</span> <span data-i18n="timeline.mode.gamelog">Game Log</span></button>
                     <div style="flex:1;"></div>
                     <button class="vrcn-button sub-tab-btn" id="tlViewTimeline" title="Timeline View" data-i18n-title="timeline.view.timeline_title" onclick="setTlViewMode('timeline')"><span class="msi" style="font-size:14px;">account_tree</span></button>
                     <button class="vrcn-button sub-tab-btn" id="tlViewList" title="List View" data-i18n-title="timeline.view.list_title" onclick="setTlViewMode('list')"><span class="msi" style="font-size:14px;">format_list_bulleted</span></button>
@@ -1288,8 +1289,19 @@
                     <button class="vrcn-button sub-tab-btn" id="ftFAdded"     onclick="setFtFilter('friend_added')"><span class="msi" style="font-size:14px;">person_add</span> <span data-i18n="timeline.filters.friended">Friended</span></button>
                     <button class="vrcn-button sub-tab-btn" id="ftFRemoved"   onclick="setFtFilter('friend_removed')"><span class="msi" style="font-size:14px;">person_remove</span> <span data-i18n="timeline.filters.unfriended">Unfriended</span></button>
                 </div>
+                <div class="tl-filter-row" id="glFilters" style="display:none;">
+                    <button class="vrcn-button sub-tab-btn active" data-f="all"     onclick="setGlFilter('all')"     data-i18n="timeline.filters.all">All</button>
+                    <button class="vrcn-button sub-tab-btn"        data-f="world"   onclick="setGlFilter('world')"><span class="msi" style="font-size:14px;">travel_explore</span> <span data-i18n="timeline.filters.world">World</span></button>
+                    <button class="vrcn-button sub-tab-btn"        data-f="players" onclick="setGlFilter('players')"><span class="msi" style="font-size:14px;">group</span> <span data-i18n="timeline.filters.players">Players</span></button>
+                    <button class="vrcn-button sub-tab-btn"        data-f="media"   onclick="setGlFilter('media')"><span class="msi" style="font-size:14px;">play_circle</span> <span data-i18n="timeline.filters.media">Media</span></button>
+                    <button class="vrcn-button sub-tab-btn"        data-f="portal"  onclick="setGlFilter('portal')"><span class="msi" style="font-size:14px;">blur_circular</span> <span data-i18n="timeline.filters.portal">Portal</span></button>
+                    <button class="vrcn-button sub-tab-btn"        data-f="errors"  onclick="setGlFilter('errors')"><span class="msi" style="font-size:14px;">error_outline</span> <span data-i18n="timeline.filters.errors">Errors</span></button>
+                </div>
                 <div class="tl-container" id="tlContainer">
                     <div class="empty-msg" data-i18n="timeline.empty.initial">No timeline events yet. VRChat activity will appear here.</div>
+                </div>
+                <div class="tl-container" id="glContent" style="display:none;">
+                    <div class="empty-msg" data-i18n="gamelog.empty">No game log entries yet.</div>
                 </div>
                 <div id="tlPaginatorBar" class="tl-paginator-bar"></div>
             </div>
@@ -2464,6 +2476,7 @@
     <script src="modules/tools/space-flight/space-flight.js"></script>
     <script src="modules/tools/osc-tool/osc-tool.js"></script>
     <script src="modules/timeline/timeline.js"></script>
+    <script src="modules/timeline/game-log.js"></script>
     <script src="core/modals/timeline-modal/timeline-modal.js"></script>
     <script src="modules/inventory/inventory_upload.js"></script>
     <script src="modules/inventory/inventory.js"></script>

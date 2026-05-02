@@ -33,8 +33,14 @@ public class VRChatLogWatcher : IDisposable
     public event Action<string>? VideoUrl;
     public event Action<string, string>? PlayerJoined;
     public event Action<string, string>? PlayerLeft;
+    public event Action<string>? ScreenshotTaken;
+    public event Action? PortalUsed;
+    public event Action? AvatarBlockedPerf;
+    public event Action<string>? ImageLoadError;
+    public event Action? ConnectionLost;
 
     public DateTime? WorldJoinedAt { get; private set; }
+    public string PendingWorldName { get; private set; } = "";
 
     private void Log(string msg) => DebugLog?.Invoke(msg);
 
@@ -71,6 +77,13 @@ public class VRChatLogWatcher : IDisposable
         @"(?:Attempting to resolve|Resolving) URL '([^']+)'", RegexOptions.Compiled);
     private static readonly Regex RxRoomEnter = new(
         @"Entering Room: (.+)", RegexOptions.Compiled);
+    private static readonly Regex RxScreenshot = new(
+        @"\[VRC Camera\] Took screenshot to: (.+)", RegexOptions.Compiled);
+    private static readonly Regex RxImageError = new(
+        @"\[Image Download\] .+web request exception occurred while loading image from URL '([^']+)'", RegexOptions.Compiled);
+    private const string RxPortalStr     = "[PortalManager] Pending portal request fulfilled";
+    private const string RxAvatarBlkStr  = "Avatar was blocked by local perf limits";
+    private const string RxConnLostStr   = "Lost connection to realtime network";
 
     public List<PlayerInfo> GetCurrentPlayers()
     {
@@ -217,9 +230,10 @@ public class VRChatLogWatcher : IDisposable
             var m = RxRoomEnter.Match(line);
             if (m.Success)
             {
+                PendingWorldName = m.Groups[1].Value.Trim();
                 lock (_lock) _players.Clear();
                 _totalRoomEvents++;
-                if (!catchUp) Log($"LogWatcher: 🌍 {m.Groups[1].Value}");
+                if (!catchUp) Log($"LogWatcher: 🌍 {PendingWorldName}");
                 return;
             }
         }
@@ -301,6 +315,40 @@ public class VRChatLogWatcher : IDisposable
                 Log($"LogWatcher: 🔒 Instance closed: {loc}");
                 InstanceClosed?.Invoke(loc);
             }
+            return;
+        }
+
+        if (line.Contains("[VRC Camera] Took screenshot to:"))
+        {
+            var m = RxScreenshot.Match(line);
+            if (m.Success && !catchUp)
+                ScreenshotTaken?.Invoke(m.Groups[1].Value.Trim());
+            return;
+        }
+
+        if (line.Contains(RxPortalStr) && !catchUp)
+        {
+            PortalUsed?.Invoke();
+            return;
+        }
+
+        if (line.Contains(RxAvatarBlkStr) && !catchUp)
+        {
+            AvatarBlockedPerf?.Invoke();
+            return;
+        }
+
+        if (line.Contains(RxConnLostStr) && !catchUp)
+        {
+            ConnectionLost?.Invoke();
+            return;
+        }
+
+        if (line.Contains("web request exception occurred while loading image"))
+        {
+            var m = RxImageError.Match(line);
+            if (m.Success && !catchUp)
+                ImageLoadError?.Invoke(m.Groups[1].Value);
             return;
         }
     }
