@@ -115,7 +115,7 @@ body:has(.rsidebar.collapsed) .topbar  { padding-right: calc(var(--rsidebar-c) +
 
 /* === Dashboard Hero === */
 .dash-hero {
-    margin: -54px calc(-1 * (var(--rsidebar-w) + 28px)) -322px calc(-1 * (var(--sidebar-w) + 28px));
+    margin: -54px calc(-1 * (var(--rsidebar-w) + 28px)) -245px calc(-1 * (var(--sidebar-w) + 28px));
     transition: margin-left .22s ease, margin-right .22s ease;
 }
 
