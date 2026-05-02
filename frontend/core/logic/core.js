@@ -868,24 +868,6 @@ function applySpecialTheme(n) {
     autoSave();
 }
 
-function renderPlayBtnThemeChips() {
-    const el = document.getElementById('playBtnThemeGrid');
-    if (!el) return;
-    const chips = [
-        { key: '',       label: t('settings.design.play_button.standard', 'Standard'), dot: '#1DB954' },
-        { key: 'accent', label: t('settings.design.play_button.theme_color', 'Theme Color'), dot: 'var(--accent)' },
-    ];
-    el.innerHTML = chips.map(t =>
-        `<button class="theme-chip${currentPlayBtnTheme === t.key ? ' active' : ''}" onclick="applyPlayBtnTheme('${t.key}')"><span class="theme-dot" style="background:${t.dot}"></span>${t.label}</button>`
-    ).join('');
-}
-
-function applyPlayBtnTheme(key) {
-    currentPlayBtnTheme = key;
-    document.body.classList.toggle('play-btn-accent', key === 'accent');
-    renderPlayBtnThemeChips();
-    autoSave();
-}
 
 function renderCursorThemeChips(files) {
     if (files) _cursorFiles = files;

@@ -1,8 +1,13 @@
 **2026.20.7**
 
+**Dashboard**
+* Updated the Dashboard hero to look more modern.
+* Added New info design.
+
 **Theme Update**
 
 * Removed all legacy themes from VRCNext, including Midnight, Ocean, Emerald, Sunset, and Periwinkle.
+* Removed old green Play button theme complitely. Instead theme color is being used now.
 * Added 5 VRCNext 2.0 themes: Slates, Blood, Miku, VRChat, and Halloween.
 
 **Important Note:**

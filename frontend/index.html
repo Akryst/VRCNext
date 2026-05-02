@@ -156,7 +156,22 @@
                     <div class="dash-hero-content">
                         <div class="dash-welcome" id="dashWelcome" data-i18n="dashboard.welcome.default">Welcome!</div>
                         <div class="dash-sub" id="dashSub" data-i18n="dashboard.sub.connect_world">Connect to VRChat to see your world</div>
-
+                        <div class="dash-hero-stats" id="dashHeroStats" style="display:none;">
+                            <div class="dash-hero-stat">
+                                <div class="dash-hero-stat-val" id="dashStatOnline">—</div>
+                                <div class="dash-hero-stat-label" data-i18n="dashboard.stats.online_globally">Online Globally</div>
+                            </div>
+                            <div class="dash-hero-stat-sep"></div>
+                            <div class="dash-hero-stat">
+                                <div class="dash-hero-stat-val" id="dashStatFriends">—</div>
+                                <div class="dash-hero-stat-label" data-i18n="dashboard.stats.friends_ingame">Friends In Game</div>
+                            </div>
+                            <div class="dash-hero-stat-sep"></div>
+                            <div class="dash-hero-stat">
+                                <div class="dash-hero-stat-val" id="dashStatSession">—</div>
+                                <div class="dash-hero-stat-label" data-i18n="dashboard.stats.friends_onweb">Friends On Web</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div id="dashSectionsContainer">
@@ -824,8 +839,6 @@
                             </div>
                             <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.special_themes">Special Themes</div>
                             <div class="theme-grid" id="specialThemeGrid"></div>
-                            <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.play_button_theme">Play Button Theme</div>
-                            <div class="theme-grid" id="playBtnThemeGrid"></div>
                             <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.custom_cursor">Custom Cursor</div>
                             <div class="theme-grid" id="cursorThemeGrid"></div>
                             <div class="sf-row" id="autoAccuracyRow" style="margin-top:8px;display:none;">

@@ -107,7 +107,6 @@ function saveSettings() {
             theme: currentTheme,
             specialTheme: currentSpecialTheme,
             autoColorAccuracy: autoColorAccuracy,
-            playBtnTheme: currentPlayBtnTheme,
             cursorTheme: currentCursorTheme,
             activeCustomThemes: [..._activeCustomThemes],
             guiZoom: Math.round(_guiZoom * 100),
@@ -349,8 +348,6 @@ function loadSettingsToUI(s) {
     // custom_ themes are applied later when customColors loads
     renderThemeChips();
     renderSpecialThemeChips();
-    currentPlayBtnTheme = s.PlayBtnTheme || s.playBtnTheme || '';
-    applyPlayBtnTheme(currentPlayBtnTheme);
     _localHttpPort = s.LocalHttpPort || s.localHttpPort || 0;
     currentCursorTheme = s.CursorTheme || s.cursorTheme || '';
     sendToCS({ action: 'getCursorFiles' });

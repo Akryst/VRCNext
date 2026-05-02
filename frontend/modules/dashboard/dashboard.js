@@ -2,6 +2,23 @@
 
 let _dashOnlineCount = 0;
 let _dashOnlineCountLastFetch = 0;
+function updateDashHeroStats() {
+    const statsEl = document.getElementById('dashHeroStats');
+    if (!statsEl) return;
+    const hasUser = !!currentVrcUser;
+    statsEl.style.display = hasUser ? 'flex' : 'none';
+    if (!hasUser) return;
+    const onlineEl  = document.getElementById('dashStatOnline');
+    const friendsEl = document.getElementById('dashStatFriends');
+    const webEl     = document.getElementById('dashStatSession');
+    if (onlineEl) onlineEl.textContent = _dashOnlineCount > 0 ? _dashOnlineCount.toLocaleString() : '—';
+    if (typeof vrcFriendsData !== 'undefined') {
+        const inGame = vrcFriendsData.filter(f => f.presence === 'game').length;
+        const onWeb  = vrcFriendsData.filter(f => f.presence === 'web').length;
+        if (friendsEl) friendsEl.textContent = String(inGame);
+        if (webEl)     webEl.textContent     = String(onWeb);
+    }
+}
 
 function getDashFriendCountLabel(count, keyBase) {
     return count === 1
@@ -15,20 +32,7 @@ function updateDashSub() {
         ? (currentVrcUser.statusDescription || statusLabel(currentVrcUser.status))
         : t('dashboard.sub.connect_world', 'Connect to VRChat to see your world');
 
-    let suffix = '';
-    if (_dashOnlineCount > 0) {
-        suffix = ` | ${tf('dashboard.sub.playing_worldwide', { count: _dashOnlineCount.toLocaleString() }, '{count} playing worldwide')}`;
-        if (typeof vrcFriendsData !== 'undefined' && vrcFriendsData.length > 0) {
-            const inGame = vrcFriendsData.filter(f => f.presence === 'game').length;
-            const onWeb  = vrcFriendsData.filter(f => f.presence === 'web').length;
-            if (inGame > 0 || onWeb > 0) {
-                suffix += `, ${tf('dashboard.sub.friends_ingame', { count: inGame }, '{count} of your friends in-game')}`;
-                if (onWeb > 0) suffix += `, ${tf('dashboard.sub.friends_onweb', { count: onWeb }, '{count} on web')}`;
-            }
-        }
-    }
-
-    document.getElementById('dashSub').textContent = status + suffix;
+    document.getElementById('dashSub').textContent = status;
 }
 
 function renderDashboard() {
@@ -37,6 +41,7 @@ function renderDashboard() {
         ? tf('dashboard.welcome.named', { name: `<span style="color:var(--accent)">${esc(name)}</span>` }, 'Welcome, {name}!')
         : esc(t('dashboard.welcome.default', 'Welcome!'));
     updateDashSub();
+    updateDashHeroStats();
 
     const bgEl = document.getElementById('dashHeroBg');
     if (dashBgDataUri) {
