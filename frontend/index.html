@@ -1238,7 +1238,7 @@
                 <div class="tl-topbar">
                     <div class="search-bar-row" style="flex:1;margin-bottom:0;">
                         <span class="msi search-ico">search</span>
-                        <input type="text" id="tlSearchInput" class="vrcn-input" placeholder="Search timeline..." data-i18n-placeholder="timeline.search.placeholder" oninput="tlMode==='friends'?filterFriendTimeline():filterTimeline()">
+                        <input type="text" id="tlSearchInput" class="vrcn-input" placeholder="Search timeline..." data-i18n-placeholder="timeline.search.placeholder" oninput="tlMode==='gamelog'?renderGameLog():tlMode==='friends'?filterFriendTimeline():filterTimeline()">
                     </div>
                     <button class="vrcn-button tl-datebtn" id="tlDateBtn" onclick="toggleTlDatePicker()" title="Filter by date" data-i18n-title="timeline.date.filter_title">
                         <span class="msi" style="font-size:15px;">calendar_today</span>

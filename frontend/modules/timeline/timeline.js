@@ -205,7 +205,7 @@ function setTlMode(mode) {
     if (gf) gf.style.display = mode === 'gamelog'  ? '' : 'none';
     if (tc) tc.style.display = mode === 'gamelog'  ? 'none' : '';
     if (gc) gc.style.display = mode === 'gamelog'  ? '' : 'none';
-    if (sb) sb.closest('.search-bar-row') && (sb.closest('.search-bar-row').style.display = mode === 'gamelog' ? 'none' : '');
+    if (sb) sb.closest('.search-bar-row') && (sb.closest('.search-bar-row').style.display = '');
     if (mode === 'gamelog') {
         const pb = document.getElementById('tlPaginatorBar');
         if (pb) pb.innerHTML = '';

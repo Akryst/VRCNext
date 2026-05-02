@@ -42,9 +42,13 @@ function addGameLogEntry(entry) {
 function renderGameLog() {
     const el = document.getElementById('glContent');
     if (!el) return;
-    const entries = _glFilter === 'all'
+    const search = (document.getElementById('tlSearchInput')?.value ?? '').toLowerCase().trim();
+    let entries = _glFilter === 'all'
         ? _glEntries
         : _glEntries.filter(e => (GL_FILTER_GROUPS[_glFilter] || []).includes(e.type));
+    if (search) entries = entries.filter(e =>
+        (e.message || '').toLowerCase().includes(search) ||
+        (e.detail  || '').toLowerCase().includes(search));
 
     if (tlViewMode === 'list') {
         el.innerHTML = buildGlListHtml(entries);
