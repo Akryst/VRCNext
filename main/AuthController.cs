@@ -902,7 +902,7 @@ public class AuthController
 
             // Database optimization (requires restart to take effect)
             _core.Settings.DbOptimize           = data["dbOptimize"]?.Value<bool>() ?? true;
-            _core.Settings.DbOptimizeMaxEntries = Math.Clamp(data["dbOptimizeMaxEntries"]?.Value<int>() ?? 500, 500, 10000);
+            _core.Settings.DbOptimizeMaxEntries = Math.Clamp(data["dbOptimizeMaxEntries"]?.Value<int>() ?? 500, 500, 250000);
 
             // Auto-Update
             _core.Settings.AutoUpdate = data["autoUpdate"]?.Value<bool>() ?? true;

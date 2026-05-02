@@ -877,7 +877,7 @@
   "settings.db.desc": "Limite le nombre d'entrées de la chronologie chargées en mémoire au démarrage. Maintient la chronologie rapide avec de grandes bases de données. Un redémarrage est nécessaire pour appliquer les modifications.",
   "settings.db.optimize": "Optimiser la base de données",
   "settings.db.entries_label": "Entrées de base de données optimisées",
-  "settings.db.entries_desc": "Min : 500, Max : 10 000. Charge les N entrées les plus récentes pour Personnel et Amis séparément.",
+  "settings.db.entries_desc": "Min : 500, Max : 250 000. Charge les N entrées les plus récentes pour Personnel et Amis séparément.",
   "settings.db.optimize_off_warning": "Avertissement : L'optimisation de la base de données est désactivée. Toutes les entrées seront chargées au démarrage. Cela peut considérablement affecter les performances avec de grandes bases de données.",
   "settings.avtrdb.title": "Support communautaire Avtrdb",
   "settings.avtrdb.tabs.support": "Support",

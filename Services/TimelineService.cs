@@ -84,7 +84,7 @@ public class TimelineService : IDisposable
         var conn          = Database.OpenConnection();
         var svc           = new TimelineService(conn);
         svc._optimizeMode = settings.DbOptimize;
-        svc._maxN         = Math.Clamp(settings.DbOptimizeMaxEntries, 500, 10000);
+        svc._maxN         = Math.Clamp(settings.DbOptimizeMaxEntries, 500, 250000);
         svc.InitSchema();
         svc.MigrateFromJson();
         svc.LoadFromDb();

@@ -877,7 +877,7 @@
   "settings.db.desc": "起動時にメモリに読み込まれるタイムラインエントリ数を制限します。大規模なデータベースでもタイムラインを高速に保ちます。変更を適用するには再起動が必要です。",
   "settings.db.optimize": "データベースを最適化",
   "settings.db.entries_label": "最適化されたデータベースエントリ数",
-  "settings.db.entries_desc": "最小: 500、最大: 10,000。個人とフレンドそれぞれに対して、最新のNエントリを読み込みます。",
+  "settings.db.entries_desc": "最小: 500、最大: 250,000。個人とフレンドそれぞれに対して、最新のNエントリを読み込みます。",
   "settings.db.optimize_off_warning": "警告: データベースの最適化が無効です。すべてのエントリが起動時に読み込まれます。大規模なデータベースではパフォーマンスに大きな影響を与える可能性があります。",
   "settings.avtrdb.title": "Avtrdbコミュニティサポート",
   "settings.avtrdb.tabs.support": "サポート",

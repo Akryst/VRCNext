@@ -204,7 +204,7 @@ function saveSettings() {
             ffcEnabled: document.getElementById('setFfcEnabled').checked,
             memoryTrimEnabled: document.getElementById('setMemoryTrimEnabled').checked,
             dbOptimize: document.getElementById('setDbOptimize').checked,
-            dbOptimizeMaxEntries: Math.max(500, Math.min(10000, parseInt(document.getElementById('setDbOptimizeMaxEntries').value) || 500)),
+            dbOptimizeMaxEntries: Math.max(500, Math.min(250000, parseInt(document.getElementById('setDbOptimizeMaxEntries').value) || 500)),
             autoUpdate: document.getElementById('setAutoUpdate').checked,
             sendCrashData: document.getElementById('setSendCrashData').checked,
             restartAfterCrash: document.getElementById('setRestartAfterCrash').checked,
@@ -499,7 +499,7 @@ function loadSettingsToUI(s) {
 
     // Database optimization
     const dbOptimize           = s.DbOptimize ?? s.dbOptimize ?? true;
-    const dbOptimizeMaxEntries = Math.max(500, Math.min(10000, s.DbOptimizeMaxEntries ?? s.dbOptimizeMaxEntries ?? 500));
+    const dbOptimizeMaxEntries = Math.max(500, Math.min(250000, s.DbOptimizeMaxEntries ?? s.dbOptimizeMaxEntries ?? 500));
     document.getElementById('setDbOptimize').checked            = dbOptimize;
     document.getElementById('setDbOptimizeMaxEntries').value    = dbOptimizeMaxEntries;
     document.getElementById('setDbOptimizeMaxEntries').disabled = !dbOptimize;

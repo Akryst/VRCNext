@@ -1061,11 +1061,11 @@
                             <div class="sf-row">
                                 <label style="font-size:12px;color:var(--tx2);flex-shrink:0;margin-right:10px;" data-i18n="settings.db.entries_label">Optimized Database Entries</label>
                                 <div style="display:flex;align-items:center;gap:10px;flex:1;">
-                                    <input type="range" id="setDbOptimizeMaxEntries" min="500" max="10000" step="100" value="500" style="flex:1;" oninput="document.getElementById('dbOptimizeEntriesVal').textContent=this.value;autoSave()">
+                                    <input type="range" id="setDbOptimizeMaxEntries" min="500" max="250000" step="500" value="500" style="flex:1;" oninput="document.getElementById('dbOptimizeEntriesVal').textContent=this.value;autoSave()">
                                     <span id="dbOptimizeEntriesVal" style="font-size:12px;color:var(--tx2);min-width:44px;text-align:right;">500</span>
                                 </div>
                             </div>
-                            <div class="set-desc" style="margin-top:6px;" data-i18n="settings.db.entries_desc">Min: 500, Max: 10,000. Loads the N most recent entries for Personal and Friends separately.</div>
+                            <div class="set-desc" style="margin-top:6px;" data-i18n="settings.db.entries_desc">Min: 500, Max: 250,000. Loads the N most recent entries for Personal and Friends separately.</div>
                         </div>
                         <div id="dbOptimizeOffWarning" style="display:none;margin-top:12px;color:var(--red,#e55);" class="set-desc" data-i18n="settings.db.optimize_off_warning">Warning: Optimize Database is disabled. All entries will be loaded on startup. This may significantly impact performance with large databases.</div>
                     </div>

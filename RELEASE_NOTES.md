@@ -6,7 +6,6 @@
 * However, this only works if the user does **not** have a VRC+ custom banner.
 * At the moment, this feature is not fully reliable. If a user changes their profile image back and forth, it may incorrectly create multiple avatar change entries.
 
-
 **Database Migration**
 * I made some database changes to store profile data more efficiently.
 * When you start VRCNext again, it may be a little slower than usual for a few minutes, or up to an hour in some cases.
@@ -63,6 +62,7 @@ If you used a legacy theme and want it back, you can go back to an older version
 * Improved how world details are saved and loaded, so information such as heat, popularity, player counts, and world version can appear faster.
 * Added more logging for **My Instances** to make issues easier to track down.
 * The Sidebar shades do now use the BG Base color instead of hardcoded colors.
+* Changed the max database compat. size from 10.000 to 250.000
 
 **Fixes**
 * World Modal: Opening a group from the Instances tab now works correctly with the back button.
@@ -88,3 +88,4 @@ If you used a legacy theme and want it back, you can go back to an older version
 * Fixed Database issues which makes loading very slow when opening the timeline tab.
 * Fixed some database migrations issue on the backend! this should prevent any lags when using the search.
 * Fixed an issue that showed "Saved" on startup.
+* Fixed some i18n in the german and english language.

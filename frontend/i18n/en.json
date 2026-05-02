@@ -880,7 +880,7 @@
   "settings.db.desc": "Limits how many timeline entries are loaded into memory at startup. Keeps the Timeline fast with large databases. A restart is required to apply changes.",
   "settings.db.optimize": "Optimize Database",
   "settings.db.entries_label": "Optimized Database Entries",
-  "settings.db.entries_desc": "Min: 500, Max: 10,000. Loads the N most recent entries for Personal and Friends separately.",
+  "settings.db.entries_desc": "Min: 500, Max: 250,000. Loads the N most recent entries for Personal and Friends separately.",
   "settings.db.optimize_off_warning": "Warning: Optimize Database is disabled. All entries will be loaded on startup. This may significantly impact performance with large databases.",
   "settings.avtrdb.title": "Avatar Avtrdb and Avtr.icu Community Support",
   "settings.avtrdb.tabs.support": "Support",
