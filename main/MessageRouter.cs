@@ -967,8 +967,11 @@ public partial class AppShell
                                 authorName          = wdCached.AuthorName,
                                 authorId            = wdCached.AuthorId,
                                 occupants           = 0,
-                                publicOccupants     = 0,
-                                privateOccupants    = 0,
+                                publicOccupants     = wdCached.PublicOccupants,
+                                privateOccupants    = wdCached.PrivateOccupants,
+                                heat                = wdCached.Heat,
+                                popularity          = wdCached.Popularity,
+                                version             = wdCached.Version,
                                 capacity            = wdCached.Capacity,
                                 recommendedCapacity = wdCached.RecommendedCapacity,
                                 favorites           = wdCached.Favorites,
@@ -1149,7 +1152,12 @@ public partial class AppShell
                                 favorites:           world["favorites"]?.Value<int>() ?? 0,
                                 visits:              world["visits"]?.Value<int>() ?? 0,
                                 pcSize:              pcSize,
-                                androidSize:         androidSize
+                                androidSize:         androidSize,
+                                heat:                world["heat"]?.Value<int>() ?? 0,
+                                popularity:          world["popularity"]?.Value<int>() ?? 0,
+                                publicOccupants:     world["publicOccupants"]?.Value<int>() ?? 0,
+                                privateOccupants:    world["privateOccupants"]?.Value<int>() ?? 0,
+                                version:             world["version"]?.Value<int>() ?? 0
                             );
                             Invoke(() => SendToJS("vrcWorldDetail", new
                             {
@@ -1163,6 +1171,9 @@ public partial class AppShell
                                 occupants = world["occupants"]?.Value<int>() ?? 0,
                                 publicOccupants = world["publicOccupants"]?.Value<int>() ?? 0,
                                 privateOccupants = world["privateOccupants"]?.Value<int>() ?? 0,
+                                heat = world["heat"]?.Value<int>() ?? 0,
+                                popularity = world["popularity"]?.Value<int>() ?? 0,
+                                version = world["version"]?.Value<int>() ?? 0,
                                 capacity = world["capacity"]?.Value<int>() ?? 0,
                                 recommendedCapacity = world["recommendedCapacity"]?.Value<int>() ?? 0,
                                 favorites = world["favorites"]?.Value<int>() ?? 0,

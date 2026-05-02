@@ -1,6 +1,8 @@
 **2026.20.7**
 
 **Changes**
+- World Modal: Added "Infos" section (Recommended, Max Capacity, Instances, Published, Updated, Version) and "Community Info" section (Public Players, Private Players, Heat, Popularity) matching the Profile Modal style
+- World cache (SQLite): Extended world_tracking table with heat, popularity, publicOccupants, privateOccupants, version — persisted on every background detail fetch
 - Dashboard sections now auto-refresh on a timer: Group Activity every 10 min, Recently Visited / Favorite Worlds / Favorite Avatars every 60 min, My Avatars / Upcoming Events every 120 min (timer only fires when Dashboard tab is active)
 - Added manual refresh button (⟳) to: Recently Visited, Favorite Worlds, Favorite Avatars, My Avatars, Group Activity, Group Activity (Small), Upcoming Events
 

@@ -153,11 +153,36 @@ function renderWorldSearchDetail(w) {
         ${(w.worldTimeSeconds > 0 || currentInstanceData?.worldId === wid) ? `<div class="wd-your-time"><span class="msi" style="font-size:15px;">schedule</span><div><div style="font-size:12px;font-weight:600;color:var(--tx1);">${t('worlds.time_spent.label', 'Your Time Spent')}</div><div style="font-size:11px;color:var(--tx3);"><span id="wdTimeSpent">${formatDuration(w.worldTimeSeconds || 0)}</span>${w.worldVisitCount > 0 ? ' &middot; ' + getWorldVisitCountLabel(w.worldVisitCount) : ''}</div></div></div>` : ''}
         ${desc ? `<div style="font-size:12px;color:var(--tx2);margin-bottom:14px;max-height:150px;overflow-y:auto;line-height:1.5;white-space:pre-wrap;">${esc(desc)}</div>` : ''}
         ${tagsHtml}
-        <div class="fd-meta" style="margin-bottom:14px;">
-            ${w.recommendedCapacity ? `<div class="fd-meta-row"><span class="fd-meta-label">${t('worlds.meta.recommended', 'Recommended')}</span><span>${getWorldPlayersLabel(w.recommendedCapacity)}</span></div>` : ''}
-            <div class="fd-meta-row"><span class="fd-meta-label">${t('worlds.meta.max_capacity', 'Max Capacity')}</span><span>${getWorldPlayersLabel(w.capacity)}</span></div>
-            ${w.createdAt ? `<div class="fd-meta-row"><span class="fd-meta-label">${t('worlds.meta.published', 'Published')}</span><span>${fmtShortDate(new Date(w.createdAt + 'T00:00:00'))}</span></div>` : ''}
-            ${w.updatedAt ? `<div class="fd-meta-row"><span class="fd-meta-label">${t('worlds.meta.updated', 'Updated')}</span><span>${fmtShortDate(new Date(w.updatedAt + 'T00:00:00'))}</span></div>` : ''}
+        <div class="myp-section" style="padding-bottom:14px;">
+            <div class="myp-section-header"><span class="myp-section-title">${t('worlds.meta.infos_title', 'Infos')}</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 6px;">
+                ${(() => {
+                    const _wmc = (label, val) => `<div><div class="myp-section-title" style="margin-bottom:3px;">${label}</div><div style="font-size:12px;color:var(--tx2);">${val}</div></div>`;
+                    const instCount = (w.instances || []).length;
+                    return [
+                        w.recommendedCapacity ? _wmc(t('worlds.meta.recommended', 'Recommended'), esc(getWorldPlayersLabel(w.recommendedCapacity))) : '',
+                        _wmc(t('worlds.meta.max_capacity', 'Max Capacity'), esc(getWorldPlayersLabel(w.capacity))),
+                        _wmc(t('worlds.meta.instances', 'Instances'), String(instCount)),
+                        w.createdAt ? _wmc(t('worlds.meta.published', 'Published'), fmtShortDate(new Date(w.createdAt + 'T00:00:00'))) : '',
+                        w.updatedAt ? _wmc(t('worlds.meta.updated', 'Updated'), fmtShortDate(new Date(w.updatedAt + 'T00:00:00'))) : '',
+                        w.version != null ? _wmc(t('worlds.meta.version', 'Version'), String(w.version)) : '',
+                    ].join('');
+                })()}
+            </div>
+        </div>
+        <div class="myp-section" style="padding-bottom:14px;">
+            <div class="myp-section-header"><span class="myp-section-title">${t('worlds.meta.community_title', 'Community Info')}</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 6px;">
+                ${(() => {
+                    const _wmc = (label, val) => `<div><div class="myp-section-title" style="margin-bottom:3px;">${label}</div><div style="font-size:12px;color:var(--tx2);">${val}</div></div>`;
+                    return [
+                        _wmc(t('worlds.meta.public_players', 'Public Players'), String(w.publicOccupants ?? 0)),
+                        _wmc(t('worlds.meta.private_players', 'Private Players'), String(w.privateOccupants ?? 0)),
+                        w.heat != null ? _wmc(t('worlds.meta.heat', 'Heat'), String(w.heat)) : '',
+                        w.popularity != null ? _wmc(t('worlds.meta.popularity', 'Popularity'), String(w.popularity)) : '',
+                    ].join('');
+                })()}
+            </div>
         </div>
         ${instancesHtml}
         </div>
