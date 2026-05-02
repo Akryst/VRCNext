@@ -25,6 +25,7 @@ public class AuthController
     private string _lastAvatarName = "";
     private string _lastVideoUrl = "";
     private DateTime _lastVideoUrlTime = DateTime.MinValue;
+    private DateTime _readyAt = DateTime.MaxValue;
 
     // In-flight guards — prevent duplicate startup fetches when JS triggers same requests
     private int _favWorldsInFlight = 0;
@@ -357,6 +358,7 @@ public class AuthController
 
     public void HandleReady()
     {
+        _readyAt = DateTime.UtcNow;
         SendTranslation(_core.Settings.Language);
         _core.SendToJS("loadSettings", _core.Settings);
         _core.SendToJS("dateTimeFormat", new
@@ -930,7 +932,7 @@ public class AuthController
                 _core.SendToJS("log", new { msg = $"❌ Save failed: {_core.Settings.LastSaveError}", color = "err" });
                 _core.SendToJS("toast", new { ok = false, msg = "Failed to save this setting, please report this error" });
             }
-            else
+            else if (DateTime.UtcNow - _readyAt > TimeSpan.FromSeconds(3))
             {
                 _core.SendToJS("toast", new { ok = true, msg = "Saved" });
             }

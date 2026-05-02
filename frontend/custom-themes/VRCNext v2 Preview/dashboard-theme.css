@@ -32,7 +32,7 @@
 }
 
 body:has(#tab0.active) .sidebar.collapsed::before {
-    background: rgba(8, 12, 21, 0.72);
+    background: color-mix(in srgb, var(--bg-base) 72%, transparent);
     backdrop-filter: blur(22px);
     -webkit-backdrop-filter: blur(22px);
     mask-image: linear-gradient(to right, black 0%, transparent 100%);
@@ -76,7 +76,7 @@ body:has(#tab0.active) .sidebar.collapsed::after {
 }
 
 body:has(#tab0.active) .rsidebar.collapsed::before {
-    background: rgba(8, 12, 21, 0.72);
+    background: color-mix(in srgb, var(--bg-base) 72%, transparent);
     backdrop-filter: blur(22px);
     -webkit-backdrop-filter: blur(22px);
     mask-image: linear-gradient(to left, black 0%, transparent 100%);

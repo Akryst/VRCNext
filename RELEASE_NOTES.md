@@ -7,7 +7,6 @@
 * You can see the migration progress in the top bar.
 * You can safely close the app at any time. The process will continue later and will not be corrupted.
 
-
 **Media Library**
 Updated the Media Library with two new filters:
 
@@ -26,6 +25,7 @@ Just because a friend was in the same instance does not mean they are visible in
 * Updated the Dashboard hero section with a cleaner and more modern design.
 * Added a new information design to make important details easier to read.
 * Dashboard hero is now 20% bigger.
+* Changed the VRChat Credits color to the normal base theme color.
 
 **Theme Update**
 * Removed all legacy themes from VRCNext, including Midnight, Ocean, Emerald, Sunset, and Periwinkle.
@@ -55,6 +55,7 @@ If you used a legacy theme and want it back, you can go back to an older version
 **Changes**
 * Improved how world details are saved and loaded, so information such as heat, popularity, player counts, and world version can appear faster.
 * Added more logging for **My Instances** to make issues easier to track down.
+* The Sidebar shades do now use the BG Base color instead of hardcoded colors.
 
 **Fixes**
 * World Modal: Opening a group from the Instances tab now works correctly with the back button.
@@ -76,3 +77,7 @@ If you used a legacy theme and want it back, you can go back to an older version
 * Hide in System Tray: This now also works correctly in Legacy Window mode.
 * Fixed the Media Library button positions.
 * Fixed an issue that caused to show wrong "Meet Again" and "First Meet" Counts because of the new Databe structure. It shows now everything correctly again.
+* Fixed an performance issue related to the timeline events.
+* Fixed Database issues which makes loading very slow when opening the timeline tab.
+* Fixed some database migrations issue on the backend! this should prevent any lags when using the search.
+* Fixed an issue that showed "Saved" on startup.

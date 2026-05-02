@@ -97,11 +97,11 @@
 }
 
 .mini-badge.vcredits {
-    background: rgba(167,139,250,.1);
-    border-color: rgba(167,139,250,.5);
+    background: rgba(65,80,110,.1);
+    border-color: color-mix(in srgb, var(--tx2) 35%, transparent);
 }
 
 .mini-badge.vcredits .mini-badge-label {
-    color: #A78BFA;
+    color: var(--tx2);
     font-variant-numeric: tabular-nums;
 }
