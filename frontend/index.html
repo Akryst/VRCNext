@@ -194,6 +194,7 @@
                     <div class="dash-section-wrap" data-section="fav_worlds">
                         <div class="dash-section-label">
                             <span data-i18n="dashboard.section.fav_worlds">FAVORITE WORLDS</span>
+                            <button class="mi-refresh-btn" id="dashFavWorldsRefreshBtn" onclick="refreshDashFavWorlds()" title="Refresh">&#8635;</button>
                             <button class="dash-section-seeall" onclick="showTab(1)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
                         </div>
                         <div class="vrcn-dash-fav-shelf" id="dashFavWorldsShelf"></div>
@@ -201,6 +202,7 @@
                     <div class="dash-section-wrap" data-section="fav_avatars">
                         <div class="dash-section-label">
                             <span data-i18n="dashboard.section.fav_avatars">FAVORITE AVATARS</span>
+                            <button class="mi-refresh-btn" id="dashFavAvatarsRefreshBtn" onclick="refreshDashFavAvatars()" title="Refresh">&#8635;</button>
                             <button class="dash-section-seeall" onclick="showTab(4);setTimeout(()=>setAvatarFilter('favorites'),80)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
                         </div>
                         <div class="vrcn-dash-fav-shelf" id="dashFavAvatarsShelf"></div>
@@ -208,6 +210,7 @@
                     <div class="dash-section-wrap" data-section="own_avatars">
                         <div class="dash-section-label">
                             <span data-i18n="dashboard.section.own_avatars">MY AVATARS</span>
+                            <button class="mi-refresh-btn" id="dashOwnAvatarsRefreshBtn" onclick="refreshDashOwnAvatars()" title="Refresh">&#8635;</button>
                             <button class="dash-section-seeall" onclick="showTab(4);setTimeout(()=>setAvatarFilter('own'),80)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
                         </div>
                         <div class="vrcn-dash-fav-shelf" id="dashOwnAvatarsShelf"></div>
@@ -222,6 +225,7 @@
                     <div class="dash-section-wrap" data-section="recently_visited">
                         <div class="dash-section-label">
                             <span data-i18n="dashboard.section.recently_visited">RECENTLY VISITED</span>
+                            <button class="mi-refresh-btn" id="dashRecentlyVisitedRefreshBtn" onclick="refreshDashRecentlyVisited()" title="Refresh">&#8635;</button>
                         </div>
                         <div class="vrcn-dash-fav-shelf" id="dashRecentlyVisitedShelf"></div>
                     </div>
@@ -247,6 +251,7 @@
                     <div class="dash-section-wrap" data-section="group_activity">
                         <div class="dash-section-label">
                             <span data-i18n="dashboard.section.group_activity">GROUP ACTIVITY</span>
+                            <button class="mi-refresh-btn" id="dashGroupActivityRefreshBtn" onclick="refreshDashGroupInstances()" title="Refresh">&#8635;</button>
                             <button class="dash-section-seeall" onclick="showTab(2)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
                         </div>
                         <div class="dash-worlds-grid" id="dashGroupActivityCards"></div>
@@ -254,6 +259,7 @@
                     <div class="dash-section-wrap" data-section="group_activity_small">
                         <div class="dash-section-label">
                             <span data-i18n="dashboard.section.group_activity">GROUP ACTIVITY</span>
+                            <button class="mi-refresh-btn" id="dashGroupActivitySmallRefreshBtn" onclick="refreshDashGroupInstances()" title="Refresh">&#8635;</button>
                             <button class="dash-section-seeall" onclick="showTab(2)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
                         </div>
                         <div class="dash-friends-feed" id="dashGroupActivityShelf"></div>
@@ -261,6 +267,7 @@
                     <div class="dash-section-wrap" data-section="upcoming_events">
                         <div class="dash-section-label">
                             <span data-i18n="dashboard.section.upcoming_events">UPCOMING EVENTS</span>
+                            <button class="mi-refresh-btn" id="dashUpcomingEventsRefreshBtn" onclick="refreshDashUpcomingEventsManual()" title="Refresh">&#8635;</button>
                             <button class="dash-section-seeall" onclick="showTab(17)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
                         </div>
                         <div id="dashUpcomingEventsGrid"></div>
