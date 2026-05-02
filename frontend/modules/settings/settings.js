@@ -337,7 +337,7 @@ function loadSettingsToUI(s) {
     renderExtraExeDesktop(settings.extraExeDesktop);
     renderExtraExeVR(settings.extraExeVR);
     updateFolderFilterOptions(settings.folders);
-    currentTheme = s.Theme || s.theme || 'midnight';
+    currentTheme = s.Theme || s.theme || 'slates';
     currentSpecialTheme = s.SpecialTheme || s.specialTheme || '';
     autoColorAccuracy = s.AutoColorAccuracy ?? s.autoColorAccuracy ?? 50;
     const accSlider = document.getElementById('setAutoAccuracy');
@@ -345,7 +345,7 @@ function loadSettingsToUI(s) {
     const accRow = document.getElementById('autoAccuracyRow');
     if (accRow) accRow.style.display = currentSpecialTheme === 'auto' ? 'flex' : 'none';
     if (THEMES[currentTheme]) applyColors(THEMES[currentTheme].c);
-    else if (!currentTheme.startsWith('custom_')) { currentTheme = 'midnight'; applyColors(THEMES.midnight.c); }
+    else if (!currentTheme.startsWith('custom_')) { currentTheme = 'slates'; applyColors(THEMES.slates.c); }
     // custom_ themes are applied later when customColors loads
     renderThemeChips();
     renderSpecialThemeChips();
