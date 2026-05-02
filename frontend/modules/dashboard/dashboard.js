@@ -2,6 +2,23 @@
 
 let _dashOnlineCount = 0;
 let _dashOnlineCountLastFetch = 0;
+function updateDashHeroStats() {
+    const statsEl = document.getElementById('dashHeroStats');
+    if (!statsEl) return;
+    const hasUser = !!currentVrcUser;
+    statsEl.style.display = hasUser ? 'flex' : 'none';
+    if (!hasUser) return;
+    const onlineEl  = document.getElementById('dashStatOnline');
+    const friendsEl = document.getElementById('dashStatFriends');
+    const webEl     = document.getElementById('dashStatSession');
+    if (onlineEl) onlineEl.textContent = _dashOnlineCount > 0 ? _dashOnlineCount.toLocaleString() : '—';
+    if (typeof vrcFriendsData !== 'undefined') {
+        const inGame = vrcFriendsData.filter(f => f.presence === 'game').length;
+        const onWeb  = vrcFriendsData.filter(f => f.presence === 'web').length;
+        if (friendsEl) friendsEl.textContent = String(inGame);
+        if (webEl)     webEl.textContent     = String(onWeb);
+    }
+}
 
 function getDashFriendCountLabel(count, keyBase) {
     return count === 1
@@ -15,20 +32,7 @@ function updateDashSub() {
         ? (currentVrcUser.statusDescription || statusLabel(currentVrcUser.status))
         : t('dashboard.sub.connect_world', 'Connect to VRChat to see your world');
 
-    let suffix = '';
-    if (_dashOnlineCount > 0) {
-        suffix = ` | ${tf('dashboard.sub.playing_worldwide', { count: _dashOnlineCount.toLocaleString() }, '{count} playing worldwide')}`;
-        if (typeof vrcFriendsData !== 'undefined' && vrcFriendsData.length > 0) {
-            const inGame = vrcFriendsData.filter(f => f.presence === 'game').length;
-            const onWeb  = vrcFriendsData.filter(f => f.presence === 'web').length;
-            if (inGame > 0 || onWeb > 0) {
-                suffix += `, ${tf('dashboard.sub.friends_ingame', { count: inGame }, '{count} of your friends in-game')}`;
-                if (onWeb > 0) suffix += `, ${tf('dashboard.sub.friends_onweb', { count: onWeb }, '{count} on web')}`;
-            }
-        }
-    }
-
-    document.getElementById('dashSub').textContent = status + suffix;
+    document.getElementById('dashSub').textContent = status;
 }
 
 function renderDashboard() {
@@ -37,6 +41,7 @@ function renderDashboard() {
         ? tf('dashboard.welcome.named', { name: `<span style="color:var(--accent)">${esc(name)}</span>` }, 'Welcome, {name}!')
         : esc(t('dashboard.welcome.default', 'Welcome!'));
     updateDashSub();
+    updateDashHeroStats();
 
     const bgEl = document.getElementById('dashHeroBg');
     if (dashBgDataUri) {
@@ -380,6 +385,34 @@ const _discRefreshInterval = setInterval(() => {
     if (!actHidden) sendToCS({ action: 'vrcGetActiveWorlds' });
 }, DISC_CACHE_TTL);
 
+// Group Activity: refresh every 10 min
+const _groupInstRefreshInterval = setInterval(() => {
+    const tab0 = document.getElementById('tab0');
+    if (!tab0 || !tab0.classList.contains('active')) return;
+    const hidden = _dashLayout.hidden.includes('group_activity') && _dashLayout.hidden.includes('group_activity_small');
+    if (!hidden && !_dashGroupInstancesInFlight) {
+        _dashGroupInstancesInFlight = true;
+        sendToCS({ action: 'vrcGetDashGroupInstances' });
+    }
+}, 10 * 60 * 1000);
+
+// Recently Visited, Fav Worlds, Fav Avatars: refresh every 60 min
+const _dashSlow60Interval = setInterval(() => {
+    const tab0 = document.getElementById('tab0');
+    if (!tab0 || !tab0.classList.contains('active')) return;
+    if (!_dashLayout.hidden.includes('recently_visited')) sendToCS({ action: 'vrcGetRecentWorlds' });
+    if (!_dashLayout.hidden.includes('fav_worlds')) sendToCS({ action: 'vrcGetFavoriteWorlds' });
+    if (!_dashLayout.hidden.includes('fav_avatars')) sendToCS({ action: 'vrcGetAvatars', filter: 'favorites' });
+}, 60 * 60 * 1000);
+
+// Own Avatars, Upcoming Events: refresh every 120 min
+const _dashSlow120Interval = setInterval(() => {
+    const tab0 = document.getElementById('tab0');
+    if (!tab0 || !tab0.classList.contains('active')) return;
+    if (!_dashLayout.hidden.includes('own_avatars')) sendToCS({ action: 'vrcGetAvatars', filter: 'own' });
+    if (!_dashLayout.hidden.includes('upcoming_events') && !_dashUpcomingLoading) refreshDashUpcomingEvents();
+}, 120 * 60 * 1000);
+
 function fetchWorldTabs() {
     if (!(_dashLayout.hidden.includes('discovery') && _dashLayout.hidden.includes('popular_worlds')))
         sendToCS({ action: 'vrcGetPopularWorlds' });
@@ -501,9 +534,17 @@ function renderDiscoverySection() {
 
 /* === Dashboard — Favorite Worlds shelf === */
 
+function refreshDashFavWorlds() {
+    const btn = document.getElementById('dashFavWorldsRefreshBtn');
+    if (btn) btn.classList.add('spinning');
+    sendToCS({ action: 'vrcGetFavoriteWorlds' });
+}
+
 function renderDashFavWorlds() {
     const el = document.getElementById('dashFavWorldsShelf');
     if (!el) return;
+    const _btn = document.getElementById('dashFavWorldsRefreshBtn');
+    if (_btn) _btn.classList.remove('spinning');
     if (!currentVrcUser) {
         el.innerHTML = `<div class="empty-msg">${t('dashboard.favworlds.login', 'Login to see favorite worlds')}</div>`;
         return;
@@ -527,9 +568,17 @@ function renderDashFavWorlds() {
 
 let _dashFavAvatarsRequested = false;
 
+function refreshDashFavAvatars() {
+    const btn = document.getElementById('dashFavAvatarsRefreshBtn');
+    if (btn) btn.classList.add('spinning');
+    sendToCS({ action: 'vrcGetAvatars', filter: 'favorites' });
+}
+
 function renderDashFavAvatars() {
     const el = document.getElementById('dashFavAvatarsShelf');
     if (!el) return;
+    const _btn = document.getElementById('dashFavAvatarsRefreshBtn');
+    if (_btn) _btn.classList.remove('spinning');
     if (!currentVrcUser) {
         el.innerHTML = `<div class="empty-msg">${t('dashboard.section.login', 'Login to VRChat')}</div>`;
         return;
@@ -553,9 +602,17 @@ function renderDashFavAvatars() {
 
 let _dashOwnAvatarsRequested = false;
 
+function refreshDashOwnAvatars() {
+    const btn = document.getElementById('dashOwnAvatarsRefreshBtn');
+    if (btn) btn.classList.add('spinning');
+    sendToCS({ action: 'vrcGetAvatars', filter: 'own' });
+}
+
 function renderDashOwnAvatars() {
     const el = document.getElementById('dashOwnAvatarsShelf');
     if (!el) return;
+    const _btn = document.getElementById('dashOwnAvatarsRefreshBtn');
+    if (_btn) _btn.classList.remove('spinning');
     if (!currentVrcUser) {
         el.innerHTML = `<div class="empty-msg">${t('dashboard.section.login', 'Login to VRChat')}</div>`;
         return;
@@ -646,9 +703,18 @@ function _dashWorldShelfSkeleton() {
     return Array.from({ length: 8 }, () => `<div class="vrcn-content-card sk-block" style="pointer-events:none;"></div>`).join('');
 }
 
+function refreshDashRecentlyVisited() {
+    const btn = document.getElementById('dashRecentlyVisitedRefreshBtn');
+    if (btn) btn.classList.add('spinning');
+    _recentInFlight = true;
+    sendToCS({ action: 'vrcGetRecentWorlds' });
+}
+
 function renderDashRecentlyVisited() {
     const el = document.getElementById('dashRecentlyVisitedShelf');
     if (!el) return;
+    const _btn = document.getElementById('dashRecentlyVisitedRefreshBtn');
+    if (_btn) _btn.classList.remove('spinning');
     if (!currentVrcUser) { el.innerHTML = `<div class="empty-msg">${t('dashboard.worlds.login','Login to see worlds')}</div>`; return; }
     const worlds = _recentCache.worlds;
     if (!worlds.length) { el.innerHTML = _dashWorldShelfSkeleton(); if (!_recentInFlight && !(_dashLayout.hidden.includes('recently_visited') && _dashLayout.hidden.includes('discovery'))) { _recentInFlight = true; sendToCS({ action: 'vrcGetRecentWorlds' }); } return; }
@@ -736,9 +802,22 @@ function loadDashGroupInstances() {
     sendToCS({ action: 'vrcGetDashGroupInstances' });
 }
 
+function refreshDashGroupInstances() {
+    const btn1 = document.getElementById('dashGroupActivityRefreshBtn');
+    const btn2 = document.getElementById('dashGroupActivitySmallRefreshBtn');
+    if (btn1) btn1.classList.add('spinning');
+    if (btn2) btn2.classList.add('spinning');
+    _dashGroupInstancesInFlight = false;
+    loadDashGroupInstances();
+}
+
 function onDashGroupInstances(instances) {
     _dashGroupInstancesInFlight = false;
     _dashGroupInstances = instances || [];
+    const btn1 = document.getElementById('dashGroupActivityRefreshBtn');
+    const btn2 = document.getElementById('dashGroupActivitySmallRefreshBtn');
+    if (btn1) btn1.classList.remove('spinning');
+    if (btn2) btn2.classList.remove('spinning');
     renderDashGroupActivityInstances();
     renderDashGroupActivityInstancesSmall();
 }
@@ -1246,8 +1325,16 @@ function refreshDashUpcomingEvents() {
     sendToCS({ action: 'vrcGetCalendarEvents', filter: 'all', year: nxt.getFullYear(), month: nxt.getMonth() + 1 });
 }
 
+function refreshDashUpcomingEventsManual() {
+    const btn = document.getElementById('dashUpcomingEventsRefreshBtn');
+    if (btn) btn.classList.add('spinning');
+    refreshDashUpcomingEvents();
+}
+
 function onCalendarEventsForDash(allEvents) {
     _dashUpcomingLoading = false;
+    const _btn = document.getElementById('dashUpcomingEventsRefreshBtn');
+    if (_btn) _btn.classList.remove('spinning');
     const now = new Date();
     const seen = new Set();
     _dashUpcomingEvents = (Array.isArray(allEvents) ? allEvents : [])

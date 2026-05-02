@@ -3,14 +3,16 @@ const PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAAL
 const LIB_PAGE_SIZE = 50;
 
 // State.
-let _libTotal      = 0;
-let _libHasMore    = false;
-let _libLoading    = false;
-let _libObserver   = null;  // unused — kept for destroyLibrary safety
-let _libPage       = 0;     // current page, 0-indexed
-let _libFiltered   = [];    // filtered + sorted master array (metadata only, no images)
-let _libViewMode   = localStorage.getItem('libViewMode') || 'grid';  // 'grid' | 'folder'
-let _libFolderPath = null;  // null = folder list view; string = subfolder contents
+let _libTotal        = 0;
+let _libHasMore      = false;
+let _libLoading      = false;
+let _libObserver     = null;
+let _libPage         = 0;
+let _libFiltered     = [];
+let _libViewMode     = localStorage.getItem('libViewMode') || 'grid';
+let _libFolderPath   = null;
+let _libFriendFilter = '__all__';
+let _libWorldFilter  = '__all__';
 
 // Destroy / cleanup.
 function destroyLibrary() {
@@ -23,12 +25,15 @@ function destroyLibrary() {
         g.innerHTML = '';
     }
     _setLibPaginator('');
-    _libFiltered   = [];
-    _libPage       = 0;
-    _libTotal      = 0;
-    _libHasMore    = false;
-    _libLoading    = false;
-    _libFolderPath = null;
+    _libFiltered     = [];
+    _libPage         = 0;
+    _libTotal        = 0;
+    _libHasMore      = false;
+    _libLoading      = false;
+    _libFolderPath   = null;
+    _libFriendFilter = '__all__';
+    _libWorldFilter  = '__all__';
+    _renderLibIconSelects();
 }
 
 // Data loading.
@@ -90,8 +95,9 @@ function renderLibrary(data) {
     } catch {}
 
     _resolveWorldIds(files);
-    filterLibrary();         // renders page 0
-    _fetchNextMetaPage();    // eagerly load all remaining metadata (no scroll needed)
+    filterLibrary();
+    _renderLibIconSelects();
+    _fetchNextMetaPage();
 }
 
 function appendLibraryPage(data) {
@@ -108,9 +114,11 @@ function appendLibraryPage(data) {
     const ff   = document.getElementById('libFolderFilter')?.value ?? '__all__';
     const tf   = document.getElementById('libTypeFilter')?.value ?? 'all';
     let more   = newFiles;
-    if (showFavOnly)      more = more.filter(x => favorites.has(x.path));
-    if (ff !== '__all__') more = more.filter(x => x.folder === ff);
-    if (tf !== 'all')     more = more.filter(x => x.type === tf);
+    if (showFavOnly)                    more = more.filter(x => favorites.has(x.path));
+    if (ff !== '__all__')               more = more.filter(x => x.folder === ff);
+    if (tf !== 'all')                   more = more.filter(x => x.type === tf);
+    if (_libFriendFilter !== '__all__') more = more.filter(x => (x.players || []).some(p => p.userId === _libFriendFilter));
+    if (_libWorldFilter !== '__all__')  more = more.filter(x => x.worldId === _libWorldFilter);
     more.forEach(f => _libFiltered.push(f));
     _libFiltered.sort((a, b) => new Date(b.modified) - new Date(a.modified));
 
@@ -155,6 +163,7 @@ function applyLibraryWorldIds(dict) {
             `<button class="lib-world-badge" data-wid="${esc(worldId)}" onclick="event.stopPropagation();openWorldSearchDetail('${esc(worldId)}')" title="${wName}"><span class="lib-world-badge-thumb" style="${wThumb ? `background-image:url('${cssUrl(wThumb)}')` : ''}"></span><span class="lib-world-badge-text">${wName}</span></button>`);
     }
     if (newIds.length) sendToCS({ action: 'vrcResolveWorlds', worldIds: [...new Set(newIds)].slice(0, 30) });
+    _renderLibIconSelects();
 }
 
 // Called when a new file lands in a watch folder — no rescan needed.
@@ -252,9 +261,11 @@ function filterLibrary(keepPage = false) {
     const ff         = document.getElementById('libFolderFilter').value;
     const typeFilter = document.getElementById('libTypeFilter').value;
     let f            = [...libraryFiles]; // always a copy — never share ref with libraryFiles
-    if (showFavOnly)      f = f.filter(x => favorites.has(x.path));
-    if (ff !== '__all__') f = f.filter(x => x.folder === ff);
-    if (typeFilter !== 'all') f = f.filter(x => x.type === typeFilter);
+    if (showFavOnly)                   f = f.filter(x => favorites.has(x.path));
+    if (ff !== '__all__')              f = f.filter(x => x.folder === ff);
+    if (typeFilter !== 'all')          f = f.filter(x => x.type === typeFilter);
+    if (_libFriendFilter !== '__all__') f = f.filter(x => (x.players || []).some(p => p.userId === _libFriendFilter));
+    if (_libWorldFilter !== '__all__')  f = f.filter(x => x.worldId === _libWorldFilter);
     f.sort((a, b) => new Date(b.modified) - new Date(a.modified));
 
     _libFiltered = f;
@@ -272,6 +283,123 @@ function filterLibrary(keepPage = false) {
     } else {
         _renderLibPage();
     }
+}
+
+function resetLibFilters() {
+    _libFriendFilter = '__all__';
+    _libWorldFilter  = '__all__';
+    _renderLibIconSelects();
+    filterLibrary();
+}
+
+function _updateLibResetBtn() {
+    const btn = document.getElementById('libResetFiltersBtn');
+    if (btn) btn.style.display = (_libFriendFilter !== '__all__' || _libWorldFilter !== '__all__') ? '' : 'none';
+}
+
+function _renderLibIconSelects() {
+    _updateLibResetBtn();
+    _renderLibIconSelect(
+        'libFriendFilterWrap',
+        _buildFriendItems(),
+        _libFriendFilter,
+        t('library.filters.all_friends', 'All Friends'),
+        'person',
+        true,
+        function(val) { _libFriendFilter = val; _renderLibIconSelects(); filterLibrary(); }
+    );
+    _renderLibIconSelect(
+        'libWorldFilterWrap',
+        _buildWorldItems(),
+        _libWorldFilter,
+        t('library.filters.all_worlds', 'All Worlds'),
+        'travel_explore',
+        false,
+        function(val) { _libWorldFilter = val; _renderLibIconSelects(); filterLibrary(); }
+    );
+}
+
+function _buildFriendItems() {
+    const base = _libWorldFilter !== '__all__'
+        ? libraryFiles.filter(x => x.worldId === _libWorldFilter)
+        : libraryFiles;
+    const map = {};
+    base.forEach(x => {
+        (x.players || []).forEach(p => {
+            if (!p.userId) return;
+            const fr = (typeof vrcFriendsData !== 'undefined') ? vrcFriendsData.find(f => f.id === p.userId) : null;
+            if (!fr) return;
+            if (!map[p.userId]) {
+                map[p.userId] = { value: p.userId, label: fr.displayName || p.displayName || p.userId, thumb: fr.image || p.image || '', count: 0, round: true };
+            }
+            map[p.userId].count++;
+        });
+    });
+    return Object.values(map).sort((a, b) => b.count - a.count);
+}
+
+function _buildWorldItems() {
+    const base = _libFriendFilter !== '__all__'
+        ? libraryFiles.filter(x => (x.players || []).some(p => p.userId === _libFriendFilter))
+        : libraryFiles;
+    const map = {};
+    base.forEach(x => {
+        if (!x.worldId) return;
+        if (!map[x.worldId]) {
+            const wInfo = (typeof worldInfoCache !== 'undefined') ? worldInfoCache[x.worldId] : null;
+            map[x.worldId] = { value: x.worldId, label: wInfo?.name || x.worldId, thumb: wInfo?.thumbnailImageUrl || wInfo?.imageUrl || '', count: 0, round: false };
+        }
+        map[x.worldId].count++;
+    });
+    return Object.values(map).sort((a, b) => b.count - a.count);
+}
+
+function _renderLibIconSelect(wrapperId, items, currentVal, allLabel, allIcon, round, onSelect) {
+    const container = document.getElementById(wrapperId);
+    if (!container) return;
+    if (!items.length) { container.innerHTML = ''; return; }
+
+    const selItem  = currentVal !== '__all__' ? items.find(i => i.value === currentVal) : null;
+    const selLabel = selItem ? selItem.label : allLabel;
+    const selThumb = selItem?.thumb || '';
+    const selRound = selItem?.round ?? round;
+
+    function thumbHtml(thumb, icon, isRound) {
+        const rc = isRound ? ' lib-is-thumb-round' : '';
+        return thumb
+            ? `<span class="lib-is-thumb${rc}" style="background-image:url('${cssUrl(thumb)}')"></span>`
+            : `<span class="lib-is-thumb lib-is-thumb-icon${rc}"><span class="msi">${esc(icon)}</span></span>`;
+    }
+
+    const optHtml = [
+        `<div class="vn-select-option${currentVal === '__all__' ? ' vn-active' : ''}" data-isval="__all__">${thumbHtml('', allIcon, false)}<span class="vn-select-label">${esc(allLabel)}</span></div>`,
+        ...items.map(it => `<div class="vn-select-option${currentVal === it.value ? ' vn-active' : ''}" data-isval="${esc(it.value)}">${thumbHtml(it.thumb, allIcon, it.round ?? round)}<span class="vn-select-label">${esc(it.label)}</span><span style="font-size:10px;color:var(--tx3);flex-shrink:0;margin-left:auto;">${it.count}</span></div>`)
+    ].join('');
+
+    container.innerHTML = `<div class="vn-select lib-is-select">
+        <div class="vn-select-trigger">${thumbHtml(selThumb, allIcon, selRound)}<span class="vn-select-label">${esc(selLabel)}</span><span class="msi vn-select-arrow">expand_more</span></div>
+        <div class="vn-select-panel">${optHtml}</div>
+    </div>`;
+
+    const wrap    = container.querySelector('.vn-select');
+    const trigger = container.querySelector('.vn-select-trigger');
+    const panel   = container.querySelector('.vn-select-panel');
+
+    function close() { wrap.classList.remove('vn-open'); }
+    function open() {
+        wrap.classList.add('vn-open');
+        const rect  = wrap.getBoundingClientRect();
+        const below = rect.bottom + 270 < window.innerHeight;
+        panel.style.top    = below ? 'calc(100% + 4px)' : 'auto';
+        panel.style.bottom = below ? 'auto' : 'calc(100% + 4px)';
+        setTimeout(() => document.addEventListener('click', onOut, { once: true }), 0);
+    }
+    function onOut(e) { wrap.contains(e.target) ? document.addEventListener('click', onOut, { once: true }) : close(); }
+
+    trigger.addEventListener('click', e => { e.stopPropagation(); wrap.classList.contains('vn-open') ? close() : open(); });
+    panel.querySelectorAll('[data-isval]').forEach(opt => {
+        opt.addEventListener('click', () => { onSelect(opt.dataset.isval); close(); });
+    });
 }
 
 // Folder mode.

@@ -136,6 +136,8 @@ public partial class AppShell
             msg => _core?.SendToJS("log", new { msg, color = "sec" }));
         _photoPlayersStore = PhotoPlayersStore.Load();
         _timeline = TimelineService.Load(_settings);
+        _ = MigrationHelper.MigrateUserTrackingCountsAsync(_settings,
+            pct => _core?.SendToJS("dbMigrationProgress", new { percent = pct })); // backfill first_meet_date + meet_again_count in background
         _minimized = args.Contains("--minimized");
         LoadDeletedAvatarsCache();
 
@@ -199,6 +201,7 @@ public partial class AppShell
         };
         _trayService.OnClose = () =>
         {
+            WindowController.AllowNextClose();
             try { _window.Close(); } catch { }
         };
         _trayService.ImageDownloader = async url =>

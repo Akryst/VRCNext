@@ -4,7 +4,6 @@
     position: fixed;
     width: 273px;
     background: var(--bg-card);
-    border: 1px solid var(--brd);
     border-radius: 12px;
     overflow: hidden;
     z-index: 9998;

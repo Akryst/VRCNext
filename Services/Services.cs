@@ -390,6 +390,9 @@ public class AppSettings
     public bool DbOptimize           { get; set; } = true;
     public int  DbOptimizeMaxEntries { get; set; } = 500;
 
+    // One-time migration: backfill first_meet_date + meet_again_count into user_tracking
+    public bool UserTrackingCountsMigrated { get; set; } = false;
+
     // Auto-Update on startup
     public bool AutoUpdate { get; set; } = true;
 
@@ -851,6 +854,11 @@ public class UnifiedTimeEngine : IDisposable
         public int    Visits                { get; set; }
         public long   PcSize               { get; set; }
         public long   AndroidSize           { get; set; }
+        public int    Heat                  { get; set; }
+        public int    Popularity            { get; set; }
+        public int    PublicOccupants       { get; set; }
+        public int    PrivateOccupants      { get; set; }
+        public int    Version               { get; set; }
         public long   TotalSeconds          { get; set; }
         public int    VisitCount            { get; set; }
         public string LastVisited           { get; set; } = "";
@@ -868,11 +876,12 @@ public class UnifiedTimeEngine : IDisposable
                     world_author_name,world_author_id,world_published,world_updated,
                     world_capacity,world_recommended_capacity,world_tags,
                     world_favorites,world_visits,world_pc_size,world_android_size,
+                    world_heat,world_popularity,world_public_occupants,world_private_occupants,world_version,
                     total_seconds,visit_count,last_visited,detail_cached_at
                     FROM world_tracking WHERE world_id=$wid";
                 cmd.Parameters.AddWithValue("$wid", worldId);
                 using var r = cmd.ExecuteReader();
-                if (!r.Read() || string.IsNullOrEmpty(r.GetString(18))) return null;
+                if (!r.Read() || string.IsNullOrEmpty(r.GetString(23))) return null;
                 return new WorldDetailCache
                 {
                     WorldName           = r.GetString(0),
@@ -888,11 +897,16 @@ public class UnifiedTimeEngine : IDisposable
                     Tags                = JsonConvert.DeserializeObject<List<string>>(r.GetString(10)) ?? new(),
                     Favorites           = r.GetInt32(11),
                     Visits              = r.GetInt32(12),
-                    PcSize             = r.GetInt64(13),
+                    PcSize              = r.GetInt64(13),
                     AndroidSize         = r.GetInt64(14),
-                    TotalSeconds        = r.GetInt64(15),
-                    VisitCount          = r.GetInt32(16),
-                    LastVisited         = r.GetString(17),
+                    Heat                = r.GetInt32(15),
+                    Popularity          = r.GetInt32(16),
+                    PublicOccupants     = r.GetInt32(17),
+                    PrivateOccupants    = r.GetInt32(18),
+                    Version             = r.GetInt32(19),
+                    TotalSeconds        = r.GetInt64(20),
+                    VisitCount          = r.GetInt32(21),
+                    LastVisited         = r.GetString(22),
                 };
             }
             catch { return null; }
@@ -902,7 +916,8 @@ public class UnifiedTimeEngine : IDisposable
     public void SaveWorldDetail(string worldId, string name, string thumb, string description,
         string imageUrl, string authorName, string authorId, string published, string updated,
         int capacity, int recommendedCapacity, List<string> tags,
-        int favorites, int visits, long pcSize, long androidSize)
+        int favorites, int visits, long pcSize, long androidSize,
+        int heat, int popularity, int publicOccupants, int privateOccupants, int version)
     {
         if (string.IsNullOrEmpty(worldId)) return;
         var tagsJson = JsonConvert.SerializeObject(tags);
@@ -914,8 +929,9 @@ public class UnifiedTimeEngine : IDisposable
                 using var cmd = _db.CreateCommand();
                 cmd.CommandText = @"INSERT INTO world_tracking(world_id,world_name,world_thumb,world_description,world_image_url,
                     world_author_name,world_author_id,world_published,world_updated,world_capacity,
-                    world_recommended_capacity,world_tags,world_favorites,world_visits,world_pc_size,world_android_size,detail_cached_at)
-                    VALUES($wid,$wn,$wt,$desc,$img,$an,$ai,$pub,$upd,$cap,$rcap,$tags,$fav,$vis,$pcs,$ands,$cat)
+                    world_recommended_capacity,world_tags,world_favorites,world_visits,world_pc_size,world_android_size,
+                    world_heat,world_popularity,world_public_occupants,world_private_occupants,world_version,detail_cached_at)
+                    VALUES($wid,$wn,$wt,$desc,$img,$an,$ai,$pub,$upd,$cap,$rcap,$tags,$fav,$vis,$pcs,$ands,$heat,$pop,$pubocc,$privocc,$ver,$cat)
                     ON CONFLICT(world_id) DO UPDATE SET
                         world_name=excluded.world_name, world_thumb=excluded.world_thumb,
                         world_description=excluded.world_description, world_image_url=excluded.world_image_url,
@@ -924,24 +940,34 @@ public class UnifiedTimeEngine : IDisposable
                         world_capacity=excluded.world_capacity, world_recommended_capacity=excluded.world_recommended_capacity,
                         world_tags=excluded.world_tags, world_favorites=excluded.world_favorites,
                         world_visits=excluded.world_visits, world_pc_size=excluded.world_pc_size,
-                        world_android_size=excluded.world_android_size, detail_cached_at=excluded.detail_cached_at";
-                cmd.Parameters.AddWithValue("$wid",  worldId);
-                cmd.Parameters.AddWithValue("$wn",   name);
-                cmd.Parameters.AddWithValue("$wt",   thumb);
-                cmd.Parameters.AddWithValue("$desc", description);
-                cmd.Parameters.AddWithValue("$img",  imageUrl);
-                cmd.Parameters.AddWithValue("$an",   authorName);
-                cmd.Parameters.AddWithValue("$ai",   authorId);
-                cmd.Parameters.AddWithValue("$pub",  published);
-                cmd.Parameters.AddWithValue("$upd",  updated);
-                cmd.Parameters.AddWithValue("$cap",  capacity);
-                cmd.Parameters.AddWithValue("$rcap", recommendedCapacity);
-                cmd.Parameters.AddWithValue("$tags", tagsJson);
-                cmd.Parameters.AddWithValue("$fav",  favorites);
-                cmd.Parameters.AddWithValue("$vis",  visits);
-                cmd.Parameters.AddWithValue("$pcs",  pcSize);
-                cmd.Parameters.AddWithValue("$ands", androidSize);
-                cmd.Parameters.AddWithValue("$cat",  now);
+                        world_android_size=excluded.world_android_size,
+                        world_heat=excluded.world_heat, world_popularity=excluded.world_popularity,
+                        world_public_occupants=excluded.world_public_occupants,
+                        world_private_occupants=excluded.world_private_occupants,
+                        world_version=excluded.world_version,
+                        detail_cached_at=excluded.detail_cached_at";
+                cmd.Parameters.AddWithValue("$wid",     worldId);
+                cmd.Parameters.AddWithValue("$wn",      name);
+                cmd.Parameters.AddWithValue("$wt",      thumb);
+                cmd.Parameters.AddWithValue("$desc",    description);
+                cmd.Parameters.AddWithValue("$img",     imageUrl);
+                cmd.Parameters.AddWithValue("$an",      authorName);
+                cmd.Parameters.AddWithValue("$ai",      authorId);
+                cmd.Parameters.AddWithValue("$pub",     published);
+                cmd.Parameters.AddWithValue("$upd",     updated);
+                cmd.Parameters.AddWithValue("$cap",     capacity);
+                cmd.Parameters.AddWithValue("$rcap",    recommendedCapacity);
+                cmd.Parameters.AddWithValue("$tags",    tagsJson);
+                cmd.Parameters.AddWithValue("$fav",     favorites);
+                cmd.Parameters.AddWithValue("$vis",     visits);
+                cmd.Parameters.AddWithValue("$pcs",     pcSize);
+                cmd.Parameters.AddWithValue("$ands",    androidSize);
+                cmd.Parameters.AddWithValue("$heat",    heat);
+                cmd.Parameters.AddWithValue("$pop",     popularity);
+                cmd.Parameters.AddWithValue("$pubocc",  publicOccupants);
+                cmd.Parameters.AddWithValue("$privocc", privateOccupants);
+                cmd.Parameters.AddWithValue("$ver",     version);
+                cmd.Parameters.AddWithValue("$cat",     now);
                 cmd.ExecuteNonQuery();
             }
             catch { }
@@ -1922,6 +1948,8 @@ public class UnifiedTimeEngine : IDisposable
             "profile_is_friend   INTEGER NOT NULL DEFAULT 0",
             "profile_avatar_img  TEXT NOT NULL DEFAULT ''",
             "profile_cached_at   TEXT NOT NULL DEFAULT ''",
+            "first_meet_date     TEXT NOT NULL DEFAULT ''",
+            "meet_again_count    INTEGER NOT NULL DEFAULT 0",
         })
         {
             try
@@ -2099,6 +2127,11 @@ public class UnifiedTimeEngine : IDisposable
             "world_visits              INTEGER NOT NULL DEFAULT 0",
             "world_pc_size             INTEGER NOT NULL DEFAULT 0",
             "world_android_size        INTEGER NOT NULL DEFAULT 0",
+            "world_heat                INTEGER NOT NULL DEFAULT 0",
+            "world_popularity          INTEGER NOT NULL DEFAULT 0",
+            "world_public_occupants    INTEGER NOT NULL DEFAULT 0",
+            "world_private_occupants   INTEGER NOT NULL DEFAULT 0",
+            "world_version             INTEGER NOT NULL DEFAULT 0",
             "detail_cached_at          TEXT    NOT NULL DEFAULT ''",
         })
         {

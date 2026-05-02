@@ -382,6 +382,7 @@ function openFtDetail(id) {
         case 'friend_bio':        renderFtDetailBio(ev, el);        break;
         case 'friend_added':      renderFtDetailAdded(ev, el);      break;
         case 'friend_removed':    renderFtDetailRemoved(ev, el);    break;
+        case 'friend_avatar':     renderFtDetailFriendAvatar(ev, el); break;
     }
 
     document.getElementById('modalDetail').style.display = 'flex';
@@ -578,6 +579,27 @@ function renderFtDetailBio(ev, el) {
     </div>`;
 }
 
+function renderFtDetailFriendAvatar(ev, el) {
+    const { dateStr, timeStr } = ftDetailDatetime(ev);
+    const banner = ev.worldThumb
+        ? `<div class="fd-banner"><img src="${ev.worldThumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>`
+        : '';
+    el.innerHTML = `${banner}<div class="fd-content${banner ? ' fd-has-banner' : ''}" style="padding:20px 0;">
+        ${ftDetailAvRow(ev)}
+        <div class="fd-meta">
+            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
+            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
+            ${ev.worldName ? `<div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.avatar', 'Avatar'))}</span><span style="color:var(--accent-lt);">${esc(ev.worldName)}</span></div>` : ''}
+            ${ev.worldId ? `<div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.avatar_id', 'Avatar ID'))}</span><span style="font-size:11px;color:var(--tx3);">${esc(ev.worldId)}</span></div>` : ''}
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px;">
+            ${ev.worldId ? `<button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('modalDetail').style.display='none';openAvatarDetail('${jsq(ev.worldId)}')">${esc(t('timeline.actions.view_avatar', 'View Avatar'))}</button>` : ''}
+            ${ftDetailViewProfile(ev)}
+            ${ftDetailClose()}
+        </div>
+    </div>`;
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // List View — Personal Timeline
 // ═══════════════════════════════════════════════════════════════════
@@ -733,6 +755,7 @@ function _ftListDetail(ev) {
         }
         case 'friend_added':      return `<span style="color:var(--ok)">${esc(t('timeline.friend.added_full', 'Friend Added'))}</span>`;
         case 'friend_removed':    return `<span style="color:var(--err)">${esc(t('timeline.friend.unfriended', 'Unfriended'))}</span>`;
+        case 'friend_avatar':     return esc(ev.worldName || ev.newValue || t('timeline.unknown', 'Unknown'));
         default: return '';
     }
 }

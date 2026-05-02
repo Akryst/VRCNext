@@ -17,6 +17,7 @@ public class FriendsController
     private readonly Dictionary<string, string> _friendLastStatus = new();
     private readonly Dictionary<string, string> _friendLastStatusDesc = new();
     private readonly Dictionary<string, string> _friendLastBio = new();
+    private readonly Dictionary<string, string> _friendLastAvatarFileId = new();
     private readonly Dictionary<string, (string name, string image)> _friendNameImg = new();
     private readonly Dictionary<string, (string fvrtId, string groupName)> _favoriteFriends = new();
     private int _favFriendsInFlight = 0;
@@ -935,6 +936,8 @@ public class FriendsController
                     _friendLastBio[uid] = (f["bio"]?.ToString() ?? "").Trim();
                     var img0 = VRChatApiService.GetUserImage(f);
                     _friendNameImg[uid] = (f["displayName"]?.ToString() ?? "", img0);
+                    var fid0 = ExtractAvatarFileId(f);
+                    if (!string.IsNullOrEmpty(fid0)) _friendLastAvatarFileId[uid] = fid0;
                 }
                 foreach (var f in offline)
                 {
@@ -946,6 +949,8 @@ public class FriendsController
                     _friendLastBio[uid] = (f["bio"]?.ToString() ?? "").Trim();
                     var img0 = VRChatApiService.GetUserImage(f);
                     _friendNameImg[uid] = (f["displayName"]?.ToString() ?? "", img0);
+                    var fid0 = ExtractAvatarFileId(f);
+                    if (!string.IsNullOrEmpty(fid0)) _friendLastAvatarFileId[uid] = fid0;
                 }
                 _friendStateSeeded = true;
             }
@@ -1543,6 +1548,7 @@ public class FriendsController
             platform = user["platform"]?.ToString() ?? "",
             userNote, totalTimeSeconds = totalSeconds,
             meets = _core.Timeline?.GetMeetAgainCount(userId) ?? 0,
+            firstMeetDate = _core.Timeline?.GetFirstMeetDate(userId) ?? "",
             inSameInstance = (_core.IsVrcRunning?.Invoke() ?? false)
                 && _core.LogWatcher.GetCurrentPlayers().Any(p => p.UserId == userId),
             lastSeenTracked = _core.Timeline?.GetLastSeenTimestamp(userId) ?? "",
@@ -1828,6 +1834,49 @@ public class FriendsController
         }
         if (!string.IsNullOrEmpty(newBio))
             _friendLastBio[e.UserId] = newBio;
+
+        // Avatar change detection
+        var newFileId = ExtractAvatarFileId(e.User);
+        if (!string.IsNullOrEmpty(newFileId))
+        {
+            var oldFileId = _friendLastAvatarFileId.GetValueOrDefault(e.UserId, "");
+            if (!string.IsNullOrEmpty(oldFileId) && oldFileId != newFileId)
+            {
+                var capturedUserId = e.UserId;
+                var capturedFname  = fname;
+                var capturedFimg   = fimg;
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var avtrId = await _core.VrcApi.GetAvatarIdByFileIdAsync(newFileId) ?? "";
+                        if (string.IsNullOrEmpty(avtrId)) return;
+
+                        var avtrObj  = await _core.VrcApi.GetAvatarAsync(avtrId);
+                        var avtrName = avtrObj?["name"]?.ToString() ?? "";
+                        if (string.IsNullOrEmpty(avtrName)) return;
+
+                        var avtrThumb = ImageCacheHelper.GetAvatarUrl(avtrId, avtrObj?["thumbnailImageUrl"]?.ToString() ?? avtrObj?["imageUrl"]?.ToString() ?? "");
+
+                        var fev = new TimelineService.FriendTimelineEvent
+                        {
+                            Type        = "friend_avatar",
+                            FriendId    = capturedUserId,
+                            FriendName  = capturedFname,
+                            FriendImage = capturedFimg,
+                            WorldId     = avtrId,
+                            WorldName   = avtrName,
+                            WorldThumb  = avtrThumb,
+                            NewValue    = avtrName,
+                        };
+                        _core.Timeline.AddFriendEvent(fev);
+                        _core.SendToJS("friendTimelineEvent", BuildFriendTimelinePayload(fev));
+                    }
+                    catch { }
+                });
+            }
+            _friendLastAvatarFileId[e.UserId] = newFileId;
+        }
     }
 
     private void OnWsFriendAdded(object? sender, FriendEventArgs e)

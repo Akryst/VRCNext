@@ -107,7 +107,6 @@ function saveSettings() {
             theme: currentTheme,
             specialTheme: currentSpecialTheme,
             autoColorAccuracy: autoColorAccuracy,
-            playBtnTheme: currentPlayBtnTheme,
             cursorTheme: currentCursorTheme,
             activeCustomThemes: [..._activeCustomThemes],
             guiZoom: Math.round(_guiZoom * 100),
@@ -205,7 +204,7 @@ function saveSettings() {
             ffcEnabled: document.getElementById('setFfcEnabled').checked,
             memoryTrimEnabled: document.getElementById('setMemoryTrimEnabled').checked,
             dbOptimize: document.getElementById('setDbOptimize').checked,
-            dbOptimizeMaxEntries: Math.max(500, Math.min(10000, parseInt(document.getElementById('setDbOptimizeMaxEntries').value) || 500)),
+            dbOptimizeMaxEntries: Math.max(500, Math.min(250000, parseInt(document.getElementById('setDbOptimizeMaxEntries').value) || 500)),
             autoUpdate: document.getElementById('setAutoUpdate').checked,
             sendCrashData: document.getElementById('setSendCrashData').checked,
             restartAfterCrash: document.getElementById('setRestartAfterCrash').checked,
@@ -337,7 +336,7 @@ function loadSettingsToUI(s) {
     renderExtraExeDesktop(settings.extraExeDesktop);
     renderExtraExeVR(settings.extraExeVR);
     updateFolderFilterOptions(settings.folders);
-    currentTheme = s.Theme || s.theme || 'midnight';
+    currentTheme = s.Theme || s.theme || 'slates';
     currentSpecialTheme = s.SpecialTheme || s.specialTheme || '';
     autoColorAccuracy = s.AutoColorAccuracy ?? s.autoColorAccuracy ?? 50;
     const accSlider = document.getElementById('setAutoAccuracy');
@@ -345,12 +344,10 @@ function loadSettingsToUI(s) {
     const accRow = document.getElementById('autoAccuracyRow');
     if (accRow) accRow.style.display = currentSpecialTheme === 'auto' ? 'flex' : 'none';
     if (THEMES[currentTheme]) applyColors(THEMES[currentTheme].c);
-    else if (!currentTheme.startsWith('custom_')) { currentTheme = 'midnight'; applyColors(THEMES.midnight.c); }
+    else if (!currentTheme.startsWith('custom_')) { currentTheme = 'slates'; applyColors(THEMES.slates.c); }
     // custom_ themes are applied later when customColors loads
     renderThemeChips();
     renderSpecialThemeChips();
-    currentPlayBtnTheme = s.PlayBtnTheme || s.playBtnTheme || '';
-    applyPlayBtnTheme(currentPlayBtnTheme);
     _localHttpPort = s.LocalHttpPort || s.localHttpPort || 0;
     currentCursorTheme = s.CursorTheme || s.cursorTheme || '';
     sendToCS({ action: 'getCursorFiles' });
@@ -502,7 +499,7 @@ function loadSettingsToUI(s) {
 
     // Database optimization
     const dbOptimize           = s.DbOptimize ?? s.dbOptimize ?? true;
-    const dbOptimizeMaxEntries = Math.max(500, Math.min(10000, s.DbOptimizeMaxEntries ?? s.dbOptimizeMaxEntries ?? 500));
+    const dbOptimizeMaxEntries = Math.max(500, Math.min(250000, s.DbOptimizeMaxEntries ?? s.dbOptimizeMaxEntries ?? 500));
     document.getElementById('setDbOptimize').checked            = dbOptimize;
     document.getElementById('setDbOptimizeMaxEntries').value    = dbOptimizeMaxEntries;
     document.getElementById('setDbOptimizeMaxEntries').disabled = !dbOptimize;

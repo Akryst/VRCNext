@@ -64,7 +64,6 @@ function applyTranslations(root = document) {
     renderLanguageChips();
     if (typeof renderThemeChips === 'function') renderThemeChips();
     if (typeof renderSpecialThemeChips === 'function') renderSpecialThemeChips();
-    if (typeof renderPlayBtnThemeChips === 'function') renderPlayBtnThemeChips();
     if (typeof renderCursorThemeChips === 'function') renderCursorThemeChips();
     document.querySelectorAll('select').forEach(el => el._vnRefresh && el._vnRefresh());
     if (typeof renderFolders === 'function' && settings?.folders) renderFolders(settings.folders);

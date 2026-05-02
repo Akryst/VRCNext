@@ -522,7 +522,7 @@ namespace VRCNext.Services
         private const int ScrollBarW          = 3;      
 
         // Theme colors
-        private OverlayTheme _theme = OverlayTheme.FromName("midnight");
+        private OverlayTheme _theme = OverlayTheme.FromName("slates");
 
         public void SetTheme(string name)
         {
@@ -552,7 +552,7 @@ namespace VRCNext.Services
             public Color Brd     { get; init; }
 
             public static OverlayTheme FromName(string n) =>
-                _palettes.TryGetValue(n ?? "midnight", out var t) ? t : _palettes["midnight"];
+                _palettes.TryGetValue(n ?? "slates", out var t) ? t : _palettes["slates"];
 
             public static OverlayTheme FromColors(Dictionary<string, string> c)
             {
@@ -579,28 +579,13 @@ namespace VRCNext.Services
                     Convert.ToInt32(hex[3..5], 16),
                     Convert.ToInt32(hex[5..7], 16));
 
-            // Synced from JS THEMES in core.js — keep these in sync when themes change!
             private static readonly Dictionary<string, OverlayTheme> _palettes = new()
             {
-                ["midnight"]   = new() { BgCard=H("#0F1628"),BgHover=H("#141E37"),Accent=H("#3884FF"),Ok=H("#2DD48C"),Warn=H("#FFBA37"),Err=H("#FF4B55"),Cyan=H("#00D2EB"),Tx1=H("#DCE4F5"),Tx2=H("#788CAF"),Tx3=H("#41506E"),Brd=H("#1C2841") },
-                ["ocean"]      = new() { BgCard=H("#082233"),BgHover=H("#0C2E44"),Accent=H("#0EA5E9"),Ok=H("#34D399"),Warn=H("#FBBF24"),Err=H("#F87171"),Cyan=H("#22D3EE"),Tx1=H("#BAE6FD"),Tx2=H("#7DD3FC"),Tx3=H("#3B7EA1"),Brd=H("#164E63") },
-                ["emerald"]    = new() { BgCard=H("#0C2018"),BgHover=H("#12301F"),Accent=H("#10B981"),Ok=H("#4ADE80"),Warn=H("#FCD34D"),Err=H("#FB7185"),Cyan=H("#2DD4BF"),Tx1=H("#BBF7D0"),Tx2=H("#6EE7B7"),Tx3=H("#3D7A5A"),Brd=H("#1A4034") },
-                ["sunset"]     = new() { BgCard=H("#251814"),BgHover=H("#33201A"),Accent=H("#F97316"),Ok=H("#4ADE80"),Warn=H("#FDE047"),Err=H("#EF4444"),Cyan=H("#FBBF24"),Tx1=H("#FED7AA"),Tx2=H("#FDBA74"),Tx3=H("#9A6340"),Brd=H("#3D2516") },
-                ["rose"]       = new() { BgCard=H("#22101E"),BgHover=H("#311828"),Accent=H("#F43F5E"),Ok=H("#4ADE80"),Warn=H("#FCD34D"),Err=H("#FF6B6B"),Cyan=H("#F472B6"),Tx1=H("#FECDD3"),Tx2=H("#FDA4AF"),Tx3=H("#9A4058"),Brd=H("#3D1526") },
-                ["lavender"]   = new() { BgCard=H("#16132A"),BgHover=H("#1E1A3A"),Accent=H("#A78BFA"),Ok=H("#4ADE80"),Warn=H("#FCD34D"),Err=H("#FB7185"),Cyan=H("#818CF8"),Tx1=H("#DDD6FE"),Tx2=H("#A78BFA"),Tx3=H("#6D5BA0"),Brd=H("#2E2556") },
-                ["vrchat"]     = new() { BgCard=H("#0D1230"),BgHover=H("#141A3F"),Accent=H("#1461FF"),Ok=H("#2DD48C"),Warn=H("#FFBA37"),Err=H("#FF4B55"),Cyan=H("#00C8FF"),Tx1=H("#C8D5FF"),Tx2=H("#6B7DB8"),Tx3=H("#3A4880"),Brd=H("#1A2454") },
-                ["day"]        = new() { BgCard=H("#FFFFFF"),BgHover=H("#E8EDF8"),Accent=H("#3884FF"),Ok=H("#18A86A"),Warn=H("#D4860A"),Err=H("#D93040"),Cyan=H("#00A8C8"),Tx1=H("#1A2440"),Tx2=H("#4A5878"),Tx3=H("#8090B0"),Brd=H("#D0D8E8") },
-                ["night"]      = new() { BgCard=H("#1A1B20"),BgHover=H("#22242C"),Accent=H("#0A84FF"),Ok=H("#30D158"),Warn=H("#FFD60A"),Err=H("#FF453A"),Cyan=H("#5AC8FA"),Tx1=H("#C8CACD"),Tx2=H("#6E737D"),Tx3=H("#3D4249"),Brd=H("#272930") },
-                ["iris"]       = new() { BgCard=H("#101430"),BgHover=H("#181C42"),Accent=H("#6674F0"),Ok=H("#4ADE80"),Warn=H("#FCD34D"),Err=H("#FC8181"),Cyan=H("#94B8FF"),Tx1=H("#C0CAFF"),Tx2=H("#7080C0"),Tx3=H("#3C4880"),Brd=H("#1E2452") },
-                ["glacier"]    = new() { BgCard=H("#1D2335"),BgHover=H("#242B42"),Accent=H("#7AA8E0"),Ok=H("#68C89A"),Warn=H("#D8C068"),Err=H("#D88080"),Cyan=H("#88CCD8"),Tx1=H("#9EB0C8"),Tx2=H("#5A6E88"),Tx3=H("#364054"),Brd=H("#242C3E") },
-                ["petal"]      = new() { BgCard=H("#241620"),BgHover=H("#302030"),Accent=H("#E890B0"),Ok=H("#68C888"),Warn=H("#F0C848"),Err=H("#F07878"),Cyan=H("#D8A0D0"),Tx1=H("#ECC8D8"),Tx2=H("#B07890"),Tx3=H("#744860"),Brd=H("#361E2C") },
-                ["void"]       = new() { BgCard=H("#0E0A18"),BgHover=H("#140F22"),Accent=H("#8060C8"),Ok=H("#3AD480"),Warn=H("#E8B840"),Err=H("#F06060"),Cyan=H("#6060D8"),Tx1=H("#C8B8E8"),Tx2=H("#7060A0"),Tx3=H("#40305C"),Brd=H("#18102A") },
-                ["dusk"]       = new() { BgCard=H("#121228"),BgHover=H("#1A1A36"),Accent=H("#C4944C"),Ok=H("#64C878"),Warn=H("#E8C040"),Err=H("#E86868"),Cyan=H("#9880C8"),Tx1=H("#E0C8A0"),Tx2=H("#907060"),Tx3=H("#50404C"),Brd=H("#1E1C32") },
-                ["ultraviolet"]= new() { BgCard=H("#120E24"),BgHover=H("#1A1430"),Accent=H("#7B4FCC"),Ok=H("#50C880"),Warn=H("#E8B040"),Err=H("#E06080"),Cyan=H("#6080D8"),Tx1=H("#C8B8E8"),Tx2=H("#806898"),Tx3=H("#483860"),Brd=H("#1E1640") },
-                ["plum"]       = new() { BgCard=H("#2E2844"),BgHover=H("#3A3252"),Accent=H("#9878C0"),Ok=H("#6CC890"),Warn=H("#D4BC60"),Err=H("#D07880"),Cyan=H("#8898C8"),Tx1=H("#C8BFD4"),Tx2=H("#8878A0"),Tx3=H("#504868"),Brd=H("#3A3052") },
-                ["lilac"]      = new() { BgCard=H("#FAFBFE"),BgHover=H("#EDE4FB"),Accent=H("#9A50D8"),Ok=H("#28A870"),Warn=H("#B87A10"),Err=H("#C83040"),Cyan=H("#7878E0"),Tx1=H("#280E3C"),Tx2=H("#5A3878"),Tx3=H("#9878B0"),Brd=H("#D8C8F0") },
-                ["prism"]      = new() { BgCard=H("#101628"),BgHover=H("#182030"),Accent=H("#8878F0"),Ok=H("#48D890"),Warn=H("#F0C848"),Err=H("#F06090"),Cyan=H("#60C0F8"),Tx1=H("#C0C0F8"),Tx2=H("#6870C0"),Tx3=H("#383870"),Brd=H("#182040") },
-                ["periwinkle"] = new() { BgCard=H("#141828"),BgHover=H("#1C2234"),Accent=H("#7A9AD8"),Ok=H("#58C890"),Warn=H("#D4C060"),Err=H("#D06880"),Cyan=H("#88C0D8"),Tx1=H("#B8C8E8"),Tx2=H("#5870A0"),Tx3=H("#304068"),Brd=H("#1C2440") },
+                ["slates"]    = new() { BgCard=H("#131125"),BgHover=H("#4B4998"),Accent=H("#6F6CFF"),Ok=H("#2DD48C"),Warn=H("#FFBA37"),Err=H("#FF4B55"),Cyan=H("#8CA5FF"),Tx1=H("#FFFFFF"),Tx2=H("#FFFFFF"),Tx3=H("#FFFFFF"),Brd=H("#6F6CFF") },
+                ["blood"]     = new() { BgCard=H("#190F26"),BgHover=H("#251936"),Accent=H("#DF2A4E"),Ok=H("#2DD48C"),Warn=H("#FFBA37"),Err=H("#FF4B55"),Cyan=H("#DC7A56"),Tx1=H("#D2CCDB"),Tx2=H("#D2CCDB"),Tx3=H("#D2CCDB"),Brd=H("#291B3C") },
+                ["halloween"] = new() { BgCard=H("#110F26"),BgHover=H("#1B1936"),Accent=H("#DF462A"),Ok=H("#2DD48C"),Warn=H("#FFBA37"),Err=H("#FF4B55"),Cyan=H("#DCA956"),Tx1=H("#F0EFF5"),Tx2=H("#F0EFF5"),Tx3=H("#F0EFF5"),Brd=H("#1E1B3C") },
+                ["miku"]      = new() { BgCard=H("#080D14"),BgHover=H("#66B4D2"),Accent=H("#66B4D2"),Ok=H("#2DD48C"),Warn=H("#FFBA37"),Err=H("#FF4B55"),Cyan=H("#66B4D2"),Tx1=H("#FFFFFF"),Tx2=H("#FFFFFF"),Tx3=H("#FFFFFF"),Brd=H("#13223F") },
+                ["vrchat"]    = new() { BgCard=H("#181B1F"),BgHover=H("#042E39"),Accent=H("#0B748E"),Ok=H("#18A86A"),Warn=H("#D4860A"),Err=H("#D93040"),Cyan=H("#53C0D5"),Tx1=H("#FFFFFF"),Tx2=H("#FFFFFF"),Tx3=H("#FFFFFF"),Brd=H("#042E39") },
             };
         }
 

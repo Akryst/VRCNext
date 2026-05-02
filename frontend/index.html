@@ -101,6 +101,15 @@
     <div class="main">
         <div class="topbar" id="winDrag">
             <span class="topbar-title" id="pageTitle" data-i18n="page.dashboard">Dashboard</span>
+            <div id="dbMigrationIndicator" style="display:none;flex:0 0 auto;display:none;align-items:center;gap:8px;margin:0 12px;min-width:160px;max-width:220px;">
+                <div style="flex:1;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:3px;white-space:nowrap;" data-i18n="migration.label">Migrating Database...</div>
+                    <div class="upd-progress-bar" style="height:5px;">
+                        <div class="upd-progress-fill" id="dbMigrationFill" style="width:0%;transition:width .3s ease;"></div>
+                    </div>
+                </div>
+                <span style="font-size:10px;color:var(--tx3);flex-shrink:0;" id="dbMigrationPct">0%</span>
+            </div>
             <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
                 <div class="mini-badge vrcplus" id="badgeVrcPlus" style="display:none;"><span class="mini-badge-label">VRC+</span></div>
                 <div class="mini-badge vcredits" id="badgeVrcCredits" style="display:none;"><span class="mini-badge-label" id="badgeVrcCreditsLabel">V 0</span></div>
@@ -154,9 +163,24 @@
                     <div class="dash-hero-bg" id="dashHeroBg"></div>
                     <div class="dash-hero-fade"></div>
                     <div class="dash-hero-content">
+                        <div class="dash-hero-stats" id="dashHeroStats" style="display:none;">
+                            <div class="dash-hero-stat">
+                                <div class="dash-hero-stat-val" id="dashStatOnline">—</div>
+                                <div class="dash-hero-stat-label" data-i18n="dashboard.stats.online_globally">Online Globally</div>
+                            </div>
+                            <div class="dash-hero-stat-sep"></div>
+                            <div class="dash-hero-stat">
+                                <div class="dash-hero-stat-val" id="dashStatFriends">—</div>
+                                <div class="dash-hero-stat-label" data-i18n="dashboard.stats.friends_ingame">Friends In Game</div>
+                            </div>
+                            <div class="dash-hero-stat-sep"></div>
+                            <div class="dash-hero-stat">
+                                <div class="dash-hero-stat-val" id="dashStatSession">—</div>
+                                <div class="dash-hero-stat-label" data-i18n="dashboard.stats.friends_onweb">Friends On Web</div>
+                            </div>
+                        </div>
                         <div class="dash-welcome" id="dashWelcome" data-i18n="dashboard.welcome.default">Welcome!</div>
                         <div class="dash-sub" id="dashSub" data-i18n="dashboard.sub.connect_world">Connect to VRChat to see your world</div>
-
                     </div>
                 </div>
                 <div id="dashSectionsContainer">
@@ -194,6 +218,7 @@
                     <div class="dash-section-wrap" data-section="fav_worlds">
                         <div class="dash-section-label">
                             <span data-i18n="dashboard.section.fav_worlds">FAVORITE WORLDS</span>
+                            <button class="mi-refresh-btn" id="dashFavWorldsRefreshBtn" onclick="refreshDashFavWorlds()" title="Refresh">&#8635;</button>
                             <button class="dash-section-seeall" onclick="showTab(1)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
                         </div>
                         <div class="vrcn-dash-fav-shelf" id="dashFavWorldsShelf"></div>
@@ -201,6 +226,7 @@
                     <div class="dash-section-wrap" data-section="fav_avatars">
                         <div class="dash-section-label">
                             <span data-i18n="dashboard.section.fav_avatars">FAVORITE AVATARS</span>
+                            <button class="mi-refresh-btn" id="dashFavAvatarsRefreshBtn" onclick="refreshDashFavAvatars()" title="Refresh">&#8635;</button>
                             <button class="dash-section-seeall" onclick="showTab(4);setTimeout(()=>setAvatarFilter('favorites'),80)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
                         </div>
                         <div class="vrcn-dash-fav-shelf" id="dashFavAvatarsShelf"></div>
@@ -208,6 +234,7 @@
                     <div class="dash-section-wrap" data-section="own_avatars">
                         <div class="dash-section-label">
                             <span data-i18n="dashboard.section.own_avatars">MY AVATARS</span>
+                            <button class="mi-refresh-btn" id="dashOwnAvatarsRefreshBtn" onclick="refreshDashOwnAvatars()" title="Refresh">&#8635;</button>
                             <button class="dash-section-seeall" onclick="showTab(4);setTimeout(()=>setAvatarFilter('own'),80)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
                         </div>
                         <div class="vrcn-dash-fav-shelf" id="dashOwnAvatarsShelf"></div>
@@ -222,6 +249,7 @@
                     <div class="dash-section-wrap" data-section="recently_visited">
                         <div class="dash-section-label">
                             <span data-i18n="dashboard.section.recently_visited">RECENTLY VISITED</span>
+                            <button class="mi-refresh-btn" id="dashRecentlyVisitedRefreshBtn" onclick="refreshDashRecentlyVisited()" title="Refresh">&#8635;</button>
                         </div>
                         <div class="vrcn-dash-fav-shelf" id="dashRecentlyVisitedShelf"></div>
                     </div>
@@ -247,6 +275,7 @@
                     <div class="dash-section-wrap" data-section="group_activity">
                         <div class="dash-section-label">
                             <span data-i18n="dashboard.section.group_activity">GROUP ACTIVITY</span>
+                            <button class="mi-refresh-btn" id="dashGroupActivityRefreshBtn" onclick="refreshDashGroupInstances()" title="Refresh">&#8635;</button>
                             <button class="dash-section-seeall" onclick="showTab(2)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
                         </div>
                         <div class="dash-worlds-grid" id="dashGroupActivityCards"></div>
@@ -254,6 +283,7 @@
                     <div class="dash-section-wrap" data-section="group_activity_small">
                         <div class="dash-section-label">
                             <span data-i18n="dashboard.section.group_activity">GROUP ACTIVITY</span>
+                            <button class="mi-refresh-btn" id="dashGroupActivitySmallRefreshBtn" onclick="refreshDashGroupInstances()" title="Refresh">&#8635;</button>
                             <button class="dash-section-seeall" onclick="showTab(2)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
                         </div>
                         <div class="dash-friends-feed" id="dashGroupActivityShelf"></div>
@@ -261,6 +291,7 @@
                     <div class="dash-section-wrap" data-section="upcoming_events">
                         <div class="dash-section-label">
                             <span data-i18n="dashboard.section.upcoming_events">UPCOMING EVENTS</span>
+                            <button class="mi-refresh-btn" id="dashUpcomingEventsRefreshBtn" onclick="refreshDashUpcomingEventsManual()" title="Refresh">&#8635;</button>
                             <button class="dash-section-seeall" onclick="showTab(17)" data-i18n="dashboard.section.see_all">SEE ALL →</button>
                         </div>
                         <div id="dashUpcomingEventsGrid"></div>
@@ -626,11 +657,16 @@
             </div>
             <!-- Tab 7: Media Library -->
             <div class="tab" id="tab7">
-                <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-                    <div style="display:flex;gap:8px;align-items:center;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                         <button class="vrcn-button" id="libFavBtn" onclick="toggleFavFilter()"><span class="msi" style="font-size:16px;">star</span> <span data-i18n="library.favorites">Favorites</span></button>
+                        <div id="libFriendFilterWrap"></div>
+                        <div id="libWorldFilterWrap"></div>
                         <select id="libFolderFilter" class="vrcn-dropdown" onchange="filterLibrary()"><option value="__all__" data-i18n="library.filters.all_folders">All Folders</option></select>
                         <select id="libTypeFilter" class="vrcn-dropdown" onchange="filterLibrary()"><option value="all" data-i18n="library.filters.all_media">All Media</option><option value="image" data-i18n="library.filters.images">Images</option><option value="video" data-i18n="library.filters.videos">Videos</option></select>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <button class="vrcn-button" id="libResetFiltersBtn" onclick="resetLibFilters()" style="display:none;" data-i18n="library.filters.reset">Reset</button>
                         <button class="vrcn-button" onclick="forceRefreshLibrary()"><span class="msi" style="font-size:16px;">refresh</span> <span data-i18n="common.refresh">Refresh</span></button>
                         <button class="vrcn-button sub-tab-btn active" id="libViewGrid" onclick="setLibViewMode('grid')" title="Grid View"><span class="msi" style="font-size:16px;">grid_view</span></button>
                         <button class="vrcn-button sub-tab-btn" id="libViewFolder" onclick="setLibViewMode('folder')" title="Folder View"><span class="msi" style="font-size:16px;">folder</span></button>
@@ -817,8 +853,6 @@
                             </div>
                             <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.special_themes">Special Themes</div>
                             <div class="theme-grid" id="specialThemeGrid"></div>
-                            <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.play_button_theme">Play Button Theme</div>
-                            <div class="theme-grid" id="playBtnThemeGrid"></div>
                             <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.custom_cursor">Custom Cursor</div>
                             <div class="theme-grid" id="cursorThemeGrid"></div>
                             <div class="sf-row" id="autoAccuracyRow" style="margin-top:8px;display:none;">
@@ -1027,11 +1061,11 @@
                             <div class="sf-row">
                                 <label style="font-size:12px;color:var(--tx2);flex-shrink:0;margin-right:10px;" data-i18n="settings.db.entries_label">Optimized Database Entries</label>
                                 <div style="display:flex;align-items:center;gap:10px;flex:1;">
-                                    <input type="range" id="setDbOptimizeMaxEntries" min="500" max="10000" step="100" value="500" style="flex:1;" oninput="document.getElementById('dbOptimizeEntriesVal').textContent=this.value;autoSave()">
+                                    <input type="range" id="setDbOptimizeMaxEntries" min="500" max="250000" step="500" value="500" style="flex:1;" oninput="document.getElementById('dbOptimizeEntriesVal').textContent=this.value;autoSave()">
                                     <span id="dbOptimizeEntriesVal" style="font-size:12px;color:var(--tx2);min-width:44px;text-align:right;">500</span>
                                 </div>
                             </div>
-                            <div class="set-desc" style="margin-top:6px;" data-i18n="settings.db.entries_desc">Min: 500, Max: 10,000. Loads the N most recent entries for Personal and Friends separately.</div>
+                            <div class="set-desc" style="margin-top:6px;" data-i18n="settings.db.entries_desc">Min: 500, Max: 250,000. Loads the N most recent entries for Personal and Friends separately.</div>
                         </div>
                         <div id="dbOptimizeOffWarning" style="display:none;margin-top:12px;color:var(--red,#e55);" class="set-desc" data-i18n="settings.db.optimize_off_warning">Warning: Optimize Database is disabled. All entries will be loaded on startup. This may significantly impact performance with large databases.</div>
                     </div>
@@ -1196,6 +1230,7 @@
                 <div class="tl-mode-row">
                     <button class="vrcn-button sub-tab-btn active" id="tlModePersonal" onclick="setTlMode('personal')"><span class="msi" style="font-size:14px;">person</span> <span data-i18n="timeline.mode.personal">Personal</span></button>
                     <button class="vrcn-button sub-tab-btn" id="tlModeFriends" onclick="setTlMode('friends')"><span class="msi" style="font-size:14px;">group</span> <span data-i18n="timeline.mode.friends">Friends</span></button>
+                    <button class="vrcn-button sub-tab-btn" id="tlModeGameLog" onclick="setTlMode('gamelog')"><span class="msi" style="font-size:14px;">terminal</span> <span data-i18n="timeline.mode.gamelog">Game Log</span></button>
                     <div style="flex:1;"></div>
                     <button class="vrcn-button sub-tab-btn" id="tlViewTimeline" title="Timeline View" data-i18n-title="timeline.view.timeline_title" onclick="setTlViewMode('timeline')"><span class="msi" style="font-size:14px;">account_tree</span></button>
                     <button class="vrcn-button sub-tab-btn" id="tlViewList" title="List View" data-i18n-title="timeline.view.list_title" onclick="setTlViewMode('list')"><span class="msi" style="font-size:14px;">format_list_bulleted</span></button>
@@ -1203,7 +1238,7 @@
                 <div class="tl-topbar">
                     <div class="search-bar-row" style="flex:1;margin-bottom:0;">
                         <span class="msi search-ico">search</span>
-                        <input type="text" id="tlSearchInput" class="vrcn-input" placeholder="Search timeline..." data-i18n-placeholder="timeline.search.placeholder" oninput="tlMode==='friends'?filterFriendTimeline():filterTimeline()">
+                        <input type="text" id="tlSearchInput" class="vrcn-input" placeholder="Search timeline..." data-i18n-placeholder="timeline.search.placeholder" oninput="tlMode==='gamelog'?renderGameLog():tlMode==='friends'?filterFriendTimeline():filterTimeline()">
                     </div>
                     <button class="vrcn-button tl-datebtn" id="tlDateBtn" onclick="toggleTlDatePicker()" title="Filter by date" data-i18n-title="timeline.date.filter_title">
                         <span class="msi" style="font-size:15px;">calendar_today</span>
@@ -1250,11 +1285,23 @@
                     <button class="vrcn-button sub-tab-btn" id="ftFOnline"     onclick="setFtFilter('friend_online')"><span class="msi" style="font-size:14px;">login</span> <span data-i18n="timeline.filters.online">Online</span></button>
                     <button class="vrcn-button sub-tab-btn" id="ftFOffline"    onclick="setFtFilter('friend_offline')"><span class="msi" style="font-size:14px;">power_settings_new</span> <span data-i18n="timeline.filters.offline">Offline</span></button>
                     <button class="vrcn-button sub-tab-btn" id="ftFBio"        onclick="setFtFilter('friend_bio')"><span class="msi" style="font-size:14px;">edit_note</span> <span data-i18n="timeline.filters.bio">Bio</span></button>
+                    <button class="vrcn-button sub-tab-btn" id="ftFAvatar"    onclick="setFtFilter('friend_avatar')"><span class="msi" style="font-size:14px;">checkroom</span> <span data-i18n="timeline.filters.avatar">Avatar</span></button>
                     <button class="vrcn-button sub-tab-btn" id="ftFAdded"     onclick="setFtFilter('friend_added')"><span class="msi" style="font-size:14px;">person_add</span> <span data-i18n="timeline.filters.friended">Friended</span></button>
                     <button class="vrcn-button sub-tab-btn" id="ftFRemoved"   onclick="setFtFilter('friend_removed')"><span class="msi" style="font-size:14px;">person_remove</span> <span data-i18n="timeline.filters.unfriended">Unfriended</span></button>
                 </div>
+                <div class="tl-filter-row" id="glFilters" style="display:none;">
+                    <button class="vrcn-button sub-tab-btn active" data-f="all"     onclick="setGlFilter('all')"     data-i18n="timeline.filters.all">All</button>
+                    <button class="vrcn-button sub-tab-btn"        data-f="world"   onclick="setGlFilter('world')"><span class="msi" style="font-size:14px;">travel_explore</span> <span data-i18n="timeline.filters.world">World</span></button>
+                    <button class="vrcn-button sub-tab-btn"        data-f="players" onclick="setGlFilter('players')"><span class="msi" style="font-size:14px;">group</span> <span data-i18n="timeline.filters.players">Players</span></button>
+                    <button class="vrcn-button sub-tab-btn"        data-f="media"   onclick="setGlFilter('media')"><span class="msi" style="font-size:14px;">play_circle</span> <span data-i18n="timeline.filters.media">Media</span></button>
+                    <button class="vrcn-button sub-tab-btn"        data-f="portal"  onclick="setGlFilter('portal')"><span class="msi" style="font-size:14px;">blur_circular</span> <span data-i18n="timeline.filters.portal">Portal</span></button>
+                    <button class="vrcn-button sub-tab-btn"        data-f="errors"  onclick="setGlFilter('errors')"><span class="msi" style="font-size:14px;">error_outline</span> <span data-i18n="timeline.filters.errors">Errors</span></button>
+                </div>
                 <div class="tl-container" id="tlContainer">
                     <div class="empty-msg" data-i18n="timeline.empty.initial">No timeline events yet. VRChat activity will appear here.</div>
+                </div>
+                <div class="tl-container" id="glContent" style="display:none;">
+                    <div class="empty-msg" data-i18n="gamelog.empty">No game log entries yet.</div>
                 </div>
                 <div id="tlPaginatorBar" class="tl-paginator-bar"></div>
             </div>
@@ -2429,6 +2476,7 @@
     <script src="modules/tools/space-flight/space-flight.js"></script>
     <script src="modules/tools/osc-tool/osc-tool.js"></script>
     <script src="modules/timeline/timeline.js"></script>
+    <script src="modules/timeline/game-log.js"></script>
     <script src="core/modals/timeline-modal/timeline-modal.js"></script>
     <script src="modules/inventory/inventory_upload.js"></script>
     <script src="modules/inventory/inventory.js"></script>

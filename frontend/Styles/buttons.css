@@ -52,23 +52,8 @@
 
 .vrcn-btn-primary { background: var(--accent) !important; color: #fff !important; }
 .vrcn-btn-primary:hover { background: var(--accent-lt) !important; }
-.vrcn-btn-join { background: #1DB954 !important; color: #fff !important; }
-
-body.play-btn-accent .btn-play {
-    background: var(--accent) !important;
-}
-body.play-btn-accent .btn-play:hover {
-    background: var(--accent-lt) !important;
-}
-body.play-btn-accent .sidebar.collapsed .btn-play::after {
-    border-color: var(--accent);
-}
-body.play-btn-accent .vrcn-btn-join {
-    background: var(--accent) !important;
-}
-body.play-btn-accent .vrcn-btn-join:hover {
-    background: var(--accent-lt) !important;
-}
+.vrcn-btn-join { background: var(--accent) !important; color: #fff !important; }
+.vrcn-btn-join:hover { background: var(--accent-lt) !important; }
 
 .vrcn-btn-danger { background: rgba(255,75,85,.15) !important; color: var(--err) !important; }
 .vrcn-btn-danger:hover { background: var(--err) !important; color: #fff !important; }

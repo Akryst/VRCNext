@@ -25,6 +25,7 @@ public class AuthController
     private string _lastAvatarName = "";
     private string _lastVideoUrl = "";
     private DateTime _lastVideoUrlTime = DateTime.MinValue;
+    private DateTime _readyAt = DateTime.MaxValue;
 
     // In-flight guards — prevent duplicate startup fetches when JS triggers same requests
     private int _favWorldsInFlight = 0;
@@ -237,6 +238,7 @@ public class AuthController
                         Arguments = $"--waitpid {Environment.ProcessId}",
                         UseShellExecute = true
                     });
+                    WindowController.AllowNextClose();
                     try { _core.Window?.Close(); } catch { Environment.Exit(0); }
                 }
                 break;
@@ -356,6 +358,7 @@ public class AuthController
 
     public void HandleReady()
     {
+        _readyAt = DateTime.UtcNow;
         SendTranslation(_core.Settings.Language);
         _core.SendToJS("loadSettings", _core.Settings);
         _core.SendToJS("dateTimeFormat", new
@@ -397,10 +400,12 @@ public class AuthController
         _core.LogWatcher.WorldChanged += (wId, loc) =>
         {
             try { _instance.HandleWorldChangedOnUiThread(wId, loc); } catch { }
+            try { GlSend("gl_world_join", _core.LogWatcher.PendingWorldName is { Length: > 0 } n ? n : wId, wId); } catch { }
         };
         _core.LogWatcher.PlayerJoined += (uid, name) =>
         {
             try { _instance.HandlePlayerJoinedOnUiThread(uid, name); } catch { }
+            try { GlSend("gl_player_join", name, uid); } catch { }
         };
         _core.LogWatcher.PlayerLeft += (uid, name) =>
         {
@@ -411,6 +416,7 @@ public class AuthController
                 _instance.PushCurrentInstanceFromCache();
             }
             catch { }
+            try { GlSend("gl_player_left", name, uid); } catch { }
         };
         _core.LogWatcher.InstanceClosed += loc =>
         {
@@ -424,6 +430,7 @@ public class AuthController
                 }
             }
             catch { }
+            try { GlSend("gl_instance_closed", "Instance closed", loc); } catch { }
         };
         _core.LogWatcher.AvatarChanged += (displayName, avatarName) =>
         {
@@ -486,9 +493,39 @@ public class AuthController
                 };
                 _core.Timeline.AddEvent(ev);
                 _core.SendToJS("timelineEvent", _instance.BuildTimelinePayload(ev));
+                try
+                {
+                    var host = Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.Host : url;
+                    GlSend("gl_video_url", host, url);
+                }
+                catch { }
             }
             catch { }
         };
+        _core.LogWatcher.ScreenshotTaken  += path => { try { GlSend("gl_screenshot",     System.IO.Path.GetFileName(path), path); } catch { } };
+        _core.LogWatcher.PortalUsed       += ()   => { try { GlSend("gl_portal",         "Portal used", ""); } catch { } };
+        _core.LogWatcher.AvatarBlockedPerf += ()  => { try { GlSend("gl_avatar_blocked", "Avatar blocked (perf limit)", ""); } catch { } };
+        _core.LogWatcher.ConnectionLost   += ()   => { try { GlSend("gl_connection_lost","Connection lost", ""); } catch { } };
+        _core.LogWatcher.ImageLoadError   += url  =>
+        {
+            try
+            {
+                var host = Uri.TryCreate(url, UriKind.Absolute, out var u2) ? u2.Host : url;
+                GlSend("gl_image_error", $"Image failed: {host}", url);
+            }
+            catch { }
+        };
+    }
+
+    private void GlSend(string type, string message, string detail)
+    {
+        _core.SendToJS("gameLogEvent", new
+        {
+            type,
+            timestamp = DateTime.UtcNow.ToString("o"),
+            message,
+            detail,
+        });
     }
 
     // Session Resume
@@ -899,7 +936,7 @@ public class AuthController
 
             // Database optimization (requires restart to take effect)
             _core.Settings.DbOptimize           = data["dbOptimize"]?.Value<bool>() ?? true;
-            _core.Settings.DbOptimizeMaxEntries = Math.Clamp(data["dbOptimizeMaxEntries"]?.Value<int>() ?? 500, 500, 10000);
+            _core.Settings.DbOptimizeMaxEntries = Math.Clamp(data["dbOptimizeMaxEntries"]?.Value<int>() ?? 500, 500, 250000);
 
             // Auto-Update
             _core.Settings.AutoUpdate = data["autoUpdate"]?.Value<bool>() ?? true;
@@ -929,7 +966,7 @@ public class AuthController
                 _core.SendToJS("log", new { msg = $"❌ Save failed: {_core.Settings.LastSaveError}", color = "err" });
                 _core.SendToJS("toast", new { ok = false, msg = "Failed to save this setting, please report this error" });
             }
-            else
+            else if (DateTime.UtcNow - _readyAt > TimeSpan.FromSeconds(3))
             {
                 _core.SendToJS("toast", new { ok = true, msg = "Saved" });
             }

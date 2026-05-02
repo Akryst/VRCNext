@@ -102,7 +102,7 @@ public class AvatarScalingController : IDisposable
     [DllImport("kernel32.dll")]
     private static extern uint GetCurrentThreadId();
 
-    private KeyboardProc? _hookProc; // keep reference to prevent GC
+    private KeyboardProc? _hookProc; 
     private IntPtr _hookId = IntPtr.Zero;
     private Thread? _hookThread;
     private uint _hookThreadId;
@@ -162,7 +162,7 @@ public class AvatarScalingController : IDisposable
         }
     }
 
-    // ── Connection ──────────────────────────────────────────────────────────
+// Connect
 
     private void Connect()
     {
@@ -202,7 +202,7 @@ public class AvatarScalingController : IDisposable
         SendState();
     }
 
-    // ── VRChat OSC feedback receiver (port 9001, SO_REUSEADDR) ──────────────
+// Feeder VSC
 
     private void StartReceiver()
     {
@@ -297,7 +297,7 @@ public class AvatarScalingController : IDisposable
         return BitConverter.ToSingle(b, 0);
     }
 
-    // ── Settings ─────────────────────────────────────────────────────────────
+// Setting
 
     private void ApplySettings(JObject msg)
     {
@@ -322,7 +322,7 @@ public class AvatarScalingController : IDisposable
         StartResendTimerIfNeeded();
     }
 
-    // ── Scale logic ──────────────────────────────────────────────────────────
+// Scale Logic
 
     private void SetScale(float value)
     {
@@ -374,7 +374,7 @@ public class AvatarScalingController : IDisposable
         try { Invoke(() => _core.SendToJS("asState", BuildState())); } catch { }
     }
 
-    // ── Resend timer (save scale between worlds) ──────────────────────────────
+// Resend timer to try to save between worlds
 
     private void StartResendTimerIfNeeded()
     {
@@ -389,7 +389,7 @@ public class AvatarScalingController : IDisposable
         _resendTimer = null;
     }
 
-    // ── OSC Sending ──────────────────────────────────────────────────────────
+// OSC Sender
 
     private void SendAllParams()
     {
@@ -441,7 +441,7 @@ public class AvatarScalingController : IDisposable
         for (int i = 0; i < pad; i++) buf.Add(0);
     }
 
-    // ── State broadcast ───────────────────────────────────────────────────────
+// Initi Broadcast
 
     private object BuildState() => new
     {
@@ -454,7 +454,7 @@ public class AvatarScalingController : IDisposable
     private void SendState() => _core.SendToJS("asState", BuildState());
 
 #if WINDOWS
-    // ── Keyboard hook ─────────────────────────────────────────────────────────
+// Key Hook
 
     private void InstallHook()
     {

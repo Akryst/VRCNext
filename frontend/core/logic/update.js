@@ -157,3 +157,18 @@ function onUpdateReady() {
     rerenderUpdateTranslations();
     _setUpdCardProgress(100);
 }
+
+function onDbMigrationProgress(payload) {
+    const pct   = payload?.percent ?? 0;
+    const el    = document.getElementById('dbMigrationIndicator');
+    const fill  = document.getElementById('dbMigrationFill');
+    const label = document.getElementById('dbMigrationPct');
+    if (!el) return;
+    if (pct < 0 || pct >= 100) {
+        el.style.display = 'none';
+        return;
+    }
+    el.style.display = 'flex';
+    if (fill)  fill.style.width  = pct + '%';
+    if (label) label.textContent = pct + '%';
+}

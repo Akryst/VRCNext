@@ -72,7 +72,7 @@ let _prevTab = -1;
 let hiddenMedia = new Set();
 try { hiddenMedia = new Set(JSON.parse(localStorage.getItem('vrcnext_hidden') || '[]')); } catch {}
 const thumbCache = {};
-let currentTheme = 'midnight', currentSpecialTheme = '', autoColorAccuracy = 50, notifyAudio = null, messageAudio = null, mediaRelayAudio = null, steamOverlayAudio = null, waterAudio = null, currentVrcUser = null;
+let currentTheme = 'slates', currentSpecialTheme = '', autoColorAccuracy = 50, notifyAudio = null, messageAudio = null, mediaRelayAudio = null, steamOverlayAudio = null, waterAudio = null, currentVrcUser = null;
 let customThemes = []; // user-saved themes from auto color
 let currentPlayBtnTheme = '';
 let currentCursorTheme = '';
@@ -315,25 +315,11 @@ function sk(type, n = 1) {
 
 
 const THEMES = {
-    midnight: { label: 'Midnight', dot: '#3884FF', c: { 'bg-base': '#080C15', 'bg-side': '#0B101C', 'bg-card': '#0F1628', 'bg-hover': '#141E37', 'bg-input': '#0D1225', 'accent': '#3884FF', 'accent-lt': '#64A0FF', 'cyan': '#00D2EB', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#A8C4F5', 'tx3': '#5B709A', 'brd': '#1C2841', 'brd-lt': '#263755' } },
-    ocean: { label: 'Ocean', dot: '#0EA5E9', c: { 'bg-base': '#041220', 'bg-side': '#061828', 'bg-card': '#082233', 'bg-hover': '#0C2E44', 'bg-input': '#030E1A', 'accent': '#0EA5E9', 'accent-lt': '#38BDF8', 'cyan': '#22D3EE', 'ok': '#34D399', 'warn': '#FBBF24', 'err': '#F87171', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#AFFFFF', 'tx3': '#53B0E1', 'brd': '#164E63', 'brd-lt': '#1E6B8A' } },
-    emerald: { label: 'Emerald', dot: '#10B981', c: { 'bg-base': '#05100B', 'bg-side': '#081810', 'bg-card': '#0C2018', 'bg-hover': '#12301F', 'bg-input': '#040D08', 'accent': '#10B981', 'accent-lt': '#34D399', 'cyan': '#2DD4BF', 'ok': '#4ADE80', 'warn': '#FCD34D', 'err': '#FB7185', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#9AFFFF', 'tx3': '#55AB7E', 'brd': '#1A4034', 'brd-lt': '#245544' } },
-    sunset: { label: 'Sunset', dot: '#F97316', c: { 'bg-base': '#150A08', 'bg-side': '#1C100C', 'bg-card': '#251814', 'bg-hover': '#33201A', 'bg-input': '#120806', 'accent': '#F97316', 'accent-lt': '#FB923C', 'cyan': '#FBBF24', 'ok': '#4ADE80', 'warn': '#FDE047', 'err': '#EF4444', 'tx0': '#FFFFFF', 'tx1': '#FFFFEE', 'tx2': '#FFFFA2', 'tx3': '#D88B5A', 'brd': '#3D2516', 'brd-lt': '#552F1E' } },
-    rose: { label: 'Rose', dot: '#F43F5E', c: { 'bg-base': '#140810', 'bg-side': '#1A0C16', 'bg-card': '#22101E', 'bg-hover': '#311828', 'bg-input': '#100610', 'accent': '#F43F5E', 'accent-lt': '#FB7185', 'cyan': '#F472B6', 'ok': '#4ADE80', 'warn': '#FCD34D', 'err': '#FF6B6B', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFE6F5', 'tx3': '#D85A7B', 'brd': '#3D1526', 'brd-lt': '#551A34' } },
-    lavender: { label: 'Lavender', dot: '#A78BFA', c: { 'bg-base': '#0C0A18', 'bg-side': '#100E20', 'bg-card': '#16132A', 'bg-hover': '#1E1A3A', 'bg-input': '#090814', 'accent': '#A78BFA', 'accent-lt': '#C4B5FD', 'cyan': '#818CF8', 'ok': '#4ADE80', 'warn': '#FCD34D', 'err': '#FB7185', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#EAC3FF', 'tx3': '#997FE0', 'brd': '#2E2556', 'brd-lt': '#3D3370' } },
-    vrchat:   { label: 'VRChat',   dot: '#1461FF', c: { 'bg-base': '#05071A', 'bg-side': '#080C24', 'bg-card': '#0D1230', 'bg-hover': '#141A3F', 'bg-input': '#070B20', 'accent': '#1461FF', 'accent-lt': '#4D87FF', 'cyan': '#00C8FF', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#96AFFF', 'tx3': '#5165B3', 'brd': '#1A2454', 'brd-lt': '#243070' } },
-    day:      { label: 'Day',      dot: '#3884FF', c: { 'bg-base': '#F2F4F8', 'bg-side': '#E6E9F2', 'bg-card': '#FFFFFF', 'bg-hover': '#E8EDF8', 'bg-input': '#F5F7FC', 'accent': '#3884FF', 'accent-lt': '#64A0FF', 'cyan': '#00A8C8', 'ok': '#18A86A', 'warn': '#D4860A', 'err': '#D93040', 'tx0': '#060812', 'tx1': '#101626', 'tx2': '#2C3548', 'tx3': '#4D566A', 'brd': '#D0D8E8', 'brd-lt': '#BEC8DA' } },
-    night:    { label: 'Night',    dot: '#0A84FF', c: { 'bg-base': '#0E0F12', 'bg-side': '#141519', 'bg-card': '#1A1B20', 'bg-hover': '#22242C', 'bg-input': '#111318', 'accent': '#0A84FF', 'accent-lt': '#3D9EFF', 'cyan': '#5AC8FA', 'ok': '#30D158', 'warn': '#FFD60A', 'err': '#FF453A', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#9AA1AF', 'tx3': '#555C66', 'brd': '#272930', 'brd-lt': '#33363F' } },
-    iris:     { label: 'Iris',     dot: '#6674F0', c: { 'bg-base': '#07091C', 'bg-side': '#0B0E26', 'bg-card': '#101430', 'bg-hover': '#181C42', 'bg-input': '#090C20', 'accent': '#6674F0', 'accent-lt': '#8A95F5', 'cyan': '#94B8FF', 'ok': '#4ADE80', 'warn': '#FCD34D', 'err': '#FC8181', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#9DB3FF', 'tx3': '#5465B3', 'brd': '#1E2452', 'brd-lt': '#2A326E' } },
-    glacier:  { label: 'Glacier',  dot: '#7AA8E0', c: { 'bg-base': '#111620', 'bg-side': '#171C2A', 'bg-card': '#1D2335', 'bg-hover': '#242B42', 'bg-input': '#141820', 'accent': '#7AA8E0', 'accent-lt': '#98BEE8', 'cyan': '#88CCD8', 'ok': '#68C89A', 'warn': '#D8C068', 'err': '#D88080', 'tx0': '#FFFFFF', 'tx1': '#DDF6FF', 'tx2': '#7E9ABE', 'tx3': '#4C5A76', 'brd': '#242C3E', 'brd-lt': '#303C52' } },
-    petal:    { label: 'Petal',    dot: '#E890B0', c: { 'bg-base': '#130C10', 'bg-side': '#1C1018', 'bg-card': '#241620', 'bg-hover': '#302030', 'bg-input': '#100A0E', 'accent': '#E890B0', 'accent-lt': '#F0A8C4', 'cyan': '#D8A0D0', 'ok': '#68C888', 'warn': '#F0C848', 'err': '#F07878', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#F6A8CA', 'tx3': '#A26586', 'brd': '#361E2C', 'brd-lt': '#4A283C' } },
-    void:        { label: 'Void',        dot: '#8060C8', c: { 'bg-base': '#060408', 'bg-side': '#090610', 'bg-card': '#0E0A18', 'bg-hover': '#140F22', 'bg-input': '#07050C', 'accent': '#8060C8', 'accent-lt': '#A080E0', 'cyan': '#6060D8', 'ok': '#3AD480', 'warn': '#E8B840', 'err': '#F06060', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#9D86E0', 'tx3': '#5A4381', 'brd': '#18102A', 'brd-lt': '#221640' } },
-    dusk:        { label: 'Dusk',        dot: '#C4944C', c: { 'bg-base': '#080816', 'bg-side': '#0C0C1E', 'bg-card': '#121228', 'bg-hover': '#1A1A36', 'bg-input': '#080814', 'accent': '#C4944C', 'accent-lt': '#D8AE70', 'cyan': '#9880C8', 'ok': '#64C878', 'warn': '#E8C040', 'err': '#E86868', 'tx0': '#FFFFFF', 'tx1': '#FFFFE0', 'tx2': '#CA9D86', 'tx3': '#705A6A', 'brd': '#1E1C32', 'brd-lt': '#2C2844' } },
-    ultraviolet: { label: 'Ultraviolet', dot: '#7B4FCC', c: { 'bg-base': '#08060E', 'bg-side': '#0C091A', 'bg-card': '#120E24', 'bg-hover': '#1A1430', 'bg-input': '#090710', 'accent': '#7B4FCC', 'accent-lt': '#9B70E0', 'cyan': '#6080D8', 'ok': '#50C880', 'warn': '#E8B040', 'err': '#E06080', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#B392D5', 'tx3': '#654E86', 'brd': '#1E1640', 'brd-lt': '#2C2058' } },
-    plum:        { label: 'Plum',        dot: '#9878C0', c: { 'bg-base': '#1C1830', 'bg-side': '#241E3A', 'bg-card': '#2E2844', 'bg-hover': '#3A3252', 'bg-input': '#181428', 'accent': '#9878C0', 'accent-lt': '#B09ED4', 'cyan': '#8898C8', 'ok': '#6CC890', 'warn': '#D4BC60', 'err': '#D07880', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#BEA8E0', 'tx3': '#706592', 'brd': '#3A3052', 'brd-lt': '#4A3E60' } },
-    lilac:       { label: 'Lilac',       dot: '#9A50D8', c: { 'bg-base': '#F0E8FC', 'bg-side': '#E8DEFA', 'bg-card': '#FAFBFE', 'bg-hover': '#EDE4FB', 'bg-input': '#F5F0FD', 'accent': '#9A50D8', 'accent-lt': '#B878F0', 'cyan': '#7878E0', 'ok': '#28A870', 'warn': '#B87A10', 'err': '#C83040', 'tx0': '#100718', 'tx1': '#180824', 'tx2': '#362248', 'tx3': '#5B486A', 'brd': '#D8C8F0', 'brd-lt': '#CAB8E8' } },
-    prism:       { label: 'Prism',       dot: '#8878F0', c: { 'bg-base': '#080C18', 'bg-side': '#0C1020', 'bg-card': '#101628', 'bg-hover': '#182030', 'bg-input': '#080C16', 'accent': '#8878F0', 'accent-lt': '#A898F8', 'cyan': '#60C0F8', 'ok': '#48D890', 'warn': '#F0C848', 'err': '#F06090', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#929DFF', 'tx3': '#4E4E9D', 'brd': '#182040', 'brd-lt': '#202850' } },
-    periwinkle:  { label: 'Periwinkle',  dot: '#7A9AD8', c: { 'bg-base': '#0A0C14', 'bg-side': '#0E1020', 'bg-card': '#141828', 'bg-hover': '#1C2234', 'bg-input': '#0C0E18', 'accent': '#7A9AD8', 'accent-lt': '#A0B8E8', 'cyan': '#88C0D8', 'ok': '#58C890', 'warn': '#D4C060', 'err': '#D06880', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#7B9DE0', 'tx3': '#435A92', 'brd': '#1C2440', 'brd-lt': '#283450' } },
+    slates:    { label: 'Slates',    dot: '#6F6CFF', c: { 'bg-base': '#090814', 'bg-side': '#090814', 'bg-card': '#131125', 'bg-hover': '#4B4998', 'bg-input': '#0E0C1E', 'accent': '#6F6CFF', 'accent-lt': '#6F6CFF', 'cyan': '#8CA5FF', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#6F6CFF', 'brd-lt': '#1F2357' } },
+    blood:     { label: 'Blood',     dot: '#DF2A4E', c: { 'bg-base': '#0B0611', 'bg-side': '#10091A', 'bg-card': '#190F26', 'bg-hover': '#251936', 'bg-input': '#130B1E', 'accent': '#DF2A4E', 'accent-lt': '#E16B82', 'cyan': '#DC7A56', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#F2EFF5', 'tx1': '#D2CCDB', 'tx2': '#D2CCDB', 'tx3': '#D2CCDB', 'brd': '#291B3C', 'brd-lt': '#38284D' } },
+    halloween: { label: 'Halloween', dot: '#DF462A', c: { 'bg-base': '#0B091A', 'bg-side': '#0B091A', 'bg-card': '#110F26', 'bg-hover': '#1B1936', 'bg-input': '#0D0B1E', 'accent': '#DF462A', 'accent-lt': '#E17D6B', 'cyan': '#DCA956', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#F0EFF5', 'tx1': '#F0EFF5', 'tx2': '#F0EFF5', 'tx3': '#F0EFF5', 'brd': '#1E1B3C', 'brd-lt': '#2B284D' } },
+    miku:      { label: 'Miku',      dot: '#66B4D2', c: { 'bg-base': '#080D14', 'bg-side': '#080D14', 'bg-card': '#080D14', 'bg-hover': '#66B4D2', 'bg-input': '#0B111A', 'accent': '#66B4D2', 'accent-lt': '#66B4D2', 'cyan': '#66B4D2', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#13223F', 'brd-lt': '#13223F' } },
+    vrchat:    { label: 'VRChat',    dot: '#0B748E', c: { 'bg-base': '#0E1013', 'bg-side': '#0E1013', 'bg-card': '#181B1F', 'bg-hover': '#042E39', 'bg-input': '#1C2126', 'accent': '#0B748E', 'accent-lt': '#53C0D5', 'cyan': '#53C0D5', 'ok': '#18A86A', 'warn': '#D4860A', 'err': '#D93040', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#042E39', 'brd-lt': '#BEC8DA' } },
 };
 
 function applyColors(c) {
@@ -685,7 +671,7 @@ function selectCustomTheme(key) {
 
 function deleteCustomTheme(key) {
     customThemes = customThemes.filter(t => t.key !== key);
-    if (currentTheme === key) { currentTheme = 'midnight'; applyColors(THEMES.midnight.c); }
+    if (currentTheme === key) { currentTheme = 'slates'; applyColors(THEMES.slates.c); }
     renderThemeChips();
     saveCustomColors();
 }
@@ -882,24 +868,6 @@ function applySpecialTheme(n) {
     autoSave();
 }
 
-function renderPlayBtnThemeChips() {
-    const el = document.getElementById('playBtnThemeGrid');
-    if (!el) return;
-    const chips = [
-        { key: '',       label: t('settings.design.play_button.standard', 'Standard'), dot: '#1DB954' },
-        { key: 'accent', label: t('settings.design.play_button.theme_color', 'Theme Color'), dot: 'var(--accent)' },
-    ];
-    el.innerHTML = chips.map(t =>
-        `<button class="theme-chip${currentPlayBtnTheme === t.key ? ' active' : ''}" onclick="applyPlayBtnTheme('${t.key}')"><span class="theme-dot" style="background:${t.dot}"></span>${t.label}</button>`
-    ).join('');
-}
-
-function applyPlayBtnTheme(key) {
-    currentPlayBtnTheme = key;
-    document.body.classList.toggle('play-btn-accent', key === 'accent');
-    renderPlayBtnThemeChips();
-    autoSave();
-}
 
 function renderCursorThemeChips(files) {
     if (files) _cursorFiles = files;

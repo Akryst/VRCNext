@@ -323,7 +323,8 @@ function renderFriendDetail(d) {
         : (d.lastSeenTracked ? formatLastSeen(null, d.lastSeenTracked) : '');
     const lastActiveStr = d.lastActivity ? formatLastSeen(d.lastActivity, null) : '';
     const isSelf    = currentVrcUser && d.id === currentVrcUser.id;
-    const fdMeetCnt = d.meets || 0;
+    const fdMeetCnt      = d.meets || 0;
+    const fdFirstMeet    = d.firstMeetDate || '';
 
     const _mc = (label, valueHtml) =>
         `<div><div class="myp-section-title" style="margin-bottom:3px;">${label}</div><div style="font-size:12px;color:var(--tx2);">${valueHtml}</div></div>`;
