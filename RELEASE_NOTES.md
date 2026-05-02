@@ -10,6 +10,7 @@
 * Removed all legacy themes from VRCNext, including Midnight, Ocean, Emerald, Sunset, and Periwinkle.
 * Removed the old green Play button style. The Play button now uses your selected theme color.
 * Added 5 new VRCNext 2.0 themes: Slates, Blood, Miku, VRChat, and Halloween.
+* Removed outlines from Preview Modals.
 
 **Important Note**
 
