@@ -440,6 +440,11 @@ public class TimelineService : IDisposable
                 _events.Add(ev);
             DbInsertEvent(ev, null);
         }
+
+        if (ev.Type == "first_meet" && !string.IsNullOrEmpty(ev.UserId))
+            DbSetFirstMeetDate(ev.UserId, ev.Timestamp);
+        else if (ev.Type == "meet_again" && !string.IsNullOrEmpty(ev.UserId))
+            DbIncrementMeetAgain(ev.UserId);
     }
 
     public void BulkImportEvents(IEnumerable<TimelineEvent> events)
@@ -525,19 +530,60 @@ public class TimelineService : IDisposable
     public long GetMeetAgainCount(string userId)
     {
         if (string.IsNullOrEmpty(userId)) return 0;
-        if (_optimizeMode)
-        {
-            lock (_lock)
-                return _events.Count(e => e.Type == "meet_again" && e.UserId == userId);
-        }
         try
         {
             using var cmd = _db.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*) FROM events WHERE type = 'meet_again' AND user_id = $uid";
+            cmd.CommandText = @"SELECT meet_again_count + CASE WHEN first_meet_date != '' THEN 1 ELSE 0 END
+                FROM user_tracking WHERE user_id = $uid";
             cmd.Parameters.AddWithValue("$uid", userId);
-            return Convert.ToInt64(cmd.ExecuteScalar() ?? 0L);
+            var val = cmd.ExecuteScalar();
+            return val is null or DBNull ? 0L : Convert.ToInt64(val);
         }
         catch { return 0; }
+    }
+
+    public string GetFirstMeetDate(string userId)
+    {
+        if (string.IsNullOrEmpty(userId)) return "";
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT first_meet_date FROM user_tracking WHERE user_id = $uid";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            var val = cmd.ExecuteScalar();
+            return val is string s ? s : "";
+        }
+        catch { return ""; }
+    }
+
+    private void DbSetFirstMeetDate(string userId, string timestamp)
+    {
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"INSERT INTO user_tracking (user_id, total_seconds, last_seen, last_seen_location, display_name, image, first_meet_date, meet_again_count)
+                VALUES ($uid, 0, '', '', '', '', $ts, 0)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    first_meet_date = CASE WHEN first_meet_date = '' THEN excluded.first_meet_date ELSE first_meet_date END";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            cmd.Parameters.AddWithValue("$ts",  timestamp);
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
+    private void DbIncrementMeetAgain(string userId)
+    {
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"INSERT INTO user_tracking (user_id, total_seconds, last_seen, last_seen_location, display_name, image, first_meet_date, meet_again_count)
+                VALUES ($uid, 0, '', '', '', '', '', 1)
+                ON CONFLICT(user_id) DO UPDATE SET meet_again_count = meet_again_count + 1";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
     }
 
     // Returns ISO timestamp of the last time we were in the same instance as userId

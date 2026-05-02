@@ -702,9 +702,10 @@ case 'popularWorlds':
             case 'vrcInviteMessageUpdateFailed':
                 handleVrcInviteMessageUpdateFailed(payload);
                 break;
-            case 'updateAvailable':   showUpdateAvailable(payload.version); break;
-            case 'updateProgress':    onUpdateProgress(payload); break;
-            case 'updateReady':       onUpdateReady(); break;
+            case 'updateAvailable':      showUpdateAvailable(payload.version); break;
+            case 'updateProgress':       onUpdateProgress(payload); break;
+            case 'updateReady':          onUpdateReady(); break;
+            case 'dbMigrationProgress':  onDbMigrationProgress(payload); break;
             case 'vrcRefreshNotifs':
                 refreshNotifications();
                 break;

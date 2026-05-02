@@ -390,6 +390,9 @@ public class AppSettings
     public bool DbOptimize           { get; set; } = true;
     public int  DbOptimizeMaxEntries { get; set; } = 500;
 
+    // One-time migration: backfill first_meet_date + meet_again_count into user_tracking
+    public bool UserTrackingCountsMigrated { get; set; } = false;
+
     // Auto-Update on startup
     public bool AutoUpdate { get; set; } = true;
 
@@ -1945,6 +1948,8 @@ public class UnifiedTimeEngine : IDisposable
             "profile_is_friend   INTEGER NOT NULL DEFAULT 0",
             "profile_avatar_img  TEXT NOT NULL DEFAULT ''",
             "profile_cached_at   TEXT NOT NULL DEFAULT ''",
+            "first_meet_date     TEXT NOT NULL DEFAULT ''",
+            "meet_again_count    INTEGER NOT NULL DEFAULT 0",
         })
         {
             try

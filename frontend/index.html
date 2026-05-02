@@ -101,6 +101,15 @@
     <div class="main">
         <div class="topbar" id="winDrag">
             <span class="topbar-title" id="pageTitle" data-i18n="page.dashboard">Dashboard</span>
+            <div id="dbMigrationIndicator" style="display:none;flex:0 0 auto;display:none;align-items:center;gap:8px;margin:0 12px;min-width:160px;max-width:220px;">
+                <div style="flex:1;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:3px;white-space:nowrap;" data-i18n="migration.label">Migrating Database...</div>
+                    <div class="upd-progress-bar" style="height:5px;">
+                        <div class="upd-progress-fill" id="dbMigrationFill" style="width:0%;transition:width .3s ease;"></div>
+                    </div>
+                </div>
+                <span style="font-size:10px;color:var(--tx3);flex-shrink:0;" id="dbMigrationPct">0%</span>
+            </div>
             <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
                 <div class="mini-badge vrcplus" id="badgeVrcPlus" style="display:none;"><span class="mini-badge-label">VRC+</span></div>
                 <div class="mini-badge vcredits" id="badgeVrcCredits" style="display:none;"><span class="mini-badge-label" id="badgeVrcCreditsLabel">V 0</span></div>

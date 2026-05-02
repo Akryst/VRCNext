@@ -1543,6 +1543,7 @@ public class FriendsController
             platform = user["platform"]?.ToString() ?? "",
             userNote, totalTimeSeconds = totalSeconds,
             meets = _core.Timeline?.GetMeetAgainCount(userId) ?? 0,
+            firstMeetDate = _core.Timeline?.GetFirstMeetDate(userId) ?? "",
             inSameInstance = (_core.IsVrcRunning?.Invoke() ?? false)
                 && _core.LogWatcher.GetCurrentPlayers().Any(p => p.UserId == userId),
             lastSeenTracked = _core.Timeline?.GetLastSeenTimestamp(userId) ?? "",
