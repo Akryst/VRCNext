@@ -956,6 +956,7 @@ const FT_FILTER_IDS = {
     friend_online:      'ftFOnline',
     friend_offline:     'ftFOffline',
     friend_bio:        'ftFBio',
+    friend_avatar:     'ftFAvatar',
     friend_added:      'ftFAdded',
     friend_removed:    'ftFRemoved',
 };
@@ -967,6 +968,7 @@ const FT_TYPE_COLOR = {
     friend_online:      'var(--ok)',
     friend_offline:     'var(--tx3)',
     friend_bio:        '#AB47BC',
+    friend_avatar:     '#FF7043',
     friend_added:      'var(--ok)',
     friend_removed:    'var(--err)',
 };
@@ -980,6 +982,7 @@ const FT_TYPE_META = {
     friend_added:      { icon: 'person_add',          key: 'timeline.friend_types.friend_added',      fallback: 'Friended' },
     friend_removed:    { icon: 'person_remove',       key: 'timeline.friend_types.friend_removed',    fallback: 'Unfriended' },
     friend_bio:        { icon: 'edit_note',           key: 'timeline.friend_types.friend_bio',        fallback: 'Bio Change' },
+    friend_avatar:     { icon: 'checkroom',           key: 'timeline.friend_types.friend_avatar',     fallback: 'Avatar' },
 };
 
 const STATUS_COLORS = {
@@ -1314,6 +1317,7 @@ function renderFtCard(ev) {
         case 'friend_bio':        body = renderFtBioBody(ev);        break;
         case 'friend_added':      body = renderFtAddedBody(ev);      break;
         case 'friend_removed':    body = renderFtRemovedBody(ev);    break;
+        case 'friend_avatar':     body = renderFtAvatarBody(ev);     break;
     }
 
     const clickAction = ev.type === 'friend_gps'
@@ -1406,6 +1410,17 @@ function renderFtBioBody(ev) {
     return `<div class="tl-card-body">${av}<div class="tl-card-info">
         <div class="tl-main-label">${esc(ev.friendName || t('timeline.unknown', 'Unknown'))}</div>
         <div class="tl-sub-label">${esc(preview)}${ellipsis}</div>
+    </div></div>`;
+}
+
+function renderFtAvatarBody(ev) {
+    const av      = ftFriendAv(ev, 'tl-av');
+    const avThumb = ev.worldThumb
+        ? `<div class="tl-av" style="background-image:url('${cssUrl(ev.worldThumb)}');border-radius:8px;flex-shrink:0;"></div>`
+        : '';
+    return `<div class="tl-card-body">${av}<div class="tl-card-info">
+        <div class="tl-main-label">${esc(ev.friendName || t('timeline.unknown', 'Unknown'))}</div>
+        <div class="tl-sub-label" style="display:flex;align-items:center;gap:6px;">${avThumb}<span>${esc(ev.worldName || ev.newValue || t('timeline.unknown', 'Unknown'))}</span></div>
     </div></div>`;
 }
 

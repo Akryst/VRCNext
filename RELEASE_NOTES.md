@@ -1,5 +1,12 @@
 **2026.21.0**
 
+**Timeline**
+* In **Friends**, avatar changes are now logged.
+* When a friend switches their avatar, it will now appear in the Timeline.
+* However, this only works if the user does **not** have a VRC+ custom banner.
+* At the moment, this feature is not fully reliable. If a user changes their profile image back and forth, it may incorrectly create multiple avatar change entries.
+
+
 **Database Migration**
 * I made some database changes to store profile data more efficiently.
 * When you start VRCNext again, it may be a little slower than usual for a few minutes, or up to an hour in some cases.
