@@ -1,5 +1,20 @@
 **2026.21.0**
 
+**Media Library**
+
+Updated the Media Library with two new filters:
+
+* **Sort by World**
+  Shows all images taken in the selected world. This makes it easier to find photos you took in a specific world.
+
+* **Sort by Friend**
+  Shows all images from instances where the selected friend was present. This makes it easier to find photos connected to a specific friend.
+
+* Added "Reset" button to reset the **Sort by World** and **Sort by Friend** Filter.
+
+**Important note for the Sort by Friend filter:**
+Just because a friend was in the same instance does not mean they are visible in the photo. When you take a picture in an instance, VRCNext lists all people who were in that instance, even if they were not actually in the photo.
+
 **Dashboard**
 
 * Updated the Dashboard hero section with a cleaner and more modern design.

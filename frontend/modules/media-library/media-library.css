@@ -1,5 +1,23 @@
 /* === Media Library Module === */
 
+.lib-is-select { min-width: 130px; max-width: 200px; }
+
+.lib-is-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--bg-input);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.lib-is-thumb-round { border-radius: 50%; }
+.lib-is-thumb-icon { background: var(--bg-input); }
+.lib-is-thumb .msi { font-size: 12px; color: var(--tx3); }
+
 #tab7.active {
     display: flex;
     flex-direction: column;
