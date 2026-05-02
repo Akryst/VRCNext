@@ -108,16 +108,28 @@ public class InstanceController
                     foreach (var instLoc in _core.Settings.MyInstances.ToList())
                     {
                         var inst = await _core.VrcApi.GetInstanceAsync(instLoc);
-                        // Dead if API returns null OR if user is no longer listed as owner
-                        if (inst == null) { miDead.Add(instLoc); continue; }
+                        var shortId = instLoc.Contains(':') ? instLoc.Split(':')[1].Split('~')[0] : instLoc;
+                        if (inst == null)
+                        {
+                            _core.SendToJS("log", new { msg = $"INST: Instance {shortId} returned null - Removed", color = "err" });
+                            miDead.Add(instLoc); continue;
+                        }
+                        var closedAt = inst["closedAt"]?.Type == Newtonsoft.Json.Linq.JTokenType.Null
+                            ? null : inst["closedAt"]?.ToString();
+                        if (!string.IsNullOrEmpty(closedAt))
+                        {
+                            _core.SendToJS("log", new { msg = $"INST: Instance {shortId} returned closed at {closedAt} - Removed", color = "err" });
+                            miDead.Add(instLoc); continue;
+                        }
                         var apiOwnerId = inst["ownerId"]?.ToString() ?? "";
-                        // Group instances are owned by the group (grp_...) — check creatorId instead
                         var effectiveOwner = apiOwnerId.StartsWith("grp_")
                             ? (inst["creatorId"]?.ToString() ?? apiOwnerId)
                             : apiOwnerId;
                         if (!string.IsNullOrEmpty(myId) && effectiveOwner != myId) { miDead.Add(instLoc); continue; }
                         var iType = ParseInstanceTypeFromLoc(instLoc);
                         if (iType == "private" && inst["canRequestInvite"]?.Value<bool>() == true) iType = "invite_plus";
+                        var userCount = inst["userCount"]?.Value<int>() ?? 0;
+                        _core.SendToJS("log", new { msg = $"INST: Instance {shortId} returned {userCount} users", color = "ok" });
                         miRaw.Add((instLoc,
                             inst["worldId"]?.ToString() ?? "",
                             inst["world"]?["name"]?.ToString() ?? "",
@@ -125,7 +137,7 @@ public class InstanceController
                                 inst["worldId"]?.ToString(),
                                 inst["world"]?["imageUrl"]?.ToString() ?? inst["world"]?["thumbnailImageUrl"]?.ToString()),
                             iType,
-                            inst["userCount"]?.Value<int>() ?? 0,
+                            userCount,
                             inst["capacity"]?.Value<int>() ?? 0,
                             inst["region"]?.ToString() ?? ParseRegionFromLoc(instLoc),
                             apiOwnerId));
