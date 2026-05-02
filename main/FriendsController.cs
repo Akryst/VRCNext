@@ -1850,13 +1850,14 @@ public class FriendsController
                     try
                     {
                         var avtrId = await _core.VrcApi.GetAvatarIdByFileIdAsync(newFileId) ?? "";
-                        string avtrName = "", avtrThumb = "";
-                        if (!string.IsNullOrEmpty(avtrId))
-                        {
-                            var avtrObj = await _core.VrcApi.GetAvatarAsync(avtrId);
-                            avtrName  = avtrObj?["name"]?.ToString() ?? "";
-                            avtrThumb = ImageCacheHelper.GetAvatarUrl(avtrId, avtrObj?["thumbnailImageUrl"]?.ToString() ?? avtrObj?["imageUrl"]?.ToString() ?? "");
-                        }
+                        if (string.IsNullOrEmpty(avtrId)) return;
+
+                        var avtrObj  = await _core.VrcApi.GetAvatarAsync(avtrId);
+                        var avtrName = avtrObj?["name"]?.ToString() ?? "";
+                        if (string.IsNullOrEmpty(avtrName)) return;
+
+                        var avtrThumb = ImageCacheHelper.GetAvatarUrl(avtrId, avtrObj?["thumbnailImageUrl"]?.ToString() ?? avtrObj?["imageUrl"]?.ToString() ?? "");
+
                         var fev = new TimelineService.FriendTimelineEvent
                         {
                             Type        = "friend_avatar",
