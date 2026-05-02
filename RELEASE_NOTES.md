@@ -73,3 +73,4 @@ If you used a legacy theme and want it back, you can go back to an older version
 * Upcoming Events: Events now refresh automatically instead of showing outdated information.
 * Hide in System Tray: Clicking the X button now minimizes VRCNext to the system tray instead of closing it.
 * Hide in System Tray: This now also works correctly in Legacy Window mode.
+* Fixed the Media Library button positions.
