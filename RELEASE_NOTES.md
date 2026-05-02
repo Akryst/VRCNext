@@ -25,6 +25,7 @@ Just because a friend was in the same instance does not mean they are visible in
 **Dashboard**
 * Updated the Dashboard hero section with a cleaner and more modern design.
 * Added a new information design to make important details easier to read.
+* Dashboard hero is now 20% bigger.
 
 **Theme Update**
 * Removed all legacy themes from VRCNext, including Midnight, Ocean, Emerald, Sunset, and Periwinkle.

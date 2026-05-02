@@ -124,7 +124,7 @@ body:has(.sidebar.collapsing) .dash-hero { margin-left:  calc(-1 * (var(--sideba
 body:has(.rsidebar.collapsed) .dash-hero { margin-right: calc(-1 * (var(--rsidebar-c) + 28px)); }
 
 .dash-hero-content {
-    padding: 40px calc(var(--rsidebar-w) + 40px) 40px calc(var(--sidebar-w) + 40px);
+    padding: 40px calc(var(--rsidebar-w) + 40px) 0 calc(var(--sidebar-w) + 40px);
     transition: padding-left .22s ease, padding-right .22s ease;
 }
 
