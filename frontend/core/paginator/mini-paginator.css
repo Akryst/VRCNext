@@ -1,0 +1,33 @@
+/* === Mini Paginator — compact paginator for modals === */
+.mini-paginator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 8px 0 2px;
+    flex-wrap: wrap;
+}
+.mini-paginator:empty { display: none; }
+
+.mini-paginator .vrcn-button {
+    min-width: 26px;
+    height: 26px;
+    padding: 0 5px;
+    font-size: 11px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.mini-paginator .mini-pg-active {
+    background: var(--accent);
+    color: #fff;
+}
+
+.mini-paginator .mini-pg-ell {
+    padding: 0 2px;
+    color: var(--tx3);
+    font-size: 11px;
+}

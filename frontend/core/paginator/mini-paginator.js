@@ -1,0 +1,39 @@
+// Mini Paginator — compact version of buildPaginator for modal sections.
+// Same algorithm, smaller buttons via .mini-paginator + .mini-pg-btn classes.
+// Returns '' when totalPages <= 1 — :empty hides the bar automatically.
+
+const MINI_PG_SIZE = 8;         // groups, mutuals
+const MINI_CONTENT_PG_SIZE = 4; // worlds, avatars
+
+function _buildMiniPaginatorBtns(page, totalPages, onPageFn) {
+    const btn = (i) => {
+        const active = i === page ? ' mini-pg-active' : '';
+        return `<button class="vrcn-button${active}" onclick="${onPageFn}(${i})">${i + 1}</button>`;
+    };
+    if (totalPages <= 7) {
+        let h = '';
+        for (let i = 0; i < totalPages; i++) h += btn(i);
+        return h;
+    }
+    const last = totalPages - 1;
+    const mid = Math.max(2, Math.min(page, last - 2));
+    const m0 = mid - 1, m2 = mid + 1;
+    const ell = (show) =>
+        `<span class="mini-pg-ell" style="${show ? '' : 'visibility:hidden;'}">…</span>`;
+    return btn(0) + ell(m0 > 1) + btn(m0) + btn(mid) + btn(m2) + ell(m2 < last - 1) + btn(last);
+}
+
+function buildMiniPaginator(page, totalPages, onPageFn, countHtml = '') {
+    if (totalPages <= 1) return '';
+    const prevDis = page === 0 ? 'disabled' : '';
+    const nextDis = page >= totalPages - 1 ? 'disabled' : '';
+    return `<button class="vrcn-button" ${prevDis} onclick="${onPageFn}(${page - 1})"><span class="msi" style="font-size:13px;">chevron_left</span></button>` +
+        _buildMiniPaginatorBtns(page, totalPages, onPageFn) +
+        `<button class="vrcn-button" ${nextDis} onclick="${onPageFn}(${page + 1})"><span class="msi" style="font-size:13px;">chevron_right</span></button>` +
+        countHtml;
+}
+
+function setMiniPaginator(barId, html) {
+    const bar = document.getElementById(barId);
+    if (bar) bar.innerHTML = html;
+}
