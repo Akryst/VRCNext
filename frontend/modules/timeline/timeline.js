@@ -365,7 +365,7 @@ function filterTimeline() {
         tlRenderedCount = 100;
         const c = document.getElementById('tlContainer');
         if (c) c.innerHTML = sk(tlViewMode === 'list' ? 'timeline-list' : 'timeline');
-        _setTlPaginator('');
+        setPaginator('tlPaginatorBar','');
         clearTimeout(_tlSearchTimer);
         _tlSearchTimer = setTimeout(() => {
             const typeParam = tlFilter === 'all' ? '' : tlFilter;
@@ -384,7 +384,7 @@ function filterTimeline() {
     if (!timelineEvents.length && !tlLoading) {
         if (tlDateFilter) {
             c.innerHTML = `<div class="empty-msg">${esc(t('timeline.empty.initial', 'No events for this day.'))}</div>`;
-            _setTlPaginator('');
+            setPaginator('tlPaginatorBar','');
             return;
         }
         // Events cleared (e.g. filter switched while searching) — reload from server
@@ -408,7 +408,7 @@ function filterTimeline() {
         ? buildPersonalListHtml(eventsToRender)
         : buildTimelineHtml(eventsToRender);
     c.innerHTML = contentHtml;
-    _setTlPaginator(buildTlPagination(tlListPage, totalPages, tlDateFilter ? false : tlHasMore));
+    setPaginator('tlPaginatorBar',buildTlPagination(tlListPage, totalPages, tlDateFilter ? false : tlHasMore));
 
     if (prevScrollTop > 0) c.scrollTop = prevScrollTop;
 
@@ -439,7 +439,7 @@ function _renderTlSearchResults(search) {
 
     if (!events.length) {
         c.innerHTML = `<div class="empty-msg">${esc(tlSearchNoResults(search))}</div>`;
-        _setTlPaginator('');
+        setPaginator('tlPaginatorBar','');
         return;
     }
 
@@ -449,7 +449,7 @@ function _renderTlSearchResults(search) {
         + `${esc(tlSearchSummary(total, search))}</div>`;
     let html = banner + (tlViewMode === 'list' ? buildPersonalListHtml(events) : buildTimelineHtml(events));
     c.innerHTML = html;
-    _setTlPaginator(buildSearchPagination(_tlSearchPage, totalPages, 'tlGoSearchPage', _tlSearchTotal));
+    setPaginator('tlPaginatorBar',buildSearchPagination(_tlSearchPage, totalPages, 'tlGoSearchPage', _tlSearchTotal));
 }
 
 // Called when backend delivers search results
@@ -476,37 +476,9 @@ function tlGoSearchPage(page) {
     sendToCS({ action: 'searchTimeline', query: _tlSearchQuery, date: _tlSearchDate, offset: page * 100, type: typeParam });
 }
 
-// Shared: builds fixed-slot page buttons so navigating never adds/removes buttons.
-// ≤7 pages → show all. >7 pages → always [first][left-ell][m-1][m][m+1][right-ell][last]
-// Ellipsis uses visibility:hidden (not display:none) when no gap → slot preserved, no layout shift.
-function _buildPaginatorBtns(page, totalPages, onPageFn) {
-    const btn = (i) => {
-        const a = i === page ? ' style="background:var(--accent);color:#fff;"' : '';
-        return `<button class="vrcn-button"${a} onclick="${onPageFn}(${i})">${i + 1}</button>`;
-    };
-    if (totalPages <= 7) {
-        let h = '';
-        for (let i = 0; i < totalPages; i++) h += btn(i);
-        return h;
-    }
-    const last = totalPages - 1;
-    // Clamp middle center to [2, last-2] so the window never overlaps first or last slot
-    const mid = Math.max(2, Math.min(page, last - 2));
-    const m0 = mid - 1, m2 = mid + 1;
-    const ell = (show) =>
-        `<span style="padding:0 4px;color:var(--tx3);${show ? '' : 'visibility:hidden;'}">…</span>`;
-    return btn(0) + ell(m0 > 1) + btn(m0) + btn(mid) + btn(m2) + ell(m2 < last - 1) + btn(last);
-}
-
 function buildSearchPagination(page, totalPages, onPageFn, total = 0) {
-    const countInfo = total > 0 ? `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${esc(tlTotalSummary(total))}</span>` : '';
-    if (totalPages <= 1) return countInfo;
-    const prevDis = page === 0 ? 'disabled' : '';
-    const nextDis = page >= totalPages - 1 ? 'disabled' : '';
-    return `<button class="vrcn-button" ${prevDis} onclick="${onPageFn}(${page - 1})"><span class="msi" style="font-size:16px;">chevron_left</span></button>
-        ${_buildPaginatorBtns(page, totalPages, onPageFn)}
-        <button class="vrcn-button" ${nextDis} onclick="${onPageFn}(${page + 1})"><span class="msi" style="font-size:16px;">chevron_right</span></button>
-        ${countInfo}`;
+    const countHtml = total > 0 ? `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${esc(tlTotalSummary(total))}</span>` : '';
+    return buildPaginator(page, totalPages, onPageFn, countHtml) || countHtml;
 }
 
 // Personal Timeline pagination helpers
@@ -526,20 +498,9 @@ function loadMoreTimeline() {
     sendToCS({ action: 'getTimelinePage', offset: tlOffset, type: tlFilter === 'all' ? '' : tlFilter });
 }
 
-function _setTlPaginator(html) {
-    const bar = document.getElementById('tlPaginatorBar');
-    if (bar) bar.innerHTML = html;
-}
-
 function buildTlPagination(page, totalPages, hasMore) {
-    const countInfo = tlTotal > 0 ? `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${esc(tlTotalSummary(tlTotal))}</span>` : '';
-    if (totalPages <= 1 && !hasMore) return countInfo;
-    const prevDis = page === 0 ? 'disabled' : '';
-    const nextDis = (page >= totalPages - 1 && !hasMore) ? 'disabled' : '';
-    return `<button class="vrcn-button" ${prevDis} onclick="tlGoPage(${page - 1})"><span class="msi" style="font-size:16px;">chevron_left</span></button>
-        ${_buildPaginatorBtns(page, totalPages, 'tlGoPage')}
-        <button class="vrcn-button" ${nextDis} onclick="tlGoPage(${page + 1})"><span class="msi" style="font-size:16px;">chevron_right</span></button>
-        ${countInfo}`;
+    const countHtml = tlTotal > 0 ? `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${esc(tlTotalSummary(tlTotal))}</span>` : '';
+    return buildPaginator(page, totalPages, 'tlGoPage', countHtml, hasMore) || countHtml;
 }
 
 function tlGoPage(page) {
@@ -1119,7 +1080,7 @@ function filterFriendTimeline() {
         _ftlSearchDate  = '';
         ftlListPage = 0; ftlRenderedCount = 100;
         c.innerHTML = sk(tlViewMode === 'list' ? 'timeline-list' : 'timeline');
-        _setTlPaginator('');
+        setPaginator('tlPaginatorBar','');
         clearTimeout(_ftlSearchTimer);
         _ftlSearchTimer = setTimeout(() => {
             sendToCS({ action: 'searchFriendTimeline', query: search, date: tlDateFilter, offset: 0, type: ftFilter === 'all' ? '' : ftFilter });
@@ -1134,7 +1095,7 @@ function filterFriendTimeline() {
     if (!friendTimelineEvents.length && !ftlLoading) {
         if (tlDateFilter) {
             c.innerHTML = `<div class="empty-msg">${esc(t('timeline.empty.initial', 'No events for this day.'))}</div>`;
-            _setTlPaginator('');
+            setPaginator('tlPaginatorBar','');
             return;
         }
         // Events cleared (e.g. filter switched while searching) — reload from server
@@ -1158,20 +1119,14 @@ function filterFriendTimeline() {
         ? buildFriendListHtml(ftlEventsToRender)
         : buildFriendTimelineHtml(ftlEventsToRender);
     c.innerHTML = contentHtml;
-    _setTlPaginator(buildFtlPagination(ftlListPage, totalPages, tlDateFilter ? false : ftlHasMore));
+    setPaginator('tlPaginatorBar',buildFtlPagination(ftlListPage, totalPages, tlDateFilter ? false : ftlHasMore));
 
     if (prevScrollTop > 0) c.scrollTop = prevScrollTop;
 }
 
 function buildFtlPagination(page, totalPages, hasMore) {
-    const countInfo = ftlTotal > 0 ? `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${esc(tlTotalSummary(ftlTotal))}</span>` : '';
-    if (totalPages <= 1 && !hasMore) return countInfo;
-    const prevDis = page === 0 ? 'disabled' : '';
-    const nextDis = (page >= totalPages - 1 && !hasMore) ? 'disabled' : '';
-    return `<button class="vrcn-button" ${prevDis} onclick="ftlGoPage(${page - 1})"><span class="msi" style="font-size:16px;">chevron_left</span></button>
-        ${_buildPaginatorBtns(page, totalPages, 'ftlGoPage')}
-        <button class="vrcn-button" ${nextDis} onclick="ftlGoPage(${page + 1})"><span class="msi" style="font-size:16px;">chevron_right</span></button>
-        ${countInfo}`;
+    const countHtml = ftlTotal > 0 ? `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${esc(tlTotalSummary(ftlTotal))}</span>` : '';
+    return buildPaginator(page, totalPages, 'ftlGoPage', countHtml, hasMore) || countHtml;
 }
 
 function _renderFtlSearchResults(search) {
@@ -1182,7 +1137,7 @@ function _renderFtlSearchResults(search) {
 
     if (!events.length) {
         c.innerHTML = `<div class="empty-msg">${esc(tlSearchNoResults(search))}</div>`;
-        _setTlPaginator('');
+        setPaginator('tlPaginatorBar','');
         return;
     }
 
@@ -1192,7 +1147,7 @@ function _renderFtlSearchResults(search) {
         + `${esc(tlSearchSummary(total, search))}</div>`;
     let html = banner + (tlViewMode === 'list' ? buildFriendListHtml(events) : buildFriendTimelineHtml(events));
     c.innerHTML = html;
-    _setTlPaginator(buildSearchPagination(_ftlSearchPage, totalPages, 'ftlGoSearchPage', _ftlSearchTotal));
+    setPaginator('tlPaginatorBar',buildSearchPagination(_ftlSearchPage, totalPages, 'ftlGoSearchPage', _ftlSearchTotal));
 }
 
 function handleFtlSearchResults(payload) {

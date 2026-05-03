@@ -24,7 +24,7 @@ function destroyLibrary() {
         g.querySelectorAll('video').forEach(v => { try { v.pause(); } catch {} v.src = ''; });
         g.innerHTML = '';
     }
-    _setLibPaginator('');
+    setPaginator('libPaginatorBar','');
     _libFiltered     = [];
     _libPage         = 0;
     _libTotal        = 0;
@@ -71,7 +71,7 @@ function forceRefreshLibrary() {
         g.querySelectorAll('video').forEach(v => { try { v.pause(); } catch {} v.src = ''; });
         g.innerHTML = `<div class="empty-msg">${t('library.scanning', 'Scanning...')}</div>`;
     }
-    _setLibPaginator('');
+    setPaginator('libPaginatorBar','');
     sendToCS({ action: 'scanLibraryForce' });
 }
 
@@ -125,7 +125,7 @@ function appendLibraryPage(data) {
     // Update paginator to reflect the newly available total (grid mode only)
     if (_libViewMode !== 'folder') {
         const totalPages = Math.ceil(_libFiltered.length / LIB_PAGE_SIZE) || 1;
-        _setLibPaginator(buildLibPagination(_libPage, totalPages));
+        setPaginator('libPaginatorBar',buildLibPagination(_libPage, totalPages));
     }
 
     // Continue chaining until all metadata is loaded
@@ -203,7 +203,7 @@ function _renderLibPage() {
             : isFiltered
                 ? t('library.empty.filtered', 'No media files found.')
                 : t('library.empty.watch_folders', 'Add watch folders in Settings.')) + '</div>';
-        _setLibPaginator('');
+        setPaginator('libPaginatorBar','');
         return;
     }
 
@@ -223,19 +223,12 @@ function _renderLibPage() {
     }
     g.innerHTML = h;
 
-    _setLibPaginator(buildLibPagination(_libPage, totalPages));
+    setPaginator('libPaginatorBar',buildLibPagination(_libPage, totalPages));
 }
 
-// Paginator (1:1 from buildTlPagination / tlGoPage).
 function buildLibPagination(page, totalPages) {
-    if (totalPages <= 1) return '';
-    const prevDis  = page === 0 ? 'disabled' : '';
-    const nextDis  = page >= totalPages - 1 ? 'disabled' : '';
-    const countInfo = `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${tf('library.pagination.files', { count: _libFiltered.length.toLocaleString() }, '{count} files')}</span>`;
-    return `<button class="vrcn-button" ${prevDis} onclick="libGoPage(${page - 1})"><span class="msi" style="font-size:16px;">chevron_left</span></button>
-        ${_buildPaginatorBtns(page, totalPages, 'libGoPage')}
-        <button class="vrcn-button" ${nextDis} onclick="libGoPage(${page + 1})"><span class="msi" style="font-size:16px;">chevron_right</span></button>
-        ${countInfo}`;
+    const countHtml = `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${tf('library.pagination.files', { count: _libFiltered.length.toLocaleString() }, '{count} files')}</span>`;
+    return buildPaginator(page, totalPages, 'libGoPage', countHtml);
 }
 
 function libGoPage(page) {
@@ -249,10 +242,6 @@ function libGoPage(page) {
     if (wrap) wrap.scrollTop = 0;
 }
 
-function _setLibPaginator(html) {
-    const bar = document.getElementById('libPaginatorBar');
-    if (bar) bar.innerHTML = html;
-}
 
 // Filter.
 // keepPage=true: stay on current page (delete / favorite / hide actions)
@@ -438,7 +427,7 @@ function _renderFolderView() {
     if (!g) return;
     g.querySelectorAll('.lib-thumb').forEach(img => { img.src = PLACEHOLDER; });
     g.querySelectorAll('video').forEach(v => { try { v.pause(); } catch {} v.src = ''; });
-    _setLibPaginator('');
+    setPaginator('libPaginatorBar','');
 
     if (!_libFiltered.length) {
         g.innerHTML = '<div class="empty-msg">' + t('library.empty.watch_folders', 'Add watch folders in Settings.') + '</div>';
@@ -508,7 +497,7 @@ function _renderFolderContents() {
     if (!g) return;
     g.querySelectorAll('.lib-thumb').forEach(img => { img.src = PLACEHOLDER; });
     g.querySelectorAll('video').forEach(v => { try { v.pause(); } catch {} v.src = ''; });
-    _setLibPaginator('');
+    setPaginator('libPaginatorBar','');
 
     const files = _libFiltered.filter(x => _getFileSubfolderPath(x) === _libFolderPath);
     if (!files.length) {

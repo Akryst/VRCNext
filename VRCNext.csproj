@@ -40,6 +40,10 @@
     <PackageReference Include="DiscordRichPresence" Version="1.2.1.24" />
   </ItemGroup>
   <ItemGroup>
+    <Compile  Remove="REFS\**" />
+    <Content  Remove="REFS\**" />
+    <EmbeddedResource Remove="REFS\**" />
+    <None     Remove="REFS\**" />
     <Compile  Remove="translations\**" />
     <Content  Remove="translations\**" />
     <EmbeddedResource Remove="translations\**" />

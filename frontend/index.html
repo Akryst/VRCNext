@@ -53,6 +53,7 @@
     <link rel="stylesheet" href="core/messenger/messenger.css">
     <link rel="stylesheet" href="core/items/items.css">
     <link rel="stylesheet" href="core/notifications/notifications.css">
+    <link rel="stylesheet" href="core/paginator/paginator.css">
     <link rel="stylesheet" href="core/sidebars/navigation/navigation.css">
     <link rel="stylesheet" href="core/sidebars/friends/friends.css">
     <link rel="stylesheet" href="core/previews/friend-preview.css">
@@ -455,7 +456,7 @@
                     <div id="favFriendsGrid" class="search-grid"><div class="empty-msg" data-i18n="friends.favorites.loading">Loading favorite friends...</div></div>
                 </div>
                 <div id="peopleAllArea" style="display:none;">
-                    <div class="search-bar-row" style="margin-bottom:12px;"><span class="msi search-ico">search</span><input type="text" id="allFriendSearchInput" class="vrcn-input" placeholder="Filter friends..." data-i18n-placeholder="profiles.people.all_search_placeholder" oninput="filterAllFriends()"></div>
+                    <div class="search-bar-row" style="margin-bottom:12px;"><span class="msi search-ico">search</span><input type="text" id="allFriendSearchInput" class="vrcn-input" placeholder="Filter friends..." data-i18n-placeholder="profiles.people.all_search_placeholder" oninput="_peopleAllPage=0;filterAllFriends()"></div>
                     <div id="allFriendsGrid" class="search-grid"><div class="empty-msg" data-i18n="profiles.people.loading_all">Loading friends...</div></div>
                 </div>
                 <div id="peopleSearchArea" style="display:none;">
@@ -463,13 +464,16 @@
                     <div id="searchPeopleResults" class="search-grid"><div class="empty-msg" data-i18n="profiles.people.search_prompt">Search for VRChat users</div></div>
                 </div>
                 <div id="peopleBlockedArea" style="display:none;">
-                    <div class="search-bar-row" style="margin-bottom:12px;"><span class="msi search-ico">search</span><input type="text" id="blockedSearch" class="vrcn-input" placeholder="Filter blocked users..." data-i18n-placeholder="profiles.people.blocked_search_placeholder" oninput="filterModList('block')"></div>
+                    <div class="search-bar-row" style="margin-bottom:12px;"><span class="msi search-ico">search</span><input type="text" id="blockedSearch" class="vrcn-input" placeholder="Filter blocked users..." data-i18n-placeholder="profiles.people.blocked_search_placeholder" oninput="_peopleBlockedPage=0;filterModList('block')"></div>
                     <div id="blockedList" class="search-grid"><div class="empty-msg" data-i18n="common.loading">Loading...</div></div>
                 </div>
                 <div id="peopleMutedArea" style="display:none;">
-                    <div class="search-bar-row" style="margin-bottom:12px;"><span class="msi search-ico">search</span><input type="text" id="mutedSearch" class="vrcn-input" placeholder="Filter muted users..." data-i18n-placeholder="profiles.people.muted_search_placeholder" oninput="filterModList('mute')"></div>
+                    <div class="search-bar-row" style="margin-bottom:12px;"><span class="msi search-ico">search</span><input type="text" id="mutedSearch" class="vrcn-input" placeholder="Filter muted users..." data-i18n-placeholder="profiles.people.muted_search_placeholder" oninput="_peopleMutedPage=0;filterModList('mute')"></div>
                     <div id="mutedList" class="search-grid"><div class="empty-msg" data-i18n="common.loading">Loading...</div></div>
                 </div>
+                <div id="peopleAllPaginatorBar" class="tl-paginator-bar"></div>
+                <div id="peopleBlockedPaginatorBar" class="tl-paginator-bar"></div>
+                <div id="peopleMutedPaginatorBar" class="tl-paginator-bar"></div>
             </div>
             <!-- Tab 4: Avatars -->
             <div class="tab" id="tab4">
@@ -2444,6 +2448,7 @@
     <script src="core/items/profile-item-small.js"></script>
     <script src="core/items/instance-item.js"></script>
     <script src="core/logic/core.js"></script>
+    <script src="core/paginator/paginator.js"></script>
     <script src="core/sidebars/navigation/navigation.js"></script>
     <script src="core/i18n/i18n.js"></script>
     <script src="modules/tools/media-relay/media-relay.js"></script>

@@ -157,6 +157,11 @@ let peopleFilter = 'favorites';
 let favFriendsData = []; // [{ fvrtId, favoriteId }]
 let blockedData = null; // null = not yet loaded
 let mutedData = null;
+// People Tab pagination state
+let _peopleAllPage = 0;
+let _peopleBlockedPage = 0;
+let _peopleMutedPage = 0;
+const PEOPLE_PAGE_SIZE = 20; //MAX PG PP
 // VRChat API
 let vrc2faType = 'totp';
 let vrcFriendsData = [];
@@ -1086,6 +1091,7 @@ function showTab(i) {
     document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', j === i));
     const contentEl = document.querySelector('.content');
     if (contentEl) {
+        contentEl.classList.toggle('tab3-active', i === 3);
         contentEl.classList.toggle('tab7-active', i === 7);
         contentEl.classList.toggle('tab12-active', i === 12);
         contentEl.classList.toggle('tab16-active', i === 16);
@@ -1649,4 +1655,5 @@ function handleFfcProgress(d) {
 function vrcnToggleCollapse(headerEl) {
     headerEl.closest('.vrcn-panel-card').classList.toggle('collapsed');
 }
+
 

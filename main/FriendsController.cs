@@ -25,6 +25,15 @@ public class FriendsController
     private readonly SemaphoreSlim _friendsRefreshLock = new(1, 1);
     private readonly HashSet<string> _profileRefreshInFlight = new();
 
+    // Push-debounce: coalesces rapid WebSocket events into a single frontend send.
+    // Trailing debounce (300 ms) with a hard max-wait (1500 ms) so a continuous
+    // event stream still flushes periodically instead of being deferred forever.
+    private CancellationTokenSource? _pushDebounce;
+    private DateTime _pushEarliestFlush = DateTime.MinValue;
+    private readonly object _pushLock = new();
+    private const int PushDebounceMs = 300;
+    private const int PushMaxDelayMs = 1500;
+
     // Chat Storage
     private static readonly string _chatDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VRCNext", "chat");
@@ -1096,6 +1105,32 @@ public class FriendsController
     }
 
     public void PushFriendsFromStore()
+    {
+        CancellationTokenSource? oldCts;
+        CancellationTokenSource cts;
+        int delay;
+        lock (_pushLock)
+        {
+            oldCts = _pushDebounce;
+            oldCts?.Cancel();
+            var now = DateTime.UtcNow;
+            if (_pushEarliestFlush == DateTime.MinValue)
+                _pushEarliestFlush = now.AddMilliseconds(PushMaxDelayMs);
+            delay = (int)Math.Max(0, Math.Min(PushDebounceMs,
+                (_pushEarliestFlush - now).TotalMilliseconds));
+            _pushDebounce = cts = new CancellationTokenSource();
+        }
+        oldCts?.Dispose();
+        var token = cts.Token;
+        _ = Task.Delay(delay, token).ContinueWith(_ =>
+        {
+            if (token.IsCancellationRequested) return;
+            lock (_pushLock) { _pushEarliestFlush = DateTime.MinValue; }
+            DoPushFriendsFromStore();
+        }, TaskContinuationOptions.NotOnCanceled);
+    }
+
+    private void DoPushFriendsFromStore()
     {
         List<JObject> snapshot;
         lock (_friendStore) snapshot = _friendStore.Values.ToList();
