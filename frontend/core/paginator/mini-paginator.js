@@ -1,6 +1,10 @@
-// Mini Paginator — compact version of buildPaginator for modal sections.
-// Same algorithm, smaller buttons via .mini-paginator + .mini-pg-btn classes.
-// Returns '' when totalPages <= 1 — :empty hides the bar automatically.
+// 300ms Debounce
+if (typeof debounce === 'undefined') {
+    window.debounce = function(fn, ms = 300) {
+        let t;
+        return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+    };
+}
 
 const MINI_PG_SIZE = 8;         // groups, mutuals
 const MINI_CONTENT_PG_SIZE = 4; // worlds, avatars

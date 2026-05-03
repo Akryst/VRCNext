@@ -1,6 +1,8 @@
-// Core paginator — shared across Timeline, Media Library, People, Time Spent.
-// ≤7 pages → show all. >7 → fixed slots: [first][ell][m-1][m][m+1][ell][last]
-// Ellipsis uses visibility:hidden (not display:none) so slot width stays stable.
+// 300ms Debounce
+function debounce(fn, ms = 300) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
 function _buildPaginatorBtns(page, totalPages, onPageFn) {
     const btn = (i) => {
         const a = i === page ? ' style="background:var(--accent);color:#fff;"' : '';
@@ -19,10 +21,6 @@ function _buildPaginatorBtns(page, totalPages, onPageFn) {
     return btn(0) + ell(m0 > 1) + btn(m0) + btn(mid) + btn(m2) + ell(m2 < last - 1) + btn(last);
 }
 
-// Returns full paginator HTML (prev + page buttons + next + countHtml).
-// Returns '' when totalPages <= 1 && !hasMore — bar becomes empty → auto-hidden via :empty.
-// countHtml: optional count label appended after nav buttons.
-// hasMore: allow next button past last known page (used by Timeline when total unknown).
 function buildPaginator(page, totalPages, onPageFn, countHtml = '', hasMore = false) {
     if (totalPages <= 1 && !hasMore) return '';
     const prevDis = page === 0 ? 'disabled' : '';
@@ -33,7 +31,6 @@ function buildPaginator(page, totalPages, onPageFn, countHtml = '', hasMore = fa
         countHtml;
 }
 
-// Sets innerHTML of the paginator bar element.
 function setPaginator(barId, html) {
     const bar = document.getElementById(barId);
     if (bar) bar.innerHTML = html;

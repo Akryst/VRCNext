@@ -1,112 +1,52 @@
-**2026.21.0**
+**2026.21.1**
 
-**Timeline**
+### Performance & Large Friend Lists
 
-* In **Friends**, avatar changes are now logged.
-* When a friend switches their avatar, it will now appear in the Timeline.
-* However, this only works if the user does **not** have a VRC+ custom banner.
-* At the moment, this feature is not fully reliable. If a user changes their profile image back and forth, it may incorrectly create multiple avatar change entries.
+This update improves performance for users with very large friend lists.
 
-**New: Game Log tab**
-A new **Game Log** tab has been added to the Timeline, alongside Personal and Friends.
+**Friends Sidebar**
 
-The Game Log shows a live feed of in-game events as they happen, up to 1000 entries. Older entries are replaced by newer ones automatically.
+* Friend sections now stay much lighter and faster, even with hundreds or thousands of friends.
+* Favorites, In-Game, Web, and Offline sections now show up to 100 people at once.
+* The section title still shows the real total amount, for example: `IN-GAME (247)`.
+* Search now checks your full friend list, not only the currently visible cards.
+* If there are more than 100 search results, VRCNext will show a small hint so you can refine your search.
 
-The following events are tracked:
+**Invite Modal**
 
-* **World** — Joining a new instance and instance closures
-* **Players** — Players joining or leaving the current instance
-* **Video** — Video URLs resolved in the current world (e.g. YouTube)
-* **Screenshot** — Screenshots taken with the VRChat camera
-* **Portal** — Portals dropped in the current instance
-* **Errors** — Avatar blocked by performance limits, image load failures, and connection loss
+* The invite window is now much faster with large friend lists.
+* Each section now shows up to 100 people at once.
+* Searching now gives a clean result list with up to 100 matches.
+* If there are too many results, VRCNext will ask you to refine the search.
 
-You can filter the Game Log using the filter buttons at the top:
-**All · World · Players · Media · Portal · Errors**
+**People Tab**
 
-The Game Log supports both **Timeline view** and **List view**, just like Personal and Friends.
+* All Friends now has proper page navigation with 100 friends per page.
+* Blocked and Muted users now also use page navigation.
+* Searching resets the list back to the first page and searches through the full list.
+* Favorites stay unchanged, since they are already limited by VRChat’s favorite groups.
 
-**Database Migration**
-* I made some database changes to store profile data more efficiently.
-* When you start VRCNext again, it may be a little slower than usual for a few minutes, or up to an hour in some cases.
-* This happens because VRCNext is reorganizing existing data in the background.
-* You can see the migration progress in the top bar.
-* You can safely close the app at any time. The process will continue later and will not be corrupted.
+**Friend Updates**
 
-**Media Library**
-Updated the Media Library with two new filters:
+* Rapid friend status and location updates are now grouped together better.
+* This should reduce UI lag when many friends change status, location, or activity at the same time.
 
-* **Sort by World**
-  Shows all images taken in the selected world. This makes it easier to find photos you took in a specific world.
+### Profile Modal Improvements
 
-* **Sort by Friend**
-  Shows all images from instances where the selected friend was present. This makes it easier to find photos connected to a specific friend.
+The Profile Modal now uses smaller page navigation for larger sections.
 
-* Added "Reset" button to reset the **Sort by World** and **Sort by Friend** Filter.
+* Groups now show 8 entries per page.
+* Mutual Friends now show 8 entries per page.
+* Mutual Groups now show 8 entries per page.
+* Uploaded Worlds now show 4 entries per page.
+* Uploaded Avatars now show 4 entries per page.
+* Search works together with the new page navigation where available.
 
-**Important note for the Sort by Friend filter:**
-Just because a friend was in the same instance does not mean they are visible in the photo. When you take a picture in an instance, VRCNext lists all people who were in that instance, even if they were not actually in the photo.
+This keeps profiles easier to browse and prevents large profiles from slowing down the modal.
 
-**Dashboard**
-* Updated the Dashboard hero section with a cleaner and more modern design.
-* Added a new information design to make important details easier to read.
-* Dashboard hero is now 20% bigger.
-* Changed the VRChat Credits color to the normal base theme color.
+### Fixes
 
-**Theme Update**
-* Removed all legacy themes from VRCNext, including Midnight, Ocean, Emerald, Sunset, and Periwinkle.
-* Removed the old green Play button style. The Play button now uses your selected theme color.
-* Added 5 new VRCNext 2.0 themes: Slates, Blood, Miku, VRChat, and Halloween.
-* Removed outlines from Preview Modals.
-
-**Important Note**
-If you used a legacy theme and want it back, you can go back to an older version of VRCNext, open the **Theme Editor** while the old theme is active, and save it as a custom theme.
-
-**World Modal**
-* Added a new **Info** section with useful world details such as recommended capacity, max capacity, instance count, publish date, update date, and world version.
-* Added a new **Community Info** section showing public players, private players, heat, and popularity.
-* Updated the World Modal layout to better match the Profile Modal design.
-* Moved world instances into their own **Instances** tab.
-* The **Instances** tab is now always visible next to **Info** and **Insights**.
-* Each instance now shows the world thumbnail, similar to the **Current World** section in the Profile Modal.
-* Group badges, join buttons, and friend previews are still available in the new instance layout.
-
-**Dashboard Refresh Improvements**
-* Dashboard sections now refresh automatically while the Dashboard tab is open.
-* Group Activity refreshes every 10 minutes.
-* Recently Visited, Favorite Worlds, and Favorite Avatars refresh every 60 minutes.
-* My Avatars and Upcoming Events refresh every 120 minutes.
-* Added a manual refresh button to Recently Visited, Favorite Worlds, Favorite Avatars, My Avatars, Group Activity, Group Activity Small, and Upcoming Events.
-
-**Changes**
-* Improved how world details are saved and loaded, so information such as heat, popularity, player counts, and world version can appear faster.
-* Added more logging for **My Instances** to make issues easier to track down.
-* The Sidebar shades do now use the BG Base color instead of hardcoded colors.
-* Changed the max database compat. size from 10.000 to 250.000
-
-**Fixes**
-* World Modal: Opening a group from the Instances tab now works correctly with the back button.
-* World Modal: Refreshing instances no longer sends you back to the Info tab.
-* World Modal: Instance lists can now scroll properly and show up to 5 instances at once before scrolling.
-* World Modal: Group badges are visible again in the Instances tab.
-* World Modal: Group names in the Instances tab are clickable again.
-* World Modal: Join buttons are visible again for each instance.
-* World Modal: Some world details could appear late or be missing when opening a world. These details now load faster when available.
-* Invite+ instances were shown as **Invite** in the friends sidebar, current instance panel, and instance modal. They now display correctly as **Invite+**.
-* Your Instances: Closed instances are now removed properly after refreshing.
-* Group Activity and Group Activity Small: Closed instances no longer stay visible after they are gone.
-* Recently Visited: The world list now updates properly after the first load.
-* Favorite Worlds: The list no longer stays frozen until restarting VRCNext.
-* Favorite Avatars: The list no longer stays frozen until restarting VRCNext.
-* My Avatars: The list no longer stays frozen until restarting VRCNext.
-* Upcoming Events: Events now refresh automatically instead of showing outdated information.
-* Hide in System Tray: Clicking the X button now minimizes VRCNext to the system tray instead of closing it.
-* Hide in System Tray: This now also works correctly in Legacy Window mode.
-* Fixed the Media Library button positions.
-* Fixed an issue that caused to show wrong "Meet Again" and "First Meet" Counts because of the new Databe structure. It shows now everything correctly again.
-* Fixed an performance issue related to the timeline events.
-* Fixed Database issues which makes loading very slow when opening the timeline tab.
-* Fixed some database migrations issue on the backend! this should prevent any lags when using the search.
-* Fixed an issue that showed "Saved" on startup.
-* Fixed some i18n in the german and english language.
-* Fixed an performance issue caused by the image cache debugger which did run on the background even if not enabled.
+* Fixed the People Tab layout so the page navigation stays properly at the bottom.
+* Fixed friend cards sometimes stretching too much in the People Tab.
+* Fixed page number alignment in the smaller modal page navigation.
+* Improved consistency between People, Timeline, Media Library, and profile sections.
