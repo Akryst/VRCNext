@@ -161,7 +161,7 @@ let mutedData = null;
 let _peopleAllPage = 0;
 let _peopleBlockedPage = 0;
 let _peopleMutedPage = 0;
-const PEOPLE_PAGE_SIZE = 20; //MAX PG PP
+const PEOPLE_PAGE_SIZE = 100; //MAX PG PP
 // VRChat API
 let vrc2faType = 'totp';
 let vrcFriendsData = [];
