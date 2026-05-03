@@ -575,7 +575,7 @@ function renderFriendDetail(d) {
     if (allGroups.length > 0) {
         groupsContent += `<div class="search-bar-row" style="margin-bottom:6px;">
             <span class="msi search-ico">search</span>
-            <input id="fdGroupsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.groups.search_placeholder', 'Search groups by name...'))}" style="background:var(--bg-input);" oninput="window._fdGroupsPage=0;filterFdGroups()">
+            <input id="fdGroupsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.groups.search_placeholder', 'Search groups by name...'))}" style="background:var(--bg-input);" oninput="_dbFdGroups()">
         </div>`;
         if (repG && repG.id) {
             const repIcon = repG.iconUrl ? `<img class="fd-group-icon" src="${repG.iconUrl}" onerror="this.style.display='none'">` : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">group</span></div>`;
@@ -617,7 +617,7 @@ function renderFriendDetail(d) {
     } else {
         mutualsFriendsHtml = `<div class="search-bar-row" style="margin-bottom:6px;">
             <span class="msi search-ico">search</span>
-            <input id="fdMutualsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.mutuals.search_placeholder', 'Search users by name...'))}" style="background:var(--bg-input);" oninput="window._fdMutualsPage=0;filterFdMutuals()">
+            <input id="fdMutualsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.mutuals.search_placeholder', 'Search users by name...'))}" style="background:var(--bg-input);" oninput="_dbFdMutuals()">
         </div>`;
         mutualsFriendsHtml += '<div id="fdMutualsGrid" style="display:grid;grid-template-columns:1fr 1fr;column-gap:6px;"></div>';
         mutualsFriendsHtml += '<div id="fdMutualsPageBar" class="mini-paginator"></div>';
@@ -632,7 +632,7 @@ function renderFriendDetail(d) {
     } else {
         mutualsGroupsHtml = `<div class="search-bar-row" style="margin-bottom:6px;">
             <span class="msi search-ico">search</span>
-            <input id="fdMutualsGroupsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.mutuals.groups_search_placeholder', 'Search groups by name...'))}" style="background:var(--bg-input);" oninput="window._fdMutualsGroupsPage=0;filterFdMutualsGroups()">
+            <input id="fdMutualsGroupsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.mutuals.groups_search_placeholder', 'Search groups by name...'))}" style="background:var(--bg-input);" oninput="_dbFdMutualsGroups()">
         </div>`;
         mutualsGroupsHtml += '<div id="fdMutualsGroupsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>';
         mutualsGroupsHtml += '<div id="fdMutualsGroupsPageBar" class="mini-paginator"></div>';

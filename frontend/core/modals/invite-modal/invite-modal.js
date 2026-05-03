@@ -71,7 +71,7 @@ function _renderInviteModal() {
         </div>
         <div class="inv-search-wrap">
             <span class="msi inv-search-icon">search</span>
-            <input type="text" id="inviteSearch" class="inv-search-input" placeholder="${esc(t('invite.multi.search_placeholder', 'Search friends...'))}" oninput="filterInviteList()">
+            <input type="text" id="inviteSearch" class="inv-search-input" placeholder="${esc(t('invite.multi.search_placeholder', 'Search friends...'))}" oninput="_dbFilterInvite()">
         </div>
         <div id="inviteList" class="inv-list"></div>
         <div class="inv-footer">

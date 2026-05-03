@@ -55,6 +55,7 @@
     <link rel="stylesheet" href="core/notifications/notifications.css">
     <link rel="stylesheet" href="core/paginator/paginator.css">
     <link rel="stylesheet" href="core/paginator/mini-paginator.css">
+    <link rel="stylesheet" href="core/debounce/deb-anim.css">
     <link rel="stylesheet" href="core/sidebars/navigation/navigation.css">
     <link rel="stylesheet" href="core/sidebars/friends/friends.css">
     <link rel="stylesheet" href="core/previews/friend-preview.css">
@@ -451,13 +452,13 @@
                         </select>
                         <div class="search-bar-row" style="margin-bottom:0;flex:1;min-width:140px;">
                             <span class="msi search-ico">search</span>
-                            <input type="text" id="favFriendSearchInput" class="vrcn-input" placeholder="Filter favorite friends..." data-i18n-placeholder="friends.favorites.filter_placeholder" oninput="filterFavFriends()">
+                            <input type="text" id="favFriendSearchInput" class="vrcn-input" placeholder="Filter favorite friends..." data-i18n-placeholder="friends.favorites.filter_placeholder" oninput="_dbFilterFavFriends()">
                         </div>
                     </div>
                     <div id="favFriendsGrid" class="search-grid"><div class="empty-msg" data-i18n="friends.favorites.loading">Loading favorite friends...</div></div>
                 </div>
                 <div id="peopleAllArea" style="display:none;">
-                    <div class="search-bar-row" style="margin-bottom:12px;"><span class="msi search-ico">search</span><input type="text" id="allFriendSearchInput" class="vrcn-input" placeholder="Filter friends..." data-i18n-placeholder="profiles.people.all_search_placeholder" oninput="_peopleAllPage=0;filterAllFriends()"></div>
+                    <div class="search-bar-row" style="margin-bottom:12px;"><span class="msi search-ico">search</span><input type="text" id="allFriendSearchInput" class="vrcn-input" placeholder="Filter friends..." data-i18n-placeholder="profiles.people.all_search_placeholder" oninput="_dbFilterAllFriends()"></div>
                     <div id="allFriendsGrid" class="search-grid"><div class="empty-msg" data-i18n="profiles.people.loading_all">Loading friends...</div></div>
                 </div>
                 <div id="peopleSearchArea" style="display:none;">
@@ -465,11 +466,11 @@
                     <div id="searchPeopleResults" class="search-grid"><div class="empty-msg" data-i18n="profiles.people.search_prompt">Search for VRChat users</div></div>
                 </div>
                 <div id="peopleBlockedArea" style="display:none;">
-                    <div class="search-bar-row" style="margin-bottom:12px;"><span class="msi search-ico">search</span><input type="text" id="blockedSearch" class="vrcn-input" placeholder="Filter blocked users..." data-i18n-placeholder="profiles.people.blocked_search_placeholder" oninput="_peopleBlockedPage=0;filterModList('block')"></div>
+                    <div class="search-bar-row" style="margin-bottom:12px;"><span class="msi search-ico">search</span><input type="text" id="blockedSearch" class="vrcn-input" placeholder="Filter blocked users..." data-i18n-placeholder="profiles.people.blocked_search_placeholder" oninput="_dbFilterBlocked()"></div>
                     <div id="blockedList" class="search-grid"><div class="empty-msg" data-i18n="common.loading">Loading...</div></div>
                 </div>
                 <div id="peopleMutedArea" style="display:none;">
-                    <div class="search-bar-row" style="margin-bottom:12px;"><span class="msi search-ico">search</span><input type="text" id="mutedSearch" class="vrcn-input" placeholder="Filter muted users..." data-i18n-placeholder="profiles.people.muted_search_placeholder" oninput="_peopleMutedPage=0;filterModList('mute')"></div>
+                    <div class="search-bar-row" style="margin-bottom:12px;"><span class="msi search-ico">search</span><input type="text" id="mutedSearch" class="vrcn-input" placeholder="Filter muted users..." data-i18n-placeholder="profiles.people.muted_search_placeholder" oninput="_dbFilterMuted()"></div>
                     <div id="mutedList" class="search-grid"><div class="empty-msg" data-i18n="common.loading">Loading...</div></div>
                 </div>
                 <div id="peopleAllPaginatorBar" class="tl-paginator-bar"></div>
@@ -2264,7 +2265,7 @@
             <div id="vrcInstanceArea"></div>
             <div id="vrcFriendSearch" class="vrc-friend-search" style="display:none;">
                 <button class="nav-btn vrc-fs-icon-btn" onclick="if(rsidebarCollapsed)toggleRsidebar()"><span class="msi vrc-fs-icon">search</span></button>
-                <input type="text" id="vrcFriendSearchInput" class="vrcn-input" placeholder="Search friends..." data-i18n-placeholder="profiles.friends.search_placeholder" oninput="filterFriendsList()">
+                <input type="text" id="vrcFriendSearchInput" class="vrcn-input" placeholder="Search friends..." data-i18n-placeholder="profiles.friends.search_placeholder" oninput="_dbFilterFriends()">
             </div>
             <div id="vrcFriendsList">
                 <div class="vrc-login-box" id="vrcLoginPrompt">
@@ -2451,6 +2452,7 @@
     <script src="core/logic/core.js"></script>
     <script src="core/paginator/paginator.js"></script>
     <script src="core/paginator/mini-paginator.js"></script>
+    <script src="core/debounce/deb-anim.js"></script>
     <script src="core/sidebars/navigation/navigation.js"></script>
     <script src="core/i18n/i18n.js"></script>
     <script src="modules/tools/media-relay/media-relay.js"></script>
@@ -2502,6 +2504,7 @@
     <script src="modules/tools/event-snipe/event-snipe.js"></script>
     <script src="modules/tools/avatar-scaling/avatar-scaling.js"></script>
     <script src="core/logic/init.js"></script>
+    <script src="core/debounce/debounce.js"></script>
 
     <!-- Dashboard layout editor modal -->
     <div id="dashLayoutModal" class="modal-overlay" style="display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeDashLayoutEditor()">

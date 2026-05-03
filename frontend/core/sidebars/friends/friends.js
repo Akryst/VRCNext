@@ -103,7 +103,7 @@ function renderVrcFriends(friends, counts) {
     // Same Location — only shown when sidebar is expanded
     if (!rsidebarCollapsed) {
         const _instGroups = {};
-        friends.filter(f => f.presence === 'game' && f.location && f.location.startsWith('wrld_')).forEach(f => {
+        gameFriends.filter(f => f.location && f.location.startsWith('wrld_')).forEach(f => {
             const locBase = f.location.split('~')[0];
             if (!_instGroups[locBase]) _instGroups[locBase] = [];
             _instGroups[locBase].push(f);

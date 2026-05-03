@@ -155,6 +155,14 @@ window.external.receiveMessage(rawMsg => {
                     }
                 }
                 break;
+            case 'vrcFriendUpdate': {
+                const idx = vrcFriendsData.findIndex(f => f.id === payload.id);
+                if (idx >= 0) vrcFriendsData[idx] = payload;
+                else vrcFriendsData.push(payload);
+                renderVrcFriends(vrcFriendsData);
+                if (favFriendsData.length > 0) filterFavFriends();
+                break;
+            }
             case 'vrcFriends':
                 vrcFriendsLoaded = true;
                 if (payload.friends) {

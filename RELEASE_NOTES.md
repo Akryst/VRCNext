@@ -50,3 +50,5 @@ This keeps profiles easier to browse and prevents large profiles from slowing do
 * Fixed friend cards sometimes stretching too much in the People Tab.
 * Fixed page number alignment in the smaller modal page navigation.
 * Improved consistency between People, Timeline, Media Library, and profile sections.
+* Fixed the In Same Instance sidebar section unnecessarily looping through all friends. It now reuses the already-filtered in-game list, which is much faster with large friend counts.
+* Friend status and location updates now send only the changed friend to the frontend instead of the full friend list. This removes a lot of unnecessary work on every single realtime update.

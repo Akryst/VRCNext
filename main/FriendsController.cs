@@ -1130,6 +1130,30 @@ public class FriendsController
         }, TaskContinuationOptions.NotOnCanceled);
     }
 
+    private void PushFriendUpdate(string userId)
+    {
+        JObject? f;
+        lock (_friendStore) _friendStore.TryGetValue(userId, out f);
+        if (f == null) return;
+        var location = f["location"]?.ToString() ?? "";
+        var platform = f["last_platform"]?.ToString() ?? f["platform"]?.ToString() ?? "";
+        bool isWebPlatform = platform.Equals("web", StringComparison.OrdinalIgnoreCase);
+        bool isInGame = !string.IsNullOrEmpty(location) && location != "offline" && location != "" && !isWebPlatform;
+        var status = f["status"]?.ToString() ?? "offline";
+        var presence = (location == "offline" && status == "offline") ? "offline" : isInGame ? "game" : "web";
+        _core.SendToJS("vrcFriendUpdate", new
+        {
+            id = f["id"]?.ToString() ?? "",
+            displayName = f["displayName"]?.ToString() ?? "",
+            image = ImageCacheHelper.GetUserUrl(f["id"]?.ToString(), VRChatApiService.GetUserImage(f)),
+            status, statusDescription = f["statusDescription"]?.ToString() ?? "",
+            location, platform, presence,
+            tags = f["tags"]?.ToObject<List<string>>() ?? new List<string>(),
+            ageVerified = f["ageVerified"]?.Value<bool>() ?? false,
+            avatarFileId = ExtractAvatarFileId(f),
+        });
+    }
+
     private void DoPushFriendsFromStore()
     {
         List<JObject> snapshot;
@@ -1644,7 +1668,7 @@ public class FriendsController
 
         MergeFriendStore(e.UserId, e.User, location: loc,
             platform: string.IsNullOrEmpty(e.Platform) ? null : e.Platform);
-        PushFriendsFromStore();
+        PushFriendUpdate(e.UserId);
 
         if (e.User != null)
             _friendNameImg[e.UserId] = (
@@ -1707,7 +1731,7 @@ public class FriendsController
         MergeFriendStore(e.UserId, e.User,
             location: string.IsNullOrEmpty(e.Location) ? "" : e.Location,
             platform: string.IsNullOrEmpty(e.Platform) ? null : e.Platform);
-        PushFriendsFromStore();
+        PushFriendUpdate(e.UserId);
 
         var (fname, fimg) = _friendNameImg.GetValueOrDefault(e.UserId, ("", ""));
         if (e.User != null)
@@ -1742,7 +1766,7 @@ public class FriendsController
         if (string.IsNullOrEmpty(e.UserId) || !_friendStateSeeded) return;
 
         MergeFriendStore(e.UserId, null, wentOffline: true);
-        PushFriendsFromStore();
+        PushFriendUpdate(e.UserId);
 
         var (fname, fimg) = _friendNameImg.GetValueOrDefault(e.UserId, ("", ""));
         if (e.User != null)
@@ -1776,7 +1800,7 @@ public class FriendsController
         MergeFriendStore(e.UserId, e.User,
             location: string.IsNullOrEmpty(e.Location) ? "" : e.Location,
             platform: string.IsNullOrEmpty(e.Platform) ? null : e.Platform);
-        PushFriendsFromStore();
+        PushFriendUpdate(e.UserId);
 
         var fname = "";
         var fimg = "";
@@ -1814,7 +1838,7 @@ public class FriendsController
         if (e.User == null || string.IsNullOrEmpty(e.UserId) || !_friendStateSeeded) return;
 
         MergeFriendStore(e.UserId, e.User);
-        PushFriendsFromStore();
+        PushFriendUpdate(e.UserId);
 
         var fname = e.User["displayName"]?.ToString() ?? _friendNameImg.GetValueOrDefault(e.UserId).name ?? "";
         var fimg = VRChatApiService.GetUserImage(e.User);
