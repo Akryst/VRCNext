@@ -7,6 +7,22 @@ namespace VRCNext;
 public class CoreLibrary
 {
     public VRChatApiService VrcApi { get; }
+
+    public AuthAPI Auth { get; }
+    public UsersAPI Users { get; }
+    public FriendsAPI Friends { get; }
+    public AvatarsAPI Avatars { get; }
+    public WorldAPI World { get; }
+    public InstancesAPI Instances { get; }
+    public InviteAPI Invite { get; }
+    public FavoritesAPI Favorites { get; }
+    public GroupsAPI Groups { get; }
+    public CalendarAPI Calendar { get; }
+    public NotificationsAPI Notifications { get; }
+    public PlayerModerationAPI PlayerModeration { get; }
+    public FilesAPI Files { get; }
+    public InventoryAPI Inventory { get; }
+    public EconomyAPI Economy { get; }
     public VRChatLogWatcher LogWatcher { get; }
     public TimelineService Timeline { get; }
     public AppSettings Settings { get; }
@@ -67,6 +83,21 @@ public class CoreLibrary
         Action<string, object?> sendToJS)
     {
         VrcApi = vrcApi;
+        Auth             = new AuthAPI(vrcApi);
+        Users            = new UsersAPI(vrcApi);
+        Friends          = new FriendsAPI(vrcApi);
+        Avatars          = new AvatarsAPI(vrcApi);
+        World            = new WorldAPI(vrcApi);
+        Instances        = new InstancesAPI(vrcApi);
+        Invite           = new InviteAPI(vrcApi);
+        Favorites        = new FavoritesAPI(vrcApi);
+        Groups           = new GroupsAPI(vrcApi);
+        Calendar         = new CalendarAPI(vrcApi);
+        Notifications    = new NotificationsAPI(vrcApi);
+        PlayerModeration = new PlayerModerationAPI(vrcApi);
+        Files            = new FilesAPI(vrcApi);
+        Inventory        = new InventoryAPI(vrcApi);
+        Economy          = new EconomyAPI(vrcApi);
         LogWatcher = logWatcher;
         Timeline = timeline;
         Settings = settings;

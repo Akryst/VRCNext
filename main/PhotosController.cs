@@ -571,7 +571,7 @@ public class PhotosController
                     await semaphore.WaitAsync();
                     try
                     {
-                        var profile = await _core.VrcApi.GetUserAsync(p.userId);
+                        var profile = await _core.Users.GetUserAsync(p.userId);
                         if (profile != null)
                         {
                             var img = VRChatApiService.GetUserImage(profile);

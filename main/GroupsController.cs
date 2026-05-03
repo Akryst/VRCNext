@@ -23,14 +23,14 @@ public class GroupsController
         if (Interlocked.CompareExchange(ref _groupsInFlight, 1, 0) != 0) return; // already running
         try
         {
-            var groups = await _core.VrcApi.GetUserGroupsAsync();
+            var groups = await _core.Groups.GetUserGroupsAsync();
             var ids = groups.Cast<JObject>()
                 .Select(g => g["groupId"]?.ToString() ?? g["id"]?.ToString() ?? "")
                 .Where(id => !string.IsNullOrEmpty(id))
                 .Distinct()
                 .ToList();
 
-            var fullGroups = await Task.WhenAll(ids.Select(id => _core.VrcApi.GetGroupAsync(id)));
+            var fullGroups = await Task.WhenAll(ids.Select(id => _core.Groups.GetGroupAsync(id)));
 
             var enriched = new List<object>();
             for (int i = 0; i < ids.Count; i++)
@@ -102,7 +102,7 @@ public class GroupsController
                 var gOff = msg["offset"]?.Value<int>() ?? 0;
                 _ = Task.Run(async () =>
                 {
-                    var res = await _core.VrcApi.SearchGroupsAsync(gQ, 20, gOff);
+                    var res = await _core.Groups.SearchGroupsAsync(gQ, 20, gOff);
                     var list = res.Cast<JObject>().Select(g => new {
                         id = g["id"]?.ToString() ?? "", name = g["name"]?.ToString() ?? "",
                         shortCode = g["shortCode"]?.ToString() ?? "", description = g["description"]?.ToString() ?? "",
@@ -119,8 +119,8 @@ public class GroupsController
                 _ = Task.Run(async () =>
                 {
                     // Fetch group metadata (name/icon) and all instances in parallel — 2 calls total
-                    var groupTask     = _core.VrcApi.GetUserGroupsAsync();
-                    var instancesTask = _core.VrcApi.GetAllGroupInstancesAsync();
+                    var groupTask     = _core.Groups.GetUserGroupsAsync();
+                    var instancesTask = _core.Instances.GetAllGroupInstancesAsync();
                     await Task.WhenAll(groupTask, instancesTask);
 
                     var groupMap = groupTask.Result.Cast<JObject>()
@@ -202,7 +202,7 @@ public class GroupsController
                         });
                     _ = Task.Run(async () =>
                     {
-                        var g = await _core.VrcApi.GetGroupAsync(ggId);
+                        var g = await _core.Groups.GetGroupAsync(ggId);
                         if (g != null)
                         {
                             // Save basic detail to DB immediately so future opens are instant
@@ -224,10 +224,10 @@ public class GroupsController
 
                             bool isMember = g["myMember"] != null && g["myMember"]!.Type != JTokenType.Null;
                             // Fetch additional data in parallel
-                            var postsTask = _core.VrcApi.GetGroupPostsAsync(ggId, publicOnly: !isMember);
-                            var instancesTask = _core.VrcApi.GetGroupInstancesAsync(ggId);
-                            var membersTask = _core.VrcApi.GetGroupMembersAsync(ggId);
-                            var eventsTask = _core.VrcApi.GetGroupEventsAsync(ggId);
+                            var postsTask = _core.Groups.GetGroupPostsAsync(ggId, publicOnly: !isMember);
+                            var instancesTask = _core.Groups.GetGroupInstancesAsync(ggId);
+                            var membersTask = _core.Groups.GetGroupMembersAsync(ggId);
+                            var eventsTask = _core.Calendar.GetGroupEventsAsync(ggId);
 
                             await Task.WhenAll(postsTask, instancesTask, membersTask, eventsTask);
 
@@ -245,7 +245,7 @@ public class GroupsController
                                 var galName = gal["name"]?.ToString() ?? "";
                                 if (!string.IsNullOrEmpty(galId))
                                 {
-                                    var imgs = await _core.VrcApi.GetGroupGalleryImagesAsync(ggId, galId);
+                                    var imgs = await _core.Groups.GetGroupGalleryImagesAsync(ggId, galId);
                                     foreach (var img in imgs)
                                     {
                                         galleryImages.Add(new {
@@ -274,7 +274,7 @@ public class GroupsController
                                 ?? ownerMember?["displayName"]?.ToString() ?? "";
                             if (string.IsNullOrEmpty(ownerDisplayName) && !string.IsNullOrEmpty(ownerId))
                             {
-                                var ownerUser = await _core.VrcApi.GetUserAsync(ownerId);
+                                var ownerUser = await _core.Users.GetUserAsync(ownerId);
                                 ownerDisplayName = ownerUser?["displayName"]?.ToString() ?? "";
                             }
 
@@ -375,7 +375,7 @@ public class GroupsController
                 if (!string.IsNullOrEmpty(jgId))
                 {
                     _ = Task.Run(async () => {
-                        var ok = await _core.VrcApi.JoinGroupAsync(jgId);
+                        var ok = await _core.Groups.JoinGroupAsync(jgId);
                         _core.SendToJS("vrcActionResult", new { action = "joinGroup", success = ok,
                             message = ok ? "Group join request sent!" : "Failed to join group" });
                     });
@@ -390,7 +390,7 @@ public class GroupsController
                 if (!string.IsNullOrEmpty(gmId))
                 {
                     _ = Task.Run(async () => {
-                        var members = await _core.VrcApi.GetGroupMembersAsync(gmId, 50, gmOffset);
+                        var members = await _core.Groups.GetGroupMembersAsync(gmId, 50, gmOffset);
                         var list = members.Select(m => new {
                             id = m["userId"]?.ToString() ?? "",
                             displayName = m["user"]?["displayName"]?.ToString() ?? m["displayName"]?.ToString() ?? "",
@@ -418,7 +418,7 @@ public class GroupsController
                 if (!string.IsNullOrEmpty(sgmId) && !string.IsNullOrEmpty(sgmQuery))
                 {
                     _ = Task.Run(async () => {
-                        var members = await _core.VrcApi.SearchGroupMembersAsync(sgmId, sgmQuery);
+                        var members = await _core.Groups.SearchGroupMembersAsync(sgmId, sgmQuery);
                         var list = members.Select(m => new {
                             id = m["userId"]?.ToString() ?? "",
                             displayName = m["user"]?["displayName"]?.ToString() ?? m["displayName"]?.ToString() ?? "",
@@ -444,7 +444,7 @@ public class GroupsController
                 var grmRoleId  = msg["roleId"]?.ToString() ?? "";
                 if (!string.IsNullOrEmpty(grmGroupId) && !string.IsNullOrEmpty(grmRoleId))
                     _ = Task.Run(async () => {
-                        var members = await _core.VrcApi.GetGroupRoleMembersAsync(grmGroupId, grmRoleId);
+                        var members = await _core.Groups.GetGroupRoleMembersAsync(grmGroupId, grmRoleId);
                         var list = members.Select(m => new {
                             id = m["userId"]?.ToString() ?? "",
                             displayName = m["user"]?["displayName"]?.ToString() ?? m["displayName"]?.ToString() ?? "",
@@ -465,7 +465,7 @@ public class GroupsController
                 if (!string.IsNullOrEmpty(lgId))
                 {
                     _ = Task.Run(async () => {
-                        var ok = await _core.VrcApi.LeaveGroupAsync(lgId);
+                        var ok = await _core.Groups.LeaveGroupAsync(lgId);
                         _core.SendToJS("vrcActionResult", new { action = "leaveGroup", success = ok,
                             message = ok ? "Left group" : "Failed to leave group" });
                     });
@@ -479,7 +479,7 @@ public class GroupsController
                 if (!string.IsNullOrEmpty(rgId))
                 {
                     _ = Task.Run(async () => {
-                        var ok = await _core.VrcApi.SetRepresentedGroupAsync(rgId);
+                        var ok = await _core.Groups.SetRepresentedGroupAsync(rgId);
                         _core.SendToJS("vrcActionResult", new { action = "representGroup", success = ok,
                             groupId = rgId,
                             message = ok ? "Now representing group" : "Failed to represent group" });
@@ -496,7 +496,7 @@ public class GroupsController
                 if (!string.IsNullOrEmpty(svGroupId) && !string.IsNullOrEmpty(svUserId))
                 {
                     _ = Task.Run(async () => {
-                        var ok = await _core.VrcApi.SetGroupMemberVisibilityAsync(svGroupId, svUserId, svVis);
+                        var ok = await _core.Groups.SetGroupMemberVisibilityAsync(svGroupId, svUserId, svVis);
                         _core.SendToJS("groupVisibilityUpdated", new { groupId = svGroupId, visibility = svVis, success = ok });
                     });
                 }
@@ -545,7 +545,7 @@ public class GroupsController
                                 if (commaIdx >= 0) b64 = b64[(commaIdx + 1)..];
                                 var imgBytes = Convert.FromBase64String(b64);
                                 _core.SendToJS("log", new { msg = $"[GroupPost] Uploading image {imgMime} {imgBytes.Length / 1024} KB", color = "sec" });
-                                imageId = await _core.VrcApi.UploadImageAsync(imgBytes, imgMime, imgExt);
+                                imageId = await _core.Files.UploadImageAsync(imgBytes, imgMime, imgExt);
                                 if (imageId == null)
                                     _core.SendToJS("log", new { msg = "[GroupPost] Image upload failed, posting without image", color = "warn" });
                                 else
@@ -556,7 +556,7 @@ public class GroupsController
                                 _core.SendToJS("log", new { msg = $"[GroupPost] Image parse error: {ex.Message}", color = "err" });
                             }
                         }
-                        var ok = await _core.VrcApi.CreateGroupPostAsync(cpGroupId, cpTitle, cpText, cpVisibility, cpNotify, imageId);
+                        var ok = await _core.Groups.CreateGroupPostAsync(cpGroupId, cpTitle, cpText, cpVisibility, cpNotify, imageId);
                         _core.SendToJS("vrcActionResult", new
                         {
                             action = "createGroupPost",
@@ -576,7 +576,7 @@ public class GroupsController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.VrcApi.DeleteGroupPostAsync(dgpGroupId, dgpPostId);
+                        var ok = await _core.Groups.DeleteGroupPostAsync(dgpGroupId, dgpPostId);
                         _core.SendToJS("vrcActionResult", new { action = "deleteGroupPost", success = ok, postId = dgpPostId });
                     });
                 }
@@ -591,7 +591,7 @@ public class GroupsController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.VrcApi.DeleteGroupEventAsync(dgeGroupId, dgeEventId);
+                        var ok = await _core.Calendar.DeleteGroupEventAsync(dgeGroupId, dgeEventId);
                         _core.SendToJS("vrcActionResult", new { action = "deleteGroupEvent", success = ok, eventId = dgeEventId });
                     });
                 }
@@ -612,7 +612,7 @@ public class GroupsController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.VrcApi.UpdateGroupAsync(ugGroupId, ugDesc, ugRules, ugLanguages, ugLinks, ugIconId, ugBannerId, ugJoinState);
+                        var ok = await _core.Groups.UpdateGroupAsync(ugGroupId, ugDesc, ugRules, ugLanguages, ugLinks, ugIconId, ugBannerId, ugJoinState);
                         _core.SendToJS("vrcGroupUpdated", new {
                             success = ok, groupId = ugGroupId,
                             description = ugDesc, rules = ugRules,
@@ -632,7 +632,7 @@ public class GroupsController
                 if (!string.IsNullOrEmpty(kmGroupId) && !string.IsNullOrEmpty(kmUserId))
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.VrcApi.KickGroupMemberAsync(kmGroupId, kmUserId);
+                        var ok = await _core.Groups.KickGroupMemberAsync(kmGroupId, kmUserId);
                         _core.SendToJS("vrcActionResult", new { action = "kickGroupMember", success = ok, message = ok ? "Member kicked." : "Kick failed." });
                     });
                 break;
@@ -645,7 +645,7 @@ public class GroupsController
                 if (!string.IsNullOrEmpty(bmGroupId) && !string.IsNullOrEmpty(bmUserId))
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.VrcApi.BanGroupMemberAsync(bmGroupId, bmUserId);
+                        var ok = await _core.Groups.BanGroupMemberAsync(bmGroupId, bmUserId);
                         _core.SendToJS("vrcActionResult", new { action = "banGroupMember", success = ok, message = ok ? "Member banned." : "Ban failed." });
                     });
                 break;
@@ -656,7 +656,7 @@ public class GroupsController
                 var gbId = msg["groupId"]?.ToString() ?? "";
                 if (!string.IsNullOrEmpty(gbId))
                     _ = Task.Run(async () => {
-                        var bans = await _core.VrcApi.GetGroupBansAsync(gbId);
+                        var bans = await _core.Groups.GetGroupBansAsync(gbId);
                         var list = bans.Select(b => new {
                             id          = b["userId"]?.ToString() ?? "",
                             displayName = b["user"]?["displayName"]?.ToString() ?? b["displayName"]?.ToString() ?? "",
@@ -674,7 +674,7 @@ public class GroupsController
                 var ubUserId  = msg["userId"]?.ToString() ?? "";
                 if (!string.IsNullOrEmpty(ubGroupId) && !string.IsNullOrEmpty(ubUserId))
                     _ = Task.Run(async () => {
-                        var ok = await _core.VrcApi.UnbanGroupMemberAsync(ubGroupId, ubUserId);
+                        var ok = await _core.Groups.UnbanGroupMemberAsync(ubGroupId, ubUserId);
                         _core.SendToJS("vrcActionResult", new { action = "unbanGroupMember", success = ok, userId = ubUserId, message = ok ? "Member unbanned." : "Unban failed." });
                     });
                 break;
@@ -691,7 +691,7 @@ public class GroupsController
                 var crTfa     = msg["requiresTwoFactor"]?.Value<bool>() ?? false;
                 if (!string.IsNullOrEmpty(crGroupId) && !string.IsNullOrEmpty(crName))
                     _ = Task.Run(async () => {
-                        var role = await _core.VrcApi.CreateGroupRoleAsync(crGroupId, crName, crDesc, crPerms, crJoin, crSelf, crTfa);
+                        var role = await _core.Groups.CreateGroupRoleAsync(crGroupId, crName, crDesc, crPerms, crJoin, crSelf, crTfa);
                         var ok = role != null;
                         object? roleData = ok ? (object)new {
                             id              = role!["id"]?.ToString() ?? "",
@@ -720,7 +720,7 @@ public class GroupsController
                 var urTfa     = msg["requiresTwoFactor"]!= null ? (bool?)msg["requiresTwoFactor"]!.Value<bool>(): null;
                 if (!string.IsNullOrEmpty(urGroupId) && !string.IsNullOrEmpty(urRoleId))
                     _ = Task.Run(async () => {
-                        var ok = await _core.VrcApi.UpdateGroupRoleAsync(urGroupId, urRoleId, urName, urDesc, urPerms, urJoin, urSelf, urTfa);
+                        var ok = await _core.Groups.UpdateGroupRoleAsync(urGroupId, urRoleId, urName, urDesc, urPerms, urJoin, urSelf, urTfa);
                         _core.SendToJS("vrcGroupRoleResult", new { action = "update", success = ok, groupId = urGroupId, roleId = urRoleId });
                     });
                 break;
@@ -732,7 +732,7 @@ public class GroupsController
                 var drRoleId  = msg["roleId"]?.ToString() ?? "";
                 if (!string.IsNullOrEmpty(drGroupId) && !string.IsNullOrEmpty(drRoleId))
                     _ = Task.Run(async () => {
-                        var ok = await _core.VrcApi.DeleteGroupRoleAsync(drGroupId, drRoleId);
+                        var ok = await _core.Groups.DeleteGroupRoleAsync(drGroupId, drRoleId);
                         _core.SendToJS("vrcGroupRoleResult", new { action = "delete", success = ok, groupId = drGroupId, roleId = drRoleId });
                     });
                 break;
@@ -745,7 +745,7 @@ public class GroupsController
                 var amrRoleId  = msg["roleId"]?.ToString() ?? "";
                 if (!string.IsNullOrEmpty(amrGroupId) && !string.IsNullOrEmpty(amrUserId) && !string.IsNullOrEmpty(amrRoleId))
                     _ = Task.Run(async () => {
-                        var ok = await _core.VrcApi.AddGroupMemberRoleAsync(amrGroupId, amrUserId, amrRoleId);
+                        var ok = await _core.Groups.AddGroupMemberRoleAsync(amrGroupId, amrUserId, amrRoleId);
                         _core.SendToJS("vrcActionResult", new { action = "addGroupMemberRole", success = ok, userId = amrUserId, roleId = amrRoleId, message = ok ? "Role assigned." : "Failed to assign role." });
                     });
                 break;
@@ -758,7 +758,7 @@ public class GroupsController
                 var rmrRoleId  = msg["roleId"]?.ToString() ?? "";
                 if (!string.IsNullOrEmpty(rmrGroupId) && !string.IsNullOrEmpty(rmrUserId) && !string.IsNullOrEmpty(rmrRoleId))
                     _ = Task.Run(async () => {
-                        var ok = await _core.VrcApi.RemoveGroupMemberRoleAsync(rmrGroupId, rmrUserId, rmrRoleId);
+                        var ok = await _core.Groups.RemoveGroupMemberRoleAsync(rmrGroupId, rmrUserId, rmrRoleId);
                         _core.SendToJS("vrcActionResult", new { action = "removeGroupMemberRole", success = ok, userId = rmrUserId, roleId = rmrRoleId, message = ok ? "Role removed." : "Failed to remove role." });
                     });
                 break;
@@ -801,13 +801,13 @@ public class GroupsController
                                 if (commaIdx >= 0) b64 = b64[(commaIdx + 1)..];
                                 var imgBytes = Convert.FromBase64String(b64);
                                 _core.SendToJS("log", new { msg = $"[GroupEvent] Uploading image {imgMime} {imgBytes.Length / 1024} KB", color = "sec" });
-                                imageId = await _core.VrcApi.UploadImageAsync(imgBytes, imgMime, imgExt);
+                                imageId = await _core.Files.UploadImageAsync(imgBytes, imgMime, imgExt);
                                 if (imageId == null)
                                     _core.SendToJS("log", new { msg = "[GroupEvent] Image upload failed, creating event without image", color = "warn" });
                             }
                             catch (Exception ex) { _core.SendToJS("log", new { msg = $"[GroupEvent] Image error: {ex.Message}", color = "err" }); }
                         }
-                        var result = await _core.VrcApi.CreateGroupEventAsync(ceGroupId, ceTitle, ceDesc, ceStartsAt, ceEndsAt, ceCategory, ceAccess, ceNotify, imageId);
+                        var result = await _core.Calendar.CreateGroupEventAsync(ceGroupId, ceTitle, ceDesc, ceStartsAt, ceEndsAt, ceCategory, ceAccess, ceNotify, imageId);
                         var ok = result != null;
                         _core.SendToJS("vrcActionResult", new
                         {
@@ -827,7 +827,7 @@ public class GroupsController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var (arr, optedOut) = await _core.VrcApi.GetUserMutualsAsync(mnUid);
+                        var (arr, optedOut) = await _core.Users.GetUserMutualsAsync(mnUid);
                         var ids = optedOut ? Array.Empty<string>()
                                            : arr.Select(m => m["id"]?.ToString() ?? "").Where(s => s != "").ToArray();
                         _core.SendToJS("vrcMutualsForNetwork", new { userId = mnUid, mutualIds = ids, optedOut });
@@ -895,7 +895,7 @@ public class GroupsController
                         int done = 0, success = 0, fail = 0;
                         foreach (var uid in invUids)
                         {
-                            var (ok, error) = await _core.VrcApi.CreateGroupInviteAsync(invGid, uid);
+                            var (ok, error) = await _core.Groups.CreateGroupInviteAsync(invGid, uid);
                             if (ok) success++; else fail++;
                             done++;
                             _core.SendToJS("vrcGroupInviteProgress", new { done, total = invUids.Count, success, fail, error });
@@ -920,7 +920,7 @@ public class GroupsController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var location = await _core.VrcApi.CreateGroupInstanceAsync(
+                        var location = await _core.Instances.CreateGroupInstanceAsync(
                             cgiWorldId, cgiGroupId, cgiAccessType, cgiRegion,
                             cgiInstanceName, cgiQueueEnabled, cgiAgeGateEnabled);
                         if (!string.IsNullOrEmpty(location))
@@ -929,7 +929,7 @@ public class GroupsController
                             string message;
                             if (cgiAndJoin)
                             {
-                                ok = await _core.VrcApi.InviteSelfAsync(location);
+                                ok = await _core.Instances.InviteSelfAsync(location);
                                 message = ok ? "Group instance created! Self-invite sent." : "Instance created but invite failed.";
                             }
                             else

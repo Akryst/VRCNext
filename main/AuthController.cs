@@ -79,7 +79,7 @@ public class AuthController
 
             case "vrcLogout":
                 _relayCtrl.StopWebSocket();
-                await _core.VrcApi.LogoutAsync();
+                await _core.Auth.LogoutAsync();
                 _core.Settings.VrcAuthCookie = "";
                 _core.Settings.VrcTwoFactorCookie = "";
                 _core.Settings.Save();
@@ -445,13 +445,13 @@ public class AuthController
                     try
                     {
                         await Task.Delay(2000);
-                        await _core.VrcApi.GetCurrentUserLocationAsync();
+                        await _core.Auth.GetCurrentUserLocationAsync();
                         var avatarId = _core.VrcApi.CurrentAvatarId ?? "";
                         string avatarThumb = "";
                         JObject? av = null;
                         if (!string.IsNullOrEmpty(avatarId))
                         {
-                            av = await _core.VrcApi.GetAvatarAsync(avatarId);
+                            av = await _core.Avatars.GetAvatarAsync(avatarId);
                             avatarThumb = av?["thumbnailImageUrl"]?.ToString() ?? av?["imageUrl"]?.ToString() ?? "";
                         }
                         var ev = new TimelineService.TimelineEvent
@@ -545,7 +545,7 @@ public class AuthController
             _core.SendToJS("log", new { msg = "VRChat: Resuming session...", color = "sec" });
             _core.VrcApi.RestoreCookies(_core.Settings.VrcAuthCookie, _core.Settings.VrcTwoFactorCookie);
 
-            var result = await _core.VrcApi.TryResumeSessionAsync();
+            var result = await _core.Auth.TryResumeSessionAsync();
             if (result.Success && result.User != null)
             {
                 SendVrcUserData(result.User, loginFlow: true);
@@ -588,7 +588,7 @@ public class AuthController
     {
         SetupVrcDebugLog();
         _core.SendToJS("log", new { msg = "VRChat: Logging in...", color = "sec" });
-        var result = await _core.VrcApi.LoginAsync(username, password);
+        var result = await _core.Auth.LoginAsync(username, password);
         if (result.Requires2FA)
         {
             _pending2faType = result.TwoFactorType;
@@ -619,7 +619,7 @@ public class AuthController
 
     private async Task VrcVerify2FAAsync(string code, string type)
     {
-        var result = await _core.VrcApi.Verify2FAAsync(code, type);
+        var result = await _core.Auth.Verify2FAAsync(code, type);
         if (result.Success && result.User != null)
         {
             SaveVrcCookies();
@@ -745,7 +745,7 @@ public class AuthController
                 JArray? badgesArr = user["badges"] as JArray;
                 if (badgesArr == null || badgesArr.Count == 0)
                 {
-                    var fullUser = await _core.VrcApi.GetUserAsync(userId);
+                    var fullUser = await _core.Users.GetUserAsync(userId);
                     badgesArr = fullUser?["badges"] as JArray ?? new JArray();
                 }
                 var badges = new List<object>();
@@ -770,7 +770,7 @@ public class AuthController
         {
             _ = Task.Run(async () =>
             {
-                var balance = await _core.VrcApi.GetBalanceAsync();
+                var balance = await _core.Economy.GetBalanceAsync();
                 if (balance >= 0)
                     Invoke(() => _core.SendToJS("vrcCredits", new { balance }));
             });
@@ -1220,7 +1220,7 @@ public class AuthController
         if (Interlocked.CompareExchange(ref _favWorldsInFlight, 1, 0) != 0) return; // already running
         try
         {
-            var groups = _cachedFavGroups ?? await _core.VrcApi.GetFavoriteGroupsAsync();
+            var groups = _cachedFavGroups ?? await _core.Favorites.GetFavoriteGroupsAsync();
             _cachedFavGroups = groups;
             var worldTypes = new HashSet<string> { "world", "vrcPlusWorld" };
             var groupList = groups
@@ -1240,7 +1240,7 @@ public class AuthController
             await Task.WhenAll(groupList.Select(async g =>
             {
                 await sem.WaitAsync();
-                try { perGroup[g.name] = await _core.VrcApi.GetFavoriteWorldsByGroupAsync(g.name, 100); }
+                try { perGroup[g.name] = await _core.Favorites.GetFavoriteWorldsByGroupAsync(g.name, 100); }
                 finally { sem.Release(); }
             }));
 
@@ -1289,7 +1289,7 @@ public class AuthController
         if (Interlocked.CompareExchange(ref _favAvatarsInFlight, 1, 0) != 0) return; // already running
         try
         {
-            var groups = _cachedFavGroups ?? await _core.VrcApi.GetFavoriteGroupsAsync();
+            var groups = _cachedFavGroups ?? await _core.Favorites.GetFavoriteGroupsAsync();
             _cachedFavGroups = groups;
             var avatarTypes = new HashSet<string> { "avatar" };
             var groupList = groups
@@ -1310,7 +1310,7 @@ public class AuthController
             await Task.WhenAll(groupList.Select(async g =>
             {
                 await sem.WaitAsync();
-                try { perGroup[g.name] = await _core.VrcApi.GetFavoriteAvatarsByGroupAsync(g.name, 100); }
+                try { perGroup[g.name] = await _core.Favorites.GetFavoriteAvatarsByGroupAsync(g.name, 100); }
                 finally { sem.Release(); }
             }));
 
@@ -1350,7 +1350,7 @@ public class AuthController
     {
         try
         {
-            var avatars = await _core.VrcApi.GetOwnAvatarsAsync();
+            var avatars = await _core.Avatars.GetOwnAvatarsAsync();
             // Build with raw CDN URLs so FFC can detect image changes on next load
             var rawList = avatars.Select(a => new
             {
@@ -1474,12 +1474,12 @@ public class AuthController
         {
             if (!_core.VrcApi.IsLoggedIn) return;
             if (_core.Timeline.HasWorldStatsForCurrentHour()) return;
-            var worlds = await _core.VrcApi.GetMyWorldsAsync();
+            var worlds = await _core.World.GetMyWorldsAsync();
             foreach (var w in worlds)
             {
                 var id = w["id"]?.ToString();
                 if (string.IsNullOrEmpty(id)) continue;
-                var full = await _core.VrcApi.GetWorldFreshAsync(id);
+                var full = await _core.World.GetWorldFreshAsync(id);
                 var active    = full?["occupants"]?.Value<int>() ?? w["occupants"]?.Value<int>() ?? 0;
                 var favorites = full?["favorites"]?.Value<int>() ?? w["favorites"]?.Value<int>() ?? 0;
                 var visits    = full?["visits"]?.Value<int>() ?? 0;

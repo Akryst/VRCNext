@@ -107,7 +107,7 @@ public class InstanceController
                     var miDead = new List<string>();
                     foreach (var instLoc in _core.Settings.MyInstances.ToList())
                     {
-                        var inst = await _core.VrcApi.GetInstanceAsync(instLoc);
+                        var inst = await _core.Instances.GetInstanceAsync(instLoc);
                         var shortId = instLoc.Contains(':') ? instLoc.Split(':')[1].Split('~')[0] : instLoc;
                         if (inst == null)
                         {
@@ -150,7 +150,7 @@ public class InstanceController
                     var miGroupMap = new Dictionary<string, (string name, string shortCode)>();
                     if (miGroupIds.Count > 0)
                     {
-                        var gTasks = miGroupIds.ToDictionary(id => id, id => _core.VrcApi.GetGroupAsync(id));
+                        var gTasks = miGroupIds.ToDictionary(id => id, id => _core.Groups.GetGroupAsync(id));
                         try { await Task.WhenAll(gTasks.Values); } catch { }
                         foreach (var kv in gTasks)
                             if (!kv.Value.IsFaulted && kv.Value.Result != null)
@@ -178,7 +178,7 @@ public class InstanceController
                 {
                     var detailLoc = msg["location"]?.ToString() ?? "";
                     if (string.IsNullOrEmpty(detailLoc)) return;
-                    var inst = await _core.VrcApi.GetInstanceAsync(detailLoc);
+                    var inst = await _core.Instances.GetInstanceAsync(detailLoc);
                     if (inst == null)
                     {
                         _core.SendToJS("instanceDetail", new { error = true, location = detailLoc });
@@ -193,7 +193,7 @@ public class InstanceController
                         var parsedWid = inst["worldId"]?.ToString() ?? detailLoc.Split(':')[0];
                         if (!string.IsNullOrEmpty(parsedWid))
                         {
-                            var world = await _core.VrcApi.GetWorldAsync(parsedWid);
+                            var world = await _core.World.GetWorldAsync(parsedWid);
                             if (world != null)
                             {
                                 worldName  = world["name"]?.ToString() ?? "";
@@ -206,7 +206,7 @@ public class InstanceController
                     var ownerGroup = "";
                     if (ownerId.StartsWith("grp_"))
                     {
-                        var grp = await _core.VrcApi.GetGroupAsync(ownerId);
+                        var grp = await _core.Groups.GetGroupAsync(ownerId);
                         if (grp != null)
                         {
                             ownerName  = grp["name"]?.ToString() ?? "";
@@ -219,7 +219,7 @@ public class InstanceController
                         ownerName = f?["displayName"]?.ToString() ?? "";
                         if (string.IsNullOrEmpty(ownerName))
                         {
-                            var ownerUser = await _core.VrcApi.GetUserAsync(ownerId);
+                            var ownerUser = await _core.Users.GetUserAsync(ownerId);
                             ownerName = ownerUser?["displayName"]?.ToString() ?? "";
                         }
                     }
@@ -245,7 +245,7 @@ public class InstanceController
                     var rmInstLoc = msg["location"]?.ToString() ?? "";
                     if (string.IsNullOrEmpty(rmInstLoc)) return;
                     // Close instance via VRChat API (DELETE)
-                    await _core.VrcApi.CloseInstanceAsync(rmInstLoc);
+                    await _core.Instances.CloseInstanceAsync(rmInstLoc);
                     _core.Settings.MyInstances.Remove(rmInstLoc);
                     _core.Settings.Save();
                 });
@@ -260,12 +260,12 @@ public class InstanceController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var location = _core.VrcApi.BuildInstanceLocation(ciWorldId, ciType, ciRegion);
+                        var location = _core.Instances.BuildInstanceLocation(ciWorldId, ciType, ciRegion);
                         bool ok;
                         string message;
                         if (ciAndJoin)
                         {
-                            ok = await _core.VrcApi.InviteSelfAsync(location);
+                            ok = await _core.Instances.InviteSelfAsync(location);
                             message = ok ? "Instance created! Self-invite sent." : "Failed to create instance.";
                         }
                         else
@@ -303,7 +303,7 @@ public class InstanceController
                         {
                             try
                             {
-                                var world = await _core.VrcApi.GetWorldAsync(wid);
+                                var world = await _core.World.GetWorldAsync(wid);
                                 if (world == null) return (wid, null as object);
                                 return (wid, (object)new
                                 {
@@ -338,7 +338,7 @@ public class InstanceController
                         {
                             try
                             {
-                                var grp = await _core.VrcApi.GetGroupAsync(gid);
+                                var grp = await _core.Groups.GetGroupAsync(gid);
                                 if (grp == null) return (gid, null as object);
                                 return (gid, (object)new
                                 {
@@ -365,7 +365,7 @@ public class InstanceController
             case "vrcGetOnlineCount":
                 _ = Task.Run(async () =>
                 {
-                    var count = await _core.VrcApi.GetOnlineCountAsync();
+                    var count = await _core.Economy.GetOnlineCountAsync();
                     if (count > 0)
                         Invoke(() => _core.SendToJS("vrcOnlineCount", new { count }));
                 });
@@ -521,7 +521,7 @@ public class InstanceController
                     {
                         try
                         {
-                            var wResult = await _core.VrcApi.GetWorldWithStatusAsync(wid);
+                            var wResult = await _core.World.GetWorldWithStatusAsync(wid);
                             if (wResult.result != null)
                             {
                                 var wName  = wResult.result["name"]?.ToString() ?? "";
@@ -570,7 +570,7 @@ public class InstanceController
                                     resolved = fi.image;
                                 else
                                 {
-                                    var uResult = await _core.VrcApi.GetUserWithStatusAsync(uid);
+                                    var uResult = await _core.Users.GetUserWithStatusAsync(uid);
                                     if (uResult.result != null)
                                     {
                                         var img = VRChatApiService.GetUserImage(uResult.result);
@@ -644,7 +644,7 @@ public class InstanceController
             bool locationChanged = _cachedInstLocation != loc || string.IsNullOrEmpty(_cachedInstWorldName);
             if (locationChanged)
             {
-                var inst = await _core.VrcApi.GetInstanceAsync(loc);
+                var inst = await _core.Instances.GetInstanceAsync(loc);
                 worldName     = inst?["world"]?["name"]?.ToString() ?? "";
                 worldThumb    = inst?["world"]?["imageUrl"]?.ToString() ?? inst?["world"]?["thumbnailImageUrl"]?.ToString() ?? "";
                 worldCapacity = inst?["world"]?["capacity"]?.Value<int>() ?? inst?["capacity"]?.Value<int>() ?? 0;
@@ -655,7 +655,7 @@ public class InstanceController
                 ownerGroup = "";
                 if (ownerId.StartsWith("grp_"))
                 {
-                    var grp = await _core.VrcApi.GetGroupAsync(ownerId);
+                    var grp = await _core.Groups.GetGroupAsync(ownerId);
                     if (grp != null)
                     {
                         ownerName  = grp["name"]?.ToString() ?? "";
@@ -668,14 +668,14 @@ public class InstanceController
                     ownerName = f?["displayName"]?.ToString() ?? "";
                     if (string.IsNullOrEmpty(ownerName))
                     {
-                        var ownerUser = await _core.VrcApi.GetUserAsync(ownerId);
+                        var ownerUser = await _core.Users.GetUserAsync(ownerId);
                         ownerName = ownerUser?["displayName"]?.ToString() ?? "";
                     }
                 }
 
                 if (string.IsNullOrEmpty(worldName) && !string.IsNullOrEmpty(parsed.worldId))
                 {
-                    var world = await _core.VrcApi.GetWorldAsync(parsed.worldId);
+                    var world = await _core.World.GetWorldAsync(parsed.worldId);
                     if (world != null)
                     {
                         worldName     = world["name"]?.ToString() ?? "";
@@ -726,7 +726,7 @@ public class InstanceController
                         await semaphore.WaitAsync();
                         try
                         {
-                            var profile = await _core.VrcApi.GetUserAsync(p.UserId);
+                            var profile = await _core.Users.GetUserAsync(p.UserId);
                             if (profile != null)
                             {
                                 var img = VRChatApiService.GetUserImage(profile);
@@ -971,7 +971,7 @@ public class InstanceController
                         var (wName, wThumb) = ResolveWorldInfoFromCache(worldId);
                         if (string.IsNullOrEmpty(wName) && worldId.StartsWith("wrld_") && _core.VrcApi.IsLoggedIn)
                         {
-                            var world = await _core.VrcApi.GetWorldAsync(worldId);
+                            var world = await _core.World.GetWorldAsync(worldId);
                             if (world != null)
                             {
                                 wName  = world["name"]?.ToString() ?? "";
@@ -1069,7 +1069,7 @@ public class InstanceController
                 {
                     try
                     {
-                        var world = await _core.VrcApi.GetWorldAsync(fmWorldId);
+                        var world = await _core.World.GetWorldAsync(fmWorldId);
                         if (world == null) return;
                         var fn = world["name"]?.ToString() ?? "";
                         var ft = world["thumbnailImageUrl"]?.ToString() ?? "";
@@ -1089,7 +1089,7 @@ public class InstanceController
                 {
                     try
                     {
-                        var profile = await _core.VrcApi.GetUserAsync(userId);
+                        var profile = await _core.Users.GetUserAsync(userId);
                         if (profile == null) return;
                         var fetchedImg = ImageCacheHelper.GetUserUrl(userId, VRChatApiService.GetUserImage(profile));
                         if (string.IsNullOrEmpty(fetchedImg)) return;
@@ -1138,7 +1138,7 @@ public class InstanceController
                     {
                         try
                         {
-                            var world = await _core.VrcApi.GetWorldAsync(maWorldId);
+                            var world = await _core.World.GetWorldAsync(maWorldId);
                             if (world == null) return;
                             var mn = world["name"]?.ToString() ?? "";
                             var mt = world["thumbnailImageUrl"]?.ToString() ?? "";
@@ -1158,7 +1158,7 @@ public class InstanceController
                     {
                         try
                         {
-                            var profile = await _core.VrcApi.GetUserAsync(userId);
+                            var profile = await _core.Users.GetUserAsync(userId);
                             if (profile == null) return;
                             var fetchedImg = ImageCacheHelper.GetUserUrl(userId, VRChatApiService.GetUserImage(profile));
                             if (string.IsNullOrEmpty(fetchedImg)) return;
@@ -1188,7 +1188,7 @@ public class InstanceController
             {
                 try
                 {
-                    var profile = await _core.VrcApi.GetUserAsync(userId);
+                    var profile = await _core.Users.GetUserAsync(userId);
                     if (profile == null) return;
                     var img = VRChatApiService.GetUserImage(profile);
                     _core.PlayerAgeVerifiedCache[userId] = profile["ageVerified"]?.Value<bool>() ?? false;

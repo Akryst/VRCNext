@@ -52,12 +52,12 @@ public class VROverlayController : IDisposable
                 bool ok;
                 if (loc.Contains(':'))
                 {
-                    ok = await _core.VrcApi.InviteSelfAsync(loc);
+                    ok = await _core.Instances.InviteSelfAsync(loc);
                     _core.SendToJS("log", new { msg = ok ? "Self-invite sent — check VRChat notifications!" : "Failed to send self-invite.", color = ok ? "ok" : "err" });
                 }
                 else
                 {
-                    ok = await _core.VrcApi.RequestInviteAsync(fid);
+                    ok = await _core.Invite.RequestInviteAsync(fid);
                     _core.SendToJS("log", new { msg = ok ? "Invite request sent!" : "Failed to send invite request.", color = ok ? "ok" : "err" });
                 }
             });
@@ -70,7 +70,7 @@ public class VROverlayController : IDisposable
                     _core.SendToJS("log", new { msg = "Can't invite: you're not in an instance.", color = "err" });
                     return;
                 }
-                var ok = await _core.VrcApi.InviteFriendAsync(fid, loc);
+                var ok = await _core.Invite.InviteFriendAsync(fid, loc);
                 _core.SendToJS("log", new { msg = ok ? "Invite sent!" : "Failed to send invite.", color = ok ? "ok" : "err" });
             });
 
@@ -91,20 +91,20 @@ public class VROverlayController : IDisposable
                 string resultMsg = "";
                 if (notifType == "friendRequest")
                 {
-                    ok = await _core.VrcApi.AcceptNotificationAsync(notifId);
+                    ok = await _core.Notifications.AcceptNotificationAsync(notifId);
                     resultMsg = ok ? "Friend request accepted!" : "Failed to accept.";
                 }
                 else if (notifType == "invite")
                 {
                     if (!string.IsNullOrEmpty(notifData) && notifData.Contains(":"))
                     {
-                        ok = await _core.VrcApi.InviteSelfAsync(notifData);
-                        if (ok) await _core.VrcApi.AcceptNotificationAsync(notifId);
+                        ok = await _core.Instances.InviteSelfAsync(notifData);
+                        if (ok) await _core.Notifications.AcceptNotificationAsync(notifId);
                         resultMsg = ok ? "Joining world..." : "Failed to join.";
                     }
                     else
                     {
-                        ok = await _core.VrcApi.AcceptNotificationAsync(notifId);
+                        ok = await _core.Notifications.AcceptNotificationAsync(notifId);
                         resultMsg = ok ? "Invite accepted!" : "Failed.";
                     }
                 }
@@ -112,13 +112,13 @@ public class VROverlayController : IDisposable
                 {
                     if (!string.IsNullOrEmpty(notifData))
                     {
-                        ok = await _core.VrcApi.JoinGroupAsync(notifData);
-                        if (ok) await _core.VrcApi.HideNotificationAsync(notifId, false);
+                        ok = await _core.Groups.JoinGroupAsync(notifData);
+                        if (ok) await _core.Notifications.HideNotificationAsync(notifId, false);
                         resultMsg = ok ? "Group joined!" : "Failed to join group.";
                     }
                     else
                     {
-                        ok = await _core.VrcApi.AcceptNotificationAsync(notifId);
+                        ok = await _core.Notifications.AcceptNotificationAsync(notifId);
                         resultMsg = ok ? "Accepted!" : "Failed.";
                     }
                 }

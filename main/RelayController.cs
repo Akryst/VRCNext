@@ -553,7 +553,7 @@ public class RelayController : IDisposable
             if (!_core.VrcApi.IsLoggedIn) return;
             _ = Task.Run(async () =>
             {
-                var full = await _core.VrcApi.RefreshCurrentUserAsync();
+                var full = await _core.Auth.RefreshCurrentUserAsync();
                 if (full != null)
                     Invoke(() => OnOwnUserUpdated?.Invoke(full));
             });

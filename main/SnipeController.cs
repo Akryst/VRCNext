@@ -96,7 +96,7 @@ public class SnipeController : IDisposable
                     if (waitMs > 0) await Task.Delay(waitMs, ct);
                     if (ct.IsCancellationRequested) break;
 
-                    var instances = await _core.VrcApi.GetGroupInstancesAsync(cfg.GroupId);
+                    var instances = await _core.Groups.GetGroupInstancesAsync(cfg.GroupId);
                     backoffMs = 0;
                     consecutiveErrors = 0;
 
@@ -196,7 +196,7 @@ public class SnipeController : IDisposable
             if (vrcRunning)
             {
                 Log($"[SNIPE] VRChat running — sending self-invite to {location}");
-                var ok = await _core.VrcApi.InviteSelfAsync(location);
+                var ok = await _core.Instances.InviteSelfAsync(location);
                 _core.SendToJS("snipeJoinResult", new { success = ok, location });
                 if (!ok) Log($"[SNIPE] Self-invite failed for {location}");
             }

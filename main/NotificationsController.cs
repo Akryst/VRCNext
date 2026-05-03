@@ -99,8 +99,8 @@ public class NotificationsController
                             if (_core.IsVrcRunning?.Invoke() ?? false)
                             {
                                 _ = Task.Run(async () => {
-                                    var ok = await _core.VrcApi.InviteSelfAsync(invLoc);
-                                    await _core.VrcApi.AcceptNotificationAsync(anId);
+                                    var ok = await _core.Instances.InviteSelfAsync(invLoc);
+                                    await _core.Notifications.AcceptNotificationAsync(anId);
                                     Invoke(() => _core.SendToJS("vrcActionResult", new { action = "acceptNotif", success = ok,
                                         message = ok ? "Joining world... Check VRChat." : "Failed to join." }));
                                 });
@@ -121,8 +121,8 @@ public class NotificationsController
                         if (!string.IsNullOrEmpty(groupId))
                         {
                             _ = Task.Run(async () => {
-                                var ok = await _core.VrcApi.JoinGroupAsync(groupId);
-                                await _core.VrcApi.HideNotificationAsync(anId, anIsV2);
+                                var ok = await _core.Groups.JoinGroupAsync(groupId);
+                                await _core.Notifications.HideNotificationAsync(anId, anIsV2);
                                 Invoke(() => _core.SendToJS("vrcActionResult", new { action = "acceptNotif", success = ok,
                                     message = ok ? "Group joined!" : "Failed to join group.", groupJoined = ok }));
                                 if (ok) _ = GetNotificationsAsync();
@@ -146,11 +146,11 @@ public class NotificationsController
                             // Resolve groupId via shortCode lookup if not directly in payload
                             var resolvedGroupId = groupId;
                             if (string.IsNullOrEmpty(resolvedGroupId) && !string.IsNullOrEmpty(groupShortCode))
-                                resolvedGroupId = await _core.VrcApi.FindGroupIdByShortCodeAsync(groupShortCode);
+                                resolvedGroupId = await _core.Groups.FindGroupIdByShortCodeAsync(groupShortCode);
                             if (!string.IsNullOrEmpty(resolvedGroupId) && !string.IsNullOrEmpty(requestUser))
                             {
-                                var ok = await _core.VrcApi.RespondGroupJoinRequestAsync(resolvedGroupId, requestUser, "accept");
-                                await _core.VrcApi.HideNotificationAsync(anId, anIsV2);
+                                var ok = await _core.Groups.RespondGroupJoinRequestAsync(resolvedGroupId, requestUser, "accept");
+                                await _core.Notifications.HideNotificationAsync(anId, anIsV2);
                                 Invoke(() => _core.SendToJS("vrcActionResult", new { action = "acceptNotif", success = ok,
                                     message = ok ? "Join request approved!" : "Failed to approve." }));
                                 if (ok) _ = GetNotificationsAsync();
@@ -166,7 +166,7 @@ public class NotificationsController
                     {
                         // Friend request: v1 notification accept endpoint
                         _ = Task.Run(async () => {
-                            var ok = await _core.VrcApi.AcceptNotificationAsync(anId);
+                            var ok = await _core.Notifications.AcceptNotificationAsync(anId);
                             Invoke(() => _core.SendToJS("vrcActionResult", new { action = "acceptNotif", success = ok,
                                 message = ok ? "Friend request accepted!" : "Failed." }));
                             if (ok) _ = GetNotificationsAsync();
@@ -180,12 +180,12 @@ public class NotificationsController
                         _ = Task.Run(async () => {
                             bool ok = false;
                             if (!string.IsNullOrEmpty(requesterId))
-                                ok = await _core.VrcApi.InviteFriendAsync(requesterId, _core.LogWatcher.CurrentLocation ?? "");
+                                ok = await _core.Invite.InviteFriendAsync(requesterId, _core.LogWatcher.CurrentLocation ?? "");
                             // fallback: try notification accept endpoint
                             if (!ok)
-                                ok = await _core.VrcApi.AcceptNotificationAsync(anId);
+                                ok = await _core.Notifications.AcceptNotificationAsync(anId);
                             else
-                                await _core.VrcApi.HideNotificationAsync(anId, anIsV2);
+                                await _core.Notifications.HideNotificationAsync(anId, anIsV2);
                             Invoke(() => _core.SendToJS("vrcActionResult", new { action = "acceptNotif", success = ok,
                                 message = ok ? "Invite sent!" : "Failed. Are you in a world?" }));
                             if (ok) _ = GetNotificationsAsync();
@@ -195,7 +195,7 @@ public class NotificationsController
 
                     // Fallback for any other acceptable type
                     _ = Task.Run(async () => {
-                        var ok = await _core.VrcApi.AcceptNotificationAsync(anId);
+                        var ok = await _core.Notifications.AcceptNotificationAsync(anId);
                         Invoke(() => _core.SendToJS("vrcActionResult", new { action = "acceptNotif", success = ok,
                             message = ok ? "Accepted!" : "Failed." }));
                     });
@@ -206,7 +206,7 @@ public class NotificationsController
             case "vrcMarkNotifRead":
                 var mnId = msg["notifId"]?.ToString();
                 if (!string.IsNullOrEmpty(mnId))
-                    _ = Task.Run(async () => await _core.VrcApi.MarkNotificationReadAsync(mnId));
+                    _ = Task.Run(async () => await _core.Notifications.MarkNotificationReadAsync(mnId));
                 break;
 
             case "vrcHideNotification":
@@ -243,11 +243,11 @@ public class NotificationsController
                                              ?? msg["senderId"]?.ToString();
                             // Resolve groupId via shortCode lookup if not directly in payload
                             if (string.IsNullOrEmpty(groupId) && !string.IsNullOrEmpty(groupShortCode))
-                                groupId = await _core.VrcApi.FindGroupIdByShortCodeAsync(groupShortCode);
+                                groupId = await _core.Groups.FindGroupIdByShortCodeAsync(groupShortCode);
                             if (!string.IsNullOrEmpty(groupId) && !string.IsNullOrEmpty(requestUser))
-                                ok = await _core.VrcApi.RespondGroupJoinRequestAsync(groupId, requestUser, "reject");
+                                ok = await _core.Groups.RespondGroupJoinRequestAsync(groupId, requestUser, "reject");
                             else
-                                ok = await _core.VrcApi.HideNotificationAsync(hnId, hnV2);
+                                ok = await _core.Notifications.HideNotificationAsync(hnId, hnV2);
                         }
                         else if (hnType == "group.invite")
                         {
@@ -256,14 +256,14 @@ public class NotificationsController
                                        ?? hnData?["groupId"]?.ToString()
                                        ?? ExtractGroupIdFromLink(hnLink);
                             if (!string.IsNullOrEmpty(groupId))
-                                ok = await _core.VrcApi.DeclineGroupInviteAsync(groupId);
+                                ok = await _core.Groups.DeclineGroupInviteAsync(groupId);
                             else
-                                ok = await _core.VrcApi.HideNotificationAsync(hnId, hnV2);
-                            if (ok) await _core.VrcApi.HideNotificationAsync(hnId, hnV2);
+                                ok = await _core.Notifications.HideNotificationAsync(hnId, hnV2);
+                            if (ok) await _core.Notifications.HideNotificationAsync(hnId, hnV2);
                         }
                         else
                         {
-                            ok = await _core.VrcApi.HideNotificationAsync(hnId, hnV2);
+                            ok = await _core.Notifications.HideNotificationAsync(hnId, hnV2);
                         }
                         // Don't show "Failed" toast — notification is already removed locally
                         if (ok) Invoke(() => _core.SendToJS("vrcActionResult", new { action = "hideNotif", success = true, message = "Declined" }));
@@ -368,8 +368,8 @@ public class NotificationsController
                 if (!string.IsNullOrEmpty(notifId) && _core.VrcApi.IsLoggedIn)
                     _ = Task.Run(async () =>
                     {
-                        await _core.VrcApi.MarkNotificationReadAsync(notifId);
-                        await _core.VrcApi.HideNotificationAsync(notifId);
+                        await _core.Notifications.MarkNotificationReadAsync(notifId);
+                        await _core.Notifications.HideNotificationAsync(notifId);
                     });
                 return null; // skip timeline + notification panel
             }
@@ -396,9 +396,9 @@ public class NotificationsController
                     var pmIsV2   = (bool)n._v2;
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.VrcApi.InviteFriendAsync(pmSenderId, _core.LogWatcher.CurrentLocation ?? "");
-                        if (ok) await _core.VrcApi.HideNotificationAsync(pmNotifId, pmIsV2);
-                        else    await _core.VrcApi.AcceptNotificationAsync(pmNotifId);
+                        var ok = await _core.Invite.InviteFriendAsync(pmSenderId, _core.LogWatcher.CurrentLocation ?? "");
+                        if (ok) await _core.Notifications.HideNotificationAsync(pmNotifId, pmIsV2);
+                        else    await _core.Notifications.AcceptNotificationAsync(pmNotifId);
                         Invoke(() => _core.SendToJS("log", new {
                             msg   = $"[Permini] Auto-invited {pmSenderId}: {(ok ? "OK" : "failed")}",
                             color = ok ? "ok" : "warn"
@@ -482,7 +482,7 @@ public class NotificationsController
                 {
                     try
                     {
-                        var profile = await _core.VrcApi.GetUserAsync(uid);
+                        var profile = await _core.Users.GetUserAsync(uid);
                         if (profile == null) return;
                         var img  = needsImg  ? VRChatApiService.GetUserImage(profile) : "";
                         var name = needsName ? (profile["displayName"]?.ToString() ?? "") : "";
@@ -548,7 +548,7 @@ public class NotificationsController
                 {
                     try
                     {
-                        var group = await _core.VrcApi.GetGroupAsync(groupId);
+                        var group = await _core.Groups.GetGroupAsync(groupId);
                         if (group == null) return;
                         var groupName = group["name"]?.ToString() ?? "";
                         var groupIcon = ImageCacheHelper.GetGroupUrl(groupId, group["iconUrl"]?.ToString());
@@ -576,8 +576,8 @@ public class NotificationsController
         // Restore persisted v2 support flag — avoids one 404 call per session restart
         _core.VrcApi.NotifV2Supported = _core.Settings.NotifV2Supported;
 
-        var t1 = _core.VrcApi.GetNotificationsAsync();
-        var t2 = _core.VrcApi.GetNotificationsV2Async();
+        var t1 = _core.Notifications.GetNotificationsAsync();
+        var t2 = _core.Notifications.GetNotificationsV2Async();
         await Task.WhenAll(t1, t2);
 
         // Persist if v2 was disabled this session (404)
@@ -726,13 +726,13 @@ public class NotificationsController
                 {
                     if (nType is "friendRequest" or "invite" && !string.IsNullOrEmpty(senderId))
                     {
-                        var profile = await _core.VrcApi.GetUserAsync(senderId);
+                        var profile = await _core.Users.GetUserAsync(senderId);
                         if (profile != null)
                             capturedImg = VRChatApiService.GetUserImage(profile);
                     }
                     else if (nType == "group.invite" && !string.IsNullOrEmpty(capturedData))
                     {
-                        var group = await _core.VrcApi.GetGroupAsync(capturedData);
+                        var group = await _core.Groups.GetGroupAsync(capturedData);
                         if (group != null)
                         {
                             var groupIcon = group["iconUrl"]?.ToString() ?? "";
@@ -749,7 +749,7 @@ public class NotificationsController
                 if (nType == "invite" && !string.IsNullOrEmpty(capturedData) && _core.VrcApi.IsLoggedIn)
                 {
                     var worldId = capturedData.Contains(':') ? capturedData.Split(':')[0] : capturedData;
-                    var world = await _core.VrcApi.GetWorldAsync(worldId);
+                    var world = await _core.World.GetWorldAsync(worldId);
                     var worldName = world?["name"]?.ToString();
                     if (!string.IsNullOrEmpty(worldName))
                         capturedEvText = $"→ {worldName}";
