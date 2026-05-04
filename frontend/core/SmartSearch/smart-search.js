@@ -40,9 +40,46 @@ const SmartSearch = (() => {
                 (item.displayName || '').toLowerCase().includes(q) ||
                 (item.username || item.userName || '').toLowerCase().includes(q) ||
                 (item.id || '').toLowerCase().includes(q),
-            getImg: (item) => ({ src: item.image || '', circle: true }),
+            getImg: (item) => ({ src: item.image || '', circle: false }),
             getName: (item) => item.displayName || '?',
-            getSub: (item) => item.statusDescription || '',
+            getSub: (item) => (typeof statusLabel === 'function')
+                ? (item.statusDescription || statusLabel(item.status))
+                : (item.statusDescription || item.status || ''),
+            renderAvatar: (item) => {
+                const presenceType = item.presence === 'web' ? 'web'
+                    : (!item.presence || item.presence === 'offline' ? 'offline' : 'online');
+                const statusCls = presenceType === 'offline' ? 's-offline'
+                    : (typeof statusDotClass === 'function' ? statusDotClass(item.status) : 's-offline');
+                const badgeDotCls = presenceType === 'web' ? 'vrc-status-ring' : 'vrc-status-dot';
+
+                const wrap = document.createElement('div');
+                wrap.className = 'vrc-friend-avatar-wrap';
+
+                if (item.image) {
+                    const img = document.createElement('img');
+                    img.className = 'vrc-friend-avatar';
+                    img.src = item.image;
+                    img.onerror = function() {
+                        const ph = document.createElement('div');
+                        ph.className = 'vrc-friend-avatar';
+                        ph.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--tx3)';
+                        ph.textContent = (item.displayName || '?')[0].toUpperCase();
+                        this.parentNode.replaceChild(ph, this);
+                    };
+                    wrap.appendChild(img);
+                } else {
+                    const ph = document.createElement('div');
+                    ph.className = 'vrc-friend-avatar';
+                    ph.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--tx3)';
+                    ph.textContent = (item.displayName || '?')[0].toUpperCase();
+                    wrap.appendChild(ph);
+                }
+
+                const badge = document.createElement('span');
+                badge.className = `vrc-friend-status-badge ${badgeDotCls} ${statusCls}`;
+                wrap.appendChild(badge);
+                return wrap;
+            },
             onOpen: (item) => { if (typeof openFriendDetail === 'function') openFriendDetail(item.id); },
         },
         {
@@ -141,8 +178,10 @@ const SmartSearch = (() => {
         const row = document.createElement('div');
         row.className = 'ss-item';
 
-        // Image / placeholder
-        if (imgInfo.src) {
+        // Image / placeholder — use custom renderer for friends (status badge)
+        if (section.renderAvatar) {
+            row.appendChild(section.renderAvatar(item));
+        } else if (imgInfo.src) {
             const img = document.createElement('img');
             img.className = 'ss-item-img' + circleClass;
             img.src = imgInfo.src;
@@ -159,6 +198,7 @@ const SmartSearch = (() => {
             ph.textContent = (name[0] || '?').toUpperCase();
             row.appendChild(ph);
         }
+
 
         // Text
         const info = document.createElement('div');

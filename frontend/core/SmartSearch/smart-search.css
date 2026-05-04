@@ -145,6 +145,14 @@
     pointer-events: all;
 }
 
+/* Friend status badge shadow — override --bg-side with dropdown bg */
+.ss-dropdown .vrc-friend-status-badge {
+    box-shadow: 0 0 0 2px var(--bg-card);
+}
+.ss-dropdown .vrc-friend-status-badge.vrc-status-ring {
+    background: var(--bg-card);
+}
+
 /* Section header */
 .ss-section-hdr {
     font-size: 10px;
