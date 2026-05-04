@@ -92,13 +92,13 @@ function saveSettings() {
             extraExeDesktop: settings.extraExeDesktop || [],
             extraExeVR: settings.extraExeVR || [],
             extraExe: [], // clear legacy field so migration doesn't re-fire after user deletes apps
-            autoStart: false, // legacy â€” kept for JSON compat
+            autoStart: false, // legacy kept for JSON compat
             relayAutoStartVR:        document.getElementById('setAutoStartVR')?.checked       ?? false,
             relayAutoStartDesktop:   document.getElementById('setAutoStartDesktop')?.checked  ?? false,
             startWithWindows: document.getElementById('setStartWithWindows').checked,
             minimizeToTray: document.getElementById('setMinimizeToTray').checked,
             trayNotificationsEnabled: document.getElementById('setTrayNotifications')?.checked ?? false,
-            notifySound: false, // legacy â€” kept for JSON compat
+            notifySound: false, // legacy kept for JSON compat
             notifySoundEnabled: document.getElementById('setNotifySoundEnabled').checked,
             messageSoundEnabled: document.getElementById('setMessageSoundEnabled').checked,
             mediaRelaySoundEnabled: document.getElementById('setMediaRelaySoundEnabled').checked,
@@ -608,7 +608,7 @@ function toggleTextTools(enabled) {
     document.documentElement.classList.toggle('text-tools-active', enabled);
 }
 
-// â”€â”€ VRCX Import â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// VRCX Import
 
 let _vrcxPreviewData = null;
 let _vrcxLastProgress = null;

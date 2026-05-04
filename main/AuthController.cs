@@ -806,8 +806,6 @@ public class AuthController
             _core.Settings.SpecialTheme = data["specialTheme"]?.ToString() ?? "";
 #if WINDOWS
             // Theme colors are always pushed from JS via overlayThemeColors
-            // (triggered by applyColors in core.js). Do NOT call SetTheme()
-            // here â€" the C# hardcoded palettes may be out of sync with the
             // JS THEMES and would overwrite the correct colors that JS just sent.
 #endif
             _core.Settings.AutoColorAccuracy = data["autoColorAccuracy"]?.Value<int>() ?? 50;
