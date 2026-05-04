@@ -943,6 +943,9 @@ public class AuthController
             _core.Settings.SendCrashData       = data["sendCrashData"]?.Value<bool>()       ?? true;
             _core.Settings.RestartAfterCrash   = data["restartAfterCrash"]?.Value<bool>()   ?? true;
 
+            // Text Tools
+            _core.Settings.TextToolsEnabled = data["textToolsEnabled"]?.Value<bool>() ?? false;
+
             // Legacy Window (requires restart)
             _core.Settings.LegacyWindow = data["legacyWindow"]?.Value<bool>() ?? false;
 

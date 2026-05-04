@@ -208,6 +208,7 @@ function saveSettings() {
             autoUpdate: document.getElementById('setAutoUpdate').checked,
             sendCrashData: document.getElementById('setSendCrashData').checked,
             restartAfterCrash: document.getElementById('setRestartAfterCrash').checked,
+            textToolsEnabled: document.getElementById('setTextToolsEnabled')?.checked ?? false,
             legacyWindow: document.getElementById('setLegacyWindow')?.checked ?? false,
             gpuAcceleration:    document.getElementById('setPerfGpuAccel')?.checked    ?? false,
             gpuShaderCache:     document.getElementById('setPerfShaderCache')?.checked  ?? false,
@@ -511,6 +512,12 @@ function loadSettingsToUI(s) {
     document.getElementById('setSendCrashData').checked      = s.SendCrashData      ?? s.sendCrashData      ?? false;
     document.getElementById('setRestartAfterCrash').checked  = s.RestartAfterCrash  ?? s.restartAfterCrash  ?? true;
 
+    // Text Tools
+    const textToolsEnabled = s.TextToolsEnabled ?? s.textToolsEnabled ?? false;
+    const ttEl = document.getElementById('setTextToolsEnabled');
+    if (ttEl) ttEl.checked = textToolsEnabled;
+    toggleTextTools(textToolsEnabled, false);
+
     // Legacy Window
     const legacyWindow = s.LegacyWindow ?? s.legacyWindow ?? false;
     const lwEl = document.getElementById('setLegacyWindow');
@@ -603,9 +610,10 @@ function onPerfSettingChange() {
 // Text Tools (Debugging).
 let _textToolsEnabled = false;
 
-function toggleTextTools(enabled) {
+function toggleTextTools(enabled, save = true) {
     _textToolsEnabled = enabled;
     document.documentElement.classList.toggle('text-tools-active', enabled);
+    if (save) autoSave();
 }
 
 // VRCX Import

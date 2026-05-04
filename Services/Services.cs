@@ -401,6 +401,9 @@ public class AppSettings
     // Restart after crash. We do ignore task manager kills here!
     public bool RestartAfterCrash { get; set; } = true;
 
+    // Text Tools (debug — makes all text selectable)
+    public bool TextToolsEnabled { get; set; } = false;
+
     // Legacy Window Manager (requires restart, disables chromeless + custom chrome)
     public bool LegacyWindow { get; set; } = false;
 
