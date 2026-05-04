@@ -8,6 +8,12 @@ With Smart Search, you can find almost anything very quickly. You can search you
 
 This should improve the overall user experience and make navigating VRCN much faster.
 
+### Media Relay
+
+Added a new **Filter** card to Media Relay.
+
+You can now enable or disable specific watched folders, making sure only content from selected folders is sent to your Discord webhook. This helps prevent images or files from being shared by accident.
+
 ### Performance & Large Lists
 
 This update improves performance in areas that can become slow with large friend lists or large profiles.

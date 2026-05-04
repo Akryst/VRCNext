@@ -842,6 +842,10 @@ public class AuthController
             var folders = data["folders"]?.ToObject<List<string>>();
             if (folders != null) _core.Settings.WatchFolders = folders;
 
+            var relayEnabledFoldersToken = data["relayEnabledFolders"];
+            if (relayEnabledFoldersToken != null)
+                _core.Settings.RelayEnabledFolders = relayEnabledFoldersToken.ToObject<List<string>>();
+
             var extraExe = data["extraExe"]?.ToObject<List<string>>();
             if (extraExe != null) _core.Settings.ExtraExe = extraExe;
 

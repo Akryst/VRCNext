@@ -1834,5 +1834,8 @@
   "search.hint": "Freunde, Welten, Gruppen, Avatare suchen…",
   "search.no_results": "Keine Ergebnisse",
   "search.section.settings": "Einstellungen",
-  "search.section.modules": "Navigation"
+  "search.section.modules": "Navigation",
+  "relay.folders.title": "Watch-Ordner",
+  "relay.folders.desc": "Wähle, welche Watch-Ordner der Relay auf neue Bilder und Videos überwacht.",
+  "relay.folders.empty": "Keine Watch-Ordner konfiguriert. Ordner in den Einstellungen hinzufügen."
 }

@@ -1832,5 +1832,8 @@
   "search.hint": "Rechercher amis, mondes, groupes, avatars…",
   "search.no_results": "Aucun résultat",
   "search.section.settings": "Paramètres",
-  "search.section.modules": "Navigation"
+  "search.section.modules": "Navigation",
+  "relay.folders.title": "Dossiers surveillés",
+  "relay.folders.desc": "Choisissez quels dossiers le relay surveille pour les nouvelles images et vidéos.",
+  "relay.folders.empty": "Aucun dossier configuré. Ajoutez des dossiers dans les Paramètres."
 }

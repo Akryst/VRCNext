@@ -88,6 +88,7 @@ function saveSettings() {
             botAvatar: document.getElementById('setBotAvatar').value,
             webhooks: w,
             folders: settings.folders || [],
+            relayEnabledFolders: settings.relayEnabledFolders,
             vrcPath: document.getElementById('setVrcPath').value,
             extraExeDesktop: settings.extraExeDesktop || [],
             extraExeVR: settings.extraExeVR || [],
@@ -298,6 +299,7 @@ function loadSettingsToUI(s) {
     document.getElementById('setMessageSoundEnabled').checked = s.MessageSoundEnabled ?? s.messageSoundEnabled ?? false;
     document.getElementById('setMediaRelaySoundEnabled').checked = s.MediaRelaySoundEnabled ?? s.mediaRelaySoundEnabled ?? false;
     settings.folders = s.WatchFolders || s.watchFolders || s.folders || [];
+    settings.relayEnabledFolders = s.RelayEnabledFolders ?? s.relayEnabledFolders ?? null;
     settings.extraExe = s.ExtraExe || s.extraExe || [];
     // Migration: if new lists are empty but legacy extraExe has items, pre-populate both lists from it
     const _legacyExe = settings.extraExe;
@@ -334,6 +336,7 @@ function loadSettingsToUI(s) {
     }
     renderWebhookCards((s.Webhooks || s.webhooks || []).slice(0, 4));
     renderFolders(settings.folders);
+    if (typeof renderRelayFolders === 'function') renderRelayFolders();
     renderExtraExeDesktop(settings.extraExeDesktop);
     renderExtraExeVR(settings.extraExeVR);
     updateFolderFilterOptions(settings.folders);

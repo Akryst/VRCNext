@@ -1832,5 +1832,8 @@
   "search.hint": "搜索好友、世界、群组、虚拟形象…",
   "search.no_results": "无结果",
   "search.section.settings": "设置",
-  "search.section.modules": "导航"
+  "search.section.modules": "导航",
+  "relay.folders.title": "监视文件夹",
+  "relay.folders.desc": "选择中继监控新图片和视频的文件夹。",
+  "relay.folders.empty": "未配置监视文件夹。请在设置中添加文件夹。"
 }

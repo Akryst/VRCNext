@@ -1853,5 +1853,8 @@
   "search.hint": "Search friends, worlds, groups, avatars…",
   "search.no_results": "No results",
   "search.section.settings": "Settings",
-  "search.section.modules": "Navigation"
+  "search.section.modules": "Navigation",
+  "relay.folders.title": "Watch Folders",
+  "relay.folders.desc": "Choose which watch folders the relay monitors for new images and videos.",
+  "relay.folders.empty": "No watch folders configured. Add folders in Settings."
 }

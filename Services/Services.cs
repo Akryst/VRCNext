@@ -186,6 +186,7 @@ public class AppSettings
     };
     public int LocalHttpPort { get; set; } = 0;
     public List<string> WatchFolders { get; set; } = new();
+    public List<string>? RelayEnabledFolders { get; set; } = null; // null = all enabled (default)
     public List<string> MyInstances { get; set; } = new();
     public List<string> Favorites { get; set; } = new();
     public string VrcPath { get; set; } = "";

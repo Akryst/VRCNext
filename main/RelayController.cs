@@ -236,7 +236,11 @@ public class RelayController : IDisposable
 
     private void StartRelay()
     {
-        var folders = _core.Settings.WatchFolders.Where(Directory.Exists).ToList();
+        var allFolders = _core.Settings.WatchFolders.Where(Directory.Exists).ToList();
+        var enabledFilter = _core.Settings.RelayEnabledFolders;
+        var folders = enabledFilter == null
+            ? allFolders
+            : allFolders.Where(f => enabledFilter.Contains(f, StringComparer.OrdinalIgnoreCase)).ToList();
         if (folders.Count == 0)
         {
             _core.SendToJS("log", new { msg = "No valid watch folders configured!", color = "err" });

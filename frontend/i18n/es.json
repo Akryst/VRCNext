@@ -1832,5 +1832,8 @@
   "search.hint": "Buscar amigos, mundos, grupos, avatares…",
   "search.no_results": "Sin resultados",
   "search.section.settings": "Ajustes",
-  "search.section.modules": "Navegación"
+  "search.section.modules": "Navegación",
+  "relay.folders.title": "Carpetas vigiladas",
+  "relay.folders.desc": "Elige qué carpetas vigiladas monitorea el relay para nuevas imágenes y vídeos.",
+  "relay.folders.empty": "Sin carpetas configuradas. Añade carpetas en Ajustes."
 }

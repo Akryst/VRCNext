@@ -109,3 +109,44 @@
     text-transform: uppercase;
     letter-spacing: .04em;
 }
+
+.relay-folder-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 4px;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+}
+
+.relay-folder-row:last-child {
+    border-bottom: none;
+}
+
+.relay-folder-icon {
+    font-size: 18px;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.relay-folder-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.relay-folder-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tx0);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.relay-folder-path {
+    font-size: 10px;
+    color: var(--tx3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
