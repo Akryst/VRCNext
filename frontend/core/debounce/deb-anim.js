@@ -5,7 +5,7 @@
 function _showDebAnim(inputId) {
     const el = document.getElementById(inputId);
     if (!el) return;
-    const row = el.closest('.search-bar-row, .inv-search-wrap, .vrc-friend-search');
+    const row = el.closest('.search-bar-row, .inv-search-wrap, .vrc-friend-search, #ssInputWrap');
     if (!row) return;
     let dot = row.querySelector('.deb-anim');
     if (!dot) {
@@ -20,7 +20,7 @@ function _showDebAnim(inputId) {
 function _hideDebAnim(inputId) {
     const el = document.getElementById(inputId);
     if (!el) return;
-    const row = el.closest('.search-bar-row, .inv-search-wrap, .vrc-friend-search');
+    const row = el.closest('.search-bar-row, .inv-search-wrap, .vrc-friend-search, #ssInputWrap');
     row?.querySelector('.deb-anim')?.classList.remove('active');
 }
 

@@ -59,6 +59,7 @@
     <link rel="stylesheet" href="core/sidebars/navigation/navigation.css">
     <link rel="stylesheet" href="core/sidebars/friends/friends.css">
     <link rel="stylesheet" href="core/previews/friend-preview.css">
+    <link rel="stylesheet" href="core/SmartSearch/smart-search.css">
     <link rel="stylesheet" href="Debug/CacheTests/cache-debug.css">
     <script src="Debug/CacheTests/cache-debug.js" defer></script>
 </head>
@@ -114,6 +115,16 @@
                 <span style="font-size:10px;color:var(--tx3);flex-shrink:0;" id="dbMigrationPct">0%</span>
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                <div id="ssWrap" class="ss-wrap">
+                    <div class="ss-badge" id="ssBadge" title="Smart Search">
+                        <span class="msi ss-icon">search</span>
+                    </div>
+                    <div class="ss-input-wrap" id="ssInputWrap">
+                        <span class="msi ss-icon">search</span>
+                        <input id="ssInput" type="text" placeholder="Search…" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="ss-dropdown vrcn-scrollbar" id="ssDropdown"></div>
+                </div>
                 <div class="mini-badge vrcplus" id="badgeVrcPlus" style="display:none;"><span class="mini-badge-label">VRC+</span></div>
                 <div class="mini-badge vcredits" id="badgeVrcCredits" style="display:none;"><span class="mini-badge-label" id="badgeVrcCreditsLabel">V 0</span></div>
                 <div class="mini-badge offline" id="badgeRelay" data-tooltip="Media Relay" onclick="toggleRelay()"><span class="msi mini-badge-icon">cell_tower</span></div>
@@ -2505,6 +2516,7 @@
     <script src="modules/tools/avatar-scaling/avatar-scaling.js"></script>
     <script src="core/logic/init.js"></script>
     <script src="core/debounce/debounce.js"></script>
+    <script src="core/SmartSearch/smart-search.js"></script>
 
     <!-- Dashboard layout editor modal -->
     <div id="dashLayoutModal" class="modal-overlay" style="display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeDashLayoutEditor()">

@@ -1,5 +1,11 @@
 **2026.21.1**
 
+### Smart Search
+
+Smart Search has been added and is now available in the VRCN header.
+
+With Smart Search, you can quickly find existing content inside VRCN. You can search for friends, groups, worlds, and avatars.
+
 ### Performance & Large Lists
 
 This update improves performance in areas that can become slow with large friend lists or large profiles.

@@ -1821,5 +1821,14 @@
   "vro.scale.keybind.title": "Maintenir pour mettre à l'échelle",
   "vro.scale.keybind.desc": "Maintenez ces boutons en déplaçant le thumbstick pour mettre votre avatar à l'échelle en VR.",
   "vro.scale.hint.record": "Maintenez 1 à 4 boutons simultanément pour enregistrer une combinaison…",
-  "vro.scale.hint.idle": "Maintenez le raccourci + bougez le thumbstick haut/bas pour mettre à l'échelle."
+  "vro.scale.hint.idle": "Maintenez le raccourci + bougez le thumbstick haut/bas pour mettre à l'échelle.",
+  "search.section.friends": "Amis",
+  "search.section.fav_worlds": "Mondes favoris",
+  "search.section.my_worlds": "Mes mondes",
+  "search.section.my_groups": "Mes groupes",
+  "search.section.events": "Événements",
+  "search.section.my_avatars": "Mes avatars",
+  "search.section.fav_avatars": "Avatars favoris",
+  "search.hint": "Rechercher amis, mondes, groupes, avatars…",
+  "search.no_results": "Aucun résultat"
 }

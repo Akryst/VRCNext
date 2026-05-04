@@ -4,6 +4,7 @@
 .search-bar-row    { position: relative; }
 .inv-search-wrap   { position: relative; }
 .vrc-friend-search { position: relative; }
+#ssInputWrap       { position: relative; }
 
 /* Invite modal has 32px right padding — shift dots inside the input */
 .inv-search-wrap .deb-anim { right: 38px; }

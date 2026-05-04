@@ -1821,5 +1821,14 @@
   "vro.scale.keybind.title": "Mantener tecla para escalar",
   "vro.scale.keybind.desc": "Mantén estos botones mientras mueves el thumbstick para escalar tu avatar en VR.",
   "vro.scale.hint.record": "Mantén 1–4 botones simultáneamente para grabar una combinación…",
-  "vro.scale.hint.idle": "Mantén la tecla + mueve el thumbstick arriba/abajo para escalar."
+  "vro.scale.hint.idle": "Mantén la tecla + mueve el thumbstick arriba/abajo para escalar.",
+  "search.section.friends": "Amigos",
+  "search.section.fav_worlds": "Mundos favoritos",
+  "search.section.my_worlds": "Mis mundos",
+  "search.section.my_groups": "Mis grupos",
+  "search.section.events": "Eventos",
+  "search.section.my_avatars": "Mis avatares",
+  "search.section.fav_avatars": "Avatares favoritos",
+  "search.hint": "Buscar amigos, mundos, grupos, avatares…",
+  "search.no_results": "Sin resultados"
 }
