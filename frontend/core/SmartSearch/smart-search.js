@@ -2,6 +2,7 @@
 
 const SmartSearch = (() => {
     let _myWorlds = [];
+    let _calEventsCache = [];
 
     function _patchRenderMyWorlds() {
         if (typeof renderMyWorlds !== 'function') return;
@@ -9,6 +10,21 @@ const SmartSearch = (() => {
         window.renderMyWorlds = function(worlds) {
             _myWorlds = Array.isArray(worlds) ? worlds : [];
             return _orig.call(this, worlds);
+        };
+    }
+
+    function _patchCalEvents() {
+        if (typeof renderCalendarEvents !== 'function') return;
+        const _orig = renderCalendarEvents;
+        window.renderCalendarEvents = function(payload) {
+            // Mirror the normalization calendar.js does
+            let raw = payload;
+            if (raw?.events) raw = raw.events;
+            else if (raw?.results) raw = raw.results;
+            else if (raw?.data) raw = raw.data;
+            const all = Array.isArray(raw) ? raw : [];
+            if (all.length > 0) _calEventsCache = all;
+            return _orig.call(this, payload);
         };
     }
 
@@ -66,7 +82,7 @@ const SmartSearch = (() => {
             key: 'events',
             labelKey: 'search.section.events',
             label: 'Events',
-            getData: () => typeof _calEvents !== 'undefined' ? _calEvents : [],
+            getData: () => _calEventsCache,
             match: (item, q) => (item.title || '').toLowerCase().includes(q),
             getImg: (item) => ({ src: item.imageUrl || '', circle: false }),
             getName: (item) => item.title || 'Untitled Event',
@@ -248,6 +264,7 @@ const SmartSearch = (() => {
         );
 
         _patchRenderMyWorlds();
+        _patchCalEvents();
 
         _badge.addEventListener('click', _open_ui);
 
