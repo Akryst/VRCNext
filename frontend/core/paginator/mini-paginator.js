@@ -39,5 +39,12 @@ function buildMiniPaginator(page, totalPages, onPageFn, countHtml = '') {
 
 function setMiniPaginator(barId, html) {
     const bar = document.getElementById(barId);
-    if (bar) bar.innerHTML = html;
+    if (!bar) return;
+    bar.innerHTML = html;
+    const content = bar.previousElementSibling;
+    if (content && html) {
+        content.classList.remove('mini-page-fade-in');
+        void content.offsetWidth;
+        content.classList.add('mini-page-fade-in');
+    }
 }

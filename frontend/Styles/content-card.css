@@ -213,19 +213,6 @@
     gap: 3px;
 }
 
-.s-card-h {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-}
-
-.s-card-h .s-card-body {
-    padding: 0;
-    min-width: 0;
-    flex: 1;
-}
-
 .fav-friend-av, .s-card-avatar { border-radius: 50%; background-size: cover; background-position: center; flex-shrink: 0; }
 .fav-friend-av { width: 40px; height: 40px; }
 .s-card-avatar { width: 44px; height: 44px; background-color: var(--bg-input); }

@@ -520,7 +520,7 @@
             }
         }
 
-        const friendCard = el.closest('.vrc-friend-card, .vrcn-profile-item, .inst-user-row, .iim-user-tr, .dash-feed-card, .fav-friend-card, .s-card-h');
+        const friendCard = el.closest('.vrc-friend-card, .vrcn-profile-item, .inst-user-row, .iim-user-tr, .dash-feed-card, .fav-friend-card');
         if (friendCard) {
             const id = extractFriendId(friendCard);
             if (id) {
