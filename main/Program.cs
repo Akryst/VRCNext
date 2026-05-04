@@ -1,9 +1,15 @@
+using System.Runtime.InteropServices;
 using VRCNext.Services;
 
 namespace VRCNext;
 
 static class Program
 {
+    // Stable AUMID
+    // so the pin survives Velopack updates that move the exe to a new versioned folder.
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern int SetCurrentProcessExplicitAppUserModelID(string appID);
+
     [STAThread]
     static void Main(string[] args)
     {
@@ -31,6 +37,8 @@ static class Program
         if (!AcquireMutex("Global\\VRCNext", out var mainMutex, showError: true)) return;
         using (mainMutex)
         {
+            if (OperatingSystem.IsWindows())
+                SetCurrentProcessExplicitAppUserModelID("com.shinyflvre.vrcnext");
             CrashHandler.Register();
             Velopack.VelopackApp.Build().Run();
             new AppShell(args).Run();
