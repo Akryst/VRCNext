@@ -1829,5 +1829,6 @@
   "search.section.my_avatars": "マイアバター",
   "search.section.fav_avatars": "お気に入りアバター",
   "search.hint": "フレンド・ワールド・グループ・アバターを検索…",
-  "search.no_results": "結果なし"
+  "search.no_results": "結果なし",
+  "search.section.settings": "設定"
 }

@@ -1832,5 +1832,6 @@
   "search.section.my_avatars": "Meine Avatare",
   "search.section.fav_avatars": "Favorisierte Avatare",
   "search.hint": "Freunde, Welten, Gruppen, Avatare suchen…",
-  "search.no_results": "Keine Ergebnisse"
+  "search.no_results": "Keine Ergebnisse",
+  "search.section.settings": "Einstellungen"
 }

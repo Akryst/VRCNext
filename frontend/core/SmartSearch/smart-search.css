@@ -257,3 +257,15 @@
     font-size: 22px;
     color: var(--tx2);
 }
+
+/* Settings row highlight when navigated to from search */
+@keyframes ss-setting-pulse {
+    0%   { background: transparent; }
+    25%  { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+    100% { background: transparent; }
+}
+
+.ss-setting-highlight {
+    border-radius: 8px;
+    animation: ss-setting-pulse 1.4s ease forwards;
+}

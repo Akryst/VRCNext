@@ -1830,5 +1830,6 @@
   "search.section.my_avatars": "Mes avatars",
   "search.section.fav_avatars": "Avatars favoris",
   "search.hint": "Rechercher amis, mondes, groupes, avatars…",
-  "search.no_results": "Aucun résultat"
+  "search.no_results": "Aucun résultat",
+  "search.section.settings": "Paramètres"
 }

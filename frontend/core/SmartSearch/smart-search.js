@@ -3,6 +3,7 @@
 const SmartSearch = (() => {
     let _myWorlds = [];
     let _calEventsCache = [];
+    let _settingsIndex = null; // null = not yet built
 
     function _patchRenderMyWorlds() {
         if (typeof renderMyWorlds !== 'function') return;
@@ -11,6 +12,34 @@ const SmartSearch = (() => {
             _myWorlds = Array.isArray(worlds) ? worlds : [];
             return _orig.call(this, worlds);
         };
+    }
+
+    function _buildSettingsIndex() {
+        const tab = document.getElementById('tab9');
+        if (!tab) { _settingsIndex = []; return; }
+        _settingsIndex = [];
+        tab.querySelectorAll('.sf-toggle-row').forEach(row => {
+            // Label: first [data-i18n] span that isn't a material icon
+            const labelEl = [...row.querySelectorAll('[data-i18n]')]
+                .find(el => !el.classList.contains('msi'));
+            const label = labelEl?.textContent.trim();
+            if (!label) return;
+
+            const input = row.querySelector('input[type="checkbox"], input[type="range"], select');
+            if (!input) return;
+
+            // Section: card header text (second span in header, skip .msi icon span)
+            const card = row.closest('.vrcn-panel-card, .vrcn-panel-card-pair');
+            const sectionEl = card && [...card.querySelectorAll('.vrcn-panel-card-header [data-i18n]')]
+                .find(el => !el.classList.contains('msi'));
+            const section = sectionEl?.textContent.trim() || '';
+
+            const type = input.type === 'checkbox' ? 'toggle'
+                : input.type === 'range' ? 'slider'
+                : input.tagName === 'SELECT' ? 'select' : 'input';
+
+            _settingsIndex.push({ row, input, label, section, type });
+        });
     }
 
     function _patchCalEvents() {
@@ -147,6 +176,42 @@ const SmartSearch = (() => {
             getName: (item) => item.name || '?',
             getSub: (item) => item.favoriteGroup || '',
             onOpen: (item) => { if (typeof openAvatarDetail === 'function') openAvatarDetail(item.id); },
+        },
+        {
+            key: 'settings',
+            labelKey: 'search.section.settings',
+            label: 'Settings',
+            getData: () => {
+                if (_settingsIndex === null) _buildSettingsIndex();
+                return _settingsIndex || [];
+            },
+            match: (item, q) =>
+                item.label.toLowerCase().includes(q) ||
+                item.section.toLowerCase().includes(q),
+            getImg: () => ({ src: '', circle: false }),
+            getName: (item) => item.label,
+            getSub: (item) => item.section,
+            renderAvatar: (item) => {
+                const iconMap = { toggle: 'toggle_on', slider: 'tune', select: 'arrow_drop_down_circle', input: 'edit' };
+                const icon = iconMap[item.type] || 'settings';
+                const wrap = document.createElement('div');
+                wrap.className = 'ss-item-img-placeholder';
+                wrap.style.cssText = 'border-radius:8px;';
+                const span = document.createElement('span');
+                span.className = 'msi';
+                span.style.cssText = 'font-size:16px;color:var(--accent);';
+                span.textContent = icon;
+                wrap.appendChild(span);
+                return wrap;
+            },
+            onOpen: (item) => {
+                if (typeof showTab === 'function') showTab(9);
+                setTimeout(() => {
+                    item.row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    item.row.classList.add('ss-setting-highlight');
+                    setTimeout(() => item.row.classList.remove('ss-setting-highlight'), 1400);
+                }, 220);
+            },
         },
     ];
 

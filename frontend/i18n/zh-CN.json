@@ -1830,5 +1830,6 @@
   "search.section.my_avatars": "我的虚拟形象",
   "search.section.fav_avatars": "收藏的虚拟形象",
   "search.hint": "搜索好友、世界、群组、虚拟形象…",
-  "search.no_results": "无结果"
+  "search.no_results": "无结果",
+  "search.section.settings": "设置"
 }
