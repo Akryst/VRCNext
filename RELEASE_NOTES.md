@@ -4,7 +4,9 @@
 
 Smart Search has been added and is now available in the VRCN header.
 
-With Smart Search, you can quickly find existing content inside VRCN. You can search for friends, groups, worlds, and avatars.
+With Smart Search, you can find almost anything very quickly. You can search your groups, friends, own worlds, favorite worlds, events, avatars, favorite avatars, settings, and all modules.
+
+This should improve the overall user experience and make navigating VRCN much faster.
 
 ### Performance & Large Lists
 

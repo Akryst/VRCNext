@@ -1833,5 +1833,6 @@
   "search.section.fav_avatars": "Favorisierte Avatare",
   "search.hint": "Freunde, Welten, Gruppen, Avatare suchen…",
   "search.no_results": "Keine Ergebnisse",
-  "search.section.settings": "Einstellungen"
+  "search.section.settings": "Einstellungen",
+  "search.section.modules": "Navigation"
 }

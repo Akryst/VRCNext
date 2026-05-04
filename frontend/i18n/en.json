@@ -1852,5 +1852,6 @@
   "search.section.fav_avatars": "Favorited Avatars",
   "search.hint": "Search friends, worlds, groups, avatars…",
   "search.no_results": "No results",
-  "search.section.settings": "Settings"
+  "search.section.settings": "Settings",
+  "search.section.modules": "Navigation"
 }

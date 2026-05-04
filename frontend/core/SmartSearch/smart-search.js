@@ -3,7 +3,8 @@
 const SmartSearch = (() => {
     let _myWorlds = [];
     let _calEventsCache = [];
-    let _settingsIndex = null; // null = not yet built
+    let _settingsIndex = null;
+    let _modulesIndex  = null;
 
     function _patchRenderMyWorlds() {
         if (typeof renderMyWorlds !== 'function') return;
@@ -42,6 +43,31 @@ const SmartSearch = (() => {
         });
     }
 
+    function _buildModulesIndex() {
+        _modulesIndex = [];
+        document.querySelectorAll('.sidebar .nav-btn[onclick]').forEach(btn => {
+            const onclickVal = btn.getAttribute('onclick') || '';
+            const tabMatch = onclickVal.match(/showTab\((\d+)\)/);
+            if (!tabMatch) return;
+            const tabIndex = parseInt(tabMatch[1], 10);
+
+            const label = btn.querySelector('.nl')?.textContent.trim();
+            if (!label) return;
+
+            const icon = btn.querySelector('.ni.msi')?.textContent.trim() || 'apps';
+            const isSub = btn.classList.contains('nav-sub');
+
+            // Parent group label for sub-items (e.g. "Tools")
+            let group = '';
+            if (isSub) {
+                const groupBtn = btn.closest('.nav-group')?.querySelector('.nav-group-btn .nl');
+                group = groupBtn?.textContent.trim() || '';
+            }
+
+            _modulesIndex.push({ btn, tabIndex, label, icon, group });
+        });
+    }
+
     function _patchCalEvents() {
         if (typeof renderCalendarEvents !== 'function') return;
         const _orig = renderCalendarEvents;
@@ -60,6 +86,35 @@ const SmartSearch = (() => {
     // ---- Search sections ----
 
     const SECTIONS = [
+        {
+            key: 'modules',
+            labelKey: 'search.section.modules',
+            label: 'Navigation',
+            getData: () => {
+                if (_modulesIndex === null) _buildModulesIndex();
+                return _modulesIndex || [];
+            },
+            match: (item, q) =>
+                item.label.toLowerCase().includes(q) ||
+                item.group.toLowerCase().includes(q),
+            getImg: () => ({ src: '', circle: false }),
+            getName: (item) => item.label,
+            getSub: (item) => item.group,
+            renderAvatar: (item) => {
+                const wrap = document.createElement('div');
+                wrap.className = 'ss-item-img-placeholder';
+                wrap.style.borderRadius = '8px';
+                const span = document.createElement('span');
+                span.className = 'msi';
+                span.style.cssText = 'font-size:16px;color:var(--accent);';
+                span.textContent = item.icon;
+                wrap.appendChild(span);
+                return wrap;
+            },
+            onOpen: (item) => {
+                if (typeof showTab === 'function') showTab(item.tabIndex);
+            },
+        },
         {
             key: 'friends',
             labelKey: 'search.section.friends',
