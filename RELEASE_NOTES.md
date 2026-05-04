@@ -21,6 +21,7 @@ This update improves performance in areas that can become slow with large friend
 * Fixed broken character encoding in the Spanish translation file.
 * Fixed Enable Text Tools setting not being saved or restored between sessions.
 * Fixed pinned taskbar icon breaking after updates.
+* Fixed border color in the Slates theme.
 * Fixed People Tab page navigation layout.
 * Fixed oversized friend cards in the People Tab.
 * Fixed page number alignment in smaller modal navigation.
