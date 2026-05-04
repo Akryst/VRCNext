@@ -56,6 +56,7 @@ public class WindowController
     private delegate nint SUBCLASSPROC(nint hWnd, uint uMsg, nint wParam, nint lParam, nuint uIdSubclass, nuint dwRefData);
     private static SUBCLASSPROC? _subclassProc; // must stay rooted — prevents GC collection of the delegate
     private static volatile bool _ncDestroyed;  // set on WM_NCDESTROY; guards re-entrant calls and post-destroy messages
+    private static volatile bool _legacyMode;   // true in Legacy Window mode — skip frame-removal handlers
     private const nuint SubclassId = 1;
     internal static volatile Action? OnMinimized; // set from AppShell; called on any minimize/hide-to-tray
 
@@ -102,7 +103,7 @@ public class WindowController
             return DefSubclassProc(hWnd, msg, wParam, lParam);
         }
 
-        if (msg == WM_NCCALCSIZE && wParam == 1)
+        if (!_legacyMode && msg == WM_NCCALCSIZE && wParam == 1)
             return 0;
 
         if (msg == WM_SYSCOMMAND && _minimizeToTray)
@@ -116,7 +117,7 @@ public class WindowController
             }
         }
 
-        if (msg == WM_NCHITTEST)
+        if (!_legacyMode && msg == WM_NCHITTEST)
         {
             var hit = DefSubclassProc(hWnd, msg, wParam, lParam);
             if (hit == 1 /*HTCLIENT*/)
@@ -143,6 +144,7 @@ public class WindowController
 #if WINDOWS
         var window = _core.Window;
         if (window == null) return;
+        _legacyMode = true;
         InstallWndProcSubclass(window.WindowHandle);
 #endif
     }

@@ -1,54 +1,24 @@
 **2026.21.1**
 
-### Performance & Large Friend Lists
+### Performance & Large Lists
 
-This update improves performance for users with very large friend lists.
+This update improves performance in areas that can become slow with large friend lists or large profiles.
 
-**Friends Sidebar**
+* Friends Sidebar sections now show up to 100 people at once while still showing the real total count.
+* Invite Modal sections now show up to 100 people at once and handle search results more cleanly.
+* People Tab now uses page navigation for All Friends, Blocked, and Muted with 100 entries per page.
+* Profile Modal now uses smaller page navigation for larger sections:
 
-* Friend sections now stay much lighter and faster, even with hundreds or thousands of friends.
-* Favorites, In-Game, Web, and Offline sections now show up to 100 people at once.
-* The section title still shows the real total amount, for example: `IN-GAME (247)`.
-* Search now checks your full friend list, not only the currently visible cards.
-* If there are more than 100 search results, VRCNext will show a small hint so you can refine your search.
-
-**Invite Modal**
-
-* The invite window is now much faster with large friend lists.
-* Each section now shows up to 100 people at once.
-* Searching now gives a clean result list with up to 100 matches.
-* If there are too many results, VRCNext will ask you to refine the search.
-
-**People Tab**
-
-* All Friends now has proper page navigation with 100 friends per page.
-* Blocked and Muted users now also use page navigation.
-* Searching resets the list back to the first page and searches through the full list.
-* Favorites stay unchanged, since they are already limited by VRChat’s favorite groups.
-
-**Friend Updates**
-
-* Rapid friend status and location updates are now grouped together better.
-* This should reduce UI lag when many friends change status, location, or activity at the same time.
-
-### Profile Modal Improvements
-
-The Profile Modal now uses smaller page navigation for larger sections.
-
-* Groups now show 8 entries per page.
-* Mutual Friends now show 8 entries per page.
-* Mutual Groups now show 8 entries per page.
-* Uploaded Worlds now show 4 entries per page.
-* Uploaded Avatars now show 4 entries per page.
-* Search works together with the new page navigation where available.
-
-This keeps profiles easier to browse and prevents large profiles from slowing down the modal.
+  * Groups, Mutual Friends, and Mutual Groups show 8 entries per page.
+  * Uploaded Worlds and Uploaded Avatars show 4 entries per page.
+* Searches now check the full list, not only currently visible entries.
+* Friend status and location updates are now processed more efficiently to reduce UI lag.
+* The In Same Instance sidebar section now reuses already-filtered friend data for better performance.
 
 ### Fixes
 
-* Fixed the People Tab layout so the page navigation stays properly at the bottom.
-* Fixed friend cards sometimes stretching too much in the People Tab.
-* Fixed page number alignment in the smaller modal page navigation.
+* Fixed window frame disappearing when resizing in Legacy Window mode.
+* Fixed People Tab page navigation layout.
+* Fixed oversized friend cards in the People Tab.
+* Fixed page number alignment in smaller modal navigation.
 * Improved consistency between People, Timeline, Media Library, and profile sections.
-* Fixed the In Same Instance sidebar section unnecessarily looping through all friends. It now reuses the already-filtered in-game list, which is much faster with large friend counts.
-* Friend status and location updates now send only the changed friend to the frontend instead of the full friend list. This removes a lot of unnecessary work on every single realtime update.
