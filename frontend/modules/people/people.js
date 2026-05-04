@@ -212,8 +212,10 @@ function renderBioLink(url) {
 
 // People Tab: Favorites / Search / Blocked / Muted
 
+
 function setPeopleFilter(filter) {
     if (_favFriendEditMode) exitFriendEditMode();
+    _peopleAllPage = 0; _peopleBlockedPage = 0; _peopleMutedPage = 0;
     peopleFilter = filter;
     document.getElementById('peopleFilterFav').classList.toggle('active', filter === 'favorites');
     document.getElementById('peopleFilterAll').classList.toggle('active', filter === 'all');
@@ -225,6 +227,10 @@ function setPeopleFilter(filter) {
     document.getElementById('peopleSearchArea').style.display  = filter === 'search'    ? '' : 'none';
     document.getElementById('peopleBlockedArea').style.display = filter === 'blocked'   ? '' : 'none';
     document.getElementById('peopleMutedArea').style.display   = filter === 'muted'     ? '' : 'none';
+    ['peopleAllPaginatorBar', 'peopleBlockedPaginatorBar', 'peopleMutedPaginatorBar'].forEach(id => {
+        const bar = document.getElementById(id);
+        if (bar) bar.innerHTML = '';
+    });
     const editBtn = document.getElementById('favFriendEditModeBtn');
     if (editBtn) editBtn.style.display = filter === 'favorites' ? '' : 'none';
     refreshPeopleTab();
@@ -241,15 +247,24 @@ function filterAllFriends() {
     const el = document.getElementById('allFriendsGrid');
     if (!el) return;
     const q = (document.getElementById('allFriendSearchInput')?.value || '').toLowerCase();
-    let friends = q
-        ? vrcFriendsData.filter(f => (f.displayName || '').toLowerCase().includes(q))
-        : [...vrcFriendsData];
-    friends.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
-    if (!friends.length) {
+    const all = (q
+        ? vrcFriendsData.filter(f =>
+            (f.displayName || '').toLowerCase().includes(q) ||
+            (f.username || f.userName || '').toLowerCase().includes(q) ||
+            (f.id || '').toLowerCase().includes(q))
+        : [...vrcFriendsData])
+        .sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
+    const totalPages = Math.ceil(all.length / PEOPLE_PAGE_SIZE) || 1;
+    if (_peopleAllPage >= totalPages) _peopleAllPage = totalPages - 1;
+    if (_peopleAllPage < 0) _peopleAllPage = 0;
+    const page = _peopleAllPage;
+    const slice = all.slice(page * PEOPLE_PAGE_SIZE, (page + 1) * PEOPLE_PAGE_SIZE);
+    if (!all.length) {
         el.innerHTML = `<div class="empty-msg">${q ? t('profiles.people.no_results', 'No results') : t('profiles.people.no_friends', 'No friends yet')}</div>`;
+        setPaginator('peopleAllPaginatorBar', '');
         return;
     }
-    el.innerHTML = friends.map(f => {
+    el.innerHTML = slice.map(f => {
         const img = f.image ? `<div class="fav-friend-av" style="background-image:url('${cssUrl(f.image)}')"></div>`
                             : `<div class="fav-friend-av fav-friend-av-letter">${esc((f.displayName || '?')[0].toUpperCase())}</div>`;
         const uid = jsq(f.id);
@@ -261,6 +276,24 @@ function filterAllFriends() {
             </div>
         </div>`;
     }).join('');
+    setPaginator('peopleAllPaginatorBar', buildPaginator(page, totalPages, 'peopleAllGoPage',
+        `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${all.length.toLocaleString()} total</span>`));
+}
+
+function peopleAllGoPage(page) {
+    if (page < 0) return;
+    const q = (document.getElementById('allFriendSearchInput')?.value || '').toLowerCase();
+    const all = q
+        ? vrcFriendsData.filter(f =>
+            (f.displayName || '').toLowerCase().includes(q) ||
+            (f.username || f.userName || '').toLowerCase().includes(q) ||
+            (f.id || '').toLowerCase().includes(q))
+        : [...vrcFriendsData];
+    const totalPages = Math.ceil(all.length / PEOPLE_PAGE_SIZE) || 1;
+    if (page >= totalPages) return;
+    _peopleAllPage = page;
+    filterAllFriends();
+    document.getElementById('allFriendsGrid')?.scrollTo(0, 0);
 }
 
 function filterModList(type) {
@@ -271,20 +304,36 @@ function filterModList(type) {
 function renderModList(containerId, list, actionType) {
     const el = document.getElementById(containerId);
     if (!el) return;
-    const searchId = actionType === 'block' ? 'blockedSearch' : 'mutedSearch';
+    const isBlock = actionType === 'block';
+    const searchId = isBlock ? 'blockedSearch' : 'mutedSearch';
+    const paginatorBarId = isBlock ? 'peopleBlockedPaginatorBar' : 'peopleMutedPaginatorBar';
+    const goPageFn = isBlock ? 'peopleBlockedGoPage' : 'peopleMutedGoPage';
     const query = (document.getElementById(searchId)?.value || '').toLowerCase().trim();
-    const filtered = query ? (list || []).filter(e => (e.targetDisplayName || e.targetUserId || '').toLowerCase().includes(query)) : (list || []);
-    if (!filtered.length) {
-        el.innerHTML = `<div class="empty-msg">${query ? t('profiles.people.no_results', 'No results') : (actionType === 'block' ? t('profiles.people.no_blocked', 'No blocked users') : t('profiles.people.no_muted', 'No muted users'))}</div>`;
+    const all = (query
+        ? (list || []).filter(e =>
+            (e.targetDisplayName || '').toLowerCase().includes(query) ||
+            (e.targetUserId || '').toLowerCase().includes(query))
+        : (list || []));
+    const totalPages = Math.ceil(all.length / PEOPLE_PAGE_SIZE) || 1;
+    if (isBlock) {
+        if (_peopleBlockedPage >= totalPages) _peopleBlockedPage = totalPages - 1;
+        if (_peopleBlockedPage < 0) _peopleBlockedPage = 0;
+    } else {
+        if (_peopleMutedPage >= totalPages) _peopleMutedPage = totalPages - 1;
+        if (_peopleMutedPage < 0) _peopleMutedPage = 0;
+    }
+    const page = isBlock ? _peopleBlockedPage : _peopleMutedPage;
+    if (!all.length) {
+        el.innerHTML = `<div class="empty-msg">${query ? t('profiles.people.no_results', 'No results') : (isBlock ? t('profiles.people.no_blocked', 'No blocked users') : t('profiles.people.no_muted', 'No muted users'))}</div>`;
+        setPaginator(paginatorBarId, '');
         return;
     }
-    list = filtered;
-    const btnLabel = actionType === 'block' ? t('profiles.people.unblock', 'Unblock') : t('profiles.people.unmute', 'Unmute');
+    const slice = all.slice(page * PEOPLE_PAGE_SIZE, (page + 1) * PEOPLE_PAGE_SIZE);
+    const btnLabel = isBlock ? t('profiles.people.unblock', 'Unblock') : t('profiles.people.unmute', 'Unmute');
     const btnClass = 'vrcn-button-round vrcn-btn-danger';
-    el.innerHTML = list.map(entry => {
+    el.innerHTML = slice.map(entry => {
         const uid = jsq(entry.targetUserId || '');
         const displayName = entry.targetDisplayName || entry.targetUserId || '?';
-        // Use enriched image from API; fall back to friends cache, then letter
         const friend = vrcFriendsData.find(f => f.id === entry.targetUserId);
         const imageUrl = entry.image || (friend && friend.image) || '';
         const img = imageUrl
@@ -300,13 +349,36 @@ function renderModList(containerId, list, actionType) {
             <button class="${btnClass}" style="margin-left:auto;flex-shrink:0;" onclick="event.stopPropagation();doUnmod('${uid}','${actionType}')">${btnLabel}</button>
         </div>`;
     }).join('');
+    setPaginator(paginatorBarId, buildPaginator(page, totalPages, goPageFn,
+        `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${all.length.toLocaleString()} total</span>`));
+}
 
-    el.querySelectorAll('.fav-friend-card').forEach((card, index) => {
-        const entry = list[index];
-        const friend = vrcFriendsData.find(f => f.id === entry?.targetUserId);
-        const statusEl = card.querySelector('.fav-friend-status');
-        if (statusEl) statusEl.innerHTML = getFriendStatusLine(friend);
-    });
+function peopleBlockedGoPage(page) {
+    if (page < 0) return;
+    const q = (document.getElementById('blockedSearch')?.value || '').toLowerCase().trim();
+    const all = q ? (blockedData || []).filter(e =>
+        (e.targetDisplayName || '').toLowerCase().includes(q) ||
+        (e.targetUserId || '').toLowerCase().includes(q))
+        : (blockedData || []);
+    const totalPages = Math.ceil(all.length / PEOPLE_PAGE_SIZE) || 1;
+    if (page >= totalPages) return;
+    _peopleBlockedPage = page;
+    renderModList('blockedList', blockedData || [], 'block');
+    document.getElementById('blockedList')?.scrollTo(0, 0);
+}
+
+function peopleMutedGoPage(page) {
+    if (page < 0) return;
+    const q = (document.getElementById('mutedSearch')?.value || '').toLowerCase().trim();
+    const all = q ? (mutedData || []).filter(e =>
+        (e.targetDisplayName || '').toLowerCase().includes(q) ||
+        (e.targetUserId || '').toLowerCase().includes(q))
+        : (mutedData || []);
+    const totalPages = Math.ceil(all.length / PEOPLE_PAGE_SIZE) || 1;
+    if (page >= totalPages) return;
+    _peopleMutedPage = page;
+    renderModList('mutedList', mutedData || [], 'mute');
+    document.getElementById('mutedList')?.scrollTo(0, 0);
 }
 
 function doUnmod(userId, type) {

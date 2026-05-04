@@ -101,9 +101,18 @@ function renderSearchResults(type, results, offset, hasMore) {
             </div>
         </div>`).join('');
     } else if (type === 'users') {
-        html = state.results.map(u => `<div class="s-card s-card-h" onclick="openFriendDetail('${esc(u.id)}')">
-            <div class="s-card-avatar" style="background-image:url('${cssUrl(u.image)}')"></div>
-            <div class="s-card-body"><div class="s-card-title">${esc(u.displayName)}</div><div class="s-card-sub">${searchUserStatusText(u)}</div></div></div>`).join('');
+        html = state.results.map(u => {
+            const img = u.image
+                ? `<div class="fav-friend-av" style="background-image:url('${cssUrl(u.image)}')"></div>`
+                : `<div class="fav-friend-av fav-friend-av-letter">${esc((u.displayName || '?')[0].toUpperCase())}</div>`;
+            return `<div class="fav-friend-card" onclick="openFriendDetail('${esc(u.id)}')">
+                ${img}
+                <div class="fav-friend-info">
+                    <div class="fav-friend-name">${esc(u.displayName)}</div>
+                    <div class="fav-friend-status">${searchUserStatusText(u)}</div>
+                </div>
+            </div>`;
+        }).join('');
     }
 
     if (state.hasMore) {

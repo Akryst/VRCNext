@@ -241,7 +241,7 @@ public class TimelineController
                     if (ftlCt.IsCancellationRequested) return;
                     try
                     {
-                        var w = await _core.VrcApi.GetWorldAsync(wid);
+                        var w = await _core.World.GetWorldAsync(wid);
                         if (w == null) continue;
                         var wName  = w["name"]?.ToString() ?? "";
                         var wThumb = w["imageUrl"]?.ToString() ?? "";
@@ -291,7 +291,7 @@ public class TimelineController
                             if (ftlCt.IsCancellationRequested) return;
                             var diskFi = ImageCacheHelper.GetUserCached(fid);
                             if (diskFi != null) { fetchedFriendImgs[fid] = ImageCacheHelper.ToLocalUrl(diskFi); return; }
-                            var profile = await _core.VrcApi.GetUserAsync(fid);
+                            var profile = await _core.Users.GetUserAsync(fid);
                             if (profile != null)
                             {
                                 var img = VRChatApiService.GetUserImage(profile);
@@ -425,7 +425,7 @@ public class TimelineController
             if (ct.IsCancellationRequested) return;
             try
             {
-                var w = await _core.VrcApi.GetWorldAsync(wid);
+                var w = await _core.World.GetWorldAsync(wid);
                 if (w != null)
                 {
                     var wName  = w["name"]?.ToString() ?? "";
@@ -494,7 +494,7 @@ public class TimelineController
                 try
                 {
                     if (ct.IsCancellationRequested) return;
-                    var av = await _core.VrcApi.GetAvatarAsync(aid);
+                    var av = await _core.Avatars.GetAvatarAsync(aid);
                     if (av != null)
                     {
                         var img = av["thumbnailImageUrl"]?.ToString() ?? av["imageUrl"]?.ToString() ?? "";
@@ -534,7 +534,7 @@ public class TimelineController
                     if (diskU != null) { fetchedImgs[uid] = ImageCacheHelper.ToLocalUrl(diskU); return; }
                     if (_friends.TryGetNameImage(uid, out var fi) && !string.IsNullOrEmpty(fi.image))
                     { fetchedImgs[uid] = fi.image; return; }
-                    var profile = await _core.VrcApi.GetUserAsync(uid);
+                    var profile = await _core.Users.GetUserAsync(uid);
                     if (profile != null)
                     {
                         var img = VRChatApiService.GetUserImage(profile);
@@ -617,7 +617,7 @@ public class TimelineController
                     if (ftlCt.IsCancellationRequested) return;
                     try
                     {
-                        var w = await _core.VrcApi.GetWorldAsync(wid);
+                        var w = await _core.World.GetWorldAsync(wid);
                         if (w == null) continue;
                         var wName  = w["name"]?.ToString() ?? "";
                         var wThumb = w["imageUrl"]?.ToString() ?? "";

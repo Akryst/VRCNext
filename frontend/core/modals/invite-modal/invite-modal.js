@@ -71,7 +71,7 @@ function _renderInviteModal() {
         </div>
         <div class="inv-search-wrap">
             <span class="msi inv-search-icon">search</span>
-            <input type="text" id="inviteSearch" class="inv-search-input" placeholder="${esc(t('invite.multi.search_placeholder', 'Search friends...'))}" oninput="filterInviteList()">
+            <input type="text" id="inviteSearch" class="inv-search-input" placeholder="${esc(t('invite.multi.search_placeholder', 'Search friends...'))}" oninput="_dbFilterInvite()">
         </div>
         <div id="inviteList" class="inv-list"></div>
         <div class="inv-footer">
@@ -144,33 +144,45 @@ function renderInviteList(filter) {
 
     let h = '';
 
+    // When search is active: flat list, max 100 total regardless of category
+    if (filter) {
+        const capped = allFriends.slice(0, 100);
+        if (allFriends.length > 100) {
+            h += `<div class="inv-section-lbl" style="color:var(--tx3);font-size:11px;font-weight:400;">${esc(tf('invite.multi.search.showing', { total: allFriends.length }, 'Showing 100 of {total} — refine search to see more'))}</div>`;
+        }
+        capped.forEach(f => h += card(f));
+        el.innerHTML = h;
+        _updateInviteFooter();
+        return;
+    }
+
     if (isGroupInvite) {
-        // Group invite: flat list, all friends including offline
+        // Group invite: flat list, all friends including offline, capped per section
         const onlineFriends = allFriends.filter(f => f.presence !== 'offline');
         const offlineFriends = allFriends.filter(f => f.presence === 'offline');
         if (onlineFriends.length > 0) {
             h += `<div class="inv-section-lbl">${esc(tf('invite.multi.section.online', { count: onlineFriends.length }, 'ONLINE - {count}'))}</div>`;
-            onlineFriends.forEach(f => h += card(f));
+            onlineFriends.slice(0, 100).forEach(f => h += card(f));
         }
         if (offlineFriends.length > 0) {
             h += `<div class="inv-section-lbl">${esc(tf('invite.multi.section.offline', { count: offlineFriends.length }, 'OFFLINE - {count}'))}</div>`;
-            offlineFriends.forEach(f => h += card(f));
+            offlineFriends.slice(0, 100).forEach(f => h += card(f));
         }
     } else {
-        // Instance invite: grouped by location
+        // Instance invite: grouped by location, capped per section
         if (instFriends.length > 0) {
             h += `<div class="inv-section-lbl">${esc(tf('invite.multi.section.in_instance', { count: instFriends.length }, 'IN-INSTANCE - {count}'))}</div>`;
-            instFriends.forEach(f => h += card(f));
+            instFriends.slice(0, 100).forEach(f => h += card(f));
         }
         const gameFriends = friends.filter(f => f.presence === 'game');
         const webFriends = friends.filter(f => f.presence === 'web');
         if (gameFriends.length > 0) {
             h += `<div class="inv-section-lbl">${esc(tf('invite.multi.section.in_game', { count: gameFriends.length }, 'IN-GAME - {count}'))}</div>`;
-            gameFriends.forEach(f => h += card(f));
+            gameFriends.slice(0, 100).forEach(f => h += card(f));
         }
         if (webFriends.length > 0) {
             h += `<div class="inv-section-lbl">${esc(tf('invite.multi.section.web_active', { count: webFriends.length }, 'WEB / ACTIVE - {count}'))}</div>`;
-            webFriends.forEach(f => h += card(f));
+            webFriends.slice(0, 100).forEach(f => h += card(f));
         }
     }
 

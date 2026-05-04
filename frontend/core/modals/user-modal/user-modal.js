@@ -77,8 +77,12 @@ function filterFdGroups() {
     const filtered = q ? all.filter(g => (g.name || '').toLowerCase().includes(q)) : all;
     const otherGroups = repG ? filtered.filter(g => g.id !== repG.id) : filtered;
     if (repSlot) repSlot.style.display = (q && repG && !(repG.name || '').toLowerCase().includes(q)) ? 'none' : '';
-    if (otherGroups.length > 0) {
-        grid.innerHTML = otherGroups.map(g => {
+    const totalPages = Math.ceil(otherGroups.length / MINI_PG_SIZE) || 1;
+    if ((window._fdGroupsPage || 0) >= totalPages) window._fdGroupsPage = totalPages - 1;
+    const page = window._fdGroupsPage || 0;
+    const slice = otherGroups.slice(page * MINI_PG_SIZE, (page + 1) * MINI_PG_SIZE);
+    if (slice.length > 0) {
+        grid.innerHTML = slice.map(g => {
             const gIcon = g.iconUrl ? `<img class="fd-group-icon" src="${g.iconUrl}" onerror="this.style.display='none'">` : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">group</span></div>`;
             return `<div class="fd-group-card" onclick="navOpenModal('group','${jsq(g.id)}','${jsq(g.name || '')}')">
                 ${gIcon}<div class="fd-group-card-info"><div class="fd-group-card-name">${esc(g.name)}</div><div class="fd-group-card-meta">${g.memberCount ? esc(getGroupMemberText(g.memberCount, false)) : ''}</div></div>
@@ -87,6 +91,20 @@ function filterFdGroups() {
     } else {
         grid.innerHTML = `<div style="padding:12px;grid-column:1/-1;text-align:center;font-size:12px;color:var(--tx3);">${t('profiles.groups.no_results', 'No results')}</div>`;
     }
+    setMiniPaginator('fdGroupsPaginatorBar', buildMiniPaginator(page, totalPages, 'fdGroupsGoPage'));
+}
+
+function fdGroupsGoPage(page) {
+    if (page < 0) return;
+    const q = (document.getElementById('fdGroupsSearch')?.value || '').toLowerCase();
+    const all = window._fdAllGroups || [];
+    const repG = window._fdRepGroup || null;
+    const filtered = q ? all.filter(g => (g.name||'').toLowerCase().includes(q)) : all;
+    const otherGroups = repG ? filtered.filter(g => g.id !== repG.id) : filtered;
+    const totalPages = Math.ceil(otherGroups.length / MINI_PG_SIZE) || 1;
+    if (page >= totalPages) return;
+    window._fdGroupsPage = page;
+    filterFdGroups();
 }
 
 function filterFdMutualsGroups() {
@@ -95,8 +113,12 @@ function filterFdMutualsGroups() {
     if (!grid) return;
     const all = window._fdAllMutualGroups || [];
     const filtered = q ? all.filter(g => (g.name || '').toLowerCase().includes(q)) : all;
-    if (filtered.length > 0) {
-        grid.innerHTML = filtered.map(g => {
+    const totalPages = Math.ceil(filtered.length / MINI_PG_SIZE) || 1;
+    if ((window._fdMutualsGroupsPage || 0) >= totalPages) window._fdMutualsGroupsPage = totalPages - 1;
+    const page = window._fdMutualsGroupsPage || 0;
+    const slice = filtered.slice(page * MINI_PG_SIZE, (page + 1) * MINI_PG_SIZE);
+    if (slice.length > 0) {
+        grid.innerHTML = slice.map(g => {
             const icon = g.iconUrl
                 ? `<img class="fd-group-icon" src="${esc(g.iconUrl)}" onerror="this.style.display='none'">`
                 : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">group</span></div>`;
@@ -110,18 +132,45 @@ function filterFdMutualsGroups() {
     } else {
         grid.innerHTML = `<div style="padding:12px;grid-column:1/-1;text-align:center;font-size:12px;color:var(--tx3);">${t('profiles.mutuals.groups_no_results', 'No results')}</div>`;
     }
+    setMiniPaginator('fdMutualsGroupsPageBar', buildMiniPaginator(page, totalPages, 'fdMutualsGroupsGoPage'));
+}
+
+function fdMutualsGroupsGoPage(page) {
+    if (page < 0) return;
+    const q = (document.getElementById('fdMutualsGroupsSearch')?.value || '').toLowerCase();
+    const all = window._fdAllMutualGroups || [];
+    const filtered = q ? all.filter(g => (g.name||'').toLowerCase().includes(q)) : all;
+    const totalPages = Math.ceil(filtered.length / MINI_PG_SIZE) || 1;
+    if (page >= totalPages) return;
+    window._fdMutualsGroupsPage = page;
+    filterFdMutualsGroups();
 }
 
 function filterFdMutuals() {
     const q = document.getElementById('fdMutualsSearch')?.value.trim().toLowerCase() || '';
     const grid = document.getElementById('fdMutualsGrid');
     if (!grid) return;
-    const filtered = q
-        ? (window._fdAllMutuals || []).filter(m => (m.displayName || '').toLowerCase().includes(q))
-        : (window._fdAllMutuals || []);
-    grid.innerHTML = filtered.length
-        ? filtered.map(mu => renderProfileItem(mu, `navOpenModal('friend','${jsq(mu.id)}','${jsq(mu.displayName || '')}')`)).join('')
+    const all = window._fdAllMutuals || [];
+    const filtered = q ? all.filter(m => (m.displayName || '').toLowerCase().includes(q)) : all;
+    const totalPages = Math.ceil(filtered.length / MINI_PG_SIZE) || 1;
+    if ((window._fdMutualsPage || 0) >= totalPages) window._fdMutualsPage = totalPages - 1;
+    const page = window._fdMutualsPage || 0;
+    const slice = filtered.slice(page * MINI_PG_SIZE, (page + 1) * MINI_PG_SIZE);
+    grid.innerHTML = slice.length
+        ? slice.map(mu => renderProfileItem(mu, `navOpenModal('friend','${jsq(mu.id)}','${jsq(mu.displayName || '')}')`)).join('')
         : `<div style="padding:12px;grid-column:1/-1;text-align:center;font-size:12px;color:var(--tx3);">${t('profiles.mutuals.no_results', 'No results')}</div>`;
+    setMiniPaginator('fdMutualsPageBar', buildMiniPaginator(page, totalPages, 'fdMutualsGoPage'));
+}
+
+function fdMutualsGoPage(page) {
+    if (page < 0) return;
+    const q = (document.getElementById('fdMutualsSearch')?.value || '').toLowerCase();
+    const all = window._fdAllMutuals || [];
+    const filtered = q ? all.filter(m => (m.displayName||'').toLowerCase().includes(q)) : all;
+    const totalPages = Math.ceil(filtered.length / MINI_PG_SIZE) || 1;
+    if (page >= totalPages) return;
+    window._fdMutualsPage = page;
+    filterFdMutuals();
 }
 
 function switchFdTab(tab, btn) {
@@ -225,8 +274,6 @@ function switchFdMutualsPill(pill, btn) {
 }
 
 function renderFdUserAvatars(payload) {
-    const el = document.getElementById('fdContentAvatars');
-    if (!el) return;
     const avatars = payload.avatars || [];
 
     const avatarsPill = document.getElementById('fdAvatarsPill');
@@ -236,12 +283,81 @@ function renderFdUserAvatars(payload) {
     const contentTab = document.getElementById('fdTabContentBtn');
     if (contentTab) contentTab.textContent = tf('profiles.tabs.content', { count: worldsCount + avatars.length }, 'Content ({count})');
 
-    if (!avatars.length) {
-        el.innerHTML = `<div class="empty-msg">${t('profiles.content.no_public_avatars', 'No public avatars found.')}</div>`;
+    window._fdAllAvatars = avatars;
+    window._fdAvatarsPage = 0;
+    renderFdAvatarsPage(0);
+}
+
+function renderFdAvatarsPage(page) {
+    const grid = document.getElementById('fdAvatarsGrid');
+    if (!grid) return;
+    const avatars = window._fdAllAvatars || [];
+    const totalPages = Math.ceil(avatars.length / MINI_CONTENT_PG_SIZE) || 1;
+    if (page >= totalPages) page = totalPages - 1;
+    if (page < 0) page = 0;
+    window._fdAvatarsPage = page;
+    const slice = avatars.slice(page * MINI_CONTENT_PG_SIZE, (page + 1) * MINI_CONTENT_PG_SIZE);
+    if (!slice.length) {
+        grid.innerHTML = `<div class="empty-msg">${t('profiles.content.no_public_avatars', 'No public avatars found.')}</div>`;
+        setMiniPaginator('fdAvatarsPageBar', '');
         return;
     }
-    el.innerHTML = '<div class="avatar-grid">' + avatars.map(a => renderAvatarCard(a, 'search')).join('') + '</div>';
-    _checkAvatarsExist(avatars.map(a => a.id).filter(Boolean));
+    grid.innerHTML = '<div class="avatar-grid">' + slice.map(a => renderAvatarCard(a, 'search')).join('') + '</div>';
+    setMiniPaginator('fdAvatarsPageBar', buildMiniPaginator(page, totalPages, 'fdAvatarsGoPage'));
+    _checkAvatarsExist(slice.map(a => a.id).filter(Boolean));
+}
+
+function fdAvatarsGoPage(page) {
+    if (page < 0) return;
+    const totalPages = Math.ceil((window._fdAllAvatars || []).length / MINI_CONTENT_PG_SIZE) || 1;
+    if (page >= totalPages) return;
+    window._fdAvatarsPage = page;
+    renderFdAvatarsPage(page);
+}
+
+function renderFdWorldsPage(page) {
+    const grid = document.getElementById('fdWorldsGrid');
+    if (!grid) return;
+    const worlds = window._fdAllWorlds || [];
+    const totalPages = Math.ceil(worlds.length / MINI_CONTENT_PG_SIZE) || 1;
+    if (page >= totalPages) page = totalPages - 1;
+    if (page < 0) page = 0;
+    window._fdWorldsPage = page;
+    const slice = worlds.slice(page * MINI_CONTENT_PG_SIZE, (page + 1) * MINI_CONTENT_PG_SIZE);
+    if (!slice.length) {
+        grid.innerHTML = `<div class="empty-msg">${t('profiles.content.no_public_worlds', 'No public worlds found.')}</div>`;
+        setMiniPaginator('fdWorldsPageBar', '');
+        return;
+    }
+    let h = `<div class="search-grid">`;
+    slice.forEach(w => {
+        const thumb = w.thumbnailImageUrl || w.imageUrl || '';
+        const wid = jsq(w.id);
+        const tags = (w.tags || []).filter(tag => tag.startsWith('author_tag_')).map(tag => tag.replace('author_tag_', '')).slice(0, 3);
+        const tagsHtml = tags.length ? `<div class="cc-tags">${tags.map(tag => `<span class="vrcn-badge">${esc(tag)}</span>`).join('')}</div>` : '';
+        h += `<div class="vrcn-content-card" onclick="navOpenModal('worldSearch','${wid}','${jsq(w.name || '')}')">
+            <div class="cc-bg" style="background-image:url('${cssUrl(thumb)}')"></div>
+            <div class="cc-scrim"></div>
+            <div class="cc-content">
+                <div class="cc-name">${esc(w.name)}</div>
+                <div class="cc-bottom-row">
+                    <div class="cc-meta">${esc(w.authorName || '')} · <span class="msi">person</span>${w.occupants} · <span class="msi">star</span>${w.favorites}</div>
+                    ${tagsHtml}
+                </div>
+            </div>
+        </div>`;
+    });
+    h += `</div>`;
+    grid.innerHTML = h;
+    setMiniPaginator('fdWorldsPageBar', buildMiniPaginator(page, totalPages, 'fdWorldsGoPage'));
+}
+
+function fdWorldsGoPage(page) {
+    if (page < 0) return;
+    const totalPages = Math.ceil((window._fdAllWorlds || []).length / MINI_CONTENT_PG_SIZE) || 1;
+    if (page >= totalPages) return;
+    window._fdWorldsPage = page;
+    renderFdWorldsPage(page);
 }
 
 function getLanguages(tags) {
@@ -273,6 +389,12 @@ function _getFdBannerImg(userId, src) {
 function renderFriendDetail(d) {
     currentFriendDetail = d;
     if (typeof navUpdateLabel === 'function') navUpdateLabel(d.displayName || '');
+    window._fdGroupsPage = 0;
+    window._fdMutualsPage = 0;
+    window._fdMutualsGroupsPage = 0;
+    window._fdWorldsPage = 0;
+    window._fdAvatarsPage = 0;
+    window._fdAllAvatars = [];
     const c = document.getElementById('friendDetailContent');
     const img = d.image || '';
     const imgTag = img
@@ -453,7 +575,7 @@ function renderFriendDetail(d) {
     if (allGroups.length > 0) {
         groupsContent += `<div class="search-bar-row" style="margin-bottom:6px;">
             <span class="msi search-ico">search</span>
-            <input id="fdGroupsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.groups.search_placeholder', 'Search groups by name...'))}" style="background:var(--bg-input);" oninput="filterFdGroups()">
+            <input id="fdGroupsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.groups.search_placeholder', 'Search groups by name...'))}" style="background:var(--bg-input);" oninput="_dbFdGroups()">
         </div>`;
         if (repG && repG.id) {
             const repIcon = repG.iconUrl ? `<img class="fd-group-icon" src="${repG.iconUrl}" onerror="this.style.display='none'">` : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">group</span></div>`;
@@ -465,17 +587,9 @@ function renderFriendDetail(d) {
         const otherGroups = repG ? allGroups.filter(g => g.id !== repG.id) : allGroups;
         if (otherGroups.length > 0) {
             groupsContent += `<div class="fd-group-rep-label" style="margin-top:${repG && repG.id ? '14' : '0'}px;">${t('profiles.badges.groups', 'Groups')}</div>`;
-            groupsContent += `<div id="fdGroupsGrid" style="display:grid;grid-template-columns:1fr 1fr;column-gap:6px;">`;
-            otherGroups.forEach(g => {
-                const gIcon = g.iconUrl ? `<img class="fd-group-icon" src="${g.iconUrl}" onerror="this.style.display='none'">` : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">group</span></div>`;
-                groupsContent += `<div class="fd-group-card" onclick="navOpenModal('group','${jsq(g.id)}','${jsq(g.name || '')}')">
-                    ${gIcon}<div class="fd-group-card-info"><div class="fd-group-card-name">${esc(g.name)}</div><div class="fd-group-card-meta">${g.memberCount ? esc(getGroupMemberText(g.memberCount, false)) : ''}</div></div>
-                </div>`;
-            });
-            groupsContent += `</div>`;
-        } else {
-            groupsContent += `<div id="fdGroupsGrid"></div>`;
         }
+        groupsContent += `<div id="fdGroupsGrid" style="display:grid;grid-template-columns:1fr 1fr;column-gap:6px;"></div>`;
+        groupsContent += `<div id="fdGroupsPaginatorBar" class="mini-paginator"></div>`;
     }
 
     if (!groupsContent) groupsContent = `<div style="padding:20px;text-align:center;font-size:12px;color:var(--tx3);">${t('profiles.badges.no_groups', 'No groups')}</div>`;
@@ -503,13 +617,10 @@ function renderFriendDetail(d) {
     } else {
         mutualsFriendsHtml = `<div class="search-bar-row" style="margin-bottom:6px;">
             <span class="msi search-ico">search</span>
-            <input id="fdMutualsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.mutuals.search_placeholder', 'Search users by name...'))}" style="background:var(--bg-input);" oninput="filterFdMutuals()">
+            <input id="fdMutualsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.mutuals.search_placeholder', 'Search users by name...'))}" style="background:var(--bg-input);" oninput="_dbFdMutuals()">
         </div>`;
-        mutualsFriendsHtml += '<div id="fdMutualsGrid" style="display:grid;grid-template-columns:1fr 1fr;column-gap:6px;">';
-        allMutuals.forEach(mu => {
-            mutualsFriendsHtml += renderProfileItem(mu, `navOpenModal('friend','${jsq(mu.id)}','${jsq(mu.displayName || '')}')`);
-        });
-        mutualsFriendsHtml += '</div>';
+        mutualsFriendsHtml += '<div id="fdMutualsGrid" style="display:grid;grid-template-columns:1fr 1fr;column-gap:6px;"></div>';
+        mutualsFriendsHtml += '<div id="fdMutualsPageBar" class="mini-paginator"></div>';
     }
 
     let mutualsGroupsHtml = '';
@@ -521,21 +632,10 @@ function renderFriendDetail(d) {
     } else {
         mutualsGroupsHtml = `<div class="search-bar-row" style="margin-bottom:6px;">
             <span class="msi search-ico">search</span>
-            <input id="fdMutualsGroupsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.mutuals.groups_search_placeholder', 'Search groups by name...'))}" style="background:var(--bg-input);" oninput="filterFdMutualsGroups()">
+            <input id="fdMutualsGroupsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.mutuals.groups_search_placeholder', 'Search groups by name...'))}" style="background:var(--bg-input);" oninput="_dbFdMutualsGroups()">
         </div>`;
-        mutualsGroupsHtml += '<div id="fdMutualsGroupsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">';
-        allMutualGroups.forEach(g => {
-            const icon = g.iconUrl
-                ? `<img class="fd-group-icon" src="${esc(g.iconUrl)}" onerror="this.style.display='none'">`
-                : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">group</span></div>`;
-            mutualsGroupsHtml += `<div class="fd-group-card" style="margin-bottom:0;" onclick="navOpenModal('group','${jsq(g.id)}','${jsq(g.name || '')}')">
-                ${icon}<div class="fd-group-card-info">
-                    <div class="fd-group-card-name">${esc(g.name)}</div>
-                    <div class="fd-group-card-meta">${esc(g.shortCode || '')}${g.discriminator ? '.' + esc(g.discriminator) : ''} &middot; ${esc(getGroupMemberText(g.memberCount))}</div>
-                </div>
-            </div>`;
-        });
-        mutualsGroupsHtml += '</div>';
+        mutualsGroupsHtml += '<div id="fdMutualsGroupsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>';
+        mutualsGroupsHtml += '<div id="fdMutualsGroupsPageBar" class="mini-paginator"></div>';
     }
 
     const mutualsContent = `
@@ -583,30 +683,8 @@ function renderFriendDetail(d) {
         tabsHtml += `</div>`;
     }
 
-    let worldsGridHtml = '';
-    if (allUserWorlds.length) {
-        worldsGridHtml = `<div class="search-grid">`;
-        allUserWorlds.forEach(w => {
-            const thumb = w.thumbnailImageUrl || w.imageUrl || '';
-            const wid = jsq(w.id);
-            const tags = (w.tags || []).filter(t => t.startsWith('author_tag_')).map(t => t.replace('author_tag_','')).slice(0,3);
-            const tagsHtml = tags.length ? `<div class="cc-tags">${tags.map(t => `<span class="vrcn-badge">${esc(t)}</span>`).join('')}</div>` : '';
-            worldsGridHtml += `<div class="vrcn-content-card" onclick="navOpenModal('worldSearch','${wid}','${jsq(w.name || '')}')">
-                <div class="cc-bg" style="background-image:url('${cssUrl(thumb)}')"></div>
-                <div class="cc-scrim"></div>
-                <div class="cc-content">
-                    <div class="cc-name">${esc(w.name)}</div>
-                    <div class="cc-bottom-row">
-                        <div class="cc-meta">${esc(w.authorName || d.displayName)} · <span class="msi">person</span>${w.occupants} · <span class="msi">star</span>${w.favorites}</div>
-                        ${tagsHtml}
-                    </div>
-                </div>
-            </div>`;
-        });
-        worldsGridHtml += `</div>`;
-    } else {
-        worldsGridHtml = `<div class="empty-msg">${t('profiles.content.no_public_worlds', 'No public worlds found.')}</div>`;
-    }
+    window._fdAllWorlds = allUserWorlds;
+    window._fdWorldsPage = 0;
 
     const userId = d.id || '';
     const contentHtml = `
@@ -614,9 +692,13 @@ function renderFriendDetail(d) {
             <button class="fd-tab fd-content-pill active" id="fdWorldsPill" onclick="switchFdContentPill('worlds',this)">${tf('profiles.content.worlds_pill', { count: allUserWorlds.length }, 'Worlds ({count})')}</button>
             <button class="fd-tab fd-content-pill" id="fdAvatarsPill" onclick="switchFdContentPill('avatars',this)">${tf('profiles.content.avatars_pill', { count: 0 }, 'Avatars (0)')}</button>
         </div>
-        <div id="fdContentWorlds">${worldsGridHtml}</div>
+        <div id="fdContentWorlds">
+            <div id="fdWorldsGrid"></div>
+            <div id="fdWorldsPageBar" class="mini-paginator"></div>
+        </div>
         <div id="fdContentAvatars" style="display:none;" data-user-id="${esc(userId)}">
-            <div class="empty-msg">${t('profiles.content.loading_avatars', 'Loading avatars...')}</div>
+            <div id="fdAvatarsGrid"><div class="empty-msg">${t('profiles.content.loading_avatars', 'Loading avatars...')}</div></div>
+            <div id="fdAvatarsPageBar" class="mini-paginator"></div>
         </div>`;
 
     c.innerHTML = `${bannerHtml}<div class="fd-content${bannerSrc ? ' fd-has-banner' : ''}"><div class="fd-header">${imgTag}<div><div class="fd-name" style="display:flex;align-items:center;gap:6px;">${esc(d.displayName)}${vrcPlusBadge}</div>${pronounsHtml}<div class="fd-status-row"><div class="fd-status" id="fd-live-status"><span class="${fdDotClass} ${fdStatusDotCls}" style="width:8px;height:8px;"></span>${fdIsOffline ? t('status.offline', 'Offline') : statusLabel(d.status)}${(!fdIsOffline && fdIsWeb) ? ' ' + t('profiles.friends.web_suffix', '(Web)') : ''}${(!fdIsOffline && d.statusDescription) ? ' - ' + esc(d.statusDescription) : ''}</div>${repGroupBadgeHtml}</div></div></div>${badgesHtml}${actionsHtml}${favPickerHtml}${tabsHtml}<div id="fdTabInfo">${infoContent}</div><div id="fdTabGroups" style="display:none;">${groupsContent}</div><div id="fdTabMutuals" style="display:none;">${mutualsContent}</div><div id="fdTabContent" style="display:none;">${contentHtml}</div><div id="fdTabFavs" style="display:none;" data-user-id="${esc(userId)}"></div><div style="margin-top:10px;text-align:right;"><button class="vrcn-button-round" onclick="closeFriendDetail()">${t('common.close', 'Close')}</button></div></div>`;
@@ -626,6 +708,12 @@ function renderFriendDetail(d) {
         const bannerImg = _getFdBannerImg(d.id, bannerSrc);
         if (bannerSlot && bannerImg) bannerSlot.insertBefore(bannerImg, bannerSlot.firstChild);
     }
+
+    // Populate paginated grids
+    filterFdGroups();
+    filterFdMutuals();
+    filterFdMutualsGroups();
+    renderFdWorldsPage(0);
 
     if (avatarFileId) sendToCS({ action: 'vrcLookupAvatarByFileId', fileId: avatarFileId, openModal: false });
     else if (avatarId && avatarId.startsWith('avtr_')) sendToCS({ action: 'vrcGetAvatarInfo', avatarId });

@@ -120,7 +120,6 @@
 .sf-ctrl,
 .tl-dp-nav,
 .tl-dp-day,
-.tl-paginator-bar,
 .tl-thumb-empty,
 .tl-av-letter,
 .tl-player-av-letter,
@@ -231,6 +230,7 @@ html.text-tools-active * { user-select: text !important; }
     box-shadow: 0 0 0 2px var(--accent);
 }
 
+.content.tab3-active,
 .content.tab7-active,
 .content.tab12-active,
 .content.tab16-active { overflow-y: hidden; padding-bottom: 0; }
@@ -740,27 +740,6 @@ html.text-tools-active * { user-select: text !important; }
     text-align: center;
 }
 
-.tl-paginator-bar {
-    flex-shrink: 0;
-    position: relative;
-    gap: 4px;
-    flex-wrap: wrap;
-    padding: 10px 28px 14px;
-    margin: 0 -28px;
-    background: var(--bg-base);
-}
-.tl-paginator-bar::before {
-    content: '';
-    position: absolute;
-    top: -44px;
-    left: 0;
-    right: 0;
-    height: 44px;
-    background: linear-gradient(to bottom, transparent, var(--bg-base));
-    pointer-events: none;
-    z-index: 1;
-}
-.tl-paginator-bar:empty { display: none; }
 
 .iu-dropzone {
     border: 2px dashed var(--bg-hover);

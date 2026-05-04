@@ -1,5 +1,42 @@
 /* === People Module === */
 
+/* Tab layout — flex column so paginator sticks to bottom like Timeline */
+#tab3.active {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#peopleFavArea,
+#peopleAllArea,
+#peopleSearchArea,
+#peopleBlockedArea,
+#peopleMutedArea {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#peopleFavArea .search-bar-row,
+#peopleAllArea .search-bar-row,
+#peopleSearchArea .search-bar-row,
+#peopleBlockedArea .search-bar-row,
+#peopleMutedArea .search-bar-row {
+    flex-shrink: 0;
+}
+
+#allFriendsGrid,
+#favFriendsGrid,
+#blockedList,
+#mutedList,
+#searchPeopleResults {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    align-content: start;
+}
+
 /* Sidebar profile card */
 .vrc-profile {
     display: flex;

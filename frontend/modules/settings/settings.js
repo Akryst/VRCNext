@@ -88,17 +88,18 @@ function saveSettings() {
             botAvatar: document.getElementById('setBotAvatar').value,
             webhooks: w,
             folders: settings.folders || [],
+            relayEnabledFolders: settings.relayEnabledFolders,
             vrcPath: document.getElementById('setVrcPath').value,
             extraExeDesktop: settings.extraExeDesktop || [],
             extraExeVR: settings.extraExeVR || [],
             extraExe: [], // clear legacy field so migration doesn't re-fire after user deletes apps
-            autoStart: false, // legacy â€” kept for JSON compat
+            autoStart: false, // legacy kept for JSON compat
             relayAutoStartVR:        document.getElementById('setAutoStartVR')?.checked       ?? false,
             relayAutoStartDesktop:   document.getElementById('setAutoStartDesktop')?.checked  ?? false,
             startWithWindows: document.getElementById('setStartWithWindows').checked,
             minimizeToTray: document.getElementById('setMinimizeToTray').checked,
             trayNotificationsEnabled: document.getElementById('setTrayNotifications')?.checked ?? false,
-            notifySound: false, // legacy â€” kept for JSON compat
+            notifySound: false, // legacy kept for JSON compat
             notifySoundEnabled: document.getElementById('setNotifySoundEnabled').checked,
             messageSoundEnabled: document.getElementById('setMessageSoundEnabled').checked,
             mediaRelaySoundEnabled: document.getElementById('setMediaRelaySoundEnabled').checked,
@@ -208,6 +209,7 @@ function saveSettings() {
             autoUpdate: document.getElementById('setAutoUpdate').checked,
             sendCrashData: document.getElementById('setSendCrashData').checked,
             restartAfterCrash: document.getElementById('setRestartAfterCrash').checked,
+            textToolsEnabled: document.getElementById('setTextToolsEnabled')?.checked ?? false,
             legacyWindow: document.getElementById('setLegacyWindow')?.checked ?? false,
             gpuAcceleration:    document.getElementById('setPerfGpuAccel')?.checked    ?? false,
             gpuShaderCache:     document.getElementById('setPerfShaderCache')?.checked  ?? false,
@@ -297,6 +299,7 @@ function loadSettingsToUI(s) {
     document.getElementById('setMessageSoundEnabled').checked = s.MessageSoundEnabled ?? s.messageSoundEnabled ?? false;
     document.getElementById('setMediaRelaySoundEnabled').checked = s.MediaRelaySoundEnabled ?? s.mediaRelaySoundEnabled ?? false;
     settings.folders = s.WatchFolders || s.watchFolders || s.folders || [];
+    settings.relayEnabledFolders = s.RelayEnabledFolders ?? s.relayEnabledFolders ?? null;
     settings.extraExe = s.ExtraExe || s.extraExe || [];
     // Migration: if new lists are empty but legacy extraExe has items, pre-populate both lists from it
     const _legacyExe = settings.extraExe;
@@ -333,6 +336,7 @@ function loadSettingsToUI(s) {
     }
     renderWebhookCards((s.Webhooks || s.webhooks || []).slice(0, 4));
     renderFolders(settings.folders);
+    if (typeof renderRelayFolders === 'function') renderRelayFolders();
     renderExtraExeDesktop(settings.extraExeDesktop);
     renderExtraExeVR(settings.extraExeVR);
     updateFolderFilterOptions(settings.folders);
@@ -511,6 +515,12 @@ function loadSettingsToUI(s) {
     document.getElementById('setSendCrashData').checked      = s.SendCrashData      ?? s.sendCrashData      ?? false;
     document.getElementById('setRestartAfterCrash').checked  = s.RestartAfterCrash  ?? s.restartAfterCrash  ?? true;
 
+    // Text Tools
+    const textToolsEnabled = s.TextToolsEnabled ?? s.textToolsEnabled ?? false;
+    const ttEl = document.getElementById('setTextToolsEnabled');
+    if (ttEl) ttEl.checked = textToolsEnabled;
+    toggleTextTools(textToolsEnabled, false);
+
     // Legacy Window
     const legacyWindow = s.LegacyWindow ?? s.legacyWindow ?? false;
     const lwEl = document.getElementById('setLegacyWindow');
@@ -603,12 +613,13 @@ function onPerfSettingChange() {
 // Text Tools (Debugging).
 let _textToolsEnabled = false;
 
-function toggleTextTools(enabled) {
+function toggleTextTools(enabled, save = true) {
     _textToolsEnabled = enabled;
     document.documentElement.classList.toggle('text-tools-active', enabled);
+    if (save) autoSave();
 }
 
-// â”€â”€ VRCX Import â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// VRCX Import
 
 let _vrcxPreviewData = null;
 let _vrcxLastProgress = null;

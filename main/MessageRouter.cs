@@ -25,7 +25,7 @@ public partial class AppShell
         {
             if (_ownAvatarCache != null) return;
             _ownAvatarCache = new();
-            var avatars = await _vrcApi.GetOwnAvatarsAsync();
+            var avatars = await _core.Avatars.GetOwnAvatarsAsync();
             foreach (var a in avatars)
             {
                 var id    = a["id"]?.ToString() ?? "";
@@ -186,7 +186,7 @@ public partial class AppShell
         {
             try
             {
-                var result = await _vrcApi.SearchAvatarsAsync(avatarId, 1);
+                var result = await _core.Avatars.SearchAvatarsAsync(avatarId, 1);
                 bool exists = result.Count > 0 && result.Any(a =>
                     (a["vrc_id"]?.ToString() ?? a["id"]?.ToString() ?? "") == avatarId);
                 if (exists)
@@ -261,7 +261,7 @@ public partial class AppShell
             {
                 try
                 {
-                    bool exists = await _vrcApi.CheckAvatarExistsAvtrIcuAsync(id);
+                    bool exists = await _core.Avatars.CheckAvatarExistsAvtrIcuAsync(id);
                     if (!exists) continue;
                     lock (_avtrIcuReportQueue)
                     {
@@ -303,7 +303,7 @@ public partial class AppShell
         {
             try
             {
-                bool exists = await _vrcApi.CheckAvatarExistsAvtrIcuAsync(avatarId);
+                bool exists = await _core.Avatars.CheckAvatarExistsAvtrIcuAsync(avatarId);
                 if (exists)
                 {
                     lock (_avtrIcuSubmitQueue) _avtrIcuSubmitQueue.Remove(avatarId);
@@ -479,7 +479,7 @@ public partial class AppShell
                 case "vrcGetRecentWorlds":
                     _ = Task.Run(async () =>
                     {
-                        var worlds = await _vrcApi.GetRecentWorldsAsync();
+                        var worlds = await _core.World.GetRecentWorldsAsync();
                         foreach (JObject w in worlds.OfType<JObject>())
                         {
                             var url = ImageCacheHelper.GetWorldUrl(w["id"]?.ToString(), w["imageUrl"]?.ToString() ?? w["thumbnailImageUrl"]?.ToString());
@@ -492,7 +492,7 @@ public partial class AppShell
                 case "vrcGetPopularWorlds":
                     _ = Task.Run(async () =>
                     {
-                        var worlds = await _vrcApi.GetPopularWorldsAsync();
+                        var worlds = await _core.World.GetPopularWorldsAsync();
                         foreach (JObject w in worlds.OfType<JObject>())
                         {
                             var url = ImageCacheHelper.GetWorldUrl(w["id"]?.ToString(), w["imageUrl"]?.ToString() ?? w["thumbnailImageUrl"]?.ToString());
@@ -505,7 +505,7 @@ public partial class AppShell
                 case "vrcGetActiveWorlds":
                     _ = Task.Run(async () =>
                     {
-                        var worlds = await _vrcApi.GetActiveWorldsAsync();
+                        var worlds = await _core.World.GetActiveWorldsAsync();
                         foreach (JObject w in worlds.OfType<JObject>())
                         {
                             var url = ImageCacheHelper.GetWorldUrl(w["id"]?.ToString(), w["imageUrl"]?.ToString() ?? w["thumbnailImageUrl"]?.ToString());
@@ -547,7 +547,7 @@ public partial class AppShell
                     var upBanner   = msg["profilePicOverride"] != null ? msg["profilePicOverride"]!.ToString() : (string?)null;
                     _ = Task.Run(async () =>
                     {
-                        var updUser = await _vrcApi.UpdateProfileAsync(upBio, upPronouns, upBioLinks, upTags, upUserIcon, upBanner);
+                        var updUser = await _core.Users.UpdateProfileAsync(upBio, upPronouns, upBioLinks, upTags, upUserIcon, upBanner);
                         Invoke(() =>
                         {
                             if (updUser != null)
@@ -573,7 +573,7 @@ public partial class AppShell
                     {
                         _ = Task.Run(async () =>
                         {
-                            var ok = await _vrcApi.UpdateBadgeAsync(badgeId, badgeShowcased);
+                            var ok = await _core.Users.UpdateBadgeAsync(badgeId, badgeShowcased);
                             Invoke(() =>
                             {
                                 SendToJS("vrcBadgeUpdated", new { badgeId, showcased = badgeShowcased, success = ok });
@@ -690,7 +690,7 @@ public partial class AppShell
                     {
                         _ = Task.Run(async () =>
                         {
-                            var ok5 = await _vrcApi.SelectAvatarAsync(selAvatarId);
+                            var ok5 = await _core.Avatars.SelectAvatarAsync(selAvatarId);
                             Invoke(() =>
                             {
                                 SendToJS("vrcAvatarSelected", new { avatarId = ok5 ? selAvatarId : "" });
@@ -721,8 +721,8 @@ public partial class AppShell
                                 {
                                     var similarMatch = System.Text.RegularExpressions.Regex.Match(avSearchQuery, @"^similar:\s*(avtr_[\w-]+)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                                     var raw = similarMatch.Success
-                                        ? await _vrcApi.SearchSimilarAvatarsAvtrIcuAsync(similarMatch.Groups[1].Value, avLimit)
-                                        : await _vrcApi.SearchAvatarsAvtrIcuAsync(avSearchQuery, avLimit, avSearchPage * avLimit);
+                                        ? await _core.Avatars.SearchSimilarAvatarsAvtrIcuAsync(similarMatch.Groups[1].Value, avLimit)
+                                        : await _core.Avatars.SearchAvatarsAvtrIcuAsync(avSearchQuery, avLimit, avSearchPage * avLimit);
 
                                     list = raw.Cast<JObject>().Select(a => (object)new
                                     {
@@ -746,13 +746,13 @@ public partial class AppShell
                                     if (similarMatch.Success)
                                     {
                                         var sid = similarMatch.Groups[1].Value;
-                                        avtrdbTask  = _vrcApi.SearchAvatarsAsync(avSearchQuery, avLimit, avSearchPage);
-                                        avtrIcuTask = _vrcApi.SearchSimilarAvatarsAvtrIcuAsync(sid, avLimit);
+                                        avtrdbTask  = _core.Avatars.SearchAvatarsAsync(avSearchQuery, avLimit, avSearchPage);
+                                        avtrIcuTask = _core.Avatars.SearchSimilarAvatarsAvtrIcuAsync(sid, avLimit);
                                     }
                                     else
                                     {
-                                        avtrdbTask  = _vrcApi.SearchAvatarsAsync(avSearchQuery, avLimit, avSearchPage);
-                                        avtrIcuTask = _vrcApi.SearchAvatarsAvtrIcuAsync(avSearchQuery, avLimit, avSearchPage * avLimit);
+                                        avtrdbTask  = _core.Avatars.SearchAvatarsAsync(avSearchQuery, avLimit, avSearchPage);
+                                        avtrIcuTask = _core.Avatars.SearchAvatarsAvtrIcuAsync(avSearchQuery, avLimit, avSearchPage * avLimit);
                                     }
                                     await Task.WhenAll(avtrdbTask, avtrIcuTask);
 
@@ -800,7 +800,7 @@ public partial class AppShell
                                 }
                                 else
                                 {
-                                    var raw = await _vrcApi.SearchAvatarsAsync(avSearchQuery, avLimit, avSearchPage);
+                                    var raw = await _core.Avatars.SearchAvatarsAsync(avSearchQuery, avLimit, avSearchPage);
                                     list = raw.Cast<JObject>().Select(a => (object)new
                                     {
                                         id                = a["vrc_id"]?.ToString() ?? a["id"]?.ToString() ?? "",
@@ -883,7 +883,7 @@ public partial class AppShell
                                 {
                                     try
                                     {
-                                        var av = await _vrcApi.GetAvatarAsync(id);
+                                        var av = await _core.Avatars.GetAvatarAsync(id);
                                         if (av == null) { deleted.Add(id); lock (_deletedAvatarIds) _deletedAvatarIds.Add(id); }
                                     }
                                     catch { deleted.Add(id); lock (_deletedAvatarIds) _deletedAvatarIds.Add(id); }
@@ -911,7 +911,7 @@ public partial class AppShell
                     var uOff = msg["offset"]?.Value<int>() ?? 0;
                     _ = Task.Run(async () =>
                     {
-                        var res = await _vrcApi.SearchUsersAsync(uQ, 20, uOff);
+                        var res = await _core.Users.SearchUsersAsync(uQ, 20, uOff);
                         var list = res.Cast<JObject>().Select(u => new {
                             id = u["id"]?.ToString() ?? "", displayName = u["displayName"]?.ToString() ?? "",
                             image = ImageCacheHelper.GetUserUrl(u["id"]?.ToString(), VRChatApiService.GetUserImage(u)), status = u["status"]?.ToString() ?? "offline",
@@ -928,7 +928,7 @@ public partial class AppShell
                     var wOff = msg["offset"]?.Value<int>() ?? 0;
                     _ = Task.Run(async () =>
                     {
-                        var res = await _vrcApi.SearchWorldsAsync(wQ, 20, wOff);
+                        var res = await _core.World.SearchWorldsAsync(wQ, 20, wOff);
                         var list = res.Cast<JObject>().Select(w => {
                             var wid2 = w["id"]?.ToString() ?? "";
                             var wurl = ImageCacheHelper.GetWorldUrl(wid2, w["imageUrl"]?.ToString() ?? w["thumbnailImageUrl"]?.ToString());
@@ -993,7 +993,7 @@ public partial class AppShell
                             static string StripNonce(string l) =>
                                 System.Text.RegularExpressions.Regex.Replace(l ?? "", @"~nonce\([^)]*\)", "");
 
-                            var world = await _vrcApi.GetWorldFreshAsync(wdId);
+                            var world = await _core.World.GetWorldFreshAsync(wdId);
                             if (world == null)
                             {
                                 Invoke(() => SendToJS("vrcWorldDetailError", new { error = "Could not load world" }));
@@ -1039,7 +1039,7 @@ public partial class AppShell
                             // Fetch real user counts for friend-inferred instances in parallel
                             if (friendLocs.Count > 0)
                             {
-                                var instTasks = friendLocs.Select(loc => _vrcApi.GetInstanceAsync(loc)).ToArray();
+                                var instTasks = friendLocs.Select(loc => _core.Instances.GetInstanceAsync(loc)).ToArray();
                                 var instResults = await Task.WhenAll(instTasks);
                                 for (int i = 0; i < friendLocs.Count; i++)
                                 {
@@ -1063,7 +1063,7 @@ public partial class AppShell
                             var groupInfoMap = new Dictionary<string, (string name, string shortCode)>();
                             if (uniqueGroupIds.Count > 0)
                             {
-                                var gTasks = uniqueGroupIds.ToDictionary(id => id, id => _vrcApi.GetGroupAsync(id));
+                                var gTasks = uniqueGroupIds.ToDictionary(id => id, id => _core.Groups.GetGroupAsync(id));
                                 try { await Task.WhenAll(gTasks.Values); } catch { }
                                 foreach (var kv in gTasks)
                                     if (!kv.Value.IsFaulted && kv.Value.Result != null)
@@ -1120,9 +1120,9 @@ public partial class AppShell
                             JObject? pcFileObj = null, andFileObj = null;
                             var fileTasks = new List<Task>();
                             if (!string.IsNullOrEmpty(pcFileId))
-                                fileTasks.Add(Task.Run(async () => pcFileObj = await _vrcApi.GetFileAsync(pcFileId)));
+                                fileTasks.Add(Task.Run(async () => pcFileObj = await _core.Files.GetFileAsync(pcFileId)));
                             if (!string.IsNullOrEmpty(andFileId) && andFileId != pcFileId)
-                                fileTasks.Add(Task.Run(async () => andFileObj = await _vrcApi.GetFileAsync(andFileId)));
+                                fileTasks.Add(Task.Run(async () => andFileObj = await _core.Files.GetFileAsync(andFileId)));
                             else if (andFileId == pcFileId)
                                 fileTasks.Add(Task.Run(() => { andFileObj = pcFileObj; return Task.CompletedTask; }));
                             if (fileTasks.Count > 0) await Task.WhenAll(fileTasks);
@@ -1206,7 +1206,7 @@ public partial class AppShell
                     if (!string.IsNullOrEmpty(avId))
                         _ = Task.Run(async () =>
                         {
-                            var (ok, error) = await _vrcApi.UpdateAvatarAsync(avId, avName, avDesc, avStatus, avTags);
+                            var (ok, error) = await _core.Avatars.UpdateAvatarAsync(avId, avName, avDesc, avStatus, avTags);
                             Invoke(() => SendToJS("vrcAvatarUpdateResult", new
                             {
                                 ok,
@@ -1238,7 +1238,7 @@ public partial class AppShell
                             }));
                         _ = Task.Run(async () =>
                         {
-                            var avatar = await _vrcApi.GetAvatarAsync(avdId);
+                            var avatar = await _core.Avatars.GetAvatarAsync(avdId);
                             if (avatar == null)
                             {
                                 Invoke(() => SendToJS("vrcAvatarDetailError", new { error = "Could not load avatar" }));
@@ -1327,14 +1327,14 @@ public partial class AppShell
                                 // from ToString() which breaks the ?? fallback chain.
                                 if (scType == "wrld")
                                 {
-                                    var w = await _vrcApi.GetWorldFreshAsync(scId);
+                                    var w = await _core.World.GetWorldFreshAsync(scId);
                                     name     = w?["name"]?.Value<string>() ?? "";
                                     rawImage = w?["imageUrl"]?.Value<string>()
                                             ?? w?["thumbnailImageUrl"]?.Value<string>() ?? "";
                                 }
                                 else if (scType == "avtr")
                                 {
-                                    var a = await _vrcApi.GetAvatarAsync(scId);
+                                    var a = await _core.Avatars.GetAvatarAsync(scId);
                                     name     = a?["name"]?.Value<string>() ?? "";
                                     rawImage = a?["thumbnailImageUrl"]?.Value<string>()
                                             ?? a?["imageUrl"]?.Value<string>() ?? "";
@@ -1352,14 +1352,14 @@ public partial class AppShell
                                 }
                                 else if (scType == "grp")
                                 {
-                                    var g = await _vrcApi.GetGroupAsync(scId);
+                                    var g = await _core.Groups.GetGroupAsync(scId);
                                     name     = g?["name"]?.Value<string>() ?? "";
                                     rawImage = g?["iconUrl"]?.Value<string>()
                                             ?? g?["bannerUrl"]?.Value<string>() ?? "";
                                 }
                                 else if (scType == "usr")
                                 {
-                                    var u = await _vrcApi.GetUserAsync(scId);
+                                    var u = await _core.Users.GetUserAsync(scId);
                                     name     = u?["displayName"]?.Value<string>() ?? "";
                                     rawImage = VRChatApiService.GetUserImage(u) ?? "";
                                 }
@@ -1404,7 +1404,7 @@ public partial class AppShell
                 case "vrcGetMyWorlds":
                     _ = Task.Run(async () =>
                     {
-                        var worlds = await _vrcApi.GetMyWorldsAsync();
+                        var worlds = await _core.World.GetMyWorldsAsync();
                         foreach (JObject w in worlds.OfType<JObject>())
                         {
                             var url = ImageCacheHelper.GetWorldUrl(w["id"]?.ToString(), w["imageUrl"]?.ToString() ?? w["thumbnailImageUrl"]?.ToString());
@@ -1435,12 +1435,12 @@ public partial class AppShell
                             var from    = msg["from"]?.ToString() ?? "";
                             var to      = msg["to"]?.ToString() ?? "";
 
-                            var worlds = await _vrcApi.GetMyWorldsAsync();
+                            var worlds = await _core.World.GetMyWorldsAsync();
                             foreach (var w in worlds)
                             {
                                 var id = w["id"]?.ToString();
                                 if (string.IsNullOrEmpty(id)) continue;
-                                var full = await _vrcApi.GetWorldFreshAsync(id);
+                                var full = await _core.World.GetWorldFreshAsync(id);
                                 var active    = full?["occupants"]?.Value<int>() ?? w["occupants"]?.Value<int>() ?? 0;
                                 var favorites = full?["favorites"]?.Value<int>() ?? w["favorites"]?.Value<int>() ?? 0;
                                 var visits    = full?["visits"]?.Value<int>() ?? 0;
@@ -1478,7 +1478,7 @@ public partial class AppShell
                         var groupName   = msg["groupName"]?.ToString() ?? "";
                         var displayName = msg["displayName"]?.ToString() ?? "";
                         var visibility  = msg["visibility"]?.ToString(); // null = don't change
-                        var ok = await _vrcApi.UpdateFavoriteGroupAsync(groupType, groupName, displayName, visibility);
+                        var ok = await _core.Favorites.UpdateFavoriteGroupAsync(groupType, groupName, displayName, visibility);
                         Invoke(() => SendToJS("vrcFavoriteGroupUpdated", new { ok, groupName, displayName, visibility }));
                     });
                     break;
@@ -1486,7 +1486,7 @@ public partial class AppShell
                 case "vrcGetWorldFavGroups":
                     _ = Task.Run(async () =>
                     {
-                        var groups = await _vrcApi.GetFavoriteGroupsAsync();
+                        var groups = await _core.Favorites.GetFavoriteGroupsAsync();
                         var worldTypes = new HashSet<string> { "world", "vrcPlusWorld" };
                         var groupList = groups
                             .Where(g => worldTypes.Contains(g["type"]?.ToString() ?? ""))
@@ -1505,7 +1505,7 @@ public partial class AppShell
                 case "vrcGetFriendFavGroups":
                     _ = Task.Run(async () =>
                     {
-                        var groups = await _vrcApi.GetFavoriteGroupsAsync();
+                        var groups = await _core.Favorites.GetFavoriteGroupsAsync();
                         var groupList = groups
                             .Where(g => g["type"]?.ToString() == "friend")
                             .Select(g => new AuthController.WFavGroup {
@@ -1528,7 +1528,7 @@ public partial class AppShell
                         var groupName   = msg["groupName"]?.ToString() ?? "";
                         var displayName = msg["displayName"]?.ToString() ?? "";
                         var visibility  = msg["visibility"]?.ToString();
-                        var ok = await _vrcApi.UpdateFavoriteGroupAsync("friend", groupName, displayName, visibility);
+                        var ok = await _core.Favorites.UpdateFavoriteGroupAsync("friend", groupName, displayName, visibility);
                         Invoke(() => SendToJS("vrcFriendFavoriteGroupUpdated", new { ok, groupName, displayName, visibility }));
                     });
                     break;
@@ -1539,7 +1539,7 @@ public partial class AppShell
                     {
                         _ = Task.Run(async () =>
                         {
-                            var ok = await _vrcApi.SetHomeWorldAsync(homeWid);
+                            var ok = await _core.Users.SetHomeWorldAsync(homeWid);
                             Invoke(() => SendToJS("vrcActionResult", new { action = "setHomeWorld", success = ok,
                                 message = ok ? "Home world updated!" : "Failed to set home world" }));
                         });
@@ -1553,7 +1553,7 @@ public partial class AppShell
                         var groupName = msg["groupName"]?.ToString() ?? "";
                         var groupType = msg["groupType"]?.ToString() ?? "world";
                         var oldFvrtId = msg["oldFvrtId"]?.ToString();
-                        var (ok, resultData) = await _vrcApi.AddWorldFavoriteAsync(worldId, groupName, groupType, oldFvrtId);
+                        var (ok, resultData) = await _core.Favorites.AddWorldFavoriteAsync(worldId, groupName, groupType, oldFvrtId);
                         // resultData = new fvrt ID on success, error message on failure
                         Invoke(() => SendToJS("vrcWorldFavoriteResult", new { ok, worldId, groupName, newFvrtId = ok ? resultData : "", error = ok ? "" : resultData }));
                     });
@@ -1565,7 +1565,7 @@ public partial class AppShell
                     var fvrtId  = msg["fvrtId"]?.ToString() ?? "";
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _vrcApi.RemoveFavoriteFriendAsync(fvrtId);
+                        var ok = await _core.Favorites.RemoveFavoriteFriendAsync(fvrtId);
                         Invoke(() => SendToJS("vrcWorldUnfavoriteResult", new { ok, worldId }));
                     });
                     break;
@@ -1574,7 +1574,7 @@ public partial class AppShell
                 case "vrcGetAvatarFavGroups":
                     _ = Task.Run(async () =>
                     {
-                        var groups = await _vrcApi.GetFavoriteGroupsAsync();
+                        var groups = await _core.Favorites.GetFavoriteGroupsAsync();
                         var avatarTypes = new HashSet<string> { "avatar" };
                         var groupList = groups
                             .Where(g => avatarTypes.Contains(g["type"]?.ToString() ?? ""))
@@ -1599,7 +1599,7 @@ public partial class AppShell
                         var avGroup   = msg["groupName"]?.ToString() ?? "";
                         var avType    = msg["groupType"]?.ToString() ?? "avatar";
                         var avOldFvrt = msg["oldFvrtId"]?.ToString();
-                        var (avOk, avResult) = await _vrcApi.AddAvatarFavoriteAsync(avId, avGroup, avType, avOldFvrt);
+                        var (avOk, avResult) = await _core.Avatars.AddAvatarFavoriteAsync(avId, avGroup, avType, avOldFvrt);
                         if (avOk) _cache.Delete(CacheHandler.KeyFavAvatars);
                         Invoke(() => SendToJS("vrcAvatarFavoriteResult", new { ok = avOk, avatarId = avId, groupName = avGroup, newFvrtId = avOk ? avResult : "", error = avOk ? "" : avResult }));
                     });
@@ -1611,7 +1611,7 @@ public partial class AppShell
                     var avFvrtId = msg["fvrtId"]?.ToString() ?? "";
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _vrcApi.RemoveFavoriteFriendAsync(avFvrtId);
+                        var ok = await _core.Favorites.RemoveFavoriteFriendAsync(avFvrtId);
                         if (ok) _cache.Delete(CacheHandler.KeyFavAvatars);
                         Invoke(() => SendToJS("vrcAvatarUnfavoriteResult", new { ok, avatarId = avRmId }));
                     });
@@ -1773,7 +1773,7 @@ public partial class AppShell
                     var calYear   = msg["year"]?.Value<int>()  ?? 0;
                     var calMonth  = msg["month"]?.Value<int>() ?? 0;
                     _ = Task.Run(async () => {
-                        var evts = await _vrcApi.GetCalendarEventsAsync(calFilter, calYear, calMonth);
+                        var evts = await _core.Calendar.GetCalendarEventsAsync(calFilter, calYear, calMonth);
                         foreach (var ce in evts.OfType<JObject>())
                             ce["imageUrl"] = ImageCacheHelper.GetEventUrl(ce["id"]?.ToString(), ce["imageUrl"]?.ToString());
                         Invoke(() => SendToJS("vrcCalendarEvents", new { events = evts, filter = calFilter }));
@@ -1801,7 +1801,7 @@ public partial class AppShell
                                 ["tags"]        = new JArray(calCached.Tags),
                             }));
                         _ = Task.Run(async () => {
-                            var ev = await _vrcApi.GetCalendarEventAsync(calGrpId, calEvtId);
+                            var ev = await _core.Calendar.GetCalendarEventAsync(calGrpId, calEvtId);
                             if (ev != null)
                             {
                                 _timeEngine.SaveEventDetail(
@@ -1831,7 +1831,7 @@ public partial class AppShell
                     if (!string.IsNullOrEmpty(fevGrpId) && !string.IsNullOrEmpty(fevEvtId))
                     {
                         _ = Task.Run(async () => {
-                            var ok = await _vrcApi.FollowEventAsync(fevGrpId, fevEvtId, doFollow);
+                            var ok = await _core.Calendar.FollowEventAsync(fevGrpId, fevEvtId, doFollow);
                             Invoke(() => SendToJS("vrcActionResult", new { action = doFollow ? "followEvent" : "unfollowEvent",
                                 success = ok, message = ok ? (doFollow ? "Following event" : "Unfollowed") : "Failed" }));
                         });
@@ -1875,7 +1875,7 @@ public partial class AppShell
                                 currentAvatarImageUrl = ImageCacheHelper.GetAvatarUrl(null, guCached.CurrentAvatarImg),
                             }));
                         _ = Task.Run(async () => {
-                            var u = await _vrcApi.GetUserAsync(guId);
+                            var u = await _core.Users.GetUserAsync(guId);
                             if (u != null)
                             {
                                 var guImg = VRChatApiService.GetUserImage(u);
@@ -1942,11 +1942,11 @@ public partial class AppShell
                                 }
                             }
 
-                            var files = await _vrcApi.GetInventoryFilesAsync(invTag);
+                            var files = await _core.Files.GetInventoryFilesAsync(invTag);
                             // Also fetch emojianimated when tag=emoji
                             if (invTag == "emoji")
                             {
-                                var animated = await _vrcApi.GetInventoryFilesAsync("emojianimated");
+                                var animated = await _core.Files.GetInventoryFilesAsync("emojianimated");
                                 foreach (var a in animated)
                                     files.Add(a);
                             }
@@ -1999,7 +1999,7 @@ public partial class AppShell
                             try
                             {
                                 var bytes = System.IO.File.ReadAllBytes(path);
-                                var (ok, file, error) = await _vrcApi.UploadInventoryImageAsync(bytes, uploadTag);
+                                var (ok, file, error) = await _core.Files.UploadInventoryImageAsync(bytes, uploadTag);
                                 if (ok) _cache.Delete(CacheHandler.KeyInventory);
                                 if (ok && file != null)
                                 {
@@ -2052,7 +2052,7 @@ public partial class AppShell
                             var raw = dataB64.Contains(",") ? dataB64.Split(',')[1] : dataB64;
                             var bytes2 = Convert.FromBase64String(raw);
 
-                            var (ok2, file2, error2) = await _vrcApi.UploadInventoryImageAsync(bytes2, uploadTag2, animStyle, maskTagVal);
+                            var (ok2, file2, error2) = await _core.Files.UploadInventoryImageAsync(bytes2, uploadTag2, animStyle, maskTagVal);
                             if (ok2) _cache.Delete(CacheHandler.KeyInventory);
                             if (ok2 && file2 != null)
                             {
@@ -2096,7 +2096,7 @@ public partial class AppShell
                     {
                         _ = Task.Run(async () =>
                         {
-                            var ok = await _vrcApi.DeleteInventoryFileAsync(delFileId);
+                            var ok = await _core.Files.DeleteInventoryFileAsync(delFileId);
                             if (ok) _cache.Delete(CacheHandler.KeyInventory);
                             Invoke(() => SendToJS("invDeleteResult", new { success = ok, fileId = delFileId }));
                         });
@@ -2125,7 +2125,7 @@ public partial class AppShell
                                     }
                                 }
 
-                                var prints = await _vrcApi.GetUserPrintsAsync(printUserId);
+                                var prints = await _core.Inventory.GetUserPrintsAsync(printUserId);
                                 var list = prints.OfType<JObject>().Select(p =>
                                 {
                                     var filesObj = p["files"] as JObject;
@@ -2182,7 +2182,7 @@ public partial class AppShell
                                 }
                             }
 
-                            var (items, total) = await _vrcApi.GetInventoryItemsAsync();
+                            var (items, total) = await _core.Inventory.GetInventoryItemsAsync();
                             var list = items.OfType<JObject>().Select(item => new
                             {
                                 id          = item["id"]?.ToString() ?? "",
@@ -2212,7 +2212,7 @@ public partial class AppShell
                     {
                         _ = Task.Run(async () =>
                         {
-                            var ok = await _vrcApi.DeletePrintAsync(delPrintId);
+                            var ok = await _core.Inventory.DeletePrintAsync(delPrintId);
                             Invoke(() => SendToJS("invPrintDeleteResult", new { success = ok, printId = delPrintId }));
                         });
                     }

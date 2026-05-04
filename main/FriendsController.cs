@@ -25,6 +25,15 @@ public class FriendsController
     private readonly SemaphoreSlim _friendsRefreshLock = new(1, 1);
     private readonly HashSet<string> _profileRefreshInFlight = new();
 
+    // Push-debounce: coalesces rapid WebSocket events into a single frontend send.
+    // Trailing debounce (300 ms) with a hard max-wait (1500 ms) so a continuous
+    // event stream still flushes periodically instead of being deferred forever.
+    private CancellationTokenSource? _pushDebounce;
+    private DateTime _pushEarliestFlush = DateTime.MinValue;
+    private readonly object _pushLock = new();
+    private const int PushDebounceMs = 300;
+    private const int PushMaxDelayMs = 1500;
+
     // Chat Storage
     private static readonly string _chatDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VRCNext", "chat");
@@ -158,7 +167,7 @@ public class FriendsController
                     if (string.IsNullOrEmpty(bio))
                     {
                         _core.SendToJS("vrcFriendPreview", new { id = prevId, bio, profilePicOverride });
-                        var user = await _core.VrcApi.GetUserAsync(prevId);
+                        var user = await _core.Users.GetUserAsync(prevId);
                         if (user != null)
                         {
                             bio = user["bio"]?.ToString() ?? "";
@@ -178,11 +187,11 @@ public class FriendsController
                 var openModal = msg["openModal"]?.Value<bool>() ?? false;
                 if (!string.IsNullOrEmpty(fileId))
                 {
-                    var avtrId = await _core.VrcApi.GetAvatarIdByFileIdAsync(fileId);
+                    var avtrId = await _core.Avatars.GetAvatarIdByFileIdAsync(fileId);
                     string avatarName = "", avatarImage = "", avatarAuthor = "";
                     if (!string.IsNullOrEmpty(avtrId))
                     {
-                        var avtrObj = await _core.VrcApi.GetAvatarAsync(avtrId);
+                        var avtrObj = await _core.Avatars.GetAvatarAsync(avtrId);
                         avatarName = avtrObj?["name"]?.ToString() ?? "";
                         avatarImage = ImageCacheHelper.GetAvatarUrl(avtrId, avtrObj?["imageUrl"]?.ToString());
                         avatarAuthor = avtrObj?["authorName"]?.ToString() ?? "";
@@ -197,7 +206,7 @@ public class FriendsController
                 var avtrId = msg["avatarId"]?.ToString() ?? "";
                 if (!string.IsNullOrEmpty(avtrId))
                 {
-                    var avtrObj = await _core.VrcApi.GetAvatarAsync(avtrId);
+                    var avtrObj = await _core.Avatars.GetAvatarAsync(avtrId);
                     var avatarName = avtrObj?["name"]?.ToString() ?? "";
                     var avatarImage = ImageCacheHelper.GetAvatarUrl(avtrId, avtrObj?["imageUrl"]?.ToString());
                     var avatarAuthor = avtrObj?["authorName"]?.ToString() ?? "";
@@ -225,13 +234,13 @@ public class FriendsController
 
                                 if (string.IsNullOrEmpty(fileId))
                                 {
-                                    var user = await _core.VrcApi.GetUserAsync(uid);
+                                    var user = await _core.Users.GetUserAsync(uid);
                                     if (user != null) fileId = ExtractAvatarFileId(user);
                                 }
 
                                 string avtrId = "";
                                 if (!string.IsNullOrEmpty(fileId))
-                                    avtrId = await _core.VrcApi.GetAvatarIdByFileIdAsync(fileId) ?? "";
+                                    avtrId = await _core.Avatars.GetAvatarIdByFileIdAsync(fileId) ?? "";
                                 _core.SendToJS("vrcInstanceAvatarFound", new { userId = uid, avatarId = avtrId });
                             }
                             catch
@@ -268,7 +277,7 @@ public class FriendsController
                             }
                         }
 
-                        var raw = await _core.VrcApi.SearchAvatarsByAuthorAsync(uid);
+                        var raw = await _core.Avatars.SearchAvatarsByAuthorAsync(uid);
                         var avatars = raw.Cast<JObject>().Select(a => new
                         {
                             id                = a["vrc_id"]?.ToString() ?? a["id"]?.ToString() ?? "",
@@ -308,7 +317,7 @@ public class FriendsController
                 var slot = msg["messageSlot"]?.Value<int?>();
                 if (!string.IsNullOrEmpty(uid))
                 {
-                    var ok = await _core.VrcApi.InviteFriendAsync(uid, _core.LogWatcher.CurrentLocation ?? "", slot);
+                    var ok = await _core.Invite.InviteFriendAsync(uid, _core.LogWatcher.CurrentLocation ?? "", slot);
                     _core.SendToJS("vrcActionResult", new
                     {
                         action = "invite", success = ok,
@@ -325,7 +334,7 @@ public class FriendsController
                 var slot = msg["messageSlot"]?.Value<int?>();
                 if (!string.IsNullOrEmpty(uid) && !string.IsNullOrEmpty(fileUrl))
                 {
-                    var ok = await _core.VrcApi.InviteFriendWithPhotoAsync(uid, _core.LogWatcher.CurrentLocation ?? "", fileUrl, slot);
+                    var ok = await _core.Invite.InviteFriendWithPhotoAsync(uid, _core.LogWatcher.CurrentLocation ?? "", fileUrl, slot);
                     _core.SendToJS("vrcActionResult", new
                     {
                         action = "invite", success = ok,
@@ -340,7 +349,7 @@ public class FriendsController
                 var uid = msg["userId"]?.ToString() ?? _core.VrcApi.CurrentUserId;
                 if (!string.IsNullOrEmpty(uid))
                 {
-                    var msgs = await _core.VrcApi.GetInviteMessagesAsync(uid);
+                    var msgs = await _core.Invite.GetInviteMessagesAsync(uid);
                     _core.SendToJS("vrcInviteMessages", msgs ?? new JArray());
                 }
                 break;
@@ -353,7 +362,7 @@ public class FriendsController
                 var text = msg["message"]?.ToString() ?? "";
                 if (!string.IsNullOrEmpty(uid) && slot >= 0 && !string.IsNullOrEmpty(text))
                 {
-                    var (ok, arr, cooldown) = await _core.VrcApi.UpdateInviteMessageAsync(uid, slot, text);
+                    var (ok, arr, cooldown) = await _core.Invite.UpdateInviteMessageAsync(uid, slot, text);
                     if (ok && arr != null)
                         _core.SendToJS("vrcInviteMessages", arr);
                     else
@@ -367,7 +376,7 @@ public class FriendsController
                 var uid = msg["userId"]?.ToString();
                 if (!string.IsNullOrEmpty(uid))
                 {
-                    var ok = await _core.VrcApi.RequestInviteAsync(uid);
+                    var ok = await _core.Invite.RequestInviteAsync(uid);
                     _core.SendToJS("vrcActionResult", new
                     {
                         action = "requestInvite", success = ok,
@@ -385,7 +394,7 @@ public class FriendsController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.VrcApi.UpdateUserNoteAsync(uid, note);
+                        var ok = await _core.Users.UpdateUserNoteAsync(uid, note);
                         _core.SendToJS("vrcNoteUpdated", new { success = ok, userId = uid, note });
                     });
                 }
@@ -405,7 +414,7 @@ public class FriendsController
                         var loc = !string.IsNullOrEmpty(locOverride) ? locOverride : (_core.LogWatcher.CurrentLocation ?? "");
                         foreach (var uid in ids)
                         {
-                            var ok = await _core.VrcApi.InviteFriendAsync(uid, loc);
+                            var ok = await _core.Invite.InviteFriendAsync(uid, loc);
                             done++;
                             if (ok) success++; else fail++;
                             _core.SendToJS("vrcBatchInviteProgress", new { done, total, success, fail });
@@ -436,7 +445,7 @@ public class FriendsController
                 {
                     try
                     {
-                        var result = await _core.VrcApi.AddFavoriteFriendAsync(uid, groupName);
+                        var result = await _core.Favorites.AddFavoriteFriendAsync(uid, groupName);
                         if (result == null) return;
                         var fvrtId = result["id"]?.ToString() ?? "";
                         if (string.IsNullOrEmpty(fvrtId)) return;
@@ -456,7 +465,7 @@ public class FriendsController
                 {
                     try
                     {
-                        var ok = await _core.VrcApi.RemoveFavoriteFriendAsync(fvrtId);
+                        var ok = await _core.Favorites.RemoveFavoriteFriendAsync(fvrtId);
                         if (!ok) return;
                         lock (_favoriteFriends) _favoriteFriends.Remove(uid);
                         _core.SendToJS("vrcFavoriteFriendToggled", new { userId = uid, fvrtId = "", isFavorited = false });
@@ -473,7 +482,7 @@ public class FriendsController
                 var oldFvrt = msg["oldFvrtId"]?.ToString();
                 _ = Task.Run(async () =>
                 {
-                    var (ok, resultData) = await _core.VrcApi.AddFavoriteFriendToGroupAsync(uid, group, oldFvrt);
+                    var (ok, resultData) = await _core.Favorites.AddFavoriteFriendToGroupAsync(uid, group, oldFvrt);
                     if (ok) lock (_favoriteFriends) _favoriteFriends[uid] = (resultData, group);
                     _core.SendToJS("vrcFriendFavoriteResult",
                         new { ok, userId = uid, groupName = group, newFvrtId = ok ? resultData : "", error = ok ? "" : resultData });
@@ -489,7 +498,7 @@ public class FriendsController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.VrcApi.SendFriendRequestAsync(uid);
+                        var ok = await _core.Friends.SendFriendRequestAsync(uid);
                         _core.SendToJS("vrcActionResult", new { action = "friendRequest", success = ok,
                             message = ok ? "Friend request sent!" : "Failed to send request" });
                     });
@@ -504,7 +513,7 @@ public class FriendsController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.VrcApi.UnfriendAsync(uid);
+                        var ok = await _core.Friends.UnfriendAsync(uid);
                         _core.SendToJS("vrcActionResult", new { action = "unfriend", success = ok,
                             message = ok ? "Unfriended" : "Failed to unfriend" });
                         if (ok) _core.SendToJS("vrcUnfriendDone", new { userId = uid });
@@ -526,7 +535,7 @@ public class FriendsController
                             _core.SendToJS("vrcBlockedList", bArr); return;
                         }
                     }
-                    var arr = await _core.VrcApi.GetPlayerModerationsAsync("block");
+                    var arr = await _core.PlayerModeration.GetPlayerModerationsAsync("block");
                     await EnrichModerationsWithImagesAsync(arr);
                     if (_core.Settings.FfcEnabled) _core.Cache.Save(CacheHandler.KeyBlockedPersons, arr);
                     _core.SendToJS("vrcBlockedList", arr);
@@ -546,7 +555,7 @@ public class FriendsController
                             _core.SendToJS("vrcMutedList", mArr); return;
                         }
                     }
-                    var arr = await _core.VrcApi.GetPlayerModerationsAsync("mute");
+                    var arr = await _core.PlayerModeration.GetPlayerModerationsAsync("mute");
                     await EnrichModerationsWithImagesAsync(arr);
                     if (_core.Settings.FfcEnabled) _core.Cache.Save(CacheHandler.KeyMutedPersons, arr);
                     _core.SendToJS("vrcMutedList", arr);
@@ -560,7 +569,7 @@ public class FriendsController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.VrcApi.ModerateUserAsync(uid, "block");
+                        var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "block");
                         _core.SendToJS("vrcActionResult", new { action = "block", success = ok,
                             message = ok ? "Blocked" : "Failed to block" });
                         if (ok) { _core.Cache.Delete(CacheHandler.KeyBlockedPersons); _core.SendToJS("vrcModDone", new { userId = uid, type = "block", active = true }); }
@@ -576,7 +585,7 @@ public class FriendsController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.VrcApi.ModerateUserAsync(uid, "mute");
+                        var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "mute");
                         _core.SendToJS("vrcActionResult", new { action = "mute", success = ok,
                             message = ok ? "Muted" : "Failed to mute" });
                         if (ok) { _core.Cache.Delete(CacheHandler.KeyMutedPersons); _core.SendToJS("vrcModDone", new { userId = uid, type = "mute", active = true }); }
@@ -592,7 +601,7 @@ public class FriendsController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.VrcApi.UnmoderateUserAsync(uid, "block");
+                        var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "block");
                         _core.SendToJS("vrcActionResult", new { action = "unblock", success = ok,
                             message = ok ? "Unblocked" : "Failed to unblock" });
                         if (ok) { _core.Cache.Delete(CacheHandler.KeyBlockedPersons); _core.SendToJS("vrcModDone", new { userId = uid, type = "block", active = false }); }
@@ -608,7 +617,7 @@ public class FriendsController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.VrcApi.UnmoderateUserAsync(uid, "mute");
+                        var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "mute");
                         _core.SendToJS("vrcActionResult", new { action = "unmute", success = ok,
                             message = ok ? "Unmuted" : "Failed to unmute" });
                         if (ok) { _core.Cache.Delete(CacheHandler.KeyMutedPersons); _core.SendToJS("vrcModDone", new { userId = uid, type = "mute", active = false }); }
@@ -624,7 +633,7 @@ public class FriendsController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.VrcApi.SendBoopAsync(uid);
+                        var ok = await _core.Users.SendBoopAsync(uid);
                         if (ok)
                         {
                             var entry = StoreChatMessage(uid, "me", "💕 Boop!", "boop");
@@ -645,7 +654,7 @@ public class FriendsController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var (ok, err, slotsUsed) = await _core.VrcApi.SendChatMessageAsync(uid, text);
+                        var (ok, err, slotsUsed) = await _core.Invite.SendChatMessageAsync(uid, text);
                         if (ok)
                         {
                             var entry = StoreChatMessage(uid, "me", text);
@@ -666,7 +675,7 @@ public class FriendsController
                     _core.SendToJS("vrcChatHistory", new { userId = uid, messages = GetChatHistory(uid) });
                     _ = Task.Run(async () =>
                     {
-                        var (used, total) = await _core.VrcApi.LoadChatSlotStatusAsync();
+                        var (used, total) = await _core.Invite.LoadChatSlotStatusAsync();
                         _core.SendToJS("vrcChatSlotInfo", new { used, total });
                     });
                 }
@@ -688,7 +697,7 @@ public class FriendsController
                 {
                     _ = Task.Run(async () =>
                     {
-                        var u = await _core.VrcApi.GetUserAsync(uid);
+                        var u = await _core.Users.GetUserAsync(uid);
                         if (u != null) _core.SendToJS("vrcUserDetail", new
                         {
                             id = u["id"]?.ToString() ?? "", displayName = u["displayName"]?.ToString() ?? "",
@@ -732,7 +741,7 @@ public class FriendsController
         }
 
         // Fetch fresh data from API
-        var groups = await _core.VrcApi.GetUserFavWorldGroupsAsync(userId);
+        var groups = await _core.Favorites.GetUserFavWorldGroupsAsync(userId);
         var result = new List<object>();
         foreach (var g in groups)
         {
@@ -745,7 +754,7 @@ public class FriendsController
             List<object> worlds = new();
             if (visibility != "private")
             {
-                var wArr = await _core.VrcApi.GetUserFavWorldsInGroupAsync(userId, name);
+                var wArr = await _core.Favorites.GetUserFavWorldsInGroupAsync(userId, name);
                 foreach (var w in wArr)
                 {
                     if (w is not JObject wo) continue;
@@ -790,7 +799,7 @@ public class FriendsController
         if (Interlocked.CompareExchange(ref _favFriendsInFlight, 1, 0) != 0) return;
         try
         {
-            var allGroups = await _core.VrcApi.GetFavoriteGroupsAsync();
+            var allGroups = await _core.Favorites.GetFavoriteGroupsAsync();
             var groupList = allGroups
                 .Where(g => g["type"]?.ToString() == "friend")
                 .Select(g => new AuthController.WFavGroup
@@ -805,7 +814,7 @@ public class FriendsController
                 .ToList();
             groupList = AuthController.FillMissingFriendSlots(groupList);
 
-            var favs = await _core.VrcApi.GetFavoriteFriendsAsync();
+            var favs = await _core.Favorites.GetFavoriteFriendsAsync();
             lock (_favoriteFriends)
             {
                 _favoriteFriends.Clear();
@@ -843,8 +852,8 @@ public class FriendsController
         if (!await _friendsRefreshLock.WaitAsync(0)) return;
         try
         {
-            var online = await _core.VrcApi.GetOnlineFriendsAsync();
-            var offline = await _core.VrcApi.GetOfflineFriendsAsync();
+            var online = await _core.Friends.GetOnlineFriendsAsync();
+            var offline = await _core.Friends.GetOfflineFriendsAsync();
 
             lock (_friendStore)
             {
@@ -990,7 +999,7 @@ public class FriendsController
                         {
                             try
                             {
-                                var world = await _core.VrcApi.GetWorldAsync(wid);
+                                var world = await _core.World.GetWorldAsync(wid);
                                 if (world == null) return (wid, null as object);
                                 var url = ImageCacheHelper.GetWorldUrl(wid, world["imageUrl"]?.ToString() ?? world["thumbnailImageUrl"]?.ToString());
                                 return (wid, (object)new
@@ -1045,7 +1054,7 @@ public class FriendsController
     public async Task UpdateStatusAsync(string status, string statusDescription)
     {
         if (!_core.VrcApi.IsLoggedIn) return;
-        var user = await _core.VrcApi.UpdateStatusAsync(status, statusDescription);
+        var user = await _core.Users.UpdateStatusAsync(status, statusDescription);
         if (user != null)
         {
             _core.SendToJS("log", new { msg = $"VRChat: Status updated to {status}", color = "ok" });
@@ -1062,7 +1071,7 @@ public class FriendsController
         {
             var uid = entry["targetUserId"]?.ToString();
             if (string.IsNullOrEmpty(uid)) return;
-            var user = await _core.VrcApi.GetUserAsync(uid);
+            var user = await _core.Users.GetUserAsync(uid);
             if (user != null) entry["image"] = ImageCacheHelper.GetUserUrl(uid, VRChatApiService.GetUserImage(user));
         });
         await Task.WhenAll(tasks);
@@ -1096,6 +1105,56 @@ public class FriendsController
     }
 
     public void PushFriendsFromStore()
+    {
+        CancellationTokenSource? oldCts;
+        CancellationTokenSource cts;
+        int delay;
+        lock (_pushLock)
+        {
+            oldCts = _pushDebounce;
+            oldCts?.Cancel();
+            var now = DateTime.UtcNow;
+            if (_pushEarliestFlush == DateTime.MinValue)
+                _pushEarliestFlush = now.AddMilliseconds(PushMaxDelayMs);
+            delay = (int)Math.Max(0, Math.Min(PushDebounceMs,
+                (_pushEarliestFlush - now).TotalMilliseconds));
+            _pushDebounce = cts = new CancellationTokenSource();
+        }
+        oldCts?.Dispose();
+        var token = cts.Token;
+        _ = Task.Delay(delay, token).ContinueWith(_ =>
+        {
+            if (token.IsCancellationRequested) return;
+            lock (_pushLock) { _pushEarliestFlush = DateTime.MinValue; }
+            DoPushFriendsFromStore();
+        }, TaskContinuationOptions.NotOnCanceled);
+    }
+
+    private void PushFriendUpdate(string userId)
+    {
+        JObject? f;
+        lock (_friendStore) _friendStore.TryGetValue(userId, out f);
+        if (f == null) return;
+        var location = f["location"]?.ToString() ?? "";
+        var platform = f["last_platform"]?.ToString() ?? f["platform"]?.ToString() ?? "";
+        bool isWebPlatform = platform.Equals("web", StringComparison.OrdinalIgnoreCase);
+        bool isInGame = !string.IsNullOrEmpty(location) && location != "offline" && location != "" && !isWebPlatform;
+        var status = f["status"]?.ToString() ?? "offline";
+        var presence = (location == "offline" && status == "offline") ? "offline" : isInGame ? "game" : "web";
+        _core.SendToJS("vrcFriendUpdate", new
+        {
+            id = f["id"]?.ToString() ?? "",
+            displayName = f["displayName"]?.ToString() ?? "",
+            image = ImageCacheHelper.GetUserUrl(f["id"]?.ToString(), VRChatApiService.GetUserImage(f)),
+            status, statusDescription = f["statusDescription"]?.ToString() ?? "",
+            location, platform, presence,
+            tags = f["tags"]?.ToObject<List<string>>() ?? new List<string>(),
+            ageVerified = f["ageVerified"]?.Value<bool>() ?? false,
+            avatarFileId = ExtractAvatarFileId(f),
+        });
+    }
+
+    private void DoPushFriendsFromStore()
     {
         List<JObject> snapshot;
         lock (_friendStore) snapshot = _friendStore.Values.ToList();
@@ -1332,7 +1391,7 @@ public class FriendsController
         user = storeSnapshot;
         if (user == null || user["badges"] == null)
         {
-            var fresh = await _core.VrcApi.GetUserAsync(userId);
+            var fresh = await _core.Users.GetUserAsync(userId);
             if (fresh != null) user = fresh;
             else if (user == null) return null;
         }
@@ -1362,17 +1421,17 @@ public class FriendsController
         var cachedMutualGroups = ffc && _core.Cache.IsFresh(CacheHandler.KeyUserMutualGroups(userId), TimeSpan.FromDays(1))
             ? _core.Cache.LoadRaw(CacheHandler.KeyUserMutualGroups(userId)) as JArray : null;
 
-        var instTask           = hasWorld ? _core.VrcApi.GetInstanceAsync(location) : Task.FromResult<JObject?>(null);
+        var instTask           = hasWorld ? _core.Instances.GetInstanceAsync(location) : Task.FromResult<JObject?>(null);
         var grpsTask           = cachedGroups != null
             ? Task.FromResult(cachedGroups)
-            : _core.VrcApi.GetUserGroupsByIdAsync(userId);
+            : _core.Users.GetUserGroupsByIdAsync(userId);
         var worldsTask         = cachedWorlds != null
             ? Task.FromResult(cachedWorlds)
-            : _core.VrcApi.GetUserWorldsAsync(userId);
-        var mutualsTask        = _core.VrcApi.GetUserMutualsAsync(userId);
+            : _core.World.GetUserWorldsAsync(userId);
+        var mutualsTask        = _core.Users.GetUserMutualsAsync(userId);
         var mutualGroupsTask   = cachedMutualGroups != null
             ? Task.FromResult(cachedMutualGroups)
-            : _core.VrcApi.GetUserMutualGroupsAsync(userId);
+            : _core.Users.GetUserMutualGroupsAsync(userId);
 
         await Task.WhenAll(new Task[] { instTask, grpsTask, worldsTask, mutualsTask, mutualGroupsTask }
             .Select(t => t.ContinueWith(_ => { })));
@@ -1569,7 +1628,7 @@ public class FriendsController
     {
         if (_core.IsVrcRunning?.Invoke() ?? false)
         {
-            var ok = await _core.VrcApi.InviteSelfAsync(joinLoc);
+            var ok = await _core.Instances.InviteSelfAsync(joinLoc);
             if (ok)
             {
                 _core.SendToJS("vrcActionResult", new { action = "join", success = true,
@@ -1609,7 +1668,7 @@ public class FriendsController
 
         MergeFriendStore(e.UserId, e.User, location: loc,
             platform: string.IsNullOrEmpty(e.Platform) ? null : e.Platform);
-        PushFriendsFromStore();
+        PushFriendUpdate(e.UserId);
 
         if (e.User != null)
             _friendNameImg[e.UserId] = (
@@ -1643,7 +1702,7 @@ public class FriendsController
         {
             try
             {
-                var world = await _core.VrcApi.GetWorldAsync(worldId);
+                var world = await _core.World.GetWorldAsync(worldId);
                 if (world == null) return;
                 var wname = world["name"]?.ToString() ?? "";
                 var wthumb = world["thumbnailImageUrl"]?.ToString() ?? "";
@@ -1672,7 +1731,7 @@ public class FriendsController
         MergeFriendStore(e.UserId, e.User,
             location: string.IsNullOrEmpty(e.Location) ? "" : e.Location,
             platform: string.IsNullOrEmpty(e.Platform) ? null : e.Platform);
-        PushFriendsFromStore();
+        PushFriendUpdate(e.UserId);
 
         var (fname, fimg) = _friendNameImg.GetValueOrDefault(e.UserId, ("", ""));
         if (e.User != null)
@@ -1707,7 +1766,7 @@ public class FriendsController
         if (string.IsNullOrEmpty(e.UserId) || !_friendStateSeeded) return;
 
         MergeFriendStore(e.UserId, null, wentOffline: true);
-        PushFriendsFromStore();
+        PushFriendUpdate(e.UserId);
 
         var (fname, fimg) = _friendNameImg.GetValueOrDefault(e.UserId, ("", ""));
         if (e.User != null)
@@ -1741,7 +1800,7 @@ public class FriendsController
         MergeFriendStore(e.UserId, e.User,
             location: string.IsNullOrEmpty(e.Location) ? "" : e.Location,
             platform: string.IsNullOrEmpty(e.Platform) ? null : e.Platform);
-        PushFriendsFromStore();
+        PushFriendUpdate(e.UserId);
 
         var fname = "";
         var fimg = "";
@@ -1779,7 +1838,7 @@ public class FriendsController
         if (e.User == null || string.IsNullOrEmpty(e.UserId) || !_friendStateSeeded) return;
 
         MergeFriendStore(e.UserId, e.User);
-        PushFriendsFromStore();
+        PushFriendUpdate(e.UserId);
 
         var fname = e.User["displayName"]?.ToString() ?? _friendNameImg.GetValueOrDefault(e.UserId).name ?? "";
         var fimg = VRChatApiService.GetUserImage(e.User);
@@ -1849,10 +1908,10 @@ public class FriendsController
                 {
                     try
                     {
-                        var avtrId = await _core.VrcApi.GetAvatarIdByFileIdAsync(newFileId) ?? "";
+                        var avtrId = await _core.Avatars.GetAvatarIdByFileIdAsync(newFileId) ?? "";
                         if (string.IsNullOrEmpty(avtrId)) return;
 
-                        var avtrObj  = await _core.VrcApi.GetAvatarAsync(avtrId);
+                        var avtrObj  = await _core.Avatars.GetAvatarAsync(avtrId);
                         var avtrName = avtrObj?["name"]?.ToString() ?? "";
                         if (string.IsNullOrEmpty(avtrName)) return;
 

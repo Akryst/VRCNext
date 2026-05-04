@@ -611,7 +611,7 @@ function _wiRange() {
         to = new Date(from);
         to.setHours(23, 59, 59, 999);
     } else if (_wiMode === 'week') {
-        // Mondayâ€"Sunday (ISO week)
+        // Monday, Sunday (ISO week)
         const dow = a.getDay(); // 0=Sun
         const diffToMon = dow === 0 ? -6 : 1 - dow;
         from = new Date(a.getFullYear(), a.getMonth(), a.getDate() + diffToMon);
@@ -803,7 +803,7 @@ function _wiBucket() {
             }
         });
     } else {
-        // week (7 days Monâ€"Sun) or month (actual days in month)
+        // week (7 days Mon, Sun) or month (actual days in month)
         const start = new Date(from);
         const days = Math.floor((to - from) / (1000 * 60 * 60 * 24)) + 1;
         for (let i = 0; i < days; i++) {
@@ -1022,7 +1022,7 @@ function _wiDrawChart(canvasId, points, key, cssColor) {
     }
 }
 
-// â"€â"€ Helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// Helpers
 
 function _wiResolveColor(css) {
     if (!css.startsWith('var(')) return css;

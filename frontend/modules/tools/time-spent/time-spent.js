@@ -388,14 +388,8 @@ function _tsSetPaginator(html) {
 }
 
 function _tsBuildPaginator(page, totalPages, total, onPageFn) {
-    if (totalPages <= 1) return '';
-    const prevDis = page === 0 ? 'disabled' : '';
-    const nextDis = page >= totalPages - 1 ? 'disabled' : '';
-    const countInfo = `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${total.toLocaleString()}</span>`;
-    return `<button class="vrcn-button" ${prevDis} onclick="${onPageFn}(${page - 1})"><span class="msi" style="font-size:16px;">chevron_left</span></button>
-        ${_buildPaginatorBtns(page, totalPages, onPageFn)}
-        <button class="vrcn-button" ${nextDis} onclick="${onPageFn}(${page + 1})"><span class="msi" style="font-size:16px;">chevron_right</span></button>
-        ${countInfo}`;
+    const countHtml = `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${total.toLocaleString()}</span>`;
+    return buildPaginator(page, totalPages, onPageFn, countHtml);
 }
 
 function rerenderTimeSpentTranslations() {

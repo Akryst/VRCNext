@@ -157,6 +157,11 @@ let peopleFilter = 'favorites';
 let favFriendsData = []; // [{ fvrtId, favoriteId }]
 let blockedData = null; // null = not yet loaded
 let mutedData = null;
+// People Tab pagination state
+let _peopleAllPage = 0;
+let _peopleBlockedPage = 0;
+let _peopleMutedPage = 0;
+const PEOPLE_PAGE_SIZE = 100; //MAX PG PP
 // VRChat API
 let vrc2faType = 'totp';
 let vrcFriendsData = [];
@@ -315,7 +320,7 @@ function sk(type, n = 1) {
 
 
 const THEMES = {
-    slates:    { label: 'Slates',    dot: '#6F6CFF', c: { 'bg-base': '#090814', 'bg-side': '#090814', 'bg-card': '#131125', 'bg-hover': '#4B4998', 'bg-input': '#0E0C1E', 'accent': '#6F6CFF', 'accent-lt': '#6F6CFF', 'cyan': '#8CA5FF', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#6F6CFF', 'brd-lt': '#1F2357' } },
+    slates:    { label: 'Slates',    dot: '#6F6CFF', c: { 'bg-base': '#090814', 'bg-side': '#090814', 'bg-card': '#131125', 'bg-hover': '#4B4998', 'bg-input': '#0E0C1E', 'accent': '#6F6CFF', 'accent-lt': '#6F6CFF', 'cyan': '#8CA5FF', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#1A1833', 'brd-lt': '#1F2357' } },
     blood:     { label: 'Blood',     dot: '#DF2A4E', c: { 'bg-base': '#0B0611', 'bg-side': '#10091A', 'bg-card': '#190F26', 'bg-hover': '#251936', 'bg-input': '#130B1E', 'accent': '#DF2A4E', 'accent-lt': '#E16B82', 'cyan': '#DC7A56', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#F2EFF5', 'tx1': '#D2CCDB', 'tx2': '#D2CCDB', 'tx3': '#D2CCDB', 'brd': '#291B3C', 'brd-lt': '#38284D' } },
     halloween: { label: 'Halloween', dot: '#DF462A', c: { 'bg-base': '#0B091A', 'bg-side': '#0B091A', 'bg-card': '#110F26', 'bg-hover': '#1B1936', 'bg-input': '#0D0B1E', 'accent': '#DF462A', 'accent-lt': '#E17D6B', 'cyan': '#DCA956', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#F0EFF5', 'tx1': '#F0EFF5', 'tx2': '#F0EFF5', 'tx3': '#F0EFF5', 'brd': '#1E1B3C', 'brd-lt': '#2B284D' } },
     miku:      { label: 'Miku',      dot: '#66B4D2', c: { 'bg-base': '#080D14', 'bg-side': '#080D14', 'bg-card': '#080D14', 'bg-hover': '#66B4D2', 'bg-input': '#0B111A', 'accent': '#66B4D2', 'accent-lt': '#66B4D2', 'cyan': '#66B4D2', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#13223F', 'brd-lt': '#13223F' } },
@@ -1086,6 +1091,7 @@ function showTab(i) {
     document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', j === i));
     const contentEl = document.querySelector('.content');
     if (contentEl) {
+        contentEl.classList.toggle('tab3-active', i === 3);
         contentEl.classList.toggle('tab7-active', i === 7);
         contentEl.classList.toggle('tab12-active', i === 12);
         contentEl.classList.toggle('tab16-active', i === 16);
@@ -1649,4 +1655,5 @@ function handleFfcProgress(d) {
 function vrcnToggleCollapse(headerEl) {
     headerEl.closest('.vrcn-panel-card').classList.toggle('collapsed');
 }
+
 

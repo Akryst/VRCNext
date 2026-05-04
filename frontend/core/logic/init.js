@@ -28,14 +28,14 @@ const winDrag = document.getElementById('winDrag');
 if (winDrag) {
     winDrag.addEventListener('mousedown', e => {
         if (window._legacyWindow) return;
-        // Only drag from the topbar background, not buttons/badges
-        if (e.target.closest('.win-controls, .btn-notif, .mini-badge, button')) return;
+        // Only drag from the topbar background, not buttons/badges/search
+        if (e.target.closest('.win-controls, .btn-notif, .mini-badge, .ss-wrap, button, input')) return;
         // Skip SC_MOVE on the 2nd click of a double-click so dblclick event can fire
         if (e.button === 0 && e.detail === 1) sendToCS({ action: 'windowDragStart' });
     });
     winDrag.addEventListener('dblclick', e => {
         if (window._legacyWindow) return;
-        if (e.target.closest('.win-controls, .btn-notif, .mini-badge, button')) return;
+        if (e.target.closest('.win-controls, .btn-notif, .mini-badge, .ss-wrap, button, input')) return;
         sendToCS({ action: 'windowMaximize' });
     });
 }

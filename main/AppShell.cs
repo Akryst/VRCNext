@@ -414,12 +414,12 @@ public partial class AppShell
         try
         {
             if (!_vrcApi.IsLoggedIn) return;
-            var worlds = await _vrcApi.GetMyWorldsAsync();
+            var worlds = await _core.World.GetMyWorldsAsync();
             foreach (var w in worlds)
             {
                 var id = w["id"]?.ToString();
                 if (string.IsNullOrEmpty(id)) continue;
-                var full = await _vrcApi.GetWorldFreshAsync(id);
+                var full = await _core.World.GetWorldFreshAsync(id);
                 var active    = full?["occupants"]?.Value<int>() ?? w["occupants"]?.Value<int>() ?? 0;
                 var favorites = full?["favorites"]?.Value<int>() ?? w["favorites"]?.Value<int>() ?? 0;
                 var visits    = full?["visits"]?.Value<int>() ?? 0;

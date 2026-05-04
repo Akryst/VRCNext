@@ -1820,5 +1820,19 @@
   "vro.scale.keybind.title": "スケール用キーバインド",
   "vro.scale.keybind.desc": "サムスティックを動かしながらこれらのボタンを押してVRでアバターをスケール変更。",
   "vro.scale.hint.record": "1〜4個のボタンを同時に押してコンボを記録…",
-  "vro.scale.hint.idle": "キーバインドを押しながらサムスティックを上下に動かしてスケール変更。"
+  "vro.scale.hint.idle": "キーバインドを押しながらサムスティックを上下に動かしてスケール変更。",
+  "search.section.friends": "フレンド",
+  "search.section.fav_worlds": "お気に入りワールド",
+  "search.section.my_worlds": "マイワールド",
+  "search.section.my_groups": "マイグループ",
+  "search.section.events": "イベント",
+  "search.section.my_avatars": "マイアバター",
+  "search.section.fav_avatars": "お気に入りアバター",
+  "search.hint": "フレンド・ワールド・グループ・アバターを検索…",
+  "search.no_results": "結果なし",
+  "search.section.settings": "設定",
+  "search.section.modules": "ナビゲーション",
+  "relay.folders.title": "監視フォルダ",
+  "relay.folders.desc": "リレーが新しい画像・動画を監視するフォルダを選択してください。",
+  "relay.folders.empty": "監視フォルダが設定されていません。設定から追加してください。"
 }

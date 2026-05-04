@@ -186,6 +186,7 @@ public class AppSettings
     };
     public int LocalHttpPort { get; set; } = 0;
     public List<string> WatchFolders { get; set; } = new();
+    public List<string>? RelayEnabledFolders { get; set; } = null; // null = all enabled (default)
     public List<string> MyInstances { get; set; } = new();
     public List<string> Favorites { get; set; } = new();
     public string VrcPath { get; set; } = "";
@@ -400,6 +401,9 @@ public class AppSettings
     public bool SendCrashData { get; set; } = false;
     // Restart after crash. We do ignore task manager kills here!
     public bool RestartAfterCrash { get; set; } = true;
+
+    // Text Tools (debug — makes all text selectable)
+    public bool TextToolsEnabled { get; set; } = false;
 
     // Legacy Window Manager (requires restart, disables chromeless + custom chrome)
     public bool LegacyWindow { get; set; } = false;

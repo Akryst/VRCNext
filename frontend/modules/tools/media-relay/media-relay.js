@@ -1,5 +1,45 @@
 // Media Relay
 
+function renderRelayFolders() {
+    const el = document.getElementById('relayFolderList');
+    if (!el) return;
+    const folders = settings.folders || [];
+    if (folders.length === 0) {
+        el.innerHTML = `<div class="empty-msg">${t('relay.folders.empty', 'No watch folders configured. Add folders in Settings.')}</div>`;
+        return;
+    }
+    const enabled = settings.relayEnabledFolders; // null = all enabled
+    el.innerHTML = folders.map((path, i) => {
+        const name = path.split(/[\\/]/).filter(Boolean).pop() || path;
+        const isEnabled = enabled === null || enabled.includes(path);
+        return `<div class="relay-folder-row">
+            <span class="msi relay-folder-icon">folder</span>
+            <div class="relay-folder-info">
+                <div class="relay-folder-name">${esc(name)}</div>
+                <div class="relay-folder-path">${esc(path)}</div>
+            </div>
+            <label class="toggle"><input type="checkbox" ${isEnabled ? 'checked' : ''} onchange="toggleRelayFolder(${i},this.checked)"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+        </div>`;
+    }).join('');
+}
+
+function toggleRelayFolder(idx, isEnabled) {
+    const folders = settings.folders || [];
+    const path = folders[idx];
+    if (!path) return;
+    // First toggle: initialize from all-enabled
+    if (settings.relayEnabledFolders === null) {
+        settings.relayEnabledFolders = [...folders];
+    }
+    if (isEnabled) {
+        if (!settings.relayEnabledFolders.includes(path))
+            settings.relayEnabledFolders.push(path);
+    } else {
+        settings.relayEnabledFolders = settings.relayEnabledFolders.filter(p => p !== path);
+    }
+    autoSave();
+}
+
 function addFileToList(f) {
     postedFiles.unshift(f);
     renderFileList();

@@ -103,7 +103,7 @@ function renderVrcFriends(friends, counts) {
     // Same Location — only shown when sidebar is expanded
     if (!rsidebarCollapsed) {
         const _instGroups = {};
-        friends.filter(f => f.presence === 'game' && f.location && f.location.startsWith('wrld_')).forEach(f => {
+        gameFriends.filter(f => f.location && f.location.startsWith('wrld_')).forEach(f => {
             const locBase = f.location.split('~')[0];
             if (!_instGroups[locBase]) _instGroups[locBase] = [];
             _instGroups[locBase].push(f);
@@ -138,13 +138,15 @@ function renderVrcFriends(friends, counts) {
         }
     }
 
-    appendSection('favorites', favFriends.length, favFriends, f => f.presence);
-    appendSection('ingame', gc, gameFriends, 'game');
-    appendSection('web', wc, webFriends, 'web');
-    appendSection('offline', oc, offlineFriends, 'offline');
+    appendSection('favorites', favFriends.length, favFriends.slice(0, 100), f => f.presence);
+    appendSection('ingame', gc, gameFriends.slice(0, 100), 'game');
+    appendSection('web', wc, webFriends.slice(0, 100), 'web');
+    appendSection('offline', oc, offlineFriends.slice(0, 100), 'offline');
 
     el.innerHTML = h;
-    filterFriendsList();
+    // Only apply search filter if there is an active query
+    const _activeQ = (document.getElementById('vrcFriendSearchInput')?.value || '').toLowerCase().trim();
+    if (_activeQ) filterFriendsList();
 }
 
 function toggleFriendSection(key) {
@@ -161,65 +163,50 @@ function toggleFriendSection(key) {
 }
 
 function filterFriendsList() {
+    const el = document.getElementById('vrcFriendsList');
+    if (!el) return;
     const q = (document.getElementById('vrcFriendSearchInput')?.value || '').toLowerCase().trim();
-    const cards = document.querySelectorAll('#vrcFriendsList .vrc-friend-card');
-    const sections = document.querySelectorAll('#vrcFriendsList .vrc-section-label');
-
-    // Hide favorites + samelocation sections during search to avoid duplicates
-    const favSec    = document.getElementById('favoritesFriendsSection');
-    const favLabel  = favSec?.previousElementSibling;
-    const slocSec   = document.getElementById('samelocationFriendsSection');
-    const slocLabel = slocSec?.previousElementSibling;
-
-    const sectionMap = {
-        ingame:  document.getElementById('ingameFriendsSection'),
-        web:     document.getElementById('webFriendsSection'),
-        offline: document.getElementById('offlineFriendsSection'),
-    };
 
     if (!q) {
-        // Reset: show all cards, restore all collapsed states
-        cards.forEach(c => c.style.display = '');
-        sections.forEach(s => s.style.display = '');
-        Object.entries(sectionMap).forEach(([key, el]) => {
-            if (el) el.classList.toggle('collapsed', !!friendSectionCollapsed[key]);
-        });
-        if (favSec)    favSec.classList.toggle('collapsed', !!friendSectionCollapsed.favorites);
-        if (favLabel)  favLabel.style.display  = '';
-        if (slocSec)   slocSec.classList.toggle('collapsed', !!friendSectionCollapsed.samelocation);
-        if (slocLabel) slocLabel.style.display = '';
+        // No search active — re-render normal capped sections
+        renderVrcFriends(vrcFriendsData);
         return;
     }
 
-    // Hide favorites + samelocation while searching (prevents duplicates)
-    if (favSec)    favSec.classList.add('collapsed');
-    if (favLabel)  favLabel.style.display  = 'none';
-    if (slocSec)   slocSec.classList.add('collapsed');
-    if (slocLabel) slocLabel.style.display = 'none';
+    // Search: filter full vrcFriendsData array, show up to 100 results as a flat list
+    const all = vrcFriendsData.filter(f =>
+        (f.displayName || '').toLowerCase().includes(q) ||
+        (f.username || f.userName || '').toLowerCase().includes(q) ||
+        (f.id || '').toLowerCase().includes(q)
+    );
+    const capped = all.slice(0, 100);
 
-    // Force-expand all other sections so collapsed cards are still searchable
-    Object.values(sectionMap).forEach(el => { if (el) el.classList.remove('collapsed'); });
+    if (!capped.length) {
+        el.innerHTML = `<div style="padding:16px;text-align:center;font-size:12px;color:var(--tx3);">${t('profiles.people.no_results', 'No results')}</div>`;
+        return;
+    }
 
-    cards.forEach(c => {
-        const name = (c.querySelector('.vrc-friend-name')?.textContent || '').toLowerCase();
-        c.style.display = name.includes(q) ? '' : 'none';
+    const countLabel = all.length > 100
+        ? `<div style="padding:6px 12px 2px;font-size:11px;color:var(--tx3);">${tf('profiles.friends.search.showing', { total: all.length }, 'Showing 100 of {total} results')}</div>`
+        : '';
+
+    let h = countLabel + `<div class="friend-section-items">`;
+    capped.forEach(f => {
+        const img = f.image || '';
+        const imgTag = img
+            ? `<img class="vrc-friend-avatar" src="${img}" onerror="this.style.display='none'">`
+            : `<div class="vrc-friend-avatar" style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--tx3)">${esc((f.displayName || '?')[0])}</div>`;
+        const presenceType = f.presence || 'offline';
+        const statusCls = presenceType === 'offline' ? 's-offline' : statusDotClass(f.status);
+        const rank = getTrustRank(f.tags || []);
+        const rankBadge = rank ? `<span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color};">${rank.label}</span>` : '';
+        const fid = (f.id || '').replace(/'/g, "\\'");
+        const statusText = f.statusDescription || statusLabel(f.status);
+        const locationText = getFriendLocationLabel(presenceType, f.location);
+        const badgeDotCls = presenceType === 'web' ? 'vrc-status-ring' : 'vrc-status-dot';
+        const avatarWrap = `<div class="vrc-friend-avatar-wrap">${imgTag}<span class="vrc-friend-status-badge ${badgeDotCls} ${statusCls}"></span></div>`;
+        h += `<div class="vrc-friend-card" data-uid="${fid}" data-status="${statusCls}" onclick="openFriendDetail('${fid}')">${avatarWrap}<div class="vrc-friend-info"><div class="vrc-friend-name"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.displayName)}</span>${rankBadge}</div><div class="vrc-friend-loc">${esc(statusText)} &middot; ${esc(locationText)}</div></div></div>`;
     });
-
-    // Hide section labels if all their cards are hidden
-    sections.forEach(s => {
-        if (s.style.display === 'none') return; // already hidden (e.g. favorites during search)
-        let hasVisible = false;
-        let sibling = s.nextElementSibling;
-        while (sibling && !sibling.classList.contains('vrc-section-label')) {
-            if (sibling.classList.contains('vrc-friend-card') && sibling.style.display !== 'none') hasVisible = true;
-            // Check inside any section wrapper div
-            if (sibling.id && sibling.id.endsWith('FriendsSection')) {
-                sibling.querySelectorAll('.vrc-friend-card').forEach(c => {
-                    if (c.style.display !== 'none') hasVisible = true;
-                });
-            }
-            sibling = sibling.nextElementSibling;
-        }
-        s.style.display = hasVisible ? '' : 'none';
-    });
+    h += `</div>`;
+    el.innerHTML = h;
 }

@@ -1842,5 +1842,19 @@
   "vro.scale.keybind.title": "Hold Keybind to Scale",
   "vro.scale.keybind.desc": "Hold these buttons while moving the thumbstick to scale your avatar in VR.",
   "vro.scale.hint.record": "Hold 1–4 buttons simultaneously to record a combo…",
-  "vro.scale.hint.idle": "Hold keybind + move thumbstick up/down to scale."
+  "vro.scale.hint.idle": "Hold keybind + move thumbstick up/down to scale.",
+  "search.section.friends": "Friends",
+  "search.section.fav_worlds": "Favorite Worlds",
+  "search.section.my_worlds": "My Worlds",
+  "search.section.my_groups": "My Groups",
+  "search.section.events": "Events",
+  "search.section.my_avatars": "My Avatars",
+  "search.section.fav_avatars": "Favorited Avatars",
+  "search.hint": "Search friends, worlds, groups, avatars…",
+  "search.no_results": "No results",
+  "search.section.settings": "Settings",
+  "search.section.modules": "Navigation",
+  "relay.folders.title": "Watch Folders",
+  "relay.folders.desc": "Choose which watch folders the relay monitors for new images and videos.",
+  "relay.folders.empty": "No watch folders configured. Add folders in Settings."
 }
