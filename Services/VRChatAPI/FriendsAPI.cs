@@ -11,42 +11,84 @@ public class FriendsAPI(VRChatApiService ctx)
     private async Task<List<JObject>> FetchFriendsParallelAsync(bool offline)
     {
         var all = new List<JObject>();
-        if (!ctx.IsLoggedIn) { if (!offline) ctx.Log("GetFriends: not logged in"); return all; }
+        if (!ctx.IsLoggedIn) return all;
 
-        const int pageSize = 50;
-        const int concurrency = 1;
+        const int pageSize   = 50;
+        const int concurrency = 5;
+        const int maxOffset  = 7500;
+        const int maxRetry   = 5;
+
         var nextOffset = 0;
         var done = false;
-        var lck = new object();
-
+        var lck  = new object();
+        var label       = offline ? "offline" : "online";
+        var offlineBool = offline.ToString().ToLower(); 
         async Task Worker()
         {
             while (true)
             {
                 int myOffset;
-                lock (lck) { if (done) return; myOffset = nextOffset; nextOffset += pageSize; }
-                try
+                lock (lck)
                 {
-                    var flag = offline ? "true" : "false";
-                    var resp = await ctx._http.GetAsync($"{VRChatApiService.BASE}/auth/user/friends?offline={flag}&n={pageSize}&offset={myOffset}");
-                    var body = await resp.Content.ReadAsStringAsync();
-                    ctx.Log($"Fetching {(offline ? "offline" : "online")} friends: offset={myOffset} → {(int)resp.StatusCode}");
-                    if (!resp.IsSuccessStatusCode)
-                    {
-                        ctx.Log($"Friends error: {body[..Math.Min(200, body.Length)]}");
-                        lock (lck) done = true; return;
-                    }
-                    var batch = JArray.Parse(body);
-                    ctx.Log($"Friends batch at {myOffset}: {batch.Count}");
-                    lock (all) foreach (var x in batch) all.Add((JObject)x);
-                    if (batch.Count < pageSize) { lock (lck) done = true; return; }
+                    if (done) return;
+                    if (nextOffset > maxOffset) { done = true; return; }
+                    myOffset    = nextOffset;
+                    nextOffset += pageSize;
                 }
-                catch (Exception ex) { ctx.Log($"Friends worker: {ex.Message}"); lock (lck) done = true; return; }
+
+                JArray? batch = null;
+                for (var attempt = 1; attempt <= maxRetry; attempt++)
+                {
+                    try
+                    {
+                        var resp = await ctx._http.GetAsync(
+                            $"{VRChatApiService.BASE}/auth/user/friends?offline={offlineBool}&n={pageSize}&offset={myOffset}");
+                        var body = await resp.Content.ReadAsStringAsync();
+                        ctx.Log($"Friends ({label}) offset={myOffset} → {(int)resp.StatusCode}");
+
+                        if ((int)resp.StatusCode == 429)
+                        {
+                            var delay = (int)Math.Pow(2, attempt) * 1000;
+                            ctx.Log($"Friends rate limited, retry {attempt}/{maxRetry} in {delay}ms");
+                            await Task.Delay(delay);
+                            continue;
+                        }
+                        if (!resp.IsSuccessStatusCode)
+                        {
+                            ctx.Log($"Friends error at offset={myOffset}: {body[..Math.Min(200, body.Length)]}");
+                            if (attempt < maxRetry) { await Task.Delay(1000 * attempt); continue; }
+                            lock (lck) done = true;
+                            return;
+                        }
+
+                        batch = JArray.Parse(body);
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        ctx.Log($"Friends worker offset={myOffset} attempt {attempt}: {ex.Message}");
+                        if (attempt < maxRetry) { await Task.Delay(1000 * attempt); continue; }
+                        lock (lck) done = true;
+                        return;
+                    }
+                }
+
+                if (batch == null) return;
+
+                ctx.Log($"Friends ({label}) batch at {myOffset}: {batch.Count}");
+
+                if (batch.Count == 0)
+                {
+                    lock (lck) done = true;
+                    return;
+                }
+
+                lock (all) foreach (var x in batch) all.Add((JObject)x);
             }
         }
 
         await Task.WhenAll(Enumerable.Range(0, concurrency).Select(_ => Worker()));
-        ctx.Log($"Total {(offline ? "offline" : "online")} friends: {all.Count}");
+        ctx.Log($"Total {label} friends fetched: {all.Count}");
         return all;
     }
 

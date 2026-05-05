@@ -1,42 +1,12 @@
-**2026.21.5**
+**2026.21.7**
 
-### Smart Search
-
-Smart Search has been added and is now available in the VRCN header.
-
-With Smart Search, you can find almost anything very quickly. You can search your groups, friends, own worlds, favorite worlds, events, avatars, favorite avatars, settings, and all modules.
-
-This should improve the overall user experience and make navigating VRCN much faster.
-
-### Media Relay
-
-Added a new **Filter** card to Media Relay.
-
-You can now enable or disable specific watched folders, making sure only content from selected folders is sent to your Discord webhook. This helps prevent images or files from being shared by accident.
-
-### Performance & Large Lists
-
-This update improves performance in areas that can become slow with large friend lists or large profiles.
-
-* Friends Sidebar sections now show up to 100 people at once while still showing the real total count.
-* Invite Modal sections now show up to 100 people at once and handle search results more cleanly.
-* People Tab now uses page navigation for All Friends, Blocked, and Muted with 100 entries per page.
-* Profile Modal now uses smaller page navigation for larger sections:
-
-  * Groups, Mutual Friends, and Mutual Groups show 8 entries per page.
-  * Uploaded Worlds and Uploaded Avatars show 4 entries per page.
-* Searches now check the full list, not only currently visible entries.
-* Friend status and location updates are now processed more efficiently to reduce UI lag.
-* The In Same Instance sidebar section now reuses already-filtered friend data for better performance.
+### Changes
+* **Recently Visited** Widget on Dashboard will no longer show how many players are i nthe world as it's not needed data and a waste of GET requests.
 
 ### Fixes
 
-* Fixed window frame disappearing when resizing in Legacy Window mode.
-* Fixed broken character encoding in the Spanish translation file.
-* Fixed Enable Text Tools setting not being saved or restored between sessions.
-* Fixed pinned taskbar icon breaking after updates.
-* Fixed border color in the Slates theme.
-* Fixed People Tab page navigation layout.
-* Fixed oversized friend cards in the People Tab.
-* Fixed page number alignment in smaller modal navigation.
-* Improved consistency between People, Timeline, Media Library, and profile sections.
+* **Reduced World Insights API calls from N to 1.** The hourly Insights refresh previously fetched each world individually. The list endpoint already returns all required stats, such as `favorites`, `visits`, and `occupants`, so individual world requests are no longer needed.
+* **Reduced Recently Visited API calls** by using cached data where possible.
+* **Reduced Friends Location API calls** by using cached data. If the user is still in the same world after restarting the app, VRCNext can reuse the cached location data instead of requesting it again.
+* **Reduced Group Activity API calls** by using cached data. If a group event is still hosted in the same location, VRCNext no longer needs to request another update.
+* **Reduced Mutual Friends API calls** when opening a friend’s profile. Mutual friends are now cached for 24 hours, so opening the same profile again avoids unnecessary requests to the VRChat API servers.

@@ -852,7 +852,7 @@ public class FriendsController
         if (!await _friendsRefreshLock.WaitAsync(0)) return;
         try
         {
-            var online = await _core.Friends.GetOnlineFriendsAsync();
+            var online  = await _core.Friends.GetOnlineFriendsAsync();
             var offline = await _core.Friends.GetOfflineFriendsAsync();
 
             lock (_friendStore)
@@ -1420,6 +1420,11 @@ public class FriendsController
 
         var cachedMutualGroups = ffc && _core.Cache.IsFresh(CacheHandler.KeyUserMutualGroups(userId), TimeSpan.FromDays(1))
             ? _core.Cache.LoadRaw(CacheHandler.KeyUserMutualGroups(userId)) as JArray : null;
+        JObject? cachedMutualsRaw = ffc && _core.Cache.IsFresh(CacheHandler.KeyUserMutuals(userId), TimeSpan.FromDays(1))
+            ? _core.Cache.LoadRaw(CacheHandler.KeyUserMutuals(userId)) as JObject : null;
+        var cachedMutuals = cachedMutualsRaw != null
+            ? (cachedMutualsRaw["mutuals"] as JArray ?? new JArray(), cachedMutualsRaw["optedOut"]?.Value<bool>() ?? false)
+            : ((JArray?)null, false);
 
         var instTask           = hasWorld ? _core.Instances.GetInstanceAsync(location) : Task.FromResult<JObject?>(null);
         var grpsTask           = cachedGroups != null
@@ -1428,7 +1433,9 @@ public class FriendsController
         var worldsTask         = cachedWorlds != null
             ? Task.FromResult(cachedWorlds)
             : _core.World.GetUserWorldsAsync(userId);
-        var mutualsTask        = _core.Users.GetUserMutualsAsync(userId);
+        var mutualsTask        = cachedMutuals.Item1 != null
+            ? Task.FromResult((cachedMutuals.Item1, cachedMutuals.Item2))
+            : _core.Users.GetUserMutualsAsync(userId);
         var mutualGroupsTask   = cachedMutualGroups != null
             ? Task.FromResult(cachedMutualGroups)
             : _core.Users.GetUserMutualGroupsAsync(userId);
@@ -1454,6 +1461,8 @@ public class FriendsController
             _core.Cache.Save(CacheHandler.KeyUserMutualGroups(userId), mutualGroupsArr);
         var (mutualsArr, mutualsOptedOut) = mutualsTask.IsCompletedSuccessfully
             ? mutualsTask.Result : (new JArray(), false);
+        if (ffc && cachedMutuals.Item1 == null && mutualsTask.IsCompletedSuccessfully)
+            _core.Cache.Save(CacheHandler.KeyUserMutuals(userId), new { mutuals = mutualsArr, optedOut = mutualsOptedOut });
         var badgesArr = user["badges"] as JArray ?? new JArray();
 
         if (instanceType == "private" && inst?["canRequestInvite"]?.Value<bool>() == true)
