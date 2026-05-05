@@ -459,7 +459,7 @@ public class GroupsAPI(VRChatApiService ctx)
         if (!ctx.IsLoggedIn || ctx.CurrentUserId == null) return new JArray();
         try
         {
-            var resp = await ctx._http.GetAsync($"{VRChatApiService.BASE}/groups/{groupId}/instances");
+            var resp = await ctx._http.GetAsync($"{VRChatApiService.BASE}/users/{ctx.CurrentUserId}/instances/groups/{groupId}");
             var body = await resp.Content.ReadAsStringAsync();
             ctx.Log($"GetGroupInstances({groupId}): {(int)resp.StatusCode}, len={body.Length}");
             if (resp.IsSuccessStatusCode)

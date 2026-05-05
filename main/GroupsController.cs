@@ -343,8 +343,8 @@ public class GroupsController
                                     location = i["location"]?.ToString() ?? "",
                                     worldName = i["world"]?["name"]?.ToString() ?? "",
                                     worldThumb = ImageCacheHelper.GetWorldUrl(i["world"]?["id"]?.ToString(), i["world"]?["imageUrl"]?.ToString()),
-                                    userCount = i["userCount"]?.Value<int>() ?? i["n_users"]?.Value<int>() ?? 0,
-                                    capacity = i["world"]?["capacity"]?.Value<int>() ?? 0,
+                                    userCount = i["n_users"]?.Value<int>() ?? i["userCount"]?.Value<int>() ?? 0,
+                                    capacity = i["capacity"]?.Value<int>() ?? i["world"]?["capacity"]?.Value<int>() ?? 0,
                                 }),
                                 galleryImages,
                                 groupMembers = members.Select(m => new {

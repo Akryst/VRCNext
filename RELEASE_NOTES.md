@@ -48,3 +48,9 @@
 * **Fixed Current World link**
 
   * Fixed an issue where the Current World button in the User Profile Modal could not be clicked when the world name contained an apostrophe.
+
+* **Fixed Group Live tab not showing instances**
+
+  * The Live tab in the Group Modal now correctly shows active instances for all users, including non-members.
+  * Previously, the VRChat API returned a permission error for non-members on the instances endpoint, causing the tab to always appear empty until joining the group.
+  * VRCNext now uses a different endpoint that returns public instances to non-members and all instances to members.
