@@ -174,16 +174,19 @@ function fdMutualsGoPage(page) {
 }
 
 function switchFdTab(tab, btn) {
-    document.getElementById('fdTabInfo').style.display = tab === 'info' ? '' : 'none';
-    document.getElementById('fdTabGroups').style.display = tab === 'groups' ? '' : 'none';
-    const mutualsEl = document.getElementById('fdTabMutuals');
-    if (mutualsEl) mutualsEl.style.display = tab === 'mutuals' ? '' : 'none';
-    const contentEl = document.getElementById('fdTabContent');
-    if (contentEl) contentEl.style.display = tab === 'content' ? '' : 'none';
+    const box = document.querySelector('#modalFriendDetail .modal-box');
     const favsEl = document.getElementById('fdTabFavs');
-    if (favsEl) favsEl.style.display = tab === 'favs' ? '' : 'none';
-    document.querySelectorAll('.fd-tab').forEach(t => t.classList.remove('active'));
-    if (btn) btn.classList.add('active');
+    animateModalBox(box, () => {
+        document.getElementById('fdTabInfo').style.display = tab === 'info' ? '' : 'none';
+        document.getElementById('fdTabGroups').style.display = tab === 'groups' ? '' : 'none';
+        const mutualsEl = document.getElementById('fdTabMutuals');
+        if (mutualsEl) mutualsEl.style.display = tab === 'mutuals' ? '' : 'none';
+        const contentEl = document.getElementById('fdTabContent');
+        if (contentEl) contentEl.style.display = tab === 'content' ? '' : 'none';
+        if (favsEl) favsEl.style.display = tab === 'favs' ? '' : 'none';
+        document.querySelectorAll('.fd-tab').forEach(t => t.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+    });
     if (tab === 'favs') {
         const uid = favsEl?.dataset.userId;
         if (uid && !favsEl.dataset.loaded) {

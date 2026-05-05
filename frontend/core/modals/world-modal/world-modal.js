@@ -210,14 +210,17 @@ let _wdCurrentWorldId = '';
 
 function switchWdTab(tab, btn) {
     _wdCurrentTab = tab;
-    const info      = document.getElementById('wdTabInfo');
-    const instances = document.getElementById('wdTabInstances');
-    const insights  = document.getElementById('wdTabInsights');
-    if (info)      info.style.display      = tab === 'info'      ? '' : 'none';
-    if (instances) instances.style.display = tab === 'instances' ? '' : 'none';
-    if (insights)  insights.style.display  = tab === 'insights'  ? '' : 'none';
-    document.querySelectorAll('#detailModalContent .fd-tab').forEach(t => t.classList.remove('active'));
-    if (btn) btn.classList.add('active');
+    const box = document.querySelector('#modalDetail .modal-box');
+    animateModalBox(box, () => {
+        const info      = document.getElementById('wdTabInfo');
+        const instances = document.getElementById('wdTabInstances');
+        const insights  = document.getElementById('wdTabInsights');
+        if (info)      info.style.display      = tab === 'info'      ? '' : 'none';
+        if (instances) instances.style.display = tab === 'instances' ? '' : 'none';
+        if (insights)  insights.style.display  = tab === 'insights'  ? '' : 'none';
+        document.querySelectorAll('#detailModalContent .fd-tab').forEach(t => t.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+    });
     if (tab === 'insights' && _wdCurrentWorldId) {
         wiLoadInsights(_wdCurrentWorldId);
     }

@@ -2,6 +2,9 @@
 
 ### Changes
 
+**Modals**
+* All modals (Group, Profile, Avatars, Worlds) are now 15% bigger.
+
 * **Dashboard: Recently Visited**
 
   * The Recently Visited widget no longer shows the current player count for each world.
@@ -51,6 +54,6 @@
 
 * **Fixed Group Live tab not showing instances**
 
-  * The Live tab in the Group Modal now correctly shows active instances for all users, including non-members.
-  * Previously, the VRChat API returned a permission error for non-members on the instances endpoint, causing the tab to always appear empty until joining the group.
-  * VRCNext now uses a different endpoint that returns public instances to non-members and all instances to members.
+  * The **Live** tab in the Group Modal now correctly shows active instances for all users, including non-members.
+  * Before this fix, the tab could appear empty for non-members because VRChat blocked one of the instance requests until the user joined the group.
+  * VRCNext now uses a better request for this data, so non-members can see public group instances, while members can still see all available group instances.

@@ -647,12 +647,15 @@ function searchGroupMembers() {
 }
 
 function switchGdTab(tab, btn) {
-    ['Info','Posts','Events','Instances','Gallery','Members','Roles','Banned'].forEach(t => {
-        const el = document.getElementById('gdTab' + t);
-        if (el) el.style.display = t.toLowerCase() === tab ? '' : 'none';
+    const box = document.querySelector('#modalDetail .modal-box');
+    animateModalBox(box, () => {
+        ['Info','Posts','Events','Instances','Gallery','Members','Roles','Banned'].forEach(t => {
+            const el = document.getElementById('gdTab' + t);
+            if (el) el.style.display = t.toLowerCase() === tab ? '' : 'none';
+        });
+        btn.closest('.fd-tabs').querySelectorAll('.fd-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
     });
-    btn.closest('.fd-tabs').querySelectorAll('.fd-tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
     if (tab === 'banned' && !window._gdBannedLoaded) loadGroupBans();
 }
 

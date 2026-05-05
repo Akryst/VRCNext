@@ -1656,4 +1656,22 @@ function vrcnToggleCollapse(headerEl) {
     headerEl.closest('.vrcn-panel-card').classList.toggle('collapsed');
 }
 
+function animateModalBox(boxEl, doSwitch) {
+    if (!boxEl) { doSwitch(); return; }
+    const h0 = boxEl.offsetHeight;
+    doSwitch();
+    const h1 = boxEl.scrollHeight;
+    if (Math.abs(h1 - h0) < 2) return;
+    boxEl.style.overflow = 'hidden';
+    boxEl.style.height = h0 + 'px';
+    void boxEl.offsetHeight; // force reflow so transition fires
+    boxEl.style.transition = 'height 0.2s ease';
+    boxEl.style.height = h1 + 'px';
+    boxEl.addEventListener('transitionend', () => {
+        boxEl.style.height = '';
+        boxEl.style.overflow = '';
+        boxEl.style.transition = '';
+    }, { once: true });
+}
+
 

@@ -28,7 +28,7 @@
     background: var(--bg-card);
     border-radius: 14px;
     padding: 28px 32px 22px;
-    width: 418px;
+    width: 460px;
     max-width: 90%;
     max-height: calc(100% - 40px);
     overflow-y: auto;
@@ -39,7 +39,7 @@
 }
 
 .modal-box.wide {
-    width: 638px;
+    width: 702px;
 }
 
 .modal-icon {
