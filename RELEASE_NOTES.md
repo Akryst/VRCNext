@@ -1,12 +1,50 @@
-**2026.21.7**
+**2026.22.0**
 
 ### Changes
-* **Recently Visited** Widget on Dashboard will no longer show how many players are i nthe world as it's not needed data and a waste of GET requests.
 
-### Fixes
+* **Dashboard: Recently Visited**
 
-* **Reduced World Insights API calls from N to 1.** The hourly Insights refresh previously fetched each world individually. The list endpoint already returns all required stats, such as `favorites`, `visits`, and `occupants`, so individual world requests are no longer needed.
-* **Reduced Recently Visited API calls** by using cached data where possible.
-* **Reduced Friends Location API calls** by using cached data. If the user is still in the same world after restarting the app, VRCNext can reuse the cached location data instead of requesting it again.
-* **Reduced Group Activity API calls** by using cached data. If a group event is still hosted in the same location, VRCNext no longer needs to request another update.
-* **Reduced Mutual Friends API calls** when opening a friend’s profile. Mutual friends are now cached for 24 hours, so opening the same profile again avoids unnecessary requests to the VRChat API servers.
+  * The Recently Visited widget no longer shows the current player count for each world.
+  * This information was not important in this widget and caused extra VRChat API requests.
+
+* **User Profile Modal**
+
+  * The Info tab has been redesigned to be cleaner and easier to read.
+  * Badges, Biography, and Trust & Safety are now shown on the left side.
+  * Profile information and additional details are now shown on the right side.
+  * Section titles now use a more consistent style.
+
+* **World Modal**
+
+  * The Info tab has been redesigned with a cleaner two-column layout.
+  * Tags, Your Time Spent, Description, and Popularity are now shown on the left side.
+  * World information and Community details are now shown on the right side.
+  * Sections are now visually separated to make the page easier to scan.
+
+### Fixes & Improvements
+
+* **Fewer World Insights requests**
+
+  * VRCNext now updates World Insights with a single request instead of requesting every world one by one.
+  * This makes the hourly refresh much lighter.
+
+* **Fewer Recently Visited requests**
+
+  * Recently Visited now reuses cached data where possible instead of requesting the same information again.
+
+* **Fewer Friends Location requests**
+
+  * If you restart VRCNext and are still in the same world, the app can now reuse your cached location data.
+
+* **Fewer Group Activity requests**
+
+  * If a group event is still hosted in the same location, VRCNext no longer requests the same location data again.
+
+* **Fewer Mutual Friends requests**
+
+  * Mutual friends are now cached for 24 hours.
+  * Opening the same profile again will reuse the cached data instead of sending another request.
+
+* **Fixed Current World link**
+
+  * Fixed an issue where the Current World button in the User Profile Modal could not be clicked when the world name contained an apostrophe.
