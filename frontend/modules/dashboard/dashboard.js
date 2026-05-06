@@ -204,10 +204,12 @@ function renderDashWorlds() {
             ? getDashFriendCountLabel(w.friends.length, 'dashboard.worlds.count_world')
             : getDashFriendCountLabel(w.friends.length, 'dashboard.worlds.count_here');
         const { cls: dwInstCls, label: dwInstLabel } = getInstanceBadge(w.instanceType);
+        const dwAgeGate = (w.location || '').includes('~ageGate')
+            ? `<span class="vrcn-badge" style="background:rgba(255,75,85,.15);color:var(--err);">${esc(t('worlds.instances.age_gated', 'Age Gated'))}</span>` : '';
         return `<div class="vrcn-content-card" onclick="openFriendLocationDetail('${wid}','${safeLoc}')">
             <div class="cc-bg" style="${thumbStyle}"></div>
             <div class="cc-scrim"></div>
-            <div class="cc-badges-top"><span class="vrcn-badge ${dwInstCls}">${dwInstLabel}</span></div>
+            <div class="cc-badges-top"><span class="vrcn-badge ${dwInstCls}">${dwInstLabel}</span>${dwAgeGate}</div>
             <div class="cc-content">
                 <div class="cc-name">${esc(displayName)}</div>
                 <div class="cc-friends-row">${friendAvatars}${extra}</div>
@@ -364,10 +366,12 @@ function renderMyInstances(instances) {
             ? tf('dashboard.instances.players_with_capacity', { count, capacity: cap }, '{count}/{capacity} players')
             : tf('dashboard.instances.players', { count }, '{count} players');
         const safeLoc = (inst.location || '').replace(/'/g, "\\'");
+        const miAgeGate = (inst.location || '').includes('~ageGate')
+            ? `<span class="vrcn-badge" style="background:rgba(255,75,85,.15);color:var(--err);">${esc(t('worlds.instances.age_gated', 'Age Gated'))}</span>` : '';
         return `<div class="vrcn-content-card" onclick="openMyInstanceDetail('${wid}','${safeLoc}')" data-location="${esc(inst.location || '')}">
             <div class="cc-bg" style="${thumbStyle}"></div>
             <div class="cc-scrim"></div>
-            <div class="cc-badges-top"><span class="vrcn-badge ${cls}">${esc(typeLabel)}</span></div>
+            <div class="cc-badges-top"><span class="vrcn-badge ${cls}">${esc(typeLabel)}</span>${miAgeGate}</div>
             <div class="cc-content">
                 <div class="cc-name">${esc(inst.worldName || inst.worldId || t('dashboard.instances.unknown_world', 'Unknown World'))}</div>
                 <div class="cc-bottom-row">
@@ -878,13 +882,15 @@ function renderDashGroupActivityInstances() {
         const thumbStyle = thumb ? `background-image:url('${cssUrl(thumb)}')` : '';
         const { instanceType } = (typeof parseFriendLocation === 'function') ? parseFriendLocation(inst.location || '') : { instanceType: 'group' };
         const { cls: instCls, label: instLabel } = (typeof getInstanceBadge === 'function') ? getInstanceBadge(instanceType) : { cls: '', label: '' };
+        const gaAgeGate = (inst.location || '').includes('~ageGate')
+            ? `<span class="vrcn-badge" style="background:rgba(255,75,85,.15);color:var(--err);">${esc(t('worlds.instances.age_gated', 'Age Gated'))}</span>` : '';
         const groupAvatar = inst.groupIcon
             ? `<img class="cc-friend-av" src="${inst.groupIcon}" title="${esc(gname)}" onerror="this.style.display='none'">`
             : `<div class="cc-friend-av" title="${esc(gname)}" style="display:flex;align-items:center;justify-content:center;"><span class="msi" style="font-size:10px;color:var(--tx3)">group</span></div>`;
         return `<div class="vrcn-content-card" onclick="openGroupInstanceDetail('${loc}')">
             <div class="cc-bg" style="${thumbStyle}"></div>
             <div class="cc-scrim"></div>
-            ${instLabel ? `<div class="cc-badges-top"><span class="vrcn-badge ${instCls}">${instLabel}</span></div>` : ''}
+            ${(instLabel || gaAgeGate) ? `<div class="cc-badges-top">${instLabel ? `<span class="vrcn-badge ${instCls}">${instLabel}</span>` : ''}${gaAgeGate}</div>` : ''}
             <div class="cc-content">
                 <div class="cc-name">${esc(wname)}</div>
                 <div class="cc-friends-row">${groupAvatar}<span class="cc-extra" style="background:transparent;color:rgba(255,255,255,.85);padding-left:4px;">${esc(gname)}</span></div>
@@ -921,9 +927,12 @@ function renderDashGroupActivityInstancesSmall() {
         const iconHtml = inst.groupIcon
             ? `<img class="dash-feed-avatar" src="${inst.groupIcon}" onerror="this.style.display='none'">`
             : `<div class="dash-feed-avatar" style="display:flex;align-items:center;justify-content:center;"><span class="msi" style="font-size:14px;color:rgba(255,255,255,.6)">group</span></div>`;
+        const gaSmAgeGate = (inst.location || '').includes('~ageGate')
+            ? `<span class="vrcn-badge" style="position:absolute;top:6px;right:8px;z-index:2;background:rgba(255,75,85,.15);color:var(--err);">${esc(t('worlds.instances.age_gated', 'Age Gated'))}</span>` : '';
         return `<div class="dash-floc-card" onclick="openGroupInstanceDetail('${loc}')">
             <div class="dash-floc-bg"${thumb ? ` style="background-image:url('${cssUrl(thumb)}')"` : ''}></div>
             <div class="dash-floc-scrim"></div>
+            ${gaSmAgeGate}
             ${iconHtml}
             <div class="dash-feed-info">
                 <div class="dash-feed-name">${esc(gname)}</div>
