@@ -1405,17 +1405,6 @@ public class AuthController
             _core.SendToJS("vrcAvatars", avatarsObj);
         }
 
-        if (_core.Cache.LoadRaw(CacheHandler.KeyGroups) is JArray groupsArr)
-        {
-            foreach (var g in groupsArr)
-                if (g is JObject go)
-                {
-                    go["iconUrl"]   = ImageCacheHelper.GetGroupUrl(go["id"]?.ToString(), go["iconUrl"]?.ToString());
-                    go["bannerUrl"] = ImageCacheHelper.GetGroupBannerUrl(go["id"]?.ToString(), go["bannerUrl"]?.ToString());
-                }
-            _core.SendToJS("vrcMyGroups", groupsArr);
-        }
-
         if (_core.Cache.LoadRaw(CacheHandler.KeyFavWorlds) is JObject favWorldsObj)
         {
             foreach (var grp in favWorldsObj["worlds"] as JArray ?? new JArray())
@@ -1532,7 +1521,7 @@ public class AuthController
                     var payload = await _friends.BuildUserDetailPayloadAsync(uid);
                     if (payload != null)
                     {
-                        _core.Cache.Save(CacheHandler.KeyUserProfile(uid), payload);
+                        _core.TimeEngine.SaveUserProfileFull(uid, Newtonsoft.Json.JsonConvert.SerializeObject(payload));
                     }
                     await Task.Delay(250);
                 }

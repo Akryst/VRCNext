@@ -26,7 +26,14 @@ function openGroupDetail(groupId) {
     if (cached) {
         renderGroupDetail(cached);
     } else {
-        document.getElementById('detailModalContent').innerHTML = sk('content-modal');
+        const mg = (typeof myGroups !== 'undefined') && myGroups.find(x => x.id === groupId);
+        if (mg) {
+            renderGroupDetail({ ...mg, isJoined: true,
+                posts: [], groupEvents: [], groupInstances: [], galleryImages: [], groupMembers: [], roles: [],
+                languages: [], links: [], rules: '', ownerId: '', ownerDisplayName: '' });
+        } else {
+            document.getElementById('detailModalContent').innerHTML = sk('content-modal');
+        }
     }
     sendToCS({ action: 'vrcGetGroup', groupId });
 }

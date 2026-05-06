@@ -37,6 +37,24 @@ public class GroupsAPI(VRChatApiService ctx)
         return new JArray();
     }
 
+    public async Task<JObject> GetUserGroupPermissionsAsync()
+    {
+        if (!ctx.IsLoggedIn || ctx.CurrentUserId == null) return new JObject();
+        try
+        {
+            var resp = await ctx._http.GetAsync($"{VRChatApiService.BASE}/users/{ctx.CurrentUserId}/groups/permissions");
+            if (resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadAsStringAsync();
+                ctx.Log($"GetUserGroupPermissions({ctx.CurrentUserId}): ok");
+                return JObject.Parse(body);
+            }
+            ctx.Log($"GetUserGroupPermissions({ctx.CurrentUserId}) failed: {(int)resp.StatusCode}");
+        }
+        catch (Exception ex) { ctx.Log($"GetUserGroupPermissions exception: {ex.Message}"); }
+        return new JObject();
+    }
+
     public async Task<JObject?> GetGroupAsync(string groupId)
     {
         if (!ctx.IsLoggedIn) return null;

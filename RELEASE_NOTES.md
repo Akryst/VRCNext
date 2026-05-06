@@ -9,6 +9,7 @@
 
   * The Recently Visited widget no longer shows the current player count for each world.
   * This information was not important in this widget and caused extra VRChat API requests.
+  
 
 * **User Profile Modal**
 
@@ -23,6 +24,13 @@
   * Tags, Your Time Spent, Description, and Popularity are now shown on the left side.
   * World information and Community details are now shown on the right side.
   * Sections are now visually separated to make the page easier to scan.
+
+* **Group Modal**
+
+  * The Info tab has been redesigned with a two-column layout.
+  * Description and Rules are now shown on the left side.
+  * Links, Languages, and Open to new Members are now shown on the right side.
+  * Visibility is shown as a full-width row at the bottom when you are a member of the group.
 
 ### Fixes & Improvements
 

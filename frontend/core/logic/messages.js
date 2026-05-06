@@ -498,8 +498,20 @@ window.external.receiveMessage(rawMsg => {
                 if (typeof onDashGroupInstances === 'function') onDashGroupInstances(payload);
                 break;
             case 'vrcGroupDetail':
-                renderGroupDetail(payload);
+            {
+                let data = payload;
+                if (!payload.isJoined && typeof myGroups !== 'undefined') {
+                    const mg = myGroups.find(x => x.id === payload.id);
+                    if (mg) {
+                        data = { ...payload, isJoined: true, canPost: mg.canPost, canEvent: mg.canEvent,
+                            canInvite: mg.canInvite, canEdit: mg.canEdit, canKick: mg.canKick,
+                            canBan: mg.canBan, canManageRoles: mg.canManageRoles, canAssignRoles: mg.canAssignRoles,
+                            visibility: mg.visibility };
+                    }
+                }
+                renderGroupDetail(data);
                 break;
+            }
             case 'groupVisibilityUpdated':
                 if (payload.success) {
                     const icons = { visible: 'public', friends: 'people', hidden: 'visibility_off' };
