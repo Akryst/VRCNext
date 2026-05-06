@@ -92,92 +92,98 @@ function renderGroupDetail(g) {
         ? `<div class="fd-bio-links">${grpLinks.map(url => renderBioLink(url)).join('')}</div>`
         : `<div class="myp-empty">${t('profiles.my_profile.empty.no_links', 'No links added')}</div>`;
     const infoTab = `
-        <div class="myp-section">
-            <div class="myp-section-header">
-                <span class="myp-section-title">${t('groups.sections.description', 'Description')}</span>
-                ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('desc')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
-            </div>
-            <div id="gdescDescView">
-                ${g.description ? `<div class="fd-bio">${esc(g.description)}</div>` : `<div class="myp-empty">${t('groups.empty.no_description', 'No description')}</div>`}
-            </div>
-            ${canEdit ? `<div id="gdescDescEdit" style="display:none;">
-                <textarea id="gdescDescInput" class="myp-textarea" rows="4" maxlength="2000" placeholder="${esc(t('groups.placeholders.description', 'Group description...'))}">${esc(g.description||'')}</textarea>
-                <div class="myp-edit-actions">
-                    <button class="vrcn-button" onclick="cancelGroupField('desc')">${t('common.cancel', 'Cancel')}</button>
-                    <button class="vrcn-button vrcn-btn-primary" onclick="saveGroupField('desc','${gid_e}')">${t('common.save', 'Save')}</button>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:22px;align-items:start;">
+            <div>
+                <div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;">
+                    <div class="myp-section-header">
+                        <span class="myp-section-title">${t('groups.sections.description', 'Description')}</span>
+                        ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('desc')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
+                    </div>
+                    <div id="gdescDescView">
+                        ${g.description ? `<div class="fd-bio">${esc(g.description)}</div>` : `<div class="myp-empty">${t('groups.empty.no_description', 'No description')}</div>`}
+                    </div>
+                    ${canEdit ? `<div id="gdescDescEdit" style="display:none;">
+                        <textarea id="gdescDescInput" class="myp-textarea" rows="4" maxlength="2000" placeholder="${esc(t('groups.placeholders.description', 'Group description...'))}">${esc(g.description||'')}</textarea>
+                        <div class="myp-edit-actions">
+                            <button class="vrcn-button" onclick="cancelGroupField('desc')">${t('common.cancel', 'Cancel')}</button>
+                            <button class="vrcn-button vrcn-btn-primary" onclick="saveGroupField('desc','${gid_e}')">${t('common.save', 'Save')}</button>
+                        </div>
+                    </div>` : ''}
                 </div>
-            </div>` : ''}
+                <div>
+                    <div class="myp-section-header">
+                        <span class="myp-section-title">${t('groups.sections.rules', 'Rules')}</span>
+                        ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('rules')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
+                    </div>
+                    <div id="gdescRulesView">
+                        ${g.rules ? `<div class="fd-bio">${esc(g.rules)}</div>` : `<div class="myp-empty">${t('groups.empty.no_rules', 'No rules set')}</div>`}
+                    </div>
+                    ${canEdit ? `<div id="gdescRulesEdit" style="display:none;">
+                        <textarea id="gdescRulesInput" class="myp-textarea" rows="5" maxlength="2000" placeholder="${esc(t('groups.placeholders.rules', 'Group rules...'))}">${esc(g.rules||'')}</textarea>
+                        <div class="myp-edit-actions">
+                            <button class="vrcn-button" onclick="cancelGroupField('rules')">${t('common.cancel', 'Cancel')}</button>
+                            <button class="vrcn-button vrcn-btn-primary" onclick="saveGroupField('rules','${gid_e}')">${t('common.save', 'Save')}</button>
+                        </div>
+                    </div>` : ''}
+                </div>
+            </div>
+            <div>
+                <div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;">
+                    <div class="myp-section-header">
+                        <span class="myp-section-title">${t('groups.sections.links', 'Links')}</span>
+                        ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('links')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
+                    </div>
+                    <div id="ggrpLinksView">${grpLinksViewHtml}</div>
+                    ${canEdit ? `<div id="ggrpLinksEdit" style="display:none;">
+                        <div id="ggrpLinksInputs"></div>
+                        <div class="myp-edit-actions">
+                            <button class="vrcn-button" onclick="cancelGroupField('links')">${t('common.cancel', 'Cancel')}</button>
+                            <button class="vrcn-button vrcn-btn-primary" onclick="saveGroupField('links','${gid_e}')">${t('common.save', 'Save')}</button>
+                        </div>
+                    </div>` : ''}
+                </div>
+                <div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;">
+                    <div class="myp-section-header">
+                        <span class="myp-section-title">${t('groups.sections.languages', 'Languages')}</span>
+                        ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('langs')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
+                    </div>
+                    <div id="ggrpLangsView">${grpLangsViewHtml}</div>
+                    ${canEdit ? `<div id="ggrpLangsEdit" style="display:none;">
+                        <div id="ggrpLangsChips" class="myp-lang-chips"></div>
+                        <div class="myp-lang-add-row">
+                            <select id="ggrpLangSelect" class="myp-lang-select"><option value="">${t('profiles.my_profile.add_language', 'Add language...')}</option></select>
+                            <button class="myp-add-lang-btn" onclick="addGrpLanguage()"><span class="msi" style="font-size:15px;">add</span></button>
+                        </div>
+                        <div class="myp-edit-actions">
+                            <button class="vrcn-button" onclick="cancelGroupField('langs')">${t('common.cancel', 'Cancel')}</button>
+                            <button class="vrcn-button vrcn-btn-primary" onclick="saveGroupField('langs','${gid_e}')">${t('common.save', 'Save')}</button>
+                        </div>
+                    </div>` : ''}
+                </div>
+                <div>
+                    <div class="myp-section-header">
+                        <span class="myp-section-title">${t('groups.sections.open_members', 'Open to new Members')}</span>
+                        ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('joinState')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
+                    </div>
+                    <div id="ggrpJoinStateView">
+                        ${g.joinState ? joinStateBadge(g.joinState) : `<div class="myp-empty">${t('groups.empty.not_set', 'Not set')}</div>`}
+                    </div>
+                    ${canEdit ? `<div id="ggrpJoinStateEdit" style="display:none;">
+                        <select id="ggrpJoinStateSelect" class="myp-lang-select" style="width:100%;margin-bottom:6px;">
+                            <option value="open"    ${g.joinState==='open'    ? 'selected' : ''}>${t('groups.join_state.open', 'Open')}</option>
+                            <option value="closed"  ${g.joinState==='closed'  ? 'selected' : ''}>${t('groups.join_state.closed', 'Closed')}</option>
+                            <option value="invite"  ${g.joinState==='invite'  ? 'selected' : ''}>${t('groups.join_state.invite_only', 'Invite Only')}</option>
+                            <option value="request" ${g.joinState==='request' ? 'selected' : ''}>${t('groups.join_state.request_invite', 'Request Invite')}</option>
+                        </select>
+                        <div class="myp-edit-actions">
+                            <button class="vrcn-button" onclick="cancelGroupField('joinState')">${t('common.cancel', 'Cancel')}</button>
+                            <button class="vrcn-button vrcn-btn-primary" onclick="saveGroupField('joinState','${gid_e}')">${t('common.save', 'Save')}</button>
+                        </div>
+                    </div>` : ''}
+                </div>
+            </div>
         </div>
-        <div class="myp-section">
-            <div class="myp-section-header">
-                <span class="myp-section-title">${t('groups.sections.links', 'Links')}</span>
-                ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('links')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
-            </div>
-            <div id="ggrpLinksView">${grpLinksViewHtml}</div>
-            ${canEdit ? `<div id="ggrpLinksEdit" style="display:none;">
-                <div id="ggrpLinksInputs"></div>
-                <div class="myp-edit-actions">
-                    <button class="vrcn-button" onclick="cancelGroupField('links')">${t('common.cancel', 'Cancel')}</button>
-                    <button class="vrcn-button vrcn-btn-primary" onclick="saveGroupField('links','${gid_e}')">${t('common.save', 'Save')}</button>
-                </div>
-            </div>` : ''}
-        </div>
-        <div class="myp-section">
-            <div class="myp-section-header">
-                <span class="myp-section-title">${t('groups.sections.languages', 'Languages')}</span>
-                ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('langs')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
-            </div>
-            <div id="ggrpLangsView">${grpLangsViewHtml}</div>
-            ${canEdit ? `<div id="ggrpLangsEdit" style="display:none;">
-                <div id="ggrpLangsChips" class="myp-lang-chips"></div>
-                <div class="myp-lang-add-row">
-                    <select id="ggrpLangSelect" class="myp-lang-select"><option value="">${t('profiles.my_profile.add_language', 'Add language...')}</option></select>
-                    <button class="myp-add-lang-btn" onclick="addGrpLanguage()"><span class="msi" style="font-size:15px;">add</span></button>
-                </div>
-                <div class="myp-edit-actions">
-                    <button class="vrcn-button" onclick="cancelGroupField('langs')">${t('common.cancel', 'Cancel')}</button>
-                    <button class="vrcn-button vrcn-btn-primary" onclick="saveGroupField('langs','${gid_e}')">${t('common.save', 'Save')}</button>
-                </div>
-            </div>` : ''}
-        </div>
-        <div class="myp-section">
-            <div class="myp-section-header">
-                <span class="myp-section-title">${t('groups.sections.rules', 'Rules')}</span>
-                ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('rules')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
-            </div>
-            <div id="gdescRulesView">
-                ${g.rules ? `<div style="font-size:11px;color:var(--tx3);padding:8px;background:var(--bg-input);border-radius:8px;max-height:120px;overflow-y:auto;white-space:pre-wrap;">${esc(g.rules)}</div>` : `<div class="myp-empty">${t('groups.empty.no_rules', 'No rules set')}</div>`}
-            </div>
-            ${canEdit ? `<div id="gdescRulesEdit" style="display:none;">
-                <textarea id="gdescRulesInput" class="myp-textarea" rows="5" maxlength="2000" placeholder="${esc(t('groups.placeholders.rules', 'Group rules...'))}">${esc(g.rules||'')}</textarea>
-                <div class="myp-edit-actions">
-                    <button class="vrcn-button" onclick="cancelGroupField('rules')">${t('common.cancel', 'Cancel')}</button>
-                    <button class="vrcn-button vrcn-btn-primary" onclick="saveGroupField('rules','${gid_e}')">${t('common.save', 'Save')}</button>
-                </div>
-            </div>` : ''}
-        </div>
-        <div class="myp-section">
-            <div class="myp-section-header">
-                <span class="myp-section-title">${t('groups.sections.open_members', 'Open to new Members')}</span>
-                ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('joinState')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
-            </div>
-            <div id="ggrpJoinStateView">
-                ${g.joinState ? joinStateBadge(g.joinState) : `<div class="myp-empty">${t('groups.empty.not_set', 'Not set')}</div>`}
-            </div>
-            ${canEdit ? `<div id="ggrpJoinStateEdit" style="display:none;">
-                <select id="ggrpJoinStateSelect" class="myp-lang-select" style="width:100%;margin-bottom:6px;">
-                    <option value="open"    ${g.joinState==='open'    ? 'selected' : ''}>${t('groups.join_state.open', 'Open')}</option>
-                    <option value="closed"  ${g.joinState==='closed'  ? 'selected' : ''}>${t('groups.join_state.closed', 'Closed')}</option>
-                    <option value="invite"  ${g.joinState==='invite'  ? 'selected' : ''}>${t('groups.join_state.invite_only', 'Invite Only')}</option>
-                    <option value="request" ${g.joinState==='request' ? 'selected' : ''}>${t('groups.join_state.request_invite', 'Request Invite')}</option>
-                </select>
-                <div class="myp-edit-actions">
-                    <button class="vrcn-button" onclick="cancelGroupField('joinState')">${t('common.cancel', 'Cancel')}</button>
-                    <button class="vrcn-button vrcn-btn-primary" onclick="saveGroupField('joinState','${gid_e}')">${t('common.save', 'Save')}</button>
-                </div>
-            </div>` : ''}
-        </div>
-        ${g.isJoined ? `<div class="myp-section">
+        ${g.isJoined ? `<div style="border-top:1px solid var(--brd);padding-top:12px;margin-top:12px;">
             <div class="myp-section-header">
                 <span class="myp-section-title">${t('groups.visibility.title', 'Visibility')}</span>
             </div>
@@ -389,9 +395,9 @@ function applyGroupDetailTranslations(g) {
 
     const titles = detail.querySelectorAll('#gdTabInfo .myp-section-title');
     if (titles[0]) titles[0].textContent = t('groups.sections.description', 'Description');
-    if (titles[1]) titles[1].textContent = t('groups.sections.links', 'Links');
-    if (titles[2]) titles[2].textContent = t('groups.sections.languages', 'Languages');
-    if (titles[3]) titles[3].textContent = t('groups.sections.rules', 'Rules');
+    if (titles[1]) titles[1].textContent = t('groups.sections.rules', 'Rules');
+    if (titles[2]) titles[2].textContent = t('groups.sections.links', 'Links');
+    if (titles[3]) titles[3].textContent = t('groups.sections.languages', 'Languages');
     if (titles[4]) titles[4].textContent = t('groups.sections.open_members', 'Open to new Members');
 
     if (!g.description) {

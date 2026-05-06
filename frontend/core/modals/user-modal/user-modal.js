@@ -677,9 +677,8 @@ function renderFriendDetail(d) {
     </div>` : '';
 
     const infoContent = `${worldHtml}
-        ${vrcBadgesHtml}
         <div style="display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:22px;align-items:start;">
-            <div>${avatarRowHtml}${bioHtml}${bioLinksHtml}${langsHtml}</div>
+            <div>${vrcBadgesHtml}${avatarRowHtml}${bioHtml}${bioLinksHtml}${langsHtml}</div>
             <div>${aboutSideHtml}${trustSideHtml}</div>
         </div>
         ${vrcNoteHtml}${miniTlHtml}`;
