@@ -2,44 +2,97 @@ using Newtonsoft.Json.Linq;
 
 namespace VRCNext.Services;
 
-public class WorldAPI(VRChatApiService ctx)
+public class WorldAPI
 {
+    private readonly VRChatApiService ctx;
     private readonly Dictionary<string, Task<JObject?>> _worldFetchTasks = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, JObject> _worldCache = new();
 
     private const int DiskCacheMax = 128;
-    private readonly Dictionary<string, JObject> _diskCache = LoadDiskCache();
+    private readonly Dictionary<string, JObject> _diskCache;
+    private readonly HashSet<string> _loadedIds    = new();
+    private readonly HashSet<string> _usedFromCache = new();
+    private int  _addedCount     = 0;
+    private bool _flushScheduled = false;
 
     private static readonly TimeSpan DiskCacheTtl = TimeSpan.FromDays(7);
 
-    private static Dictionary<string, JObject> LoadDiskCache()
+    public event Action<string>? OnCacheLog;
+
+    public WorldAPI(VRChatApiService ctx)
     {
+        this.ctx = ctx;
         var dict = new Dictionary<string, JObject>();
         try
         {
             var ch = new CacheHandler();
-            if (!ch.IsFresh(CacheHandler.KeyWorldMeta, DiskCacheTtl)) return dict;
-            var raw = ch.LoadRaw(CacheHandler.KeyWorldMeta);
-            if (raw is JArray arr)
-                foreach (var item in arr.OfType<JObject>())
-                {
-                    var id = item["id"]?.ToString();
-                    if (!string.IsNullOrEmpty(id)) dict[id] = item;
-                }
-            while (dict.Count > DiskCacheMax) dict.Remove(dict.Keys.First());
+            if (ch.IsFresh(CacheHandler.KeyWorldMeta, DiskCacheTtl))
+            {
+                var raw = ch.LoadRaw(CacheHandler.KeyWorldMeta);
+                if (raw is JArray arr)
+                    foreach (var item in arr.OfType<JObject>())
+                    {
+                        var id = item["id"]?.ToString();
+                        if (!string.IsNullOrEmpty(id) && !dict.ContainsKey(id))
+                            dict[id] = item;
+                    }
+                while (dict.Count > DiskCacheMax)
+                    dict.Remove(dict.Keys.First());
+            }
         }
         catch { }
-        return dict;
+        _diskCache = dict;
+        _loadedIds.UnionWith(dict.Keys);
     }
 
     private void PersistWorld(string worldId, JObject world)
     {
         lock (_diskCache)
         {
+            bool isNew = !_diskCache.ContainsKey(worldId);
+            if (isNew)
+            {
+                _addedCount++;
+                if (_diskCache.Count >= DiskCacheMax)
+                {
+                    // Evict a loaded-but-unused entry first to free stale slots
+                    var toEvict = _loadedIds.FirstOrDefault(k => !_usedFromCache.Contains(k) && _diskCache.ContainsKey(k));
+                    if (toEvict != null)
+                    {
+                        _diskCache.Remove(toEvict);
+                        _loadedIds.Remove(toEvict);
+                    }
+                    else
+                    {
+                        // Fallback: evict any entry not currently serving as a cache hit
+                        var fallback = _diskCache.Keys.FirstOrDefault(k => !_usedFromCache.Contains(k));
+                        _diskCache.Remove(fallback ?? _diskCache.Keys.First());
+                    }
+                }
+            }
             _diskCache[worldId] = world;
-            while (_diskCache.Count > DiskCacheMax) _diskCache.Remove(_diskCache.Keys.First());
             try { new CacheHandler().Save(CacheHandler.KeyWorldMeta, new JArray(_diskCache.Values.OfType<object>().ToArray())); }
             catch { }
+
+            if (!_flushScheduled)
+            {
+                _flushScheduled = true;
+                _ = Task.Delay(5000).ContinueWith(_ => FlushStartupCache());
+            }
+        }
+    }
+
+    private void FlushStartupCache()
+    {
+        lock (_diskCache)
+        {
+            var toRemove = _loadedIds.Where(k => !_usedFromCache.Contains(k) && _diskCache.ContainsKey(k)).ToList();
+            foreach (var k in toRemove) { _diskCache.Remove(k); _loadedIds.Remove(k); }
+            try { new CacheHandler().Save(CacheHandler.KeyWorldMeta, new JArray(_diskCache.Values.OfType<object>().ToArray())); }
+            catch { }
+            OnCacheLog?.Invoke($"Used {_usedFromCache.Count} cached world entries");
+            OnCacheLog?.Invoke($"Freed {toRemove.Count} cached World entries");
+            OnCacheLog?.Invoke($"Added {_addedCount} new World entries to cache");
         }
     }
 
@@ -51,6 +104,7 @@ public class WorldAPI(VRChatApiService ctx)
         {
             if (_diskCache.TryGetValue(worldId, out var disk))
             {
+                _usedFromCache.Add(worldId);
                 _worldCache[worldId] = disk;
                 return Task.FromResult<JObject?>(disk);
             }
@@ -91,6 +145,7 @@ public class WorldAPI(VRChatApiService ctx)
         {
             if (_diskCache.TryGetValue(worldId, out var disk))
             {
+                _usedFromCache.Add(worldId);
                 _worldCache[worldId] = disk;
                 return (disk, 200);
             }

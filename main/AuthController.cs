@@ -397,6 +397,10 @@ public class AuthController
         {
             try { _core.SendToJS("log", new { msg = $"[LOG] {msg}", color = "sec" }); } catch { }
         };
+        _core.World.OnCacheLog += msg =>
+        {
+            try { _core.SendToJS("log", new { msg = $"[CACH] {msg}", color = "sec" }); } catch { }
+        };
         _core.LogWatcher.WorldChanged += (wId, loc) =>
         {
             try { _instance.HandleWorldChangedOnUiThread(wId, loc); } catch { }

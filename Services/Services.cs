@@ -435,8 +435,8 @@ public class AppSettings
     public int         VroScaleScrollSensitivity { get; set; } = 25;
 
     // Dashboard layout customization
-    public List<string> DashSectionOrder  { get; set; } = new();
-    public List<string> DashSectionHidden { get; set; } = new();
+    public List<string>? DashSectionOrder  { get; set; } = null;
+    public List<string>? DashSectionHidden { get; set; } = null;
 
     public bool SetupComplete { get; set; }
 
