@@ -58,6 +58,7 @@ function handleAvatarByFileId(payload) {
                 : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">checkroom</span></div>`;
             const authorHtml = payload.avatarAuthor
                 ? `<div class="fd-group-card-meta">${esc(payload.avatarAuthor)}</div>` : '';
+            section.style.marginBottom = '14px';
             section.innerHTML = `<div class="fd-group-rep-label">${t('profiles.badges.current_avatar', 'Current Avatar')}</div>
                 <div class="fd-group-card fd-group-rep" onclick="navOpenModal('avatar','${jsq(payload.avatarId)}','${jsq(payload.avatarName || '')}')">
                     ${avIcon}<div class="fd-group-card-info"><div class="fd-group-card-name">${esc(payload.avatarName || payload.avatarId)}</div>${authorHtml}</div>
@@ -440,7 +441,7 @@ function renderFriendDetail(d) {
     const avatarId = d.currentAvatarId || '';
     const avatarFileId = d.avatarFileId || '';
     const avatarRowHtml = (avatarId.startsWith('avtr_') || avatarFileId)
-        ? `<div id="fdAvatarSection" style="margin-bottom:14px;"></div>`
+        ? `<div id="fdAvatarSection"></div>`
         : '';
 
     const lastSeenStr   = d.inSameInstance
@@ -676,8 +677,9 @@ function renderFriendDetail(d) {
     </div>` : '';
 
     const infoContent = `${worldHtml}
+        ${vrcBadgesHtml}
         <div style="display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:22px;align-items:start;">
-            <div>${vrcBadgesHtml}${avatarRowHtml}${bioHtml}${bioLinksHtml}${langsHtml}</div>
+            <div>${avatarRowHtml}${bioHtml}${bioLinksHtml}${langsHtml}</div>
             <div>${aboutSideHtml}${trustSideHtml}</div>
         </div>
         ${vrcNoteHtml}${miniTlHtml}`;
