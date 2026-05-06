@@ -136,7 +136,8 @@ function renderVrcFriends(friends, counts) {
     }
 
     appendSection('favorites', favFriends.length, favFriends.slice(0, 100), f => f.presence);
-    appendSection('ingame', gc, gameFriends.slice(0, 100), 'game');
+    const ingameFriends = gameFriends.filter(f => !favIds.has(f.id));
+    appendSection('ingame', ingameFriends.length, ingameFriends.slice(0, 100), 'game');
     appendSection('web', wc, webFriends.slice(0, 100), 'web');
     appendSection('offline', oc, offlineFriends.slice(0, 100), 'offline');
 
