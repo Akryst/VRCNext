@@ -106,6 +106,7 @@ function renderWorldSearchDetail(w) {
             capacity:     w.capacity || 0,
             friends:      worldFriendsByLoc[inst.location] || [],
             location:     inst.location,
+            ageGate:      inst.ageGate || false,
         })).join('')}</div>`;
     } else {
         instancesHtml = `<div style="font-size:11px;color:var(--tx3);padding:14px 0;">${t('worlds.instances.none_active', 'No active instances')}</div>`;

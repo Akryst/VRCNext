@@ -35,6 +35,7 @@
   * Tags, Your Time Spent, Description, and Popularity are now shown on the left side.
   * World information and Community details are now shown on the right side.
   * Sections are now visually separated to make the page easier to scan.
+  * Show Age gated instances.
 
 * **Group Modal**
 

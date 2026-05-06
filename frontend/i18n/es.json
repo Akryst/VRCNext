@@ -1541,6 +1541,7 @@
   "worlds.instances.types.group_public": "Grupo público",
   "worlds.instances.types.group": "Grupo",
   "worlds.instances.types.group_plus": "Grupo+",
+  "worlds.instances.age_gated": "Solo mayores",
   "worlds.tabs.info": "Info",
   "worlds.tabs.instances": "Instancias ({count})",
   "worlds.tabs.insights": "Estadísticas",

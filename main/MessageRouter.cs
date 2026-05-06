@@ -1007,7 +1007,7 @@ public partial class AppShell
                             }
 
                             // Phase 1 — build raw list with ownerIds
-                            var rawInstances = new List<(string instanceId, int users, string type, string region, string location, string ownerId)>();
+                            var rawInstances = new List<(string instanceId, int users, string type, string region, string location, string ownerId, bool ageGate)>();
                             var knownLocations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                             var instArr = world["instances"] as JArray;
                             if (instArr != null)
@@ -1024,7 +1024,7 @@ public partial class AppShell
                                         var regionMatch = System.Text.RegularExpressions.Regex.Match(instId, @"region\(([^)]+)\)");
                                         var region = regionMatch.Success ? regionMatch.Groups[1].Value : "us";
                                         var loc = $"{wdId}:{instId}";
-                                        rawInstances.Add((instId, users, instType, region, loc, ParseOwnerId(instId)));
+                                        rawInstances.Add((instId, users, instType, region, loc, ParseOwnerId(instId), instId.Contains("~ageGate")));
                                         knownLocations.Add(loc);
                                     }
                                 }
@@ -1052,7 +1052,7 @@ public partial class AppShell
                                     var instType2Final = instType2 == "private" && instData?["canRequestInvite"]?.Value<bool>() == true ? "invite_plus" : instType2;
                                     var regionMatch2 = System.Text.RegularExpressions.Regex.Match(instId2, @"region\(([^)]+)\)");
                                     var region2 = regionMatch2.Success ? regionMatch2.Groups[1].Value : "us";
-                                    rawInstances.Add((instId2, nUsers, instType2Final, region2, loc, ParseOwnerId(instId2)));
+                                    rawInstances.Add((instId2, nUsers, instType2Final, region2, loc, ParseOwnerId(instId2), instId2.Contains("~ageGate")));
                                 }
                             }
 
@@ -1079,7 +1079,7 @@ public partial class AppShell
                                     { var f = _friends.GetStoreValue(r.ownerId); ownerName = f?["displayName"]?.ToString() ?? ""; }
                                 else if (r.ownerId.StartsWith("grp_") && groupInfoMap.TryGetValue(r.ownerId, out var info))
                                     (ownerName, ownerGroup) = info;
-                                return new { instanceId = r.instanceId, users = r.users, type = r.type, region = r.region, location = r.location, ownerName, ownerGroup, ownerId = r.ownerId };
+                                return new { instanceId = r.instanceId, users = r.users, type = r.type, region = r.region, location = r.location, ownerName, ownerGroup, ownerId = r.ownerId, ageGate = r.ageGate };
                             }).ToList<object>();
                             var tags = world["tags"]?.ToObject<List<string>>() ?? new();
                             var (wTimeSeconds, wVisitCount, wLastVisited) = _timeEngine.GetWorldStats(world["id"]?.ToString() ?? "");

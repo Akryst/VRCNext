@@ -1543,6 +1543,7 @@
   "worlds.instances.types.group_public": "Gruppe Oeffentlich",
   "worlds.instances.types.group": "Gruppe",
   "worlds.instances.types.group_plus": "Gruppe+",
+  "worlds.instances.age_gated": "Altersbeschränkt",
   "worlds.tabs.info": "Info",
   "worlds.tabs.instances": "Instanzen ({count})",
   "worlds.tabs.insights": "Insights",

@@ -1540,6 +1540,7 @@
   "worlds.instances.types.group_public": "グループパブリック",
   "worlds.instances.types.group": "グループ",
   "worlds.instances.types.group_plus": "グループ+",
+  "worlds.instances.age_gated": "年齢制限あり",
   "worlds.tabs.info": "情報",
   "worlds.tabs.instances": "インスタンス ({count})",
   "worlds.tabs.insights": "インサイト",

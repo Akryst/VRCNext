@@ -24,7 +24,7 @@
  * @returns {string} HTML string
  */
 function renderInstanceItem(opts) {
-    const { thumb, worldName, instanceType, instanceId, owner, ownerGroup, ownerId, region, userCount, capacity, friends, location, onclick } = opts;
+    const { thumb, worldName, instanceType, instanceId, owner, ownerGroup, ownerId, region, userCount, capacity, friends, location, onclick, ageGate } = opts;
 
     const { cls, label } = getInstanceBadge(instanceType);
     const joinLabel = t('common.join', 'Join');
@@ -39,7 +39,8 @@ function renderInstanceItem(opts) {
         ? `<span class="inst-item-count"><span class="msi" style="font-size:12px;">person</span>${userCount}${capacity > 0 ? '/' + capacity : ''}</span>`
         : '';
 
-    const badgeHtml = `<span class="vrcn-badge ${cls}">${esc(label)}</span>`;
+    const ageGateLabel = t('worlds.instances.age_gated', 'Age Gated');
+    const badgeHtml = `<span class="vrcn-badge ${cls}">${esc(label)}</span>${ageGate ? `<span class="vrcn-badge" style="background:rgba(255,75,85,.15);color:var(--err);">${esc(ageGateLabel)}</span>` : ''}`;
     const thumbEl   = `<div class="inst-item-thumb" style="${thumbStyle}"></div>`;
     const clickAttr = onclick ? ` onclick="${onclick}" style="cursor:pointer;"` : '';
 

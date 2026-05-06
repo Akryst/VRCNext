@@ -1541,6 +1541,7 @@
   "worlds.instances.types.group_public": "群组公开",
   "worlds.instances.types.group": "群组",
   "worlds.instances.types.group_plus": "群组+",
+  "worlds.instances.age_gated": "年龄限制",
   "worlds.tabs.info": "信息",
   "worlds.tabs.instances": "实例 ({count})",
   "worlds.tabs.insights": "洞察",
