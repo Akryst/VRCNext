@@ -1511,6 +1511,7 @@ public class FriendsController
                 bannerUrl = ImageCacheHelper.NormalizeTo512(g["bannerUrl"]?.ToString() ?? ""),
                 memberCount = g["memberCount"]?.Value<int>() ?? 0,
                 isRepresenting = isRep,
+                ownerId = g["ownerId"]?.ToString() ?? "",
             });
             if (isRep && representedGroup == null)
                 representedGroup = new

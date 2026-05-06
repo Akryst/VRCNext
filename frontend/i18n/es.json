@@ -681,6 +681,7 @@
   "profiles.mutuals.groups_no_results": "Sin resultados",
   "profiles.groups.search_placeholder": "Buscar grupos por nombre...",
   "profiles.groups.no_results": "Sin resultados",
+  "profiles.groups.own_groups": "Grupos propios",
   "profiles.common.link": "Enlace",
   "profiles.trust.trusted": "Usuario de confianza",
   "profiles.trust.known": "Usuario conocido",

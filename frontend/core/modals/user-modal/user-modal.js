@@ -79,7 +79,8 @@ function filterFdGroups() {
     const all = window._fdAllGroups || [];
     const repG = window._fdRepGroup || null;
     const filtered = q ? all.filter(g => (g.name || '').toLowerCase().includes(q)) : all;
-    const otherGroups = repG ? filtered.filter(g => g.id !== repG.id) : filtered;
+    const ownGroupIds = new Set((window._fdAllOwnGroups || []).map(g => g.id));
+    const otherGroups = filtered.filter(g => (!repG || g.id !== repG.id) && !ownGroupIds.has(g.id));
     if (repSlot) repSlot.style.display = (q && repG && !(repG.name || '').toLowerCase().includes(q)) ? 'none' : '';
     const totalPages = Math.ceil(otherGroups.length / MINI_PG_SIZE) || 1;
     if ((window._fdGroupsPage || 0) >= totalPages) window._fdGroupsPage = totalPages - 1;
@@ -104,11 +105,41 @@ function fdGroupsGoPage(page) {
     const all = window._fdAllGroups || [];
     const repG = window._fdRepGroup || null;
     const filtered = q ? all.filter(g => (g.name||'').toLowerCase().includes(q)) : all;
-    const otherGroups = repG ? filtered.filter(g => g.id !== repG.id) : filtered;
+    const ownGroupIds = new Set((window._fdAllOwnGroups || []).map(g => g.id));
+    const otherGroups = filtered.filter(g => (!repG || g.id !== repG.id) && !ownGroupIds.has(g.id));
     const totalPages = Math.ceil(otherGroups.length / MINI_PG_SIZE) || 1;
     if (page >= totalPages) return;
     window._fdGroupsPage = page;
     filterFdGroups();
+}
+
+function filterFdOwnGroups() {
+    const grid = document.getElementById('fdOwnGroupsGrid');
+    if (!grid) return;
+    const all = window._fdAllOwnGroups || [];
+    const totalPages = Math.ceil(all.length / MINI_PG_SIZE) || 1;
+    if ((window._fdOwnGroupsPage || 0) >= totalPages) window._fdOwnGroupsPage = totalPages - 1;
+    const page = window._fdOwnGroupsPage || 0;
+    const slice = all.slice(page * MINI_PG_SIZE, (page + 1) * MINI_PG_SIZE);
+    if (slice.length > 0) {
+        grid.innerHTML = slice.map(g => {
+            const gIcon = g.iconUrl ? `<img class="fd-group-icon" src="${g.iconUrl}" onerror="this.style.display='none'">` : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">group</span></div>`;
+            return `<div class="fd-group-card" onclick="navOpenModal('group','${jsq(g.id)}','${jsq(g.name || '')}')">
+                ${gIcon}<div class="fd-group-card-info"><div class="fd-group-card-name">${esc(g.name)}</div><div class="fd-group-card-meta">${g.memberCount ? esc(getGroupMemberText(g.memberCount, false)) : ''}</div></div>
+            </div>`;
+        }).join('');
+    } else {
+        grid.innerHTML = `<div style="padding:12px;grid-column:1/-1;text-align:center;font-size:12px;color:var(--tx3);">${t('profiles.groups.no_results', 'No results')}</div>`;
+    }
+    setMiniPaginator('fdOwnGroupsPaginatorBar', buildMiniPaginator(page, totalPages, 'fdOwnGroupsGoPage'));
+}
+
+function fdOwnGroupsGoPage(page) {
+    if (page < 0) return;
+    const totalPages = Math.ceil((window._fdAllOwnGroups || []).length / MINI_PG_SIZE) || 1;
+    if (page >= totalPages) return;
+    window._fdOwnGroupsPage = page;
+    filterFdOwnGroups();
 }
 
 function filterFdMutualsGroups() {
@@ -401,6 +432,7 @@ function renderFriendDetail(d) {
     window._fdMutualsGroupsPage = 0;
     window._fdWorldsPage = 0;
     window._fdAvatarsPage = 0;
+    window._fdOwnGroupsPage = 0;
     window._fdAllAvatars = [];
     const c = document.getElementById('friendDetailContent');
     const img = d.image || '';
@@ -596,6 +628,7 @@ function renderFriendDetail(d) {
 
     window._fdRepGroup = (repG && repG.id) ? repG : null;
     window._fdAllGroups = allGroups;
+    window._fdAllOwnGroups = allGroups.filter(g => g.ownerId === d.id);
 
     let groupsContent = '';
     if (allGroups.length > 0) {
@@ -610,9 +643,15 @@ function renderFriendDetail(d) {
                 ${repIcon}<div class="fd-group-card-info"><div class="fd-group-card-name">${esc(repG.name)}</div><div class="fd-group-card-meta">${esc(repG.shortCode || '')}${repG.discriminator ? '.' + esc(repG.discriminator) : ''}${repG.memberCount ? ' &middot; ' + esc(getGroupMemberText(repG.memberCount, false)) : ''}</div></div>
             </div></div>`;
         }
-        const otherGroups = repG ? allGroups.filter(g => g.id !== repG.id) : allGroups;
+        const ownGroups = window._fdAllOwnGroups || [];
+        if (ownGroups.length > 0) {
+            groupsContent += `<div class="fd-group-rep-label" style="margin-top:${repG && repG.id ? '14' : '0'}px;">${t('profiles.groups.own_groups', 'Own Groups')}</div>`;
+            groupsContent += `<div id="fdOwnGroupsGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;column-gap:6px;"></div>`;
+            groupsContent += `<div id="fdOwnGroupsPaginatorBar" class="mini-paginator"></div>`;
+        }
+        const otherGroups = allGroups.filter(g => (!repG || g.id !== repG.id) && !ownGroups.some(og => og.id === g.id));
         if (otherGroups.length > 0) {
-            groupsContent += `<div class="fd-group-rep-label" style="margin-top:${repG && repG.id ? '14' : '0'}px;">${t('profiles.badges.groups', 'Groups')}</div>`;
+            groupsContent += `<div class="fd-group-rep-label" style="margin-top:${(repG && repG.id) || ownGroups.length > 0 ? '14' : '0'}px;">${t('profiles.badges.groups', 'Groups')}</div>`;
         }
         groupsContent += `<div id="fdGroupsGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;column-gap:6px;"></div>`;
         groupsContent += `<div id="fdGroupsPaginatorBar" class="mini-paginator"></div>`;
@@ -748,6 +787,7 @@ function renderFriendDetail(d) {
 
     // Populate paginated grids
     filterFdGroups();
+    filterFdOwnGroups();
     filterFdMutuals();
     filterFdMutualsGroups();
     renderFdWorldsPage(0);

@@ -26,6 +26,7 @@
   * Profile information and additional details are now shown on the right side.
   * Section titles now use a more consistent style.
   * Added "Instance Owner" Information to "Current World" Section
+  * Show "Own" Groups of an user.
 
 * **World Modal**
 

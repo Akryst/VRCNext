@@ -681,6 +681,7 @@
   "profiles.mutuals.groups_no_results": "无结果",
   "profiles.groups.search_placeholder": "按名称搜索群组...",
   "profiles.groups.no_results": "无结果",
+  "profiles.groups.own_groups": "自己的群组",
   "profiles.common.link": "链接",
   "profiles.trust.trusted": "受信任用户",
   "profiles.trust.known": "已知用户",
