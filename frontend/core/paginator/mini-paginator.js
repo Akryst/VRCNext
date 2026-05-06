@@ -7,7 +7,7 @@ if (typeof debounce === 'undefined') {
 }
 
 const MINI_PG_SIZE = 12;         // groups, mutuals
-const MINI_CONTENT_PG_SIZE = 4; // worlds, avatars
+const MINI_CONTENT_PG_SIZE = 6; // worlds, avatars
 
 function _buildMiniPaginatorBtns(page, totalPages, onPageFn) {
     const btn = (i) => {

@@ -38,7 +38,7 @@
 }
 
 .dash-welcome {
-    font-size: 32px;
+    font-size: 37px;
     font-weight: 800;
     color: #fff;
     line-height: 1.2;
@@ -46,7 +46,7 @@
 }
 
 .dash-sub {
-    font-size: 14px;
+    font-size: 16px;
     color: rgba(255,255,255,.7);
     margin-top: 8px;
     text-shadow: 0 1px 6px rgba(0,0,0,.3);
@@ -66,17 +66,17 @@
 }
 
 .dash-hero-stat-val {
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 700;
     color: #fff;
-    font-family: 'Google Sans Mono', monospace;
+    font-family: 'Google Sans', sans-serif;
     letter-spacing: -0.3px;
     line-height: 1;
     text-shadow: 0 1px 6px rgba(0,0,0,.4);
 }
 
 .dash-hero-stat-label {
-    font-size: 9px;
+    font-size: 10px;
     color: rgba(255,255,255,.5);
     text-transform: uppercase;
     letter-spacing: 1.2px;
