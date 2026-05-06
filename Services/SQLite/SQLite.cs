@@ -4,34 +4,11 @@ using System.Diagnostics;
 
 namespace VRCNext.Services;
 
-// Unified Time Engine — single source of truth for World Time, Instance Time, and Time Spent Together.
-// All three timer outputs are driven by timestamp-delta calculation from this one engine.
-// DB tables (user_tracking, world_tracking, active_session) remain fully compatible.
-//
-// ARCHITECTURE:
-//   TotalSeconds in DB = accumulated from COMPLETED sessions only (player left, world changed, VRC closed).
-//   Active session time is NEVER added to TotalSeconds until the session ends.
-//   Display value = TotalSeconds + (now - session_start_utc) for active sessions.
-//   active_session DB row stores per-player session_start_utc as JSON.
-//   On crash recovery: resume sessions with ORIGINAL timestamps → 0 seconds lost.
-//
-// SOURCE OF TRUTH for "VRChat is running":
-//   _isVrcRunning callback checks for VRChat.exe process (not logs).
-//   PRIMARY: Process.Exited event fires within milliseconds of VRC closing.
-//   FALLBACK: WatchdogTick every 2s polls process state (covers edge cases).
-//   End timestamp uses midpoint between last-confirmed-alive and detection → ~1s avg error.
-//   No log-based detection, no delayed cleanup, no blind counting.
-//
-// DISPOSE BEHAVIOR:
-//   If VRChat is still running when VRCNext shuts down → active_session is PRESERVED (not cleared).
-//   RestoreActiveSession resumes with original timestamps on next VRCNext launch.
-//   If VRChat is NOT running → sessions finalize, active_session cleared.
-//
-
-// Note to myself need to refactor some things here as this is fucking Co-Pilot crap. the init ref. should do the job for now
+// Tracks time spent with users and in worlds. Drives World Time, Instance Time, Time Spent Together.
+// TotalSeconds = completed sessions only. Display = TotalSeconds + live delta from session_start_utc.
+// On crash: sessions resume with original timestamps → 0 seconds lost.
 public class UnifiedTimeEngine : IDisposable
 {
-    // Record types (unchanged DB schema).
 
     public class UserRecord
     {
@@ -51,23 +28,16 @@ public class UnifiedTimeEngine : IDisposable
         public string WorldThumb { get; set; } = "";
     }
 
-    // Public state (in-memory caches, same access pattern).
-
     public Dictionary<string, UserRecord> Users { get; } = new();
     public Dictionary<string, WorldRecord> Worlds { get; } = new();
 
-    // Active session state (timestamp-based).
-    // Per-player session start times. Key = userId, value = UTC timestamp when session began.
-    // These timestamps are persisted to active_session as JSON. They are NEVER reset during a session.
-    // TotalSeconds is only updated when a session ENDS (player leave, world change, VRC close, dispose).
+    // Key = userId, value = session start UTC. Persisted to active_session. Never reset mid-session.
     private readonly Dictionary<string, DateTime> _playerSessions = new();
-
-    // World session start — set once per world join, never reset until session ends.
+    // Set once per world join, null until session ends.
     private DateTime? _worldSessionStart;
     private string _currentWorldId = "";
     private string _currentLocation = "";
 
-    // Infrastructure.
     private readonly SqliteConnection _db;
     private readonly object _lock = new();
     private System.Threading.Timer? _watchdogTimer;  // 5s fallback process check
@@ -88,8 +58,6 @@ public class UnifiedTimeEngine : IDisposable
 
     private UnifiedTimeEngine(SqliteConnection db) { _db = db; }
 
-    // Factory.
-
     public static UnifiedTimeEngine Load(Func<bool>? isVrcRunning = null, Action<string>? logger = null)
     {
         var conn = Database.OpenConnection();
@@ -101,18 +69,13 @@ public class UnifiedTimeEngine : IDisposable
         engine.MigrateWorldsFromJson();
         engine.LoadUsersFromDb();
         engine.LoadWorldsFromDb();
-        // Watchdog timer: every 2 seconds, checks VRChat.exe process state.
-        // Primary detection is Process.Exited event (near-instant).
-        // Watchdog is the fallback in case the event is missed or process handle becomes stale.
         engine._watchdogTimer = new System.Threading.Timer(
             engine.WatchdogTick, null,
             TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2));
         return engine;
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  CORE EVENT METHODS — called from LogWatcher event handlers
-    // ══════════════════════════════════════════════════════════════════
+    // Core event methods
 
     /// <summary>User joined a new world/instance. Ends all prior sessions, starts fresh world session.</summary>
     public void OnWorldJoined(string worldId, string location)
@@ -122,15 +85,12 @@ public class UnifiedTimeEngine : IDisposable
             if (_disposed) return;
             var now = DateTime.UtcNow;
 
-            // End all active player sessions from previous instance (finalizes their TotalSeconds)
             EndAllPlayerSessionsLocked(now);
-            // End previous world session
             EndWorldSessionLocked(now);
 
             _currentWorldId = worldId ?? "";
             _currentLocation = location ?? "";
 
-            // Start new world session
             if (!string.IsNullOrEmpty(_currentWorldId) && _currentWorldId.StartsWith("wrld_"))
             {
                 _worldSessionStart = now;
@@ -155,8 +115,6 @@ public class UnifiedTimeEngine : IDisposable
         {
             _currentWorldId = worldId ?? "";
             _currentLocation = location ?? "";
-            // World session start will be set by RestoreActiveSession with the persisted timestamp.
-            // If RestoreActiveSession is not called, start from now as fallback.
             if (!_worldSessionStart.HasValue)
                 _worldSessionStart = DateTime.UtcNow;
             PersistActiveSessionLocked();
@@ -169,10 +127,7 @@ public class UnifiedTimeEngine : IDisposable
         lock (_lock)
         {
             if (_disposed || string.IsNullOrEmpty(userId)) return;
-            // Use the log timestamp as session start — this is the SAME timestamp used by Instance Info,
-            // ensuring zero drift between Instance Info and Time Spent Together for new players.
             _playerSessions[userId] = joinedAtUtc;
-            // Ensure user record exists
             if (!Users.TryGetValue(userId, out _))
                 Users[userId] = new UserRecord();
             PersistActiveSessionLocked();
@@ -206,17 +161,9 @@ public class UnifiedTimeEngine : IDisposable
     }
 
 
-    // ══════════════════════════════════════════════════════════════════
-    //  QUERY METHODS — used by UI to get current time values
-    //  All three displays (World Time, Instance Time, Time Spent Together)
-    //  derive from the same session_start timestamps.
-    // ══════════════════════════════════════════════════════════════════
+    // Query methods
 
-    /// <summary>
-    /// Get total time spent with a user.
-    /// = TotalSeconds (completed sessions) + live session delta (if active).
-    /// The live delta uses the SAME session_start as Instance Info → guaranteed consistency.
-    /// </summary>
+    /// <summary>Returns total + live time spent with a user.</summary>
     public (long totalSeconds, string lastSeen) GetUserStats(string userId, bool isCoPresent = false)
     {
         lock (_lock)
@@ -226,7 +173,6 @@ public class UnifiedTimeEngine : IDisposable
 
             var total = rec.TotalSeconds;
 
-            // Add live session time. Double-check VRC is actually running via process check.
             if (isCoPresent && _isVrcRunning?.Invoke() == true
                 && _playerSessions.TryGetValue(userId, out var sessionStart))
             {
@@ -239,10 +185,7 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
-    /// <summary>
-    /// Get total time spent in a world.
-    /// = TotalSeconds (completed sessions) + live session delta (if this is the current world).
-    /// </summary>
+    /// <summary>Returns total + live time spent in a world.</summary>
     public (long totalSeconds, int visitCount, string lastVisited) GetWorldStats(string worldId)
     {
         lock (_lock)
@@ -264,9 +207,7 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  WORLD DETAIL CACHE
-    // ══════════════════════════════════════════════════════════════════
+    // World detail cache
 
     public class WorldDetailCache
     {
@@ -405,9 +346,7 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  GROUP DETAIL CACHE
-    // ══════════════════════════════════════════════════════════════════
+    // Group detail cache
 
     public class GroupDetailCache
     {
@@ -524,9 +463,7 @@ public class UnifiedTimeEngine : IDisposable
     }
     internal string _lastGroupSaveError = "";
 
-    // ══════════════════════════════════════════════════════════════════
-    //  AVATAR DETAIL CACHE
-    // ══════════════════════════════════════════════════════════════════
+    // Avatar detail cache
 
     public class AvatarDetailCache
     {
@@ -649,9 +586,7 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  USER PROFILE DETAIL CACHE
-    // ══════════════════════════════════════════════════════════════════
+    // User detail cache
 
     public class UserDetailCache
     {
@@ -727,9 +662,7 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  USER PROFILE CACHE (full profile + sub-caches)
-    // ══════════════════════════════════════════════════════════════════
+    // User profile cache
 
     public class UserProfileCache
     {
@@ -879,9 +812,7 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  EVENT DETAIL CACHE
-    // ══════════════════════════════════════════════════════════════════
+    // Event detail cache
 
     public class EventDetailCache
     {
@@ -963,9 +894,7 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  USER INFO & FRIEND TRACKING (non-time-counting operations)
-    // ══════════════════════════════════════════════════════════════════
+    // User info & friend tracking
 
     public void UpdateUserInfo(string userId, string displayName, string image)
     {
@@ -1070,19 +999,7 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  CRASH RECOVERY — 0 seconds data loss
-    //
-    //  active_session stores per-player session_start_utc as JSON.
-    //  On recovery: sessions resume with their ORIGINAL start timestamps.
-    //  Display = TotalSeconds + (now - original_session_start) → exact, no gap.
-    //
-    //  Validation:
-    //  1. VRChat.exe must be running (process check, not log-based)
-    //  2. Location must match (same instance)
-    //  3. Only players confirmed present by LogWatcher get sessions restored
-    //  4. Max session age 24h (sanity cap)
-    // ══════════════════════════════════════════════════════════════════
+    // Crash recovery
 
     public void RestoreActiveSession(string currentLocation, HashSet<string> currentPlayerIds)
     {
@@ -1107,7 +1024,6 @@ public class UnifiedTimeEngine : IDisposable
                 var worldStartStr = r.GetString(2);
                 r.Close();
 
-                // Validation 1: Location must match
                 if (string.IsNullOrEmpty(location) || location != currentLocation)
                 {
                     _playerSessions.Clear();
@@ -1116,7 +1032,6 @@ public class UnifiedTimeEngine : IDisposable
                     return;
                 }
 
-                // Validation 2: VRChat.exe must be running (process-level check)
                 if (_isVrcRunning?.Invoke() != true)
                 {
                     _playerSessions.Clear();
@@ -1127,25 +1042,18 @@ public class UnifiedTimeEngine : IDisposable
 
                 var now = DateTime.UtcNow;
 
-                // Parse per-player session starts from JSON
                 Dictionary<string, string>? savedSessions = null;
                 try { savedSessions = JsonConvert.DeserializeObject<Dictionary<string, string>>(sessionsJson); }
                 catch { }
-
-                // Fallback: old comma-separated format → treat as stale (can't recover exact starts)
                 if (savedSessions == null)
                 {
                     ClearActiveSessionLocked();
                     return;
                 }
 
-                // Validation 3: Only restore players confirmed present by LogWatcher right now.
-                // Session start is set to NOW — TotalSeconds already contains all time up to the
-                // last 30s flush. We only need to track from this restart forward to avoid double-counting.
                 foreach (var (userId, startStr) in savedSessions)
                 {
                     if (!currentPlayerIds.Contains(userId)) continue;
-                    // Validate the stored timestamp is parseable and not stale (sanity check only)
                     if (!DateTime.TryParse(startStr, null,
                         System.Globalization.DateTimeStyles.RoundtripKind, out var sessionStart))
                         continue;
@@ -1157,7 +1065,6 @@ public class UnifiedTimeEngine : IDisposable
                         Users[userId] = new UserRecord();
                 }
 
-                // Restore world session — also start from NOW for the same reason
                 if (DateTime.TryParse(worldStartStr, null,
                     System.Globalization.DateTimeStyles.RoundtripKind, out var wStart))
                 {
@@ -1186,9 +1093,7 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  BULK IMPORT (VRCX migration)
-    // ══════════════════════════════════════════════════════════════════
+    // Bulk import (VRCX migration)
 
     public void BulkMergeUsers(IEnumerable<(string userId, string displayName, long seconds, string lastSeen)> entries)
     {
@@ -1266,11 +1171,7 @@ public class UnifiedTimeEngine : IDisposable
 
     public void Save() { } // persistence handled by event methods and watchdog
 
-    // ══════════════════════════════════════════════════════════════════
-    //  WATCHDOG — VRChat process monitor (5-second interval)
-    //  This is the HARD SOURCE OF TRUTH for whether VRChat is running.
-    //  Not log-based. Not delayed. Process check via _isVrcRunning callback.
-    // ══════════════════════════════════════════════════════════════════
+    // Watchdog — polls VRChat.exe every 2s, flushes sessions every 30s
 
     private void WatchdogTick(object? state)
     {
@@ -1280,7 +1181,6 @@ public class UnifiedTimeEngine : IDisposable
 
             var vrcRunning = _isVrcRunning?.Invoke() ?? false;
 
-            // Edge detection: VRC was running, now it's not → end all sessions
             if (_vrcWasRunning && !vrcRunning)
             {
                 HandleVrcClosedLocked();
@@ -1289,16 +1189,11 @@ public class UnifiedTimeEngine : IDisposable
             if (vrcRunning)
             {
                 _lastVrcAliveUtc = DateTime.UtcNow;
-                // Attach Process.Exited event for near-instant detection when VRC closes.
-                // The watchdog (2s) is the fallback; Process.Exited fires within milliseconds.
                 AttachProcessExitedLocked();
             }
 
             _vrcWasRunning = vrcRunning;
 
-            // Every 30 seconds: flush accumulated time into TotalSeconds in the DB.
-            // This guarantees max 30s data loss on any crash, hard kill, or power failure.
-            // After flush, session starts are reset to now so the next flush starts clean.
             if (vrcRunning && (_playerSessions.Count > 0 || _worldSessionStart.HasValue))
             {
                 var now = DateTime.UtcNow;
@@ -1312,17 +1207,12 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
-    /// <summary>
-    /// Attaches a Process.Exited handler to the VRChat process for near-instant close detection.
-    /// This fires within milliseconds of process exit, unlike the 2s watchdog poll.
-    /// </summary>
     private void AttachProcessExitedLocked()
     {
         if (_monitoredVrcProcess != null)
         {
-            try { if (!_monitoredVrcProcess.HasExited) return; } // already monitoring a live process
+            try { if (!_monitoredVrcProcess.HasExited) return; }
             catch { }
-            // Previous monitored process is gone or stale — detach and re-attach
             try { _monitoredVrcProcess.Dispose(); } catch { }
             _monitoredVrcProcess = null;
         }
@@ -1345,13 +1235,8 @@ public class UnifiedTimeEngine : IDisposable
         catch { }
     }
 
-    /// <summary>
-    /// Flushes elapsed session time into TotalSeconds in the DB, then resets session starts to now.
-    /// Called every 30 seconds. Guarantees max 30s data loss on crash/power failure.
-    /// </summary>
     private void FlushSessionsToDbLocked(DateTime now)
     {
-        // Flush player sessions
         var userIds = _playerSessions.Keys.ToList();
         foreach (var userId in userIds)
         {
@@ -1368,7 +1253,6 @@ public class UnifiedTimeEngine : IDisposable
         if (userIds.Count > 0)
             PersistAllUsersLocked(userIds, now);
 
-        // Flush world session
         if (_worldSessionStart.HasValue && !string.IsNullOrEmpty(_currentWorldId) && _currentWorldId.StartsWith("wrld_"))
         {
             var delta = (long)(now - _worldSessionStart.Value).TotalSeconds;
@@ -1401,17 +1285,11 @@ public class UnifiedTimeEngine : IDisposable
         return $"{s}s";
     }
 
-    /// <summary>
-    /// Process.Exited event handler — fires within milliseconds of VRChat.exe closing.
-    /// Uses _lastVrcAliveUtc (last confirmed alive from watchdog) to bound the end timestamp.
-    /// Worst-case overcount = 1 watchdog interval (2s), not 5s.
-    /// </summary>
     private void OnVrcProcessExited(object? sender, EventArgs e)
     {
         lock (_lock)
         {
             if (_disposed) return;
-            // Double-check VRC is really gone (could be multiple instances)
             var stillRunning = _isVrcRunning?.Invoke() ?? false;
             if (stillRunning) return;
             HandleVrcClosedLocked();
@@ -1419,22 +1297,14 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
-    /// <summary>
-    /// Central handler for VRC close. Uses the midpoint between last confirmed alive and now
-    /// to minimize overcount. Called from both watchdog edge detection and Process.Exited.
-    /// </summary>
     private void HandleVrcClosedLocked()
     {
         if (_playerSessions.Count == 0 && !_worldSessionStart.HasValue) return;
-
-        // Best estimate of actual VRC close time:
-        // We know VRC was alive at _lastVrcAliveUtc and is dead now.
-        // Use the midpoint to minimize average error.
+        // Use midpoint between last-confirmed-alive and now to minimize overcount (~1s avg error).
         var now = DateTime.UtcNow;
         var endTime = _lastVrcAliveUtc > DateTime.MinValue
             ? _lastVrcAliveUtc + TimeSpan.FromTicks((now - _lastVrcAliveUtc).Ticks / 2)
             : now;
-        // Sanity: endTime must not be in the future or more than 10s in the past
         if (endTime > now) endTime = now;
         if ((now - endTime).TotalSeconds > 10) endTime = now;
 
@@ -1443,17 +1313,11 @@ public class UnifiedTimeEngine : IDisposable
         _currentWorldId = "";
         _currentLocation = "";
         ClearActiveSessionLocked();
-
-        // Clean up monitored process
         try { _monitoredVrcProcess?.Dispose(); } catch { }
         _monitoredVrcProcess = null;
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  INTERNAL — Session end helpers
-    //  "End" = compute delta, add to TotalSeconds, persist to DB, remove session.
-    //  TotalSeconds is ONLY modified here and in OnPlayerLeft.
-    // ══════════════════════════════════════════════════════════════════
+    // Session end helpers
 
     private void EndAllPlayerSessionsLocked(DateTime now)
     {
@@ -1499,9 +1363,7 @@ public class UnifiedTimeEngine : IDisposable
         _worldSessionStart = null;
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  INTERNAL — DB persistence
-    // ══════════════════════════════════════════════════════════════════
+    // DB persistence
 
     private void InitSchema()
     {
@@ -1970,10 +1832,6 @@ public class UnifiedTimeEngine : IDisposable
         catch { }
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  DISPOSE
-    // ══════════════════════════════════════════════════════════════════
-
     public void Dispose()
     {
         if (_disposed) return;
@@ -1985,33 +1843,25 @@ public class UnifiedTimeEngine : IDisposable
             var vrcRunning = _isVrcRunning?.Invoke() ?? false;
             if (vrcRunning && (_playerSessions.Count > 0 || _worldSessionStart.HasValue))
             {
-                // VRChat is still running — VRCNext is being restarted.
-                // Do NOT end sessions or clear active_session.
-                // Just persist the current state so RestoreActiveSession can resume with original timestamps.
+                // VRC still running → VRCNext restart. Preserve active_session for RestoreActiveSession.
                 PersistActiveSessionLocked();
             }
             else
             {
-                // VRChat is not running — true shutdown. Finalize all sessions.
                 var now = DateTime.UtcNow;
                 EndAllPlayerSessionsLocked(now);
                 EndWorldSessionLocked(now);
                 ClearActiveSessionLocked();
             }
         }
-        // Clean up process monitor
         try { _monitoredVrcProcess?.Dispose(); } catch { }
         _monitoredVrcProcess = null;
         try { _db.Close(); } catch { }
         _db.Dispose();
     }
 
-    // Legacy migration types.
-
     private class UserLegacy { public Dictionary<string, UserRecord>? Users { get; set; } }
     private class WorldLegacy { public Dictionary<string, WorldRecord>? Worlds { get; set; } }
-
-    // Static utility (kept from WorldTimeTracker for photo world detection).
 
     public static string? ExtractWorldIdFromPng(string filePath)
     {

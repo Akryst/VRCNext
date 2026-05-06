@@ -34,11 +34,14 @@ function openFriendDetail(userId) {
     sendToCS({ action: 'vrcGetFriendDetail', userId: userId });
 }
 
+let _fdLoadedAvatarKey = '';
+
 function closeFriendDetail(fromNav = false) {
     if (_fdLiveTimer) { clearInterval(_fdLiveTimer); _fdLiveTimer = null; }
     document.getElementById('modalFriendDetail').style.display = 'none';
     currentFriendDetail = null;
     window._fdAllMutuals = null;
+    _fdLoadedAvatarKey = '';
     if (!fromNav && typeof navClear === 'function') navClear();
 }
 
@@ -731,8 +734,12 @@ function renderFriendDetail(d) {
     filterFdMutualsGroups();
     renderFdWorldsPage(0);
 
-    if (avatarFileId) sendToCS({ action: 'vrcLookupAvatarByFileId', fileId: avatarFileId, openModal: false });
-    else if (avatarId && avatarId.startsWith('avtr_')) sendToCS({ action: 'vrcGetAvatarInfo', avatarId });
+    const _avatarKey = avatarFileId || avatarId;
+    if (_avatarKey && _avatarKey !== _fdLoadedAvatarKey) {
+        _fdLoadedAvatarKey = _avatarKey;
+        if (avatarFileId) sendToCS({ action: 'vrcLookupAvatarByFileId', fileId: avatarFileId, openModal: false });
+        else if (avatarId && avatarId.startsWith('avtr_')) sendToCS({ action: 'vrcGetAvatarInfo', avatarId });
+    }
 
     requestAnimationFrame(() => {
         const bio = c.querySelector('.fd-bio');
