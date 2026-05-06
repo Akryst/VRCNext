@@ -126,6 +126,25 @@ function renderWorldSearchDetail(w) {
         ${isOwnWorld ? `<button class="fd-tab" onclick="switchWdTab('insights',this)">${t('worlds.tabs.insights', 'Insights')}</button>` : ''}
     </div>`;
 
+    const _wmr = (label, val) => `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"><span style="color:var(--tx3);">${label}</span><span style="color:var(--tx1);text-align:right;">${val}</span></div>`;
+    const _wdInstCount = (w.instances || []).length;
+    const wdInfosRows = [
+        w.recommendedCapacity ? _wmr(t('worlds.meta.recommended', 'Recommended'), esc(getWorldPlayersLabel(w.recommendedCapacity))) : '',
+        _wmr(t('worlds.meta.max_capacity', 'Max Capacity'), esc(getWorldPlayersLabel(w.capacity))),
+        w.createdAt ? _wmr(t('worlds.meta.published', 'Published'), fmtShortDate(new Date(w.createdAt + 'T00:00:00'))) : '',
+        w.updatedAt ? _wmr(t('worlds.meta.updated', 'Updated'), fmtShortDate(new Date(w.updatedAt + 'T00:00:00'))) : '',
+        w.version != null ? _wmr(t('worlds.meta.version', 'Version'), String(w.version)) : '',
+    ].join('');
+    const wdCommunityRows = [
+        _wmr(t('worlds.meta.instances', 'Instances'), String(_wdInstCount)),
+        _wmr(t('worlds.meta.public_players', 'Public Players'), String(w.publicOccupants ?? 0)),
+        _wmr(t('worlds.meta.private_players', 'Private Players'), String(w.privateOccupants ?? 0)),
+    ].join('');
+    const wdPopularityRows = [
+        w.heat != null ? _wmr(t('worlds.meta.heat', 'Heat'), String(w.heat)) : '',
+        w.popularity != null ? _wmr(t('worlds.meta.popularity', 'Popularity'), String(w.popularity)) : '',
+    ].join('');
+
     el.innerHTML = `${thumb ? `<div class="fd-banner" id="wd-banner-slot"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/world/${esc(wid)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>` : ''}
         <div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:20px 0;">
         <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(w.name)}</h2>
@@ -148,38 +167,16 @@ function renderWorldSearchDetail(w) {
             <div class="wd-section-label" style="margin-bottom:6px;">${t('worlds.favorites.add_group_title', 'ADD TO FAVORITE GROUP')}</div>
             <div class="ci-group-list" id="wdFavGroupList"><div style="font-size:11px;color:var(--tx3);padding:8px 0;">${t('worlds.favorites.loading_groups', 'Loading groups...')}</div></div>
         </div>
-        ${(w.worldTimeSeconds > 0 || currentInstanceData?.worldId === wid) ? `<div class="wd-your-time"><span class="msi" style="font-size:15px;">schedule</span><div><div style="font-size:12px;font-weight:600;color:var(--tx1);">${t('worlds.time_spent.label', 'Your Time Spent')}</div><div style="font-size:11px;color:var(--tx3);"><span id="wdTimeSpent">${formatDuration(w.worldTimeSeconds || 0)}</span>${w.worldVisitCount > 0 ? ' &middot; ' + getWorldVisitCountLabel(w.worldVisitCount) : ''}</div></div></div>` : ''}
-        ${desc ? `<div style="font-size:12px;color:var(--tx2);margin-bottom:14px;max-height:150px;overflow-y:auto;line-height:1.5;white-space:pre-wrap;">${esc(desc)}</div>` : ''}
-        ${tagsHtml}
-        <div class="myp-section" style="padding-bottom:14px;">
-            <div class="myp-section-header"><span class="myp-section-title">${t('worlds.meta.infos_title', 'Infos')}</span></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 6px;">
-                ${(() => {
-                    const _wmc = (label, val) => `<div><div class="myp-section-title" style="margin-bottom:3px;">${label}</div><div style="font-size:12px;color:var(--tx2);">${val}</div></div>`;
-                    const instCount = (w.instances || []).length;
-                    return [
-                        w.recommendedCapacity ? _wmc(t('worlds.meta.recommended', 'Recommended'), esc(getWorldPlayersLabel(w.recommendedCapacity))) : '',
-                        _wmc(t('worlds.meta.max_capacity', 'Max Capacity'), esc(getWorldPlayersLabel(w.capacity))),
-                        _wmc(t('worlds.meta.instances', 'Instances'), String(instCount)),
-                        w.createdAt ? _wmc(t('worlds.meta.published', 'Published'), fmtShortDate(new Date(w.createdAt + 'T00:00:00'))) : '',
-                        w.updatedAt ? _wmc(t('worlds.meta.updated', 'Updated'), fmtShortDate(new Date(w.updatedAt + 'T00:00:00'))) : '',
-                        w.version != null ? _wmc(t('worlds.meta.version', 'Version'), String(w.version)) : '',
-                    ].join('');
-                })()}
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:22px;align-items:start;margin-top:10px;">
+            <div>
+                ${tagsHtml ? `<div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;"><div class="fd-group-rep-label">${t('worlds.meta.tags_title', 'Tags')}</div>${tagsHtml}</div>` : ''}
+                ${(w.worldTimeSeconds > 0 || currentInstanceData?.worldId === wid) ? `<div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;"><div class="wd-your-time"><span class="msi" style="font-size:15px;">schedule</span><div><div style="font-size:12px;font-weight:600;color:var(--tx1);">${t('worlds.time_spent.label', 'Your Time Spent')}</div><div style="font-size:11px;color:var(--tx3);"><span id="wdTimeSpent">${formatDuration(w.worldTimeSeconds || 0)}</span>${w.worldVisitCount > 0 ? ' &middot; ' + getWorldVisitCountLabel(w.worldVisitCount) : ''}</div></div></div></div>` : ''}
+                ${desc ? `<div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;"><div class="fd-group-rep-label">${t('worlds.meta.description_title', 'Description')}</div><div style="font-size:12px;color:var(--tx2);max-height:150px;overflow-y:auto;line-height:1.5;white-space:pre-wrap;">${esc(desc)}</div></div>` : ''}
             </div>
-        </div>
-        <div class="myp-section" style="padding-bottom:14px;">
-            <div class="myp-section-header"><span class="myp-section-title">${t('worlds.meta.community_title', 'Community Info')}</span></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 6px;">
-                ${(() => {
-                    const _wmc = (label, val) => `<div><div class="myp-section-title" style="margin-bottom:3px;">${label}</div><div style="font-size:12px;color:var(--tx2);">${val}</div></div>`;
-                    return [
-                        _wmc(t('worlds.meta.public_players', 'Public Players'), String(w.publicOccupants ?? 0)),
-                        _wmc(t('worlds.meta.private_players', 'Private Players'), String(w.privateOccupants ?? 0)),
-                        w.heat != null ? _wmc(t('worlds.meta.heat', 'Heat'), String(w.heat)) : '',
-                        w.popularity != null ? _wmc(t('worlds.meta.popularity', 'Popularity'), String(w.popularity)) : '',
-                    ].join('');
-                })()}
+            <div>
+                <div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;"><div class="fd-group-rep-label">${t('worlds.meta.infos_title', 'Infos')}</div><div style="display:grid;gap:6px;">${wdInfosRows}</div></div>
+                ${wdCommunityRows ? `<div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;"><div class="fd-group-rep-label">${t('worlds.meta.community_title', 'Community')}</div><div style="display:grid;gap:6px;">${wdCommunityRows}</div></div>` : ''}
+                ${wdPopularityRows ? `<div><div class="fd-group-rep-label">${t('worlds.meta.popularity_title', 'Popularity')}</div><div style="display:grid;gap:6px;">${wdPopularityRows}</div></div>` : ''}
             </div>
         </div>
         </div>
@@ -213,14 +210,17 @@ let _wdCurrentWorldId = '';
 
 function switchWdTab(tab, btn) {
     _wdCurrentTab = tab;
-    const info      = document.getElementById('wdTabInfo');
-    const instances = document.getElementById('wdTabInstances');
-    const insights  = document.getElementById('wdTabInsights');
-    if (info)      info.style.display      = tab === 'info'      ? '' : 'none';
-    if (instances) instances.style.display = tab === 'instances' ? '' : 'none';
-    if (insights)  insights.style.display  = tab === 'insights'  ? '' : 'none';
-    document.querySelectorAll('#detailModalContent .fd-tab').forEach(t => t.classList.remove('active'));
-    if (btn) btn.classList.add('active');
+    const box = document.querySelector('#modalDetail .modal-box');
+    animateModalBox(box, () => {
+        const info      = document.getElementById('wdTabInfo');
+        const instances = document.getElementById('wdTabInstances');
+        const insights  = document.getElementById('wdTabInsights');
+        if (info)      info.style.display      = tab === 'info'      ? '' : 'none';
+        if (instances) instances.style.display = tab === 'instances' ? '' : 'none';
+        if (insights)  insights.style.display  = tab === 'insights'  ? '' : 'none';
+        document.querySelectorAll('#detailModalContent .fd-tab').forEach(t => t.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+    });
     if (tab === 'insights' && _wdCurrentWorldId) {
         wiLoadInsights(_wdCurrentWorldId);
     }

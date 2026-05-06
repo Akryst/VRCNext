@@ -148,22 +148,20 @@ public class FriendsController
                     var bio = "";
                     var profilePicOverride = "";
 
-                    // FFC disk cache — read directly, has full profile with bio
-                    var ffcPath = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                        "VRCNext", "profiles", prevId + ".json");
-                    if (File.Exists(ffcPath))
+                    // SQLite cache
+                    var prevSqlite = _core.TimeEngine.GetUserProfileCache(prevId);
+                    if (prevSqlite != null && !string.IsNullOrEmpty(prevSqlite.ProfileJson))
                     {
                         try
                         {
-                            var disk = JObject.Parse(File.ReadAllText(ffcPath));
+                            var disk = JObject.Parse(prevSqlite.ProfileJson);
                             bio = disk["bio"]?.ToString() ?? "";
                             profilePicOverride = disk["profilePicOverride"]?.ToString() ?? "";
                         }
                         catch { }
                     }
 
-                    // Live API fallback if no FFC file yet
+                    // Live API fallback if no SQLite cache yet
                     if (string.IsNullOrEmpty(bio))
                     {
                         _core.SendToJS("vrcFriendPreview", new { id = prevId, bio, profilePicOverride });
@@ -260,10 +258,11 @@ public class FriendsController
                 {
                     try
                     {
-                        // Serve from cache if fresh (TTL 1 day)
-                        if (_core.Settings.FfcEnabled && _core.Cache.IsFresh(CacheHandler.KeyUserContent(uid), TimeSpan.FromDays(1)))
+                        // Serve from SQLite cache if fresh (TTL 1 day)
+                        var avDbCache = _core.TimeEngine.GetUserProfileCache(uid);
+                        if (IsDbCacheFresh(avDbCache?.ContentCachedAt, TimeSpan.FromDays(1)))
                         {
-                            var cached = _core.Cache.LoadRaw(CacheHandler.KeyUserContent(uid)) as JObject;
+                            var cached = TryParseJObject(avDbCache!.ContentJson);
                             if (cached?["avatars"] is JArray cachedAvtrs)
                             {
                                 foreach (var a in cachedAvtrs)
@@ -289,12 +288,10 @@ public class FriendsController
                             compatibility     = a["compatibility"] as JArray ?? new JArray(),
                         }).ToList();
 
-                        if (_core.Settings.FfcEnabled)
-                        {
-                            var cf = (_core.Cache.LoadRaw(CacheHandler.KeyUserContent(uid)) as JObject) ?? new JObject();
-                            cf["avatars"] = JToken.FromObject(avatars);
-                            _core.Cache.Save(CacheHandler.KeyUserContent(uid), cf);
-                        }
+                        var avDbCache2 = _core.TimeEngine.GetUserProfileCache(uid);
+                        var cf2 = (TryParseJObject(avDbCache2?.ContentJson ?? "") ?? new JObject());
+                        cf2["avatars"] = JToken.FromObject(avatars);
+                        _core.TimeEngine.SaveUserContentCache(uid, cf2.ToString(Newtonsoft.Json.Formatting.None));
                         _core.SendToJS("vrcUserAvatars", new { userId = uid, avatars });
                     }
                     catch
@@ -852,7 +849,7 @@ public class FriendsController
         if (!await _friendsRefreshLock.WaitAsync(0)) return;
         try
         {
-            var online = await _core.Friends.GetOnlineFriendsAsync();
+            var online  = await _core.Friends.GetOnlineFriendsAsync();
             var offline = await _core.Friends.GetOfflineFriendsAsync();
 
             lock (_friendStore)
@@ -1287,20 +1284,24 @@ public class FriendsController
         bool isFriend;
         lock (_friendStore) isFriend = _friendStore.ContainsKey(userId);
 
-        var diskCached = _core.Settings.FfcEnabled ? _core.Cache.LoadRaw(CacheHandler.KeyUserProfile(userId)) : null;
-        if (diskCached is JObject diskProfile)
+        var cachedEntry = _core.TimeEngine.GetUserProfileCache(userId);
+        JObject? diskProfile = null;
+        if (cachedEntry != null && !string.IsNullOrEmpty(cachedEntry.ProfileJson))
+            try { diskProfile = JObject.Parse(cachedEntry.ProfileJson); } catch { }
+
+        if (diskProfile != null)
         {
             JObject? live;
             lock (_friendStore) _friendStore.TryGetValue(userId, out live);
-            diskProfile["status"] = live?["status"]?.ToString() ?? "offline";
-            diskProfile["statusDescription"] = live?["statusDescription"]?.ToString() ?? "";
-            diskProfile["location"] = live?["location"]?.ToString() ?? "";
+            diskProfile["status"] = live?["status"]?.ToString() ?? diskProfile["status"]?.ToString() ?? "offline";
+            diskProfile["statusDescription"] = live?["statusDescription"]?.ToString() ?? diskProfile["statusDescription"]?.ToString() ?? "";
+            diskProfile["location"] = live?["location"]?.ToString() ?? diskProfile["location"]?.ToString() ?? "";
             diskProfile["userCount"] = 0;
             diskProfile["worldCapacity"] = 0;
             diskProfile["inSameInstance"] = false;
             diskProfile["travelingToLocation"] = "";
-            var _liveStatus = live?["status"]?.ToString() ?? "offline";
-            var _liveLoc = live?["location"]?.ToString() ?? "";
+            var _liveStatus = diskProfile["status"]?.ToString() ?? "offline";
+            var _liveLoc = diskProfile["location"]?.ToString() ?? "";
             var (_, _, _liveInstType) = VRChatApiService.ParseLocation(_liveLoc);
             var _liveWid = _liveLoc.Contains(':') ? _liveLoc.Split(':')[0] : "";
             (string name, string thumb) _liveWorld = ("", "");
@@ -1330,7 +1331,7 @@ public class FriendsController
                     {
                         var fresh = await BuildUserDetailPayloadAsync(userId);
                         if (fresh == null) return;
-                        if (_core.Settings.FfcEnabled) _core.Cache.Save(CacheHandler.KeyUserProfile(userId), fresh);
+                        _core.TimeEngine.SaveUserProfileFull(userId, Newtonsoft.Json.JsonConvert.SerializeObject(fresh));
                         _core.SendToJS("vrcFriendDetail", fresh);
                     }
                     catch { }
@@ -1348,7 +1349,7 @@ public class FriendsController
                 _core.SendToJS("vrcFriendDetailError", new { error = "Could not load user profile" });
                 return;
             }
-            if (_core.Settings.FfcEnabled) _core.Cache.Save(CacheHandler.KeyUserProfile(userId), payload);
+            _core.TimeEngine.SaveUserProfileFull(userId, Newtonsoft.Json.JsonConvert.SerializeObject(payload));
             _core.SendToJS("vrcFriendDetail", payload);
         }
         catch (Exception ex)
@@ -1359,6 +1360,25 @@ public class FriendsController
     }
 
     // Extract the file_ UUID from avatar image URLs for avtrdb lookup.
+    private static bool IsDbCacheFresh(string? cachedAt, TimeSpan ttl)
+    {
+        if (string.IsNullOrEmpty(cachedAt)) return false;
+        return DateTime.TryParse(cachedAt, null, System.Globalization.DateTimeStyles.RoundtripKind, out var t)
+            && DateTime.UtcNow - t < ttl;
+    }
+
+    private static JArray? TryParseJArray(string? json)
+    {
+        if (string.IsNullOrEmpty(json)) return null;
+        try { return JArray.Parse(json); } catch { return null; }
+    }
+
+    private static JObject? TryParseJObject(string? json)
+    {
+        if (string.IsNullOrEmpty(json)) return null;
+        try { return JObject.Parse(json); } catch { return null; }
+    }
+
     private static string ParseIsoDate(JToken? token)
     {
         var s = token?.ToString();
@@ -1409,17 +1429,17 @@ public class FriendsController
         var (worldId, instanceId, instanceType) = VRChatApiService.ParseLocation(location);
         bool hasWorld = !string.IsNullOrEmpty(worldId) && worldId.StartsWith("wrld_");
 
-        // Check per-user caches (TTL 1 day)
-        bool ffc = _core.Settings.FfcEnabled;
+        // Check per-user caches (TTL 1 day) via SQLite
         var profileTtl = TimeSpan.FromDays(1);
-        JArray? cachedGroups = (ffc && _core.Cache.IsFresh(CacheHandler.KeyUserGroups(userId), profileTtl))
-            ? _core.Cache.LoadRaw(CacheHandler.KeyUserGroups(userId)) as JArray : null;
-        JObject? cachedContent = (ffc && _core.Cache.IsFresh(CacheHandler.KeyUserContent(userId), profileTtl))
-            ? _core.Cache.LoadRaw(CacheHandler.KeyUserContent(userId)) as JObject : null;
-        JArray? cachedWorlds = cachedContent?["worlds"] as JArray;
-
-        var cachedMutualGroups = ffc && _core.Cache.IsFresh(CacheHandler.KeyUserMutualGroups(userId), TimeSpan.FromDays(1))
-            ? _core.Cache.LoadRaw(CacheHandler.KeyUserMutualGroups(userId)) as JArray : null;
+        var dbCache = _core.TimeEngine.GetUserProfileCache(userId);
+        JArray? cachedGroups      = IsDbCacheFresh(dbCache?.GroupsCachedAt,       profileTtl)           ? TryParseJArray(dbCache!.GroupsJson)      : null;
+        JObject? cachedContent    = IsDbCacheFresh(dbCache?.ContentCachedAt,      profileTtl)           ? TryParseJObject(dbCache!.ContentJson)    : null;
+        JArray? cachedWorlds      = cachedContent?["worlds"] as JArray;
+        JArray? cachedMutualGroups = IsDbCacheFresh(dbCache?.MutualGroupsCachedAt, TimeSpan.FromDays(1)) ? TryParseJArray(dbCache!.MutualGroupsJson) : null;
+        JObject? cachedMutualsRaw = IsDbCacheFresh(dbCache?.MutualsCachedAt,      TimeSpan.FromDays(1)) ? TryParseJObject(dbCache!.MutualsJson)    : null;
+        var cachedMutuals = cachedMutualsRaw != null
+            ? (cachedMutualsRaw["mutuals"] as JArray ?? new JArray(), cachedMutualsRaw["optedOut"]?.Value<bool>() ?? false)
+            : ((JArray?)null, false);
 
         var instTask           = hasWorld ? _core.Instances.GetInstanceAsync(location) : Task.FromResult<JObject?>(null);
         var grpsTask           = cachedGroups != null
@@ -1428,7 +1448,9 @@ public class FriendsController
         var worldsTask         = cachedWorlds != null
             ? Task.FromResult(cachedWorlds)
             : _core.World.GetUserWorldsAsync(userId);
-        var mutualsTask        = _core.Users.GetUserMutualsAsync(userId);
+        var mutualsTask        = cachedMutuals.Item1 != null
+            ? Task.FromResult((cachedMutuals.Item1, cachedMutuals.Item2))
+            : _core.Users.GetUserMutualsAsync(userId);
         var mutualGroupsTask   = cachedMutualGroups != null
             ? Task.FromResult(cachedMutualGroups)
             : _core.Users.GetUserMutualGroupsAsync(userId);
@@ -1441,19 +1463,21 @@ public class FriendsController
         var worlds = worldsTask.IsCompletedSuccessfully ? worldsTask.Result : new JArray();
         var mutualGroupsArr = mutualGroupsTask.IsCompletedSuccessfully ? mutualGroupsTask.Result : new JArray();
 
-        // Save fresh fetches to cache
-        if (ffc && cachedGroups == null && grpsTask.IsCompletedSuccessfully)
-            _core.Cache.Save(CacheHandler.KeyUserGroups(userId), groups);
-        if (ffc && cachedWorlds == null && worldsTask.IsCompletedSuccessfully)
+        // Save fresh fetches to SQLite sub-caches
+        if (cachedGroups == null && grpsTask.IsCompletedSuccessfully)
+            _core.TimeEngine.SaveUserGroupsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(groups));
+        if (cachedWorlds == null && worldsTask.IsCompletedSuccessfully)
         {
             var cf = (cachedContent ?? new JObject());
             cf["worlds"] = JToken.FromObject(worlds);
-            _core.Cache.Save(CacheHandler.KeyUserContent(userId), cf);
+            _core.TimeEngine.SaveUserContentCache(userId, cf.ToString(Newtonsoft.Json.Formatting.None));
         }
-        if (ffc && cachedMutualGroups == null && mutualGroupsTask.IsCompletedSuccessfully && mutualGroupsArr.Count > 0)
-            _core.Cache.Save(CacheHandler.KeyUserMutualGroups(userId), mutualGroupsArr);
+        if (cachedMutualGroups == null && mutualGroupsTask.IsCompletedSuccessfully && mutualGroupsArr.Count > 0)
+            _core.TimeEngine.SaveUserMutualGroupsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(mutualGroupsArr));
         var (mutualsArr, mutualsOptedOut) = mutualsTask.IsCompletedSuccessfully
             ? mutualsTask.Result : (new JArray(), false);
+        if (cachedMutuals.Item1 == null && mutualsTask.IsCompletedSuccessfully)
+            _core.TimeEngine.SaveUserMutualsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(new { mutuals = mutualsArr, optedOut = mutualsOptedOut }));
         var badgesArr = user["badges"] as JArray ?? new JArray();
 
         if (instanceType == "private" && inst?["canRequestInvite"]?.Value<bool>() == true)

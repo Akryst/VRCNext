@@ -39,7 +39,6 @@ function _renderGroupListCard(g) {
             <div class="cc-name">${esc(g.name)}</div>
             <div class="cc-bottom-row">
                 <div class="cc-meta">${iconHtml}${metaParts.join(' · ')}</div>
-                ${g.joinState ? joinStateBadge(g.joinState) : ''}
             </div>
         </div>
     </div>`;

@@ -685,11 +685,11 @@ function _dashAvatarCard(a) {
 
 /* === Dashboard — World shelves (Recently Visited / Popular / Active) === */
 
-function _dashWorldCard(w) {
+function _dashWorldCard(w, showCount = true) {
     const thumb     = w.thumbnailImageUrl || w.imageUrl || '';
     const wid       = jsq(w.id || '');
     const occupants = w.occupants ?? w.publicOccupants ?? 0;
-    const meta      = occupants > 0
+    const meta      = showCount && occupants > 0
         ? `<div class="cc-bottom-row"><div class="cc-meta"><span class="msi">person</span>${occupants.toLocaleString()}</div></div>`
         : '';
     return `<div class="vrcn-content-card" onclick="openWorldSearchDetail('${wid}')">
@@ -718,7 +718,7 @@ function renderDashRecentlyVisited() {
     if (!currentVrcUser) { el.innerHTML = `<div class="empty-msg">${t('dashboard.worlds.login','Login to see worlds')}</div>`; return; }
     const worlds = _recentCache.worlds;
     if (!worlds.length) { el.innerHTML = _dashWorldShelfSkeleton(); if (!_recentInFlight && !(_dashLayout.hidden.includes('recently_visited') && _dashLayout.hidden.includes('discovery'))) { _recentInFlight = true; sendToCS({ action: 'vrcGetRecentWorlds' }); } return; }
-    el.innerHTML = worlds.slice(0, 20).map(_dashWorldCard).join('');
+    el.innerHTML = worlds.slice(0, 20).map(w => _dashWorldCard(w, false)).join('');
 }
 
 function renderDashPopularWorlds() {

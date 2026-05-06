@@ -1,42 +1,67 @@
-**2026.21.5**
+**2026.22.0**
 
-### Smart Search
+### Changes
 
-Smart Search has been added and is now available in the VRCN header.
+**Modals**
+* All modals (Group, Profile, Avatars, Worlds) are now 15% bigger.
 
-With Smart Search, you can find almost anything very quickly. You can search your groups, friends, own worlds, favorite worlds, events, avatars, favorite avatars, settings, and all modules.
+* **Dashboard: Recently Visited**
 
-This should improve the overall user experience and make navigating VRCN much faster.
+  * The Recently Visited widget no longer shows the current player count for each world.
+  * This information was not important in this widget and caused extra VRChat API requests.
+  
 
-### Media Relay
+* **User Profile Modal**
 
-Added a new **Filter** card to Media Relay.
+  * The Info tab has been redesigned to be cleaner and easier to read.
+  * Badges, Biography, and Trust & Safety are now shown on the left side.
+  * Profile information and additional details are now shown on the right side.
+  * Section titles now use a more consistent style.
 
-You can now enable or disable specific watched folders, making sure only content from selected folders is sent to your Discord webhook. This helps prevent images or files from being shared by accident.
+* **World Modal**
 
-### Performance & Large Lists
+  * The Info tab has been redesigned with a cleaner two-column layout.
+  * Tags, Your Time Spent, Description, and Popularity are now shown on the left side.
+  * World information and Community details are now shown on the right side.
+  * Sections are now visually separated to make the page easier to scan.
 
-This update improves performance in areas that can become slow with large friend lists or large profiles.
+* **Group Modal**
 
-* Friends Sidebar sections now show up to 100 people at once while still showing the real total count.
-* Invite Modal sections now show up to 100 people at once and handle search results more cleanly.
-* People Tab now uses page navigation for All Friends, Blocked, and Muted with 100 entries per page.
-* Profile Modal now uses smaller page navigation for larger sections:
+  * The Info tab has been redesigned with a two-column layout.
+  * Description and Rules are now shown on the left side.
+  * Links, Languages, and Open to new Members are now shown on the right side.
+  * Visibility is shown as a full-width row at the bottom when you are a member of the group.
 
-  * Groups, Mutual Friends, and Mutual Groups show 8 entries per page.
-  * Uploaded Worlds and Uploaded Avatars show 4 entries per page.
-* Searches now check the full list, not only currently visible entries.
-* Friend status and location updates are now processed more efficiently to reduce UI lag.
-* The In Same Instance sidebar section now reuses already-filtered friend data for better performance.
+### Fixes & Improvements
 
-### Fixes
+* **Fewer World Insights requests**
 
-* Fixed window frame disappearing when resizing in Legacy Window mode.
-* Fixed broken character encoding in the Spanish translation file.
-* Fixed Enable Text Tools setting not being saved or restored between sessions.
-* Fixed pinned taskbar icon breaking after updates.
-* Fixed border color in the Slates theme.
-* Fixed People Tab page navigation layout.
-* Fixed oversized friend cards in the People Tab.
-* Fixed page number alignment in smaller modal navigation.
-* Improved consistency between People, Timeline, Media Library, and profile sections.
+  * VRCNext now updates World Insights with a single request instead of requesting every world one by one.
+  * This makes the hourly refresh much lighter.
+
+* **Fewer Recently Visited requests**
+
+  * Recently Visited now reuses cached data where possible instead of requesting the same information again.
+
+* **Fewer Friends Location requests**
+
+  * If you restart VRCNext and are still in the same world, the app can now reuse your cached location data.
+
+* **Fewer Group Activity requests**
+
+  * If a group event is still hosted in the same location, VRCNext no longer requests the same location data again.
+
+* **Fewer Mutual Friends requests**
+
+  * Mutual friends are now cached for 24 hours.
+  * Opening the same profile again will reuse the cached data instead of sending another request.
+
+* **Fixed Current World link**
+
+  * Fixed an issue where the Current World button in the User Profile Modal could not be clicked when the world name contained an apostrophe.
+
+* **Fixed Group Live tab not showing instances**
+
+  * The **Live** tab in the Group Modal now correctly shows active instances for all users, including non-members.
+  * Before this fix, the tab could appear empty for non-members because VRChat blocked one of the instance requests until the user joined the group.
+  * VRCNext now uses a better request for this data, so non-members can see public group instances, while members can still see all available group instances.

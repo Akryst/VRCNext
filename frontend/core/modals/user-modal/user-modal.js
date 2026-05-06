@@ -34,11 +34,14 @@ function openFriendDetail(userId) {
     sendToCS({ action: 'vrcGetFriendDetail', userId: userId });
 }
 
+let _fdLoadedAvatarKey = '';
+
 function closeFriendDetail(fromNav = false) {
     if (_fdLiveTimer) { clearInterval(_fdLiveTimer); _fdLiveTimer = null; }
     document.getElementById('modalFriendDetail').style.display = 'none';
     currentFriendDetail = null;
     window._fdAllMutuals = null;
+    _fdLoadedAvatarKey = '';
     if (!fromNav && typeof navClear === 'function') navClear();
 }
 
@@ -58,6 +61,7 @@ function handleAvatarByFileId(payload) {
                 : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">checkroom</span></div>`;
             const authorHtml = payload.avatarAuthor
                 ? `<div class="fd-group-card-meta">${esc(payload.avatarAuthor)}</div>` : '';
+            section.style.marginBottom = '14px';
             section.innerHTML = `<div class="fd-group-rep-label">${t('profiles.badges.current_avatar', 'Current Avatar')}</div>
                 <div class="fd-group-card fd-group-rep" onclick="navOpenModal('avatar','${jsq(payload.avatarId)}','${jsq(payload.avatarName || '')}')">
                     ${avIcon}<div class="fd-group-card-info"><div class="fd-group-card-name">${esc(payload.avatarName || payload.avatarId)}</div>${authorHtml}</div>
@@ -174,16 +178,19 @@ function fdMutualsGoPage(page) {
 }
 
 function switchFdTab(tab, btn) {
-    document.getElementById('fdTabInfo').style.display = tab === 'info' ? '' : 'none';
-    document.getElementById('fdTabGroups').style.display = tab === 'groups' ? '' : 'none';
-    const mutualsEl = document.getElementById('fdTabMutuals');
-    if (mutualsEl) mutualsEl.style.display = tab === 'mutuals' ? '' : 'none';
-    const contentEl = document.getElementById('fdTabContent');
-    if (contentEl) contentEl.style.display = tab === 'content' ? '' : 'none';
+    const box = document.querySelector('#modalFriendDetail .modal-box');
     const favsEl = document.getElementById('fdTabFavs');
-    if (favsEl) favsEl.style.display = tab === 'favs' ? '' : 'none';
-    document.querySelectorAll('.fd-tab').forEach(t => t.classList.remove('active'));
-    if (btn) btn.classList.add('active');
+    animateModalBox(box, () => {
+        document.getElementById('fdTabInfo').style.display = tab === 'info' ? '' : 'none';
+        document.getElementById('fdTabGroups').style.display = tab === 'groups' ? '' : 'none';
+        const mutualsEl = document.getElementById('fdTabMutuals');
+        if (mutualsEl) mutualsEl.style.display = tab === 'mutuals' ? '' : 'none';
+        const contentEl = document.getElementById('fdTabContent');
+        if (contentEl) contentEl.style.display = tab === 'content' ? '' : 'none';
+        if (favsEl) favsEl.style.display = tab === 'favs' ? '' : 'none';
+        document.querySelectorAll('.fd-tab').forEach(t => t.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+    });
     if (tab === 'favs') {
         const uid = favsEl?.dataset.userId;
         if (uid && !favsEl.dataset.loaded) {
@@ -404,7 +411,7 @@ function renderFriendDetail(d) {
     let worldHtml = '';
     if (d.worldName) {
         const { worldId: fdWorldId } = parseFriendLocation(d.location);
-        const onclick = fdWorldId ? `navOpenModal('worldSearch','${esc(fdWorldId)}','${esc(d.worldName || '')}')` : '';
+        const onclick = fdWorldId ? `navOpenModal('worldSearch','${jsq(fdWorldId)}','${jsq(d.worldName || '')}')` : '';
         const _loc = d.location || '';
         const _instId     = _loc.includes(':') ? (_loc.split(':')[1] || '').split('~')[0] : '';
         const _regionRaw  = (_loc.match(/~region\(([^)]+)\)/) || [])[1] || '';
@@ -437,7 +444,7 @@ function renderFriendDetail(d) {
     const avatarId = d.currentAvatarId || '';
     const avatarFileId = d.avatarFileId || '';
     const avatarRowHtml = (avatarId.startsWith('avtr_') || avatarFileId)
-        ? `<div id="fdAvatarSection" style="margin-bottom:14px;"></div>`
+        ? `<div id="fdAvatarSection"></div>`
         : '';
 
     const lastSeenStr   = d.inSameInstance
@@ -448,29 +455,30 @@ function renderFriendDetail(d) {
     const fdMeetCnt      = d.meets || 0;
     const fdFirstMeet    = d.firstMeetDate || '';
 
-    const _mc = (label, valueHtml) =>
-        `<div><div class="myp-section-title" style="margin-bottom:3px;">${label}</div><div style="font-size:12px;color:var(--tx2);">${valueHtml}</div></div>`;
+    const _mr = (label, valueHtml) =>
+        `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;">
+            <span style="color:var(--tx3);">${label}</span>
+            <span style="color:var(--tx1);text-align:right;">${valueHtml}</span>
+        </div>`;
 
-    const _metaCells = [
-        _mc(t('profiles.meta.platform',     'Platform'),    esc(d.lastPlatform   || '—')),
-        _mc(t('profiles.meta.joined',       'Joined'),      d.dateJoined ? fmtShortDate(new Date(d.dateJoined + 'T00:00:00')) : '—'),
-        _mc(t('profiles.meta.last_seen',    'Last Seen'),   esc(lastSeenStr      || '—')),
-        _mc(t('profiles.meta.last_active',  'Last Active'), esc(lastActiveStr    || '—')),
+    const _aboutRows = [
+        _mr(t('profiles.meta.platform',     'Platform'),    esc(d.lastPlatform   || '—')),
+        _mr(t('profiles.meta.joined',       'Joined'),      d.dateJoined ? fmtShortDate(new Date(d.dateJoined + 'T00:00:00')) : '—'),
+        _mr(t('profiles.meta.last_seen',    'Last Seen'),   esc(lastSeenStr      || '—')),
+        _mr(t('profiles.meta.last_active',  'Last Active'), esc(lastActiveStr    || '—')),
     ];
     if (!isSelf) {
-        _metaCells.push(_mc(t('profiles.meta.meets', 'Meets'),
-            fdMeetCnt > 0 ? String(fdMeetCnt) : `<span style="color:var(--tx3);">—</span>`));
-        _metaCells.push(_mc(t('profiles.meta.time_together', 'Time Together'),
+        _aboutRows.push(_mr(t('profiles.meta.meets', 'Meets'),
+            fdMeetCnt > 0 ? String(fdMeetCnt) : '—'));
+        _aboutRows.push(_mr(t('profiles.meta.time_together', 'Time Together'),
             (d.totalTimeSeconds > 0 || d.inSameInstance)
                 ? `<span id="fdTimeTogether">${formatDuration(d.totalTimeSeconds)}</span>`
                 : `<span style="color:var(--tx3);">${t('profiles.meta.not_tracked', 'Not tracked yet')}</span>`));
     }
 
-    const metaHtml = `<div class="myp-section" style="padding-bottom:14px;">
-        <div class="myp-section-header"><span class="myp-section-title">${t('profiles.meta.infos_title', 'Infos')}</span></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 6px;">
-            ${_metaCells.join('')}
-        </div>
+    const aboutSideHtml = `<div>
+        <div class="fd-group-rep-label">${t('profiles.meta.infos_title', 'Infos')}</div>
+        <div style="display:grid;gap:6px;">${_aboutRows.join('')}</div>
     </div>`;
 
     const vrcNoteHtml = `<div class="myp-section" style="padding-bottom:14px;">
@@ -557,7 +565,7 @@ function renderFriendDetail(d) {
                 `<img class="fd-vrc-badge-icon" src="${esc(b.imageUrl)}" alt="${esc(b.name)}" onerror="this.closest('.fd-vrc-badge-wrap').style.display='none'">` +
             `</div>`
         ).join('');
-        vrcBadgesHtml = `<div class="fd-vrc-badges"><div class="fd-group-rep-label">${t('profiles.badges.badges', 'Badges')}</div><div class="fd-vrc-badges-row">${iconsHtml}</div></div>`;
+        vrcBadgesHtml = `<div class="fd-vrc-badges" style="border-bottom:1px solid var(--brd);padding-bottom:12px;"><div class="fd-group-rep-label">${t('profiles.badges.badges', 'Badges')}</div><div class="fd-vrc-badges-row">${iconsHtml}</div></div>`;
     }
 
     let repGroupInfoHtml = '';
@@ -655,8 +663,6 @@ function renderFriendDetail(d) {
         <div id="fdUserActivity" style="max-height:160px;overflow-y:auto;display:none;"></div>
     </div>`;
 
-    const infoContent = `${worldHtml}${vrcBadgesHtml}${avatarRowHtml}${bioHtml}${bioLinksHtml}${langsHtml}${metaHtml ? '<div style="margin-bottom:14px;">' + metaHtml + '</div>' : ''}${vrcNoteHtml}${miniTlHtml}`;
-
     const bannerSrc = d.profilePicOverride || d.currentAvatarImageUrl || d.image || '';
     const bannerHtml = bannerSrc ? `<div class="fd-banner" id="fd-banner-slot"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(d.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>` : '';
 
@@ -666,6 +672,19 @@ function renderFriendDetail(d) {
     const fdIsWeb = !fdIsOffline && !fdIsInGame && d.state === 'active';
     const fdDotClass = fdIsWeb ? 'vrc-status-ring' : 'vrc-status-dot';
     const fdStatusDotCls = fdIsOffline ? 's-offline' : statusDotClass(d.status);
+
+    const trustSideHtml = rank ? `<div style="border-top:1px solid var(--brd);padding-top:14px;margin-top:14px;">
+        <div class="fd-group-rep-label">${t('profiles.trust.title', 'Trust &amp; Safety')}</div>
+        <span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>
+        <p style="margin:10px 0 14px;font-size:12px;color:var(--tx3);line-height:1.45;">${t('profiles.trust.description', 'This user has a trusted user standing within the community.')}</p>
+    </div>` : '';
+
+    const infoContent = `${worldHtml}
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:22px;align-items:start;">
+            <div>${vrcBadgesHtml}${avatarRowHtml}${bioHtml}${bioLinksHtml}${langsHtml}</div>
+            <div>${aboutSideHtml}${trustSideHtml}</div>
+        </div>
+        ${vrcNoteHtml}${miniTlHtml}`;
 
     const hasGroups = allGroups.length > 0 || repG;
     const hasMutuals = d.mutuals !== undefined;
@@ -715,8 +734,12 @@ function renderFriendDetail(d) {
     filterFdMutualsGroups();
     renderFdWorldsPage(0);
 
-    if (avatarFileId) sendToCS({ action: 'vrcLookupAvatarByFileId', fileId: avatarFileId, openModal: false });
-    else if (avatarId && avatarId.startsWith('avtr_')) sendToCS({ action: 'vrcGetAvatarInfo', avatarId });
+    const _avatarKey = avatarFileId || avatarId;
+    if (_avatarKey && _avatarKey !== _fdLoadedAvatarKey) {
+        _fdLoadedAvatarKey = _avatarKey;
+        if (avatarFileId) sendToCS({ action: 'vrcLookupAvatarByFileId', fileId: avatarFileId, openModal: false });
+        else if (avatarId && avatarId.startsWith('avtr_')) sendToCS({ action: 'vrcGetAvatarInfo', avatarId });
+    }
 
     requestAnimationFrame(() => {
         const bio = c.querySelector('.fd-bio');

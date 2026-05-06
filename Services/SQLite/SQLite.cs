@@ -1,0 +1,1914 @@
+﻿using Microsoft.Data.Sqlite;
+using Newtonsoft.Json;
+using System.Diagnostics;
+
+namespace VRCNext.Services;
+
+// Tracks time spent with users and in worlds. Drives World Time, Instance Time, Time Spent Together.
+// TotalSeconds = completed sessions only. Display = TotalSeconds + live delta from session_start_utc.
+// On crash: sessions resume with original timestamps → 0 seconds lost.
+public class UnifiedTimeEngine : IDisposable
+{
+
+    public class UserRecord
+    {
+        public long TotalSeconds { get; set; }
+        public string LastSeen { get; set; } = "";
+        public string LastSeenLocation { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string Image { get; set; } = "";
+    }
+
+    public class WorldRecord
+    {
+        public long TotalSeconds { get; set; }
+        public string LastVisited { get; set; } = "";
+        public int VisitCount { get; set; }
+        public string WorldName  { get; set; } = "";
+        public string WorldThumb { get; set; } = "";
+    }
+
+    public Dictionary<string, UserRecord> Users { get; } = new();
+    public Dictionary<string, WorldRecord> Worlds { get; } = new();
+
+    // Key = userId, value = session start UTC. Persisted to active_session. Never reset mid-session.
+    private readonly Dictionary<string, DateTime> _playerSessions = new();
+    // Set once per world join, null until session ends.
+    private DateTime? _worldSessionStart;
+    private string _currentWorldId = "";
+    private string _currentLocation = "";
+
+    private readonly SqliteConnection _db;
+    private readonly object _lock = new();
+    private System.Threading.Timer? _watchdogTimer;  // 5s fallback process check
+    private Func<bool>? _isVrcRunning;
+    private bool _disposed;
+    private bool _vrcWasRunning; // tracks previous VRC state for edge detection
+    private Process? _monitoredVrcProcess; // Process.Exited event → near-instant VRC close detection
+    private DateTime _lastVrcAliveUtc; // last time we confirmed VRC was running → precise end timestamp
+    private DateTime _lastFlushUtc = DateTime.MinValue; // last 30s flush timestamp
+    private Action<string>? _logger; // log callback → sends to UI log panel
+
+    private static readonly string UserLegacyPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "VRCNext", "user_tracking.json");
+    private static readonly string WorldLegacyPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "VRCNext", "world_tracking.json");
+
+    private UnifiedTimeEngine(SqliteConnection db) { _db = db; }
+
+    public static UnifiedTimeEngine Load(Func<bool>? isVrcRunning = null, Action<string>? logger = null)
+    {
+        var conn = Database.OpenConnection();
+        var engine = new UnifiedTimeEngine(conn);
+        engine._isVrcRunning = isVrcRunning;
+        engine._logger = logger;
+        engine.InitSchema();
+        engine.MigrateUsersFromJson();
+        engine.MigrateWorldsFromJson();
+        engine.LoadUsersFromDb();
+        engine.LoadWorldsFromDb();
+        engine._watchdogTimer = new System.Threading.Timer(
+            engine.WatchdogTick, null,
+            TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2));
+        return engine;
+    }
+
+    // Core event methods
+
+    /// <summary>User joined a new world/instance. Ends all prior sessions, starts fresh world session.</summary>
+    public void OnWorldJoined(string worldId, string location)
+    {
+        lock (_lock)
+        {
+            if (_disposed) return;
+            var now = DateTime.UtcNow;
+
+            EndAllPlayerSessionsLocked(now);
+            EndWorldSessionLocked(now);
+
+            _currentWorldId = worldId ?? "";
+            _currentLocation = location ?? "";
+
+            if (!string.IsNullOrEmpty(_currentWorldId) && _currentWorldId.StartsWith("wrld_"))
+            {
+                _worldSessionStart = now;
+                if (!Worlds.TryGetValue(_currentWorldId, out var rec))
+                {
+                    rec = new WorldRecord();
+                    Worlds[_currentWorldId] = rec;
+                }
+                rec.VisitCount++;
+                rec.LastVisited = now.ToString("o");
+                UpsertWorldLocked(_currentWorldId, rec);
+            }
+
+            PersistActiveSessionLocked();
+        }
+    }
+
+    /// <summary>Resume world tracking after VRCNext restart. Session start set by RestoreActiveSession.</summary>
+    public void OnWorldResumed(string worldId, string location)
+    {
+        lock (_lock)
+        {
+            _currentWorldId = worldId ?? "";
+            _currentLocation = location ?? "";
+            if (!_worldSessionStart.HasValue)
+                _worldSessionStart = DateTime.UtcNow;
+            PersistActiveSessionLocked();
+        }
+    }
+
+    /// <summary>A player joined the current instance. Starts their time session using the LogWatcher timestamp.</summary>
+    public void OnPlayerJoined(string userId, DateTime joinedAtUtc)
+    {
+        lock (_lock)
+        {
+            if (_disposed || string.IsNullOrEmpty(userId)) return;
+            _playerSessions[userId] = joinedAtUtc;
+            if (!Users.TryGetValue(userId, out _))
+                Users[userId] = new UserRecord();
+            PersistActiveSessionLocked();
+        }
+    }
+
+    /// <summary>A player left the current instance. Ends their session, adds delta to TotalSeconds.</summary>
+    public void OnPlayerLeft(string userId)
+    {
+        lock (_lock)
+        {
+            if (_disposed || string.IsNullOrEmpty(userId)) return;
+            if (!_playerSessions.TryGetValue(userId, out var sessionStart)) return;
+
+            var now = DateTime.UtcNow;
+            var delta = (long)(now - sessionStart).TotalSeconds;
+            if (delta > 0 && delta <= 86400) // cap at 24h sanity check
+            {
+                if (Users.TryGetValue(userId, out var rec))
+                {
+                    rec.TotalSeconds += delta;
+                    rec.LastSeen = now.ToString("o");
+                    if (!string.IsNullOrEmpty(_currentLocation))
+                        rec.LastSeenLocation = _currentLocation;
+                }
+            }
+            _playerSessions.Remove(userId);
+            PersistUserLocked(userId, now);
+            PersistActiveSessionLocked();
+        }
+    }
+
+
+    // Query methods
+
+    /// <summary>Returns total + live time spent with a user.</summary>
+    public (long totalSeconds, string lastSeen) GetUserStats(string userId, bool isCoPresent = false)
+    {
+        lock (_lock)
+        {
+            if (!Users.TryGetValue(userId, out var rec))
+                return (0, "");
+
+            var total = rec.TotalSeconds;
+
+            if (isCoPresent && _isVrcRunning?.Invoke() == true
+                && _playerSessions.TryGetValue(userId, out var sessionStart))
+            {
+                var live = (long)(DateTime.UtcNow - sessionStart).TotalSeconds;
+                if (live > 0 && live <= 86400)
+                    total += live;
+            }
+
+            return (total, rec.LastSeen);
+        }
+    }
+
+    /// <summary>Returns total + live time spent in a world.</summary>
+    public (long totalSeconds, int visitCount, string lastVisited) GetWorldStats(string worldId)
+    {
+        lock (_lock)
+        {
+            if (!Worlds.TryGetValue(worldId, out var rec))
+                return (0, 0, "");
+
+            var total = rec.TotalSeconds;
+
+            if (worldId == _currentWorldId && _worldSessionStart.HasValue
+                && _isVrcRunning?.Invoke() == true)
+            {
+                var live = (long)(DateTime.UtcNow - _worldSessionStart.Value).TotalSeconds;
+                if (live > 0 && live <= 86400)
+                    total += live;
+            }
+
+            return (total, rec.VisitCount, rec.LastVisited);
+        }
+    }
+
+    // World detail cache
+
+    public class WorldDetailCache
+    {
+        public string WorldName             { get; set; } = "";
+        public string WorldThumb            { get; set; } = "";
+        public string Description           { get; set; } = "";
+        public string ImageUrl              { get; set; } = "";
+        public string AuthorName            { get; set; } = "";
+        public string AuthorId              { get; set; } = "";
+        public string Published             { get; set; } = "";
+        public string Updated               { get; set; } = "";
+        public int    Capacity              { get; set; }
+        public int    RecommendedCapacity   { get; set; }
+        public List<string> Tags            { get; set; } = new();
+        public int    Favorites             { get; set; }
+        public int    Visits                { get; set; }
+        public long   PcSize               { get; set; }
+        public long   AndroidSize           { get; set; }
+        public int    Heat                  { get; set; }
+        public int    Popularity            { get; set; }
+        public int    PublicOccupants       { get; set; }
+        public int    PrivateOccupants      { get; set; }
+        public int    Version               { get; set; }
+        public long   TotalSeconds          { get; set; }
+        public int    VisitCount            { get; set; }
+        public string LastVisited           { get; set; } = "";
+    }
+
+    public WorldDetailCache? GetWorldDetail(string worldId)
+    {
+        if (string.IsNullOrEmpty(worldId)) return null;
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"SELECT world_name,world_thumb,world_description,world_image_url,
+                    world_author_name,world_author_id,world_published,world_updated,
+                    world_capacity,world_recommended_capacity,world_tags,
+                    world_favorites,world_visits,world_pc_size,world_android_size,
+                    world_heat,world_popularity,world_public_occupants,world_private_occupants,world_version,
+                    total_seconds,visit_count,last_visited,detail_cached_at
+                    FROM world_tracking WHERE world_id=$wid";
+                cmd.Parameters.AddWithValue("$wid", worldId);
+                using var r = cmd.ExecuteReader();
+                if (!r.Read() || string.IsNullOrEmpty(r.GetString(23))) return null;
+                return new WorldDetailCache
+                {
+                    WorldName           = r.GetString(0),
+                    WorldThumb          = r.GetString(1),
+                    Description         = r.GetString(2),
+                    ImageUrl            = r.GetString(3),
+                    AuthorName          = r.GetString(4),
+                    AuthorId            = r.GetString(5),
+                    Published           = r.GetString(6),
+                    Updated             = r.GetString(7),
+                    Capacity            = r.GetInt32(8),
+                    RecommendedCapacity = r.GetInt32(9),
+                    Tags                = JsonConvert.DeserializeObject<List<string>>(r.GetString(10)) ?? new(),
+                    Favorites           = r.GetInt32(11),
+                    Visits              = r.GetInt32(12),
+                    PcSize              = r.GetInt64(13),
+                    AndroidSize         = r.GetInt64(14),
+                    Heat                = r.GetInt32(15),
+                    Popularity          = r.GetInt32(16),
+                    PublicOccupants     = r.GetInt32(17),
+                    PrivateOccupants    = r.GetInt32(18),
+                    Version             = r.GetInt32(19),
+                    TotalSeconds        = r.GetInt64(20),
+                    VisitCount          = r.GetInt32(21),
+                    LastVisited         = r.GetString(22),
+                };
+            }
+            catch { return null; }
+        }
+    }
+
+    public void SaveWorldDetail(string worldId, string name, string thumb, string description,
+        string imageUrl, string authorName, string authorId, string published, string updated,
+        int capacity, int recommendedCapacity, List<string> tags,
+        int favorites, int visits, long pcSize, long androidSize,
+        int heat, int popularity, int publicOccupants, int privateOccupants, int version)
+    {
+        if (string.IsNullOrEmpty(worldId)) return;
+        var tagsJson = JsonConvert.SerializeObject(tags);
+        var now      = DateTime.UtcNow.ToString("o");
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"INSERT INTO world_tracking(world_id,world_name,world_thumb,world_description,world_image_url,
+                    world_author_name,world_author_id,world_published,world_updated,world_capacity,
+                    world_recommended_capacity,world_tags,world_favorites,world_visits,world_pc_size,world_android_size,
+                    world_heat,world_popularity,world_public_occupants,world_private_occupants,world_version,detail_cached_at)
+                    VALUES($wid,$wn,$wt,$desc,$img,$an,$ai,$pub,$upd,$cap,$rcap,$tags,$fav,$vis,$pcs,$ands,$heat,$pop,$pubocc,$privocc,$ver,$cat)
+                    ON CONFLICT(world_id) DO UPDATE SET
+                        world_name=excluded.world_name, world_thumb=excluded.world_thumb,
+                        world_description=excluded.world_description, world_image_url=excluded.world_image_url,
+                        world_author_name=excluded.world_author_name, world_author_id=excluded.world_author_id,
+                        world_published=excluded.world_published, world_updated=excluded.world_updated,
+                        world_capacity=excluded.world_capacity, world_recommended_capacity=excluded.world_recommended_capacity,
+                        world_tags=excluded.world_tags, world_favorites=excluded.world_favorites,
+                        world_visits=excluded.world_visits, world_pc_size=excluded.world_pc_size,
+                        world_android_size=excluded.world_android_size,
+                        world_heat=excluded.world_heat, world_popularity=excluded.world_popularity,
+                        world_public_occupants=excluded.world_public_occupants,
+                        world_private_occupants=excluded.world_private_occupants,
+                        world_version=excluded.world_version,
+                        detail_cached_at=excluded.detail_cached_at";
+                cmd.Parameters.AddWithValue("$wid",     worldId);
+                cmd.Parameters.AddWithValue("$wn",      name);
+                cmd.Parameters.AddWithValue("$wt",      thumb);
+                cmd.Parameters.AddWithValue("$desc",    description);
+                cmd.Parameters.AddWithValue("$img",     imageUrl);
+                cmd.Parameters.AddWithValue("$an",      authorName);
+                cmd.Parameters.AddWithValue("$ai",      authorId);
+                cmd.Parameters.AddWithValue("$pub",     published);
+                cmd.Parameters.AddWithValue("$upd",     updated);
+                cmd.Parameters.AddWithValue("$cap",     capacity);
+                cmd.Parameters.AddWithValue("$rcap",    recommendedCapacity);
+                cmd.Parameters.AddWithValue("$tags",    tagsJson);
+                cmd.Parameters.AddWithValue("$fav",     favorites);
+                cmd.Parameters.AddWithValue("$vis",     visits);
+                cmd.Parameters.AddWithValue("$pcs",     pcSize);
+                cmd.Parameters.AddWithValue("$ands",    androidSize);
+                cmd.Parameters.AddWithValue("$heat",    heat);
+                cmd.Parameters.AddWithValue("$pop",     popularity);
+                cmd.Parameters.AddWithValue("$pubocc",  publicOccupants);
+                cmd.Parameters.AddWithValue("$privocc", privateOccupants);
+                cmd.Parameters.AddWithValue("$ver",     version);
+                cmd.Parameters.AddWithValue("$cat",     now);
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    // Group detail cache
+
+    public class GroupDetailCache
+    {
+        public string Name            { get; set; } = "";
+        public string ShortCode       { get; set; } = "";
+        public string Description     { get; set; } = "";
+        public string IconUrl         { get; set; } = "";
+        public string BannerUrl       { get; set; } = "";
+        public int    MemberCount     { get; set; }
+        public string Privacy         { get; set; } = "";
+        public string JoinState       { get; set; } = "";
+        public string OwnerId         { get; set; } = "";
+        public string OwnerName       { get; set; } = "";
+        public string Rules           { get; set; } = "";
+        public List<string> Languages { get; set; } = new();
+        public List<string> Links     { get; set; } = new();
+    }
+
+    public string GetGroupDetailStatus(string groupId)
+    {
+        if (string.IsNullOrEmpty(groupId)) return "empty_id";
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "SELECT detail_cached_at FROM group_tracking WHERE group_id=$id";
+                cmd.Parameters.AddWithValue("$id", groupId);
+                using var r = cmd.ExecuteReader();
+                if (!r.Read()) return "no_row";
+                var cachedAt = r.IsDBNull(0) ? "" : r.GetString(0);
+                return string.IsNullOrEmpty(cachedAt) ? "empty_cached_at" : $"ok:{cachedAt}";
+            }
+            catch (Exception ex) { return $"ex:{ex.Message}"; }
+        }
+    }
+
+    public GroupDetailCache? GetGroupDetail(string groupId)
+    {
+        if (string.IsNullOrEmpty(groupId)) return null;
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"SELECT name,short_code,description,icon_url,banner_url,member_count,
+                    privacy,join_state,owner_id,owner_display_name,rules,languages,links,detail_cached_at
+                    FROM group_tracking WHERE group_id=$id";
+                cmd.Parameters.AddWithValue("$id", groupId);
+                using var r = cmd.ExecuteReader();
+                if (!r.Read()) { System.Diagnostics.Debug.WriteLine($"[GRP-CACHE] no row for {groupId}"); return null; }
+                var cachedAt = r.IsDBNull(13) ? "" : r.GetString(13);
+                if (string.IsNullOrEmpty(cachedAt)) { System.Diagnostics.Debug.WriteLine($"[GRP-CACHE] empty detail_cached_at for {groupId}"); return null; }
+                return new GroupDetailCache
+                {
+                    Name        = r.IsDBNull(0)  ? "" : r.GetString(0),
+                    ShortCode   = r.IsDBNull(1)  ? "" : r.GetString(1),
+                    Description = r.IsDBNull(2)  ? "" : r.GetString(2),
+                    IconUrl     = r.IsDBNull(3)  ? "" : r.GetString(3),
+                    BannerUrl   = r.IsDBNull(4)  ? "" : r.GetString(4),
+                    MemberCount = r.IsDBNull(5)  ? 0  : r.GetInt32(5),
+                    Privacy     = r.IsDBNull(6)  ? "" : r.GetString(6),
+                    JoinState   = r.IsDBNull(7)  ? "" : r.GetString(7),
+                    OwnerId     = r.IsDBNull(8)  ? "" : r.GetString(8),
+                    OwnerName   = r.IsDBNull(9)  ? "" : r.GetString(9),
+                    Rules       = r.IsDBNull(10) ? "" : r.GetString(10),
+                    Languages   = r.IsDBNull(11) ? new() : JsonConvert.DeserializeObject<List<string>>(r.GetString(11)) ?? new(),
+                    Links       = r.IsDBNull(12) ? new() : JsonConvert.DeserializeObject<List<string>>(r.GetString(12)) ?? new(),
+                };
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[GRP-CACHE] exception: {ex.Message}"); return null; }
+        }
+    }
+
+    public void SaveGroupDetail(string groupId, string name, string shortCode, string description,
+        string iconUrl, string bannerUrl, int memberCount, string privacy, string joinState,
+        string ownerId, string ownerDisplayName, string rules, List<string> languages, List<string> links)
+    {
+        if (string.IsNullOrEmpty(groupId)) return;
+        var now = DateTime.UtcNow.ToString("o");
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"INSERT INTO group_tracking(group_id,name,short_code,description,icon_url,banner_url,
+                    member_count,privacy,join_state,owner_id,owner_display_name,rules,languages,links,detail_cached_at)
+                    VALUES($id,$n,$sc,$desc,$ic,$bn,$mc,$pr,$js,$oid,$odn,$rul,$lng,$lnk,$cat)
+                    ON CONFLICT(group_id) DO UPDATE SET
+                        name=excluded.name, short_code=excluded.short_code, description=excluded.description,
+                        icon_url=excluded.icon_url, banner_url=excluded.banner_url, member_count=excluded.member_count,
+                        privacy=excluded.privacy, join_state=excluded.join_state, owner_id=excluded.owner_id,
+                        owner_display_name=excluded.owner_display_name, rules=excluded.rules,
+                        languages=excluded.languages, links=excluded.links, detail_cached_at=excluded.detail_cached_at";
+                cmd.Parameters.AddWithValue("$id",  groupId);
+                cmd.Parameters.AddWithValue("$n",   name);
+                cmd.Parameters.AddWithValue("$sc",  shortCode);
+                cmd.Parameters.AddWithValue("$desc", description);
+                cmd.Parameters.AddWithValue("$ic",  iconUrl);
+                cmd.Parameters.AddWithValue("$bn",  bannerUrl);
+                cmd.Parameters.AddWithValue("$mc",  memberCount);
+                cmd.Parameters.AddWithValue("$pr",  privacy);
+                cmd.Parameters.AddWithValue("$js",  joinState);
+                cmd.Parameters.AddWithValue("$oid", ownerId);
+                cmd.Parameters.AddWithValue("$odn", ownerDisplayName);
+                cmd.Parameters.AddWithValue("$rul", rules);
+                cmd.Parameters.AddWithValue("$lng", JsonConvert.SerializeObject(languages));
+                cmd.Parameters.AddWithValue("$lnk", JsonConvert.SerializeObject(links));
+                cmd.Parameters.AddWithValue("$cat", now);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[GRP-SAVE-ERR] {ex.Message}"); _lastGroupSaveError = ex.Message; }
+        }
+    }
+    internal string _lastGroupSaveError = "";
+
+    // Avatar detail cache
+
+    public class AvatarDetailCache
+    {
+        public string Name              { get; set; } = "";
+        public string AuthorName        { get; set; } = "";
+        public string AuthorId          { get; set; } = "";
+        public string ThumbnailImageUrl { get; set; } = "";
+        public string ImageUrl          { get; set; } = "";
+        public string ReleaseStatus     { get; set; } = "";
+        public int    Version           { get; set; }
+        public string CreatedAt         { get; set; } = "";
+        public string UpdatedAt         { get; set; } = "";
+        public string Description       { get; set; } = "";
+        public List<string> Tags        { get; set; } = new();
+        public bool   HasPC             { get; set; }
+        public bool   HasQuest          { get; set; }
+        public bool   HasImpostor       { get; set; }
+        public string PcPerf            { get; set; } = "";
+        public string QuestPerf         { get; set; } = "";
+    }
+
+    public string GetAvatarDetailStatus(string avatarId)
+    {
+        if (string.IsNullOrEmpty(avatarId)) return "empty_id";
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "SELECT detail_cached_at FROM avatar_tracking WHERE avatar_id=$id";
+                cmd.Parameters.AddWithValue("$id", avatarId);
+                using var r = cmd.ExecuteReader();
+                if (!r.Read()) return "no_row";
+                var cachedAt = r.IsDBNull(0) ? "" : r.GetString(0);
+                return string.IsNullOrEmpty(cachedAt) ? "empty_cached_at" : $"ok:{cachedAt}";
+            }
+            catch (Exception ex) { return $"ex:{ex.Message}"; }
+        }
+    }
+
+    public AvatarDetailCache? GetAvatarDetail(string avatarId)
+    {
+        if (string.IsNullOrEmpty(avatarId)) return null;
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"SELECT name,author_name,author_id,thumbnail_image_url,image_url,
+                    release_status,version,created_at,updated_at,description,tags,
+                    has_pc,has_quest,has_impostor,pc_perf,quest_perf,detail_cached_at
+                    FROM avatar_tracking WHERE avatar_id=$id";
+                cmd.Parameters.AddWithValue("$id", avatarId);
+                using var r = cmd.ExecuteReader();
+                if (!r.Read() || string.IsNullOrEmpty(r.GetString(16))) return null;
+                return new AvatarDetailCache
+                {
+                    Name              = r.GetString(0),  AuthorName        = r.GetString(1),
+                    AuthorId          = r.GetString(2),  ThumbnailImageUrl = r.GetString(3),
+                    ImageUrl          = r.GetString(4),  ReleaseStatus     = r.GetString(5),
+                    Version           = r.GetInt32(6),   CreatedAt         = r.GetString(7),
+                    UpdatedAt         = r.GetString(8),  Description       = r.GetString(9),
+                    Tags              = JsonConvert.DeserializeObject<List<string>>(r.GetString(10)) ?? new(),
+                    HasPC             = r.GetInt32(11) != 0,
+                    HasQuest          = r.GetInt32(12) != 0,
+                    HasImpostor       = r.GetInt32(13) != 0,
+                    PcPerf            = r.GetString(14),
+                    QuestPerf         = r.GetString(15),
+                };
+            }
+            catch { return null; }
+        }
+    }
+
+    public void SaveAvatarDetail(string avatarId, string name, string authorName, string authorId,
+        string thumbnailImageUrl, string imageUrl, string releaseStatus, int version,
+        string createdAt, string updatedAt, string description, List<string> tags,
+        bool hasPC, bool hasQuest, bool hasImpostor, string pcPerf, string questPerf)
+    {
+        if (string.IsNullOrEmpty(avatarId)) return;
+        var now = DateTime.UtcNow.ToString("o");
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"INSERT INTO avatar_tracking(avatar_id,name,author_name,author_id,thumbnail_image_url,
+                    image_url,release_status,version,created_at,updated_at,description,tags,
+                    has_pc,has_quest,has_impostor,pc_perf,quest_perf,detail_cached_at)
+                    VALUES($id,$n,$an,$ai,$ti,$img,$rs,$ver,$ca,$ua,$desc,$tags,$hpc,$hq,$hi,$pcp,$qp,$cat)
+                    ON CONFLICT(avatar_id) DO UPDATE SET
+                        name=excluded.name, author_name=excluded.author_name, author_id=excluded.author_id,
+                        thumbnail_image_url=excluded.thumbnail_image_url, image_url=excluded.image_url,
+                        release_status=excluded.release_status, version=excluded.version,
+                        created_at=excluded.created_at, updated_at=excluded.updated_at,
+                        description=excluded.description, tags=excluded.tags,
+                        has_pc=excluded.has_pc, has_quest=excluded.has_quest, has_impostor=excluded.has_impostor,
+                        pc_perf=excluded.pc_perf, quest_perf=excluded.quest_perf, detail_cached_at=excluded.detail_cached_at";
+                cmd.Parameters.AddWithValue("$id",   avatarId);
+                cmd.Parameters.AddWithValue("$n",    name);
+                cmd.Parameters.AddWithValue("$an",   authorName);
+                cmd.Parameters.AddWithValue("$ai",   authorId);
+                cmd.Parameters.AddWithValue("$ti",   thumbnailImageUrl);
+                cmd.Parameters.AddWithValue("$img",  imageUrl);
+                cmd.Parameters.AddWithValue("$rs",   releaseStatus);
+                cmd.Parameters.AddWithValue("$ver",  version);
+                cmd.Parameters.AddWithValue("$ca",   createdAt);
+                cmd.Parameters.AddWithValue("$ua",   updatedAt);
+                cmd.Parameters.AddWithValue("$desc", description);
+                cmd.Parameters.AddWithValue("$tags", JsonConvert.SerializeObject(tags));
+                cmd.Parameters.AddWithValue("$hpc",  hasPC ? 1 : 0);
+                cmd.Parameters.AddWithValue("$hq",   hasQuest ? 1 : 0);
+                cmd.Parameters.AddWithValue("$hi",   hasImpostor ? 1 : 0);
+                cmd.Parameters.AddWithValue("$pcp",  pcPerf);
+                cmd.Parameters.AddWithValue("$qp",   questPerf);
+                cmd.Parameters.AddWithValue("$cat",  now);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AVT-SAVE-ERR] {ex.Message}"); }
+        }
+    }
+
+    // User detail cache
+
+    public class UserDetailCache
+    {
+        public string DisplayName       { get; set; } = "";
+        public string Image             { get; set; } = "";
+        public string Status            { get; set; } = "";
+        public string StatusDescription { get; set; } = "";
+        public string Bio               { get; set; } = "";
+        public string Location          { get; set; } = "";
+        public bool   IsFriend          { get; set; }
+        public string CurrentAvatarImg  { get; set; } = "";
+    }
+
+    public UserDetailCache? GetUserDetail(string userId)
+    {
+        if (string.IsNullOrEmpty(userId)) return null;
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"SELECT display_name,image,profile_status,profile_status_desc,
+                    profile_bio,profile_location,profile_is_friend,profile_avatar_img,profile_cached_at
+                    FROM user_tracking WHERE user_id=$id";
+                cmd.Parameters.AddWithValue("$id", userId);
+                using var r = cmd.ExecuteReader();
+                if (!r.Read() || string.IsNullOrEmpty(r.GetString(8))) return null;
+                return new UserDetailCache
+                {
+                    DisplayName       = r.GetString(0), Image             = r.GetString(1),
+                    Status            = r.GetString(2), StatusDescription = r.GetString(3),
+                    Bio               = r.GetString(4), Location          = r.GetString(5),
+                    IsFriend          = r.GetInt32(6) != 0,
+                    CurrentAvatarImg  = r.GetString(7),
+                };
+            }
+            catch { return null; }
+        }
+    }
+
+    public void SaveUserDetail(string userId, string displayName, string image, string status,
+        string statusDescription, string bio, string location, bool isFriend, string currentAvatarImg)
+    {
+        if (string.IsNullOrEmpty(userId)) return;
+        var now = DateTime.UtcNow.ToString("o");
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"INSERT INTO user_tracking(user_id,display_name,image,profile_status,profile_status_desc,
+                    profile_bio,profile_location,profile_is_friend,profile_avatar_img,profile_cached_at)
+                    VALUES($id,$dn,$img,$st,$sd,$bio,$loc,$fr,$ai,$cat)
+                    ON CONFLICT(user_id) DO UPDATE SET
+                        display_name=excluded.display_name, image=excluded.image,
+                        profile_status=excluded.profile_status, profile_status_desc=excluded.profile_status_desc,
+                        profile_bio=excluded.profile_bio, profile_location=excluded.profile_location,
+                        profile_is_friend=excluded.profile_is_friend, profile_avatar_img=excluded.profile_avatar_img,
+                        profile_cached_at=excluded.profile_cached_at";
+                cmd.Parameters.AddWithValue("$id",  userId);
+                cmd.Parameters.AddWithValue("$dn",  displayName);
+                cmd.Parameters.AddWithValue("$img", image);
+                cmd.Parameters.AddWithValue("$st",  status);
+                cmd.Parameters.AddWithValue("$sd",  statusDescription);
+                cmd.Parameters.AddWithValue("$bio", bio);
+                cmd.Parameters.AddWithValue("$loc", location);
+                cmd.Parameters.AddWithValue("$fr",  isFriend ? 1 : 0);
+                cmd.Parameters.AddWithValue("$ai",  currentAvatarImg);
+                cmd.Parameters.AddWithValue("$cat", now);
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    // User profile cache
+
+    public class UserProfileCache
+    {
+        public string ProfileJson          { get; set; } = "";
+        public string ProfileCachedAt      { get; set; } = "";
+        public string GroupsJson           { get; set; } = "[]";
+        public string GroupsCachedAt       { get; set; } = "";
+        public string ContentJson          { get; set; } = "{}";
+        public string ContentCachedAt      { get; set; } = "";
+        public string MutualsJson          { get; set; } = "{}";
+        public string MutualsCachedAt      { get; set; } = "";
+        public string MutualGroupsJson     { get; set; } = "[]";
+        public string MutualGroupsCachedAt { get; set; } = "";
+    }
+
+    public UserProfileCache? GetUserProfileCache(string userId)
+    {
+        if (string.IsNullOrEmpty(userId)) return null;
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"SELECT profile, profile_cached_at,
+                    groups, groups_cached_at, content, content_cached_at,
+                    mutuals, mutuals_cached_at, mutual_groups, mutual_groups_cached_at
+                    FROM user_tracking WHERE user_id=$id";
+                cmd.Parameters.AddWithValue("$id", userId);
+                using var r = cmd.ExecuteReader();
+                if (!r.Read()) return null;
+                var c = new UserProfileCache
+                {
+                    ProfileJson          = r.GetString(0), ProfileCachedAt      = r.GetString(1),
+                    GroupsJson           = r.GetString(2), GroupsCachedAt       = r.GetString(3),
+                    ContentJson          = r.GetString(4), ContentCachedAt      = r.GetString(5),
+                    MutualsJson          = r.GetString(6), MutualsCachedAt      = r.GetString(7),
+                    MutualGroupsJson     = r.GetString(8), MutualGroupsCachedAt = r.GetString(9),
+                };
+                return string.IsNullOrEmpty(c.ProfileCachedAt) ? null : c;
+            }
+            catch { return null; }
+        }
+    }
+
+    public void SaveUserProfileFull(string userId, string profileJson)
+    {
+        if (string.IsNullOrEmpty(userId)) return;
+        var now = DateTime.UtcNow.ToString("o");
+        lock (_lock)
+        {
+            try
+            {
+                using var ins = _db.CreateCommand();
+                ins.CommandText = "INSERT OR IGNORE INTO user_tracking(user_id) VALUES($id)";
+                ins.Parameters.AddWithValue("$id", userId);
+                ins.ExecuteNonQuery();
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "UPDATE user_tracking SET profile=$pj, profile_cached_at=$cat WHERE user_id=$id";
+                cmd.Parameters.AddWithValue("$id", userId); cmd.Parameters.AddWithValue("$pj", profileJson); cmd.Parameters.AddWithValue("$cat", now);
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    public void SaveUserGroupsCache(string userId, string groupsJson)
+    {
+        if (string.IsNullOrEmpty(userId)) return;
+        var now = DateTime.UtcNow.ToString("o");
+        lock (_lock)
+        {
+            try
+            {
+                using var ins = _db.CreateCommand();
+                ins.CommandText = "INSERT OR IGNORE INTO user_tracking(user_id) VALUES($id)";
+                ins.Parameters.AddWithValue("$id", userId);
+                ins.ExecuteNonQuery();
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "UPDATE user_tracking SET groups=$gj, groups_cached_at=$cat WHERE user_id=$id";
+                cmd.Parameters.AddWithValue("$id", userId); cmd.Parameters.AddWithValue("$gj", groupsJson); cmd.Parameters.AddWithValue("$cat", now);
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    public void SaveUserContentCache(string userId, string contentJson)
+    {
+        if (string.IsNullOrEmpty(userId)) return;
+        var now = DateTime.UtcNow.ToString("o");
+        lock (_lock)
+        {
+            try
+            {
+                using var ins = _db.CreateCommand();
+                ins.CommandText = "INSERT OR IGNORE INTO user_tracking(user_id) VALUES($id)";
+                ins.Parameters.AddWithValue("$id", userId);
+                ins.ExecuteNonQuery();
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "UPDATE user_tracking SET content=$cj, content_cached_at=$cat WHERE user_id=$id";
+                cmd.Parameters.AddWithValue("$id", userId); cmd.Parameters.AddWithValue("$cj", contentJson); cmd.Parameters.AddWithValue("$cat", now);
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    public void SaveUserMutualsCache(string userId, string mutualsJson)
+    {
+        if (string.IsNullOrEmpty(userId)) return;
+        var now = DateTime.UtcNow.ToString("o");
+        lock (_lock)
+        {
+            try
+            {
+                using var ins = _db.CreateCommand();
+                ins.CommandText = "INSERT OR IGNORE INTO user_tracking(user_id) VALUES($id)";
+                ins.Parameters.AddWithValue("$id", userId);
+                ins.ExecuteNonQuery();
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "UPDATE user_tracking SET mutuals=$mj, mutuals_cached_at=$cat WHERE user_id=$id";
+                cmd.Parameters.AddWithValue("$id", userId); cmd.Parameters.AddWithValue("$mj", mutualsJson); cmd.Parameters.AddWithValue("$cat", now);
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    public void SaveUserMutualGroupsCache(string userId, string mutualGroupsJson)
+    {
+        if (string.IsNullOrEmpty(userId)) return;
+        var now = DateTime.UtcNow.ToString("o");
+        lock (_lock)
+        {
+            try
+            {
+                using var ins = _db.CreateCommand();
+                ins.CommandText = "INSERT OR IGNORE INTO user_tracking(user_id) VALUES($id)";
+                ins.Parameters.AddWithValue("$id", userId);
+                ins.ExecuteNonQuery();
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "UPDATE user_tracking SET mutual_groups=$mgj, mutual_groups_cached_at=$cat WHERE user_id=$id";
+                cmd.Parameters.AddWithValue("$id", userId); cmd.Parameters.AddWithValue("$mgj", mutualGroupsJson); cmd.Parameters.AddWithValue("$cat", now);
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    // Event detail cache
+
+    public class EventDetailCache
+    {
+        public string GroupId     { get; set; } = "";
+        public string Title       { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string StartsAt    { get; set; } = "";
+        public string EndsAt      { get; set; } = "";
+        public string ImageUrl    { get; set; } = "";
+        public string AccessType  { get; set; } = "";
+        public List<string> Tags  { get; set; } = new();
+        public string OwnerId     { get; set; } = "";
+        public bool   IsFollowing { get; set; }
+    }
+
+    public EventDetailCache? GetEventDetail(string eventId)
+    {
+        if (string.IsNullOrEmpty(eventId)) return null;
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"SELECT group_id,title,description,starts_at,ends_at,image_url,
+                    access_type,tags,owner_id,is_following,detail_cached_at
+                    FROM event_tracking WHERE event_id=$id";
+                cmd.Parameters.AddWithValue("$id", eventId);
+                using var r = cmd.ExecuteReader();
+                if (!r.Read() || string.IsNullOrEmpty(r.GetString(10))) return null;
+                return new EventDetailCache
+                {
+                    GroupId     = r.GetString(0), Title       = r.GetString(1),
+                    Description = r.GetString(2), StartsAt    = r.GetString(3),
+                    EndsAt      = r.GetString(4), ImageUrl    = r.GetString(5),
+                    AccessType  = r.GetString(6),
+                    Tags        = JsonConvert.DeserializeObject<List<string>>(r.GetString(7)) ?? new(),
+                    OwnerId     = r.GetString(8),
+                    IsFollowing = r.GetInt32(9) != 0,
+                };
+            }
+            catch { return null; }
+        }
+    }
+
+    public void SaveEventDetail(string eventId, string groupId, string title, string description,
+        string startsAt, string endsAt, string imageUrl, string accessType, List<string> tags,
+        string ownerId, bool isFollowing)
+    {
+        if (string.IsNullOrEmpty(eventId)) return;
+        var now = DateTime.UtcNow.ToString("o");
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"INSERT INTO event_tracking(event_id,group_id,title,description,starts_at,ends_at,
+                    image_url,access_type,tags,owner_id,is_following,detail_cached_at)
+                    VALUES($id,$gid,$ti,$desc,$sa,$ea,$img,$at,$tags,$oid,$flw,$cat)
+                    ON CONFLICT(event_id) DO UPDATE SET
+                        group_id=excluded.group_id, title=excluded.title, description=excluded.description,
+                        starts_at=excluded.starts_at, ends_at=excluded.ends_at, image_url=excluded.image_url,
+                        access_type=excluded.access_type, tags=excluded.tags, owner_id=excluded.owner_id,
+                        is_following=excluded.is_following, detail_cached_at=excluded.detail_cached_at";
+                cmd.Parameters.AddWithValue("$id",   eventId);
+                cmd.Parameters.AddWithValue("$gid",  groupId);
+                cmd.Parameters.AddWithValue("$ti",   title);
+                cmd.Parameters.AddWithValue("$desc", description);
+                cmd.Parameters.AddWithValue("$sa",   startsAt);
+                cmd.Parameters.AddWithValue("$ea",   endsAt);
+                cmd.Parameters.AddWithValue("$img",  imageUrl);
+                cmd.Parameters.AddWithValue("$at",   accessType);
+                cmd.Parameters.AddWithValue("$tags", JsonConvert.SerializeObject(tags));
+                cmd.Parameters.AddWithValue("$oid",  ownerId);
+                cmd.Parameters.AddWithValue("$flw",  isFollowing ? 1 : 0);
+                cmd.Parameters.AddWithValue("$cat",  now);
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    // User info & friend tracking
+
+    public void UpdateUserInfo(string userId, string displayName, string image)
+    {
+        lock (_lock)
+        {
+            if (_disposed) return;
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(displayName)) return;
+            if (!Users.TryGetValue(userId, out var rec))
+            {
+                rec = new UserRecord();
+                Users[userId] = rec;
+            }
+            if (rec.DisplayName == displayName && rec.Image == image) return;
+            rec.DisplayName = displayName;
+            if (!string.IsNullOrEmpty(image)) rec.Image = image;
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"INSERT INTO user_tracking(user_id,total_seconds,last_seen,last_seen_location,display_name,image)
+                    VALUES($uid,0,'','', $dn,$img)
+                    ON CONFLICT(user_id) DO UPDATE SET
+                        display_name=CASE WHEN excluded.display_name!='' THEN excluded.display_name ELSE user_tracking.display_name END,
+                        image=CASE WHEN excluded.image!='' THEN excluded.image ELSE user_tracking.image END";
+                cmd.Parameters.AddWithValue("$uid", userId);
+                cmd.Parameters.AddWithValue("$dn",  rec.DisplayName);
+                cmd.Parameters.AddWithValue("$img", rec.Image);
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    /// <summary>Updates LastSeen/LastSeenLocation for online friends. No time accumulation.</summary>
+    public void UpdateFriendTracking(IEnumerable<(string userId, string location, string presence)> onlineFriends)
+    {
+        lock (_lock)
+        {
+            if (_disposed) return;
+            var now = DateTime.UtcNow;
+            var changed = new List<(string userId, UserRecord rec)>();
+
+            foreach (var (userId, location, presence) in onlineFriends)
+            {
+                if (string.IsNullOrEmpty(userId)) continue;
+                if (!Users.TryGetValue(userId, out var rec))
+                {
+                    rec = new UserRecord();
+                    Users[userId] = rec;
+                }
+                if (presence != "offline")
+                {
+                    rec.LastSeen = now.ToString("o");
+                    if (!string.IsNullOrEmpty(location) && location != "offline" && location != "private")
+                        rec.LastSeenLocation = location;
+                }
+                changed.Add((userId, rec));
+            }
+
+            if (changed.Count == 0) return;
+            try
+            {
+                using var tx = _db.BeginTransaction();
+                using var cmd = _db.CreateCommand();
+                cmd.Transaction = tx;
+                cmd.CommandText = @"INSERT INTO user_tracking(user_id,total_seconds,last_seen,last_seen_location,display_name,image)
+                    VALUES($uid,$ts,$ls,$lsl,$dn,$img)
+                    ON CONFLICT(user_id) DO UPDATE SET
+                        total_seconds=excluded.total_seconds,
+                        last_seen=excluded.last_seen,
+                        last_seen_location=excluded.last_seen_location,
+                        display_name=CASE WHEN excluded.display_name!='' THEN excluded.display_name ELSE user_tracking.display_name END,
+                        image=CASE WHEN excluded.image!='' THEN excluded.image ELSE user_tracking.image END";
+                var pUid = cmd.Parameters.Add("$uid", SqliteType.Text);
+                var pTs  = cmd.Parameters.Add("$ts",  SqliteType.Integer);
+                var pLs  = cmd.Parameters.Add("$ls",  SqliteType.Text);
+                var pLsl = cmd.Parameters.Add("$lsl", SqliteType.Text);
+                var pDn  = cmd.Parameters.Add("$dn",  SqliteType.Text);
+                var pImg = cmd.Parameters.Add("$img", SqliteType.Text);
+                foreach (var (userId, rec) in changed)
+                {
+                    pUid.Value = userId; pTs.Value = rec.TotalSeconds;
+                    pLs.Value = rec.LastSeen; pLsl.Value = rec.LastSeenLocation;
+                    pDn.Value = rec.DisplayName; pImg.Value = rec.Image;
+                    cmd.ExecuteNonQuery();
+                }
+                tx.Commit();
+            }
+            catch { }
+        }
+    }
+
+    public void UpdateWorldInfo(string worldId, string name, string thumb)
+    {
+        lock (_lock)
+        {
+            if (string.IsNullOrEmpty(worldId) || string.IsNullOrEmpty(name)) return;
+            if (!Worlds.TryGetValue(worldId, out var rec)) return;
+            if (rec.WorldName == name && rec.WorldThumb == thumb) return;
+            rec.WorldName  = name;
+            rec.WorldThumb = thumb;
+            UpsertWorldLocked(worldId, rec);
+        }
+    }
+
+    // Crash recovery
+
+    public void RestoreActiveSession(string currentLocation, HashSet<string> currentPlayerIds)
+    {
+        lock (_lock)
+        {
+            if (_disposed) return;
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "SELECT location,co_present_ids,last_flush_utc FROM active_session WHERE id=1";
+                using var r = cmd.ExecuteReader();
+                if (!r.Read())
+                {
+                    // No active_session row — clear any stale sessions pre-populated from catch-up
+                    _playerSessions.Clear();
+                    _worldSessionStart = null;
+                    return;
+                }
+
+                var location = r.GetString(0);
+                var sessionsJson = r.GetString(1);
+                var worldStartStr = r.GetString(2);
+                r.Close();
+
+                if (string.IsNullOrEmpty(location) || location != currentLocation)
+                {
+                    _playerSessions.Clear();
+                    _worldSessionStart = null;
+                    ClearActiveSessionLocked();
+                    return;
+                }
+
+                if (_isVrcRunning?.Invoke() != true)
+                {
+                    _playerSessions.Clear();
+                    _worldSessionStart = null;
+                    ClearActiveSessionLocked();
+                    return;
+                }
+
+                var now = DateTime.UtcNow;
+
+                Dictionary<string, string>? savedSessions = null;
+                try { savedSessions = JsonConvert.DeserializeObject<Dictionary<string, string>>(sessionsJson); }
+                catch { }
+                if (savedSessions == null)
+                {
+                    ClearActiveSessionLocked();
+                    return;
+                }
+
+                foreach (var (userId, startStr) in savedSessions)
+                {
+                    if (!currentPlayerIds.Contains(userId)) continue;
+                    if (!DateTime.TryParse(startStr, null,
+                        System.Globalization.DateTimeStyles.RoundtripKind, out var sessionStart))
+                        continue;
+                    var age = (now - sessionStart).TotalSeconds;
+                    if (age < 0 || age > 86400) continue;
+
+                    _playerSessions[userId] = now; // start from NOW — DB already has flushed time
+                    if (!Users.ContainsKey(userId))
+                        Users[userId] = new UserRecord();
+                }
+
+                if (DateTime.TryParse(worldStartStr, null,
+                    System.Globalization.DateTimeStyles.RoundtripKind, out var wStart))
+                {
+                    var wAge = (now - wStart).TotalSeconds;
+                    if (wAge >= 0 && wAge <= 86400)
+                    {
+                        var colon = currentLocation.IndexOf(':');
+                        var worldId = colon >= 0 ? currentLocation.Substring(0, colon) : currentLocation;
+                        if (!string.IsNullOrEmpty(worldId) && worldId.StartsWith("wrld_"))
+                        {
+                            _currentWorldId = worldId;
+                            _currentLocation = currentLocation;
+                            _worldSessionStart = now; // start from NOW — DB already has flushed time
+                        }
+                    }
+                }
+
+                PersistActiveSessionLocked();
+            }
+            catch
+            {
+                _playerSessions.Clear();
+                _worldSessionStart = null;
+                ClearActiveSessionLocked();
+            }
+        }
+    }
+
+    // Bulk import (VRCX migration)
+
+    public void BulkMergeUsers(IEnumerable<(string userId, string displayName, long seconds, string lastSeen)> entries)
+    {
+        lock (_lock)
+        {
+            if (_disposed) return;
+            try
+            {
+                using var tx  = _db.BeginTransaction();
+                using var cmd = _db.CreateCommand();
+                cmd.Transaction = tx;
+                cmd.CommandText = @"INSERT INTO user_tracking(user_id,total_seconds,last_seen,last_seen_location,display_name,image)
+                    VALUES($uid,$ts,$ls,'',$dn,'')
+                    ON CONFLICT(user_id) DO UPDATE SET
+                        total_seconds = user_tracking.total_seconds + excluded.total_seconds,
+                        last_seen = CASE WHEN excluded.last_seen > user_tracking.last_seen THEN excluded.last_seen ELSE user_tracking.last_seen END,
+                        display_name = CASE WHEN excluded.display_name != '' AND user_tracking.display_name = '' THEN excluded.display_name ELSE user_tracking.display_name END";
+                var pUid = cmd.Parameters.Add("$uid", SqliteType.Text);
+                var pTs  = cmd.Parameters.Add("$ts",  SqliteType.Integer);
+                var pLs  = cmd.Parameters.Add("$ls",  SqliteType.Text);
+                var pDn  = cmd.Parameters.Add("$dn",  SqliteType.Text);
+                foreach (var (userId, displayName, seconds, lastSeen) in entries)
+                {
+                    pUid.Value = userId; pTs.Value = seconds;
+                    pLs.Value  = lastSeen; pDn.Value = displayName;
+                    cmd.ExecuteNonQuery();
+                    if (!Users.TryGetValue(userId, out var rec)) { rec = new UserRecord(); Users[userId] = rec; }
+                    rec.TotalSeconds += seconds;
+                    if (string.IsNullOrEmpty(rec.DisplayName) && !string.IsNullOrEmpty(displayName)) rec.DisplayName = displayName;
+                    if (string.Compare(lastSeen, rec.LastSeen, StringComparison.Ordinal) > 0) rec.LastSeen = lastSeen;
+                }
+                tx.Commit();
+            }
+            catch { }
+        }
+    }
+
+    public void BulkMergeWorlds(IEnumerable<(string worldId, string worldName, long seconds, int visitCount, string lastVisited)> entries)
+    {
+        lock (_lock)
+        {
+            if (_disposed) return;
+            try
+            {
+                using var tx  = _db.BeginTransaction();
+                using var cmd = _db.CreateCommand();
+                cmd.Transaction = tx;
+                cmd.CommandText = @"INSERT INTO world_tracking(world_id,total_seconds,visit_count,last_visited,world_name,world_thumb)
+                    VALUES($wid,$ts,$vc,$lv,$wn,'')
+                    ON CONFLICT(world_id) DO UPDATE SET
+                        total_seconds = world_tracking.total_seconds + excluded.total_seconds,
+                        visit_count   = world_tracking.visit_count   + excluded.visit_count,
+                        last_visited  = CASE WHEN excluded.last_visited > world_tracking.last_visited THEN excluded.last_visited ELSE world_tracking.last_visited END,
+                        world_name    = CASE WHEN excluded.world_name != '' AND world_tracking.world_name = '' THEN excluded.world_name ELSE world_tracking.world_name END";
+                var pWid = cmd.Parameters.Add("$wid", SqliteType.Text);
+                var pTs  = cmd.Parameters.Add("$ts",  SqliteType.Integer);
+                var pVc  = cmd.Parameters.Add("$vc",  SqliteType.Integer);
+                var pLv  = cmd.Parameters.Add("$lv",  SqliteType.Text);
+                var pWn  = cmd.Parameters.Add("$wn",  SqliteType.Text);
+                foreach (var (worldId, worldName, seconds, visitCount, lastVisited) in entries)
+                {
+                    pWid.Value = worldId; pTs.Value = seconds;
+                    pVc.Value  = visitCount; pLv.Value = lastVisited; pWn.Value = worldName;
+                    cmd.ExecuteNonQuery();
+                    if (!Worlds.TryGetValue(worldId, out var rec)) { rec = new WorldRecord(); Worlds[worldId] = rec; }
+                    rec.TotalSeconds += seconds; rec.VisitCount += visitCount;
+                    if (string.IsNullOrEmpty(rec.WorldName) && !string.IsNullOrEmpty(worldName)) rec.WorldName = worldName;
+                    if (string.Compare(lastVisited, rec.LastVisited, StringComparison.Ordinal) > 0) rec.LastVisited = lastVisited;
+                }
+                tx.Commit();
+            }
+            catch { }
+        }
+    }
+
+    public void Save() { } // persistence handled by event methods and watchdog
+
+    // Watchdog — polls VRChat.exe every 2s, flushes sessions every 30s
+
+    private void WatchdogTick(object? state)
+    {
+        lock (_lock)
+        {
+            if (_disposed) return;
+
+            var vrcRunning = _isVrcRunning?.Invoke() ?? false;
+
+            if (_vrcWasRunning && !vrcRunning)
+            {
+                HandleVrcClosedLocked();
+            }
+
+            if (vrcRunning)
+            {
+                _lastVrcAliveUtc = DateTime.UtcNow;
+                AttachProcessExitedLocked();
+            }
+
+            _vrcWasRunning = vrcRunning;
+
+            if (vrcRunning && (_playerSessions.Count > 0 || _worldSessionStart.HasValue))
+            {
+                var now = DateTime.UtcNow;
+                if ((now - _lastFlushUtc).TotalSeconds >= 30)
+                {
+                    FlushSessionsToDbLocked(now);
+                    _lastFlushUtc = now;
+                }
+                PersistActiveSessionLocked();
+            }
+        }
+    }
+
+    private void AttachProcessExitedLocked()
+    {
+        if (_monitoredVrcProcess != null)
+        {
+            try { if (!_monitoredVrcProcess.HasExited) return; }
+            catch { }
+            try { _monitoredVrcProcess.Dispose(); } catch { }
+            _monitoredVrcProcess = null;
+        }
+        try
+        {
+            var procs = Process.GetProcessesByName("VRChat");
+            foreach (var p in procs)
+            {
+                try
+                {
+                    if (p.HasExited) { p.Dispose(); continue; }
+                    p.EnableRaisingEvents = true;
+                    p.Exited += OnVrcProcessExited;
+                    _monitoredVrcProcess = p;
+                    return; // attached to first live process
+                }
+                catch { p.Dispose(); }
+            }
+        }
+        catch { }
+    }
+
+    private void FlushSessionsToDbLocked(DateTime now)
+    {
+        var userIds = _playerSessions.Keys.ToList();
+        foreach (var userId in userIds)
+        {
+            var delta = (long)(now - _playerSessions[userId]).TotalSeconds;
+            if (delta <= 0 || delta > 86400) continue;
+            if (Users.TryGetValue(userId, out var rec))
+            {
+                rec.TotalSeconds += delta;
+                rec.LastSeen = now.ToString("o");
+                _logger?.Invoke($"[TIMER] Spend Time saved: {rec.DisplayName} +{delta}s — overall time: {FormatDuration(rec.TotalSeconds)}");
+            }
+            _playerSessions[userId] = now;
+        }
+        if (userIds.Count > 0)
+            PersistAllUsersLocked(userIds, now);
+
+        if (_worldSessionStart.HasValue && !string.IsNullOrEmpty(_currentWorldId) && _currentWorldId.StartsWith("wrld_"))
+        {
+            var delta = (long)(now - _worldSessionStart.Value).TotalSeconds;
+            if (delta > 0 && delta <= 86400)
+            {
+                if (!Worlds.TryGetValue(_currentWorldId, out var rec))
+                {
+                    rec = new WorldRecord();
+                    Worlds[_currentWorldId] = rec;
+                }
+                rec.TotalSeconds += delta;
+                rec.LastVisited = now.ToString("o");
+                UpsertWorldLocked(_currentWorldId, rec);
+                var wName = rec.WorldName.Length > 0 ? rec.WorldName : _currentWorldId;
+                _logger?.Invoke($"[TIMER] World Time saved: +{delta}s — overall time in \"{wName}\": {FormatDuration(rec.TotalSeconds)}");
+            }
+            _worldSessionStart = now;
+        }
+    }
+
+    private static string FormatDuration(long totalSeconds)
+    {
+        var d = totalSeconds / 86400;
+        var h = (totalSeconds % 86400) / 3600;
+        var m = (totalSeconds % 3600) / 60;
+        var s = totalSeconds % 60;
+        if (d > 0) return $"{d}d {h}h {m}m {s}s";
+        if (h > 0) return $"{h}h {m}m {s}s";
+        if (m > 0) return $"{m}m {s}s";
+        return $"{s}s";
+    }
+
+    private void OnVrcProcessExited(object? sender, EventArgs e)
+    {
+        lock (_lock)
+        {
+            if (_disposed) return;
+            var stillRunning = _isVrcRunning?.Invoke() ?? false;
+            if (stillRunning) return;
+            HandleVrcClosedLocked();
+            _vrcWasRunning = false;
+        }
+    }
+
+    private void HandleVrcClosedLocked()
+    {
+        if (_playerSessions.Count == 0 && !_worldSessionStart.HasValue) return;
+        // Use midpoint between last-confirmed-alive and now to minimize overcount (~1s avg error).
+        var now = DateTime.UtcNow;
+        var endTime = _lastVrcAliveUtc > DateTime.MinValue
+            ? _lastVrcAliveUtc + TimeSpan.FromTicks((now - _lastVrcAliveUtc).Ticks / 2)
+            : now;
+        if (endTime > now) endTime = now;
+        if ((now - endTime).TotalSeconds > 10) endTime = now;
+
+        EndAllPlayerSessionsLocked(endTime);
+        EndWorldSessionLocked(endTime);
+        _currentWorldId = "";
+        _currentLocation = "";
+        ClearActiveSessionLocked();
+        try { _monitoredVrcProcess?.Dispose(); } catch { }
+        _monitoredVrcProcess = null;
+    }
+
+    // Session end helpers
+
+    private void EndAllPlayerSessionsLocked(DateTime now)
+    {
+        if (_playerSessions.Count == 0) return;
+        var userIds = _playerSessions.Keys.ToList();
+        foreach (var userId in userIds)
+        {
+            var sessionStart = _playerSessions[userId];
+            var delta = (long)(now - sessionStart).TotalSeconds;
+            if (delta > 0 && delta <= 86400)
+            {
+                if (Users.TryGetValue(userId, out var rec))
+                {
+                    rec.TotalSeconds += delta;
+                    rec.LastSeen = now.ToString("o");
+                    if (!string.IsNullOrEmpty(_currentLocation))
+                        rec.LastSeenLocation = _currentLocation;
+                }
+            }
+        }
+        PersistAllUsersLocked(userIds, now);
+        _playerSessions.Clear();
+    }
+
+    private void EndWorldSessionLocked(DateTime now)
+    {
+        if (!_worldSessionStart.HasValue) return;
+        if (!string.IsNullOrEmpty(_currentWorldId) && _currentWorldId.StartsWith("wrld_"))
+        {
+            var delta = (long)(now - _worldSessionStart.Value).TotalSeconds;
+            if (delta > 0 && delta <= 86400)
+            {
+                if (!Worlds.TryGetValue(_currentWorldId, out var rec))
+                {
+                    rec = new WorldRecord();
+                    Worlds[_currentWorldId] = rec;
+                }
+                rec.TotalSeconds += delta;
+                rec.LastVisited = now.ToString("o");
+                UpsertWorldLocked(_currentWorldId, rec);
+            }
+        }
+        _worldSessionStart = null;
+    }
+
+    // DB persistence
+
+    private void InitSchema()
+    {
+        using var cmd = _db.CreateCommand();
+        cmd.CommandText = @"CREATE TABLE IF NOT EXISTS user_tracking (
+            user_id            TEXT    PRIMARY KEY,
+            total_seconds      INTEGER NOT NULL DEFAULT 0,
+            last_seen          TEXT    NOT NULL DEFAULT '',
+            last_seen_location TEXT    NOT NULL DEFAULT '',
+            display_name       TEXT    NOT NULL DEFAULT '',
+            image              TEXT    NOT NULL DEFAULT ''
+        )";
+        cmd.ExecuteNonQuery();
+
+        using var idx = _db.CreateCommand();
+        idx.CommandText = "CREATE INDEX IF NOT EXISTS idx_ut_lastseen ON user_tracking(last_seen DESC)";
+        try { idx.ExecuteNonQuery(); } catch { }
+
+        foreach (var col in new[]
+        {
+            "display_name        TEXT NOT NULL DEFAULT ''",
+            "image               TEXT NOT NULL DEFAULT ''",
+            "profile_status      TEXT NOT NULL DEFAULT ''",
+            "profile_status_desc TEXT NOT NULL DEFAULT ''",
+            "profile_bio         TEXT NOT NULL DEFAULT ''",
+            "profile_location    TEXT NOT NULL DEFAULT ''",
+            "profile_is_friend   INTEGER NOT NULL DEFAULT 0",
+            "profile_avatar_img  TEXT NOT NULL DEFAULT ''",
+            "profile_cached_at   TEXT NOT NULL DEFAULT ''",
+            "first_meet_date     TEXT NOT NULL DEFAULT ''",
+            "meet_again_count    INTEGER NOT NULL DEFAULT 0",
+        })
+        {
+            try
+            {
+                using var ac = _db.CreateCommand();
+                ac.CommandText = $"ALTER TABLE user_tracking ADD COLUMN {col}";
+                ac.ExecuteNonQuery();
+            }
+            catch { }
+        }
+
+        // group_tracking
+        try
+        {
+            using var gc = _db.CreateCommand();
+            gc.CommandText = @"CREATE TABLE IF NOT EXISTS group_tracking (
+                group_id           TEXT PRIMARY KEY,
+                name               TEXT NOT NULL DEFAULT '',
+                short_code         TEXT NOT NULL DEFAULT '',
+                description        TEXT NOT NULL DEFAULT '',
+                icon_url           TEXT NOT NULL DEFAULT '',
+                banner_url         TEXT NOT NULL DEFAULT '',
+                member_count       INTEGER NOT NULL DEFAULT 0,
+                privacy            TEXT NOT NULL DEFAULT '',
+                join_state         TEXT NOT NULL DEFAULT '',
+                owner_id           TEXT NOT NULL DEFAULT '',
+                owner_display_name TEXT NOT NULL DEFAULT '',
+                rules              TEXT NOT NULL DEFAULT '',
+                languages          TEXT NOT NULL DEFAULT '',
+                links              TEXT NOT NULL DEFAULT '',
+                detail_cached_at   TEXT NOT NULL DEFAULT ''
+            )";
+            gc.ExecuteNonQuery();
+        }
+        catch { }
+
+        foreach (var col in new[]
+        {
+            "name               TEXT NOT NULL DEFAULT ''",
+            "short_code         TEXT NOT NULL DEFAULT ''",
+            "description        TEXT NOT NULL DEFAULT ''",
+            "icon_url           TEXT NOT NULL DEFAULT ''",
+            "banner_url         TEXT NOT NULL DEFAULT ''",
+            "member_count       INTEGER NOT NULL DEFAULT 0",
+            "privacy            TEXT NOT NULL DEFAULT ''",
+            "join_state         TEXT NOT NULL DEFAULT ''",
+            "owner_id           TEXT NOT NULL DEFAULT ''",
+            "owner_display_name TEXT NOT NULL DEFAULT ''",
+            "rules              TEXT NOT NULL DEFAULT ''",
+            "languages          TEXT NOT NULL DEFAULT ''",
+            "links              TEXT NOT NULL DEFAULT ''",
+            "detail_cached_at   TEXT NOT NULL DEFAULT ''",
+        })
+        {
+            try { using var mc = _db.CreateCommand(); mc.CommandText = $"ALTER TABLE group_tracking ADD COLUMN {col}"; mc.ExecuteNonQuery(); } catch { }
+        }
+
+        // avatar_tracking
+        try
+        {
+            using var ac2 = _db.CreateCommand();
+            ac2.CommandText = @"CREATE TABLE IF NOT EXISTS avatar_tracking (
+                avatar_id           TEXT PRIMARY KEY,
+                name                TEXT NOT NULL DEFAULT '',
+                author_name         TEXT NOT NULL DEFAULT '',
+                author_id           TEXT NOT NULL DEFAULT '',
+                thumbnail_image_url TEXT NOT NULL DEFAULT '',
+                image_url           TEXT NOT NULL DEFAULT '',
+                release_status      TEXT NOT NULL DEFAULT '',
+                version             INTEGER NOT NULL DEFAULT 0,
+                created_at          TEXT NOT NULL DEFAULT '',
+                updated_at          TEXT NOT NULL DEFAULT '',
+                description         TEXT NOT NULL DEFAULT '',
+                tags                TEXT NOT NULL DEFAULT '',
+                has_pc              INTEGER NOT NULL DEFAULT 0,
+                has_quest           INTEGER NOT NULL DEFAULT 0,
+                has_impostor        INTEGER NOT NULL DEFAULT 0,
+                pc_perf             TEXT NOT NULL DEFAULT '',
+                quest_perf          TEXT NOT NULL DEFAULT '',
+                detail_cached_at    TEXT NOT NULL DEFAULT ''
+            )";
+            ac2.ExecuteNonQuery();
+        }
+        catch { }
+
+        foreach (var col in new[]
+        {
+            "name                TEXT NOT NULL DEFAULT ''",
+            "author_name         TEXT NOT NULL DEFAULT ''",
+            "author_id           TEXT NOT NULL DEFAULT ''",
+            "thumbnail_image_url TEXT NOT NULL DEFAULT ''",
+            "image_url           TEXT NOT NULL DEFAULT ''",
+            "release_status      TEXT NOT NULL DEFAULT ''",
+            "version             INTEGER NOT NULL DEFAULT 0",
+            "created_at          TEXT NOT NULL DEFAULT ''",
+            "updated_at          TEXT NOT NULL DEFAULT ''",
+            "description         TEXT NOT NULL DEFAULT ''",
+            "tags                TEXT NOT NULL DEFAULT ''",
+            "has_pc              INTEGER NOT NULL DEFAULT 0",
+            "has_quest           INTEGER NOT NULL DEFAULT 0",
+            "has_impostor        INTEGER NOT NULL DEFAULT 0",
+            "pc_perf             TEXT NOT NULL DEFAULT ''",
+            "quest_perf          TEXT NOT NULL DEFAULT ''",
+            "detail_cached_at    TEXT NOT NULL DEFAULT ''",
+        })
+        {
+            try { using var mc = _db.CreateCommand(); mc.CommandText = $"ALTER TABLE avatar_tracking ADD COLUMN {col}"; mc.ExecuteNonQuery(); } catch { }
+        }
+
+        // event_tracking
+        try
+        {
+            using var ec = _db.CreateCommand();
+            ec.CommandText = @"CREATE TABLE IF NOT EXISTS event_tracking (
+                event_id         TEXT PRIMARY KEY,
+                group_id         TEXT NOT NULL DEFAULT '',
+                title            TEXT NOT NULL DEFAULT '',
+                description      TEXT NOT NULL DEFAULT '',
+                starts_at        TEXT NOT NULL DEFAULT '',
+                ends_at          TEXT NOT NULL DEFAULT '',
+                image_url        TEXT NOT NULL DEFAULT '',
+                access_type      TEXT NOT NULL DEFAULT '',
+                tags             TEXT NOT NULL DEFAULT '',
+                owner_id         TEXT NOT NULL DEFAULT '',
+                is_following     INTEGER NOT NULL DEFAULT 0,
+                detail_cached_at TEXT NOT NULL DEFAULT ''
+            )";
+            ec.ExecuteNonQuery();
+        }
+        catch { }
+
+        foreach (var col in new[]
+        {
+            "group_id         TEXT NOT NULL DEFAULT ''",
+            "title            TEXT NOT NULL DEFAULT ''",
+            "description      TEXT NOT NULL DEFAULT ''",
+            "starts_at        TEXT NOT NULL DEFAULT ''",
+            "ends_at          TEXT NOT NULL DEFAULT ''",
+            "image_url        TEXT NOT NULL DEFAULT ''",
+            "access_type      TEXT NOT NULL DEFAULT ''",
+            "tags             TEXT NOT NULL DEFAULT ''",
+            "owner_id         TEXT NOT NULL DEFAULT ''",
+            "is_following     INTEGER NOT NULL DEFAULT 0",
+            "detail_cached_at TEXT NOT NULL DEFAULT ''",
+        })
+        {
+            try { using var mc = _db.CreateCommand(); mc.CommandText = $"ALTER TABLE event_tracking ADD COLUMN {col}"; mc.ExecuteNonQuery(); } catch { }
+        }
+
+        using var wcmd = _db.CreateCommand();
+        wcmd.CommandText = @"CREATE TABLE IF NOT EXISTS world_tracking (
+            world_id      TEXT    PRIMARY KEY,
+            total_seconds INTEGER NOT NULL DEFAULT 0,
+            visit_count   INTEGER NOT NULL DEFAULT 0,
+            last_visited  TEXT    NOT NULL DEFAULT '',
+            world_name    TEXT    NOT NULL DEFAULT '',
+            world_thumb   TEXT    NOT NULL DEFAULT ''
+        )";
+        wcmd.ExecuteNonQuery();
+
+        foreach (var col in new[]
+        {
+            "world_name                TEXT    NOT NULL DEFAULT ''",
+            "world_thumb               TEXT    NOT NULL DEFAULT ''",
+            "world_description         TEXT    NOT NULL DEFAULT ''",
+            "world_image_url           TEXT    NOT NULL DEFAULT ''",
+            "world_author_name         TEXT    NOT NULL DEFAULT ''",
+            "world_author_id           TEXT    NOT NULL DEFAULT ''",
+            "world_published           TEXT    NOT NULL DEFAULT ''",
+            "world_updated             TEXT    NOT NULL DEFAULT ''",
+            "world_capacity            INTEGER NOT NULL DEFAULT 0",
+            "world_recommended_capacity INTEGER NOT NULL DEFAULT 0",
+            "world_tags                TEXT    NOT NULL DEFAULT ''",
+            "world_favorites           INTEGER NOT NULL DEFAULT 0",
+            "world_visits              INTEGER NOT NULL DEFAULT 0",
+            "world_pc_size             INTEGER NOT NULL DEFAULT 0",
+            "world_android_size        INTEGER NOT NULL DEFAULT 0",
+            "world_heat                INTEGER NOT NULL DEFAULT 0",
+            "world_popularity          INTEGER NOT NULL DEFAULT 0",
+            "world_public_occupants    INTEGER NOT NULL DEFAULT 0",
+            "world_private_occupants   INTEGER NOT NULL DEFAULT 0",
+            "world_version             INTEGER NOT NULL DEFAULT 0",
+            "detail_cached_at          TEXT    NOT NULL DEFAULT ''",
+        })
+        {
+            try
+            {
+                using var ac = _db.CreateCommand();
+                ac.CommandText = $"ALTER TABLE world_tracking ADD COLUMN {col}";
+                ac.ExecuteNonQuery();
+            }
+            catch { }
+        }
+
+        using var as_cmd = _db.CreateCommand();
+        as_cmd.CommandText = @"CREATE TABLE IF NOT EXISTS active_session (
+            id             INTEGER PRIMARY KEY CHECK(id = 1),
+            location       TEXT    NOT NULL DEFAULT '',
+            co_present_ids TEXT    NOT NULL DEFAULT '',
+            last_flush_utc TEXT    NOT NULL DEFAULT ''
+        )";
+        as_cmd.ExecuteNonQuery();
+
+        foreach (var col in new[]
+        {
+            "profile           TEXT NOT NULL DEFAULT ''",
+            "groups            TEXT NOT NULL DEFAULT '[]'",
+            "groups_cached_at  TEXT NOT NULL DEFAULT ''",
+            "content           TEXT NOT NULL DEFAULT '{}'",
+            "content_cached_at TEXT NOT NULL DEFAULT ''",
+            "mutuals           TEXT NOT NULL DEFAULT '{}'",
+            "mutuals_cached_at TEXT NOT NULL DEFAULT ''",
+            "mutual_groups           TEXT NOT NULL DEFAULT '[]'",
+            "mutual_groups_cached_at TEXT NOT NULL DEFAULT ''",
+        })
+        {
+            try { using var mc = _db.CreateCommand(); mc.CommandText = $"ALTER TABLE user_tracking ADD COLUMN {col}"; mc.ExecuteNonQuery(); } catch { }
+        }
+    }
+
+    private void MigrateUsersFromJson()
+    {
+        if (!File.Exists(UserLegacyPath)) return;
+        try
+        {
+            var json = File.ReadAllText(UserLegacyPath);
+            var legacy = JsonConvert.DeserializeObject<UserLegacy>(json);
+            if (legacy?.Users == null) { File.Delete(UserLegacyPath); return; }
+            using var tx = _db.BeginTransaction();
+            using var cmd = _db.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"INSERT OR IGNORE INTO user_tracking(user_id,total_seconds,last_seen,last_seen_location)
+                VALUES($uid,$ts,$ls,$lsl)";
+            var pUid = cmd.Parameters.Add("$uid", SqliteType.Text);
+            var pTs  = cmd.Parameters.Add("$ts",  SqliteType.Integer);
+            var pLs  = cmd.Parameters.Add("$ls",  SqliteType.Text);
+            var pLsl = cmd.Parameters.Add("$lsl", SqliteType.Text);
+            foreach (var (userId, rec) in legacy.Users)
+            {
+                pUid.Value = userId; pTs.Value = rec.TotalSeconds;
+                pLs.Value = rec.LastSeen ?? ""; pLsl.Value = rec.LastSeenLocation ?? "";
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+            File.Delete(UserLegacyPath);
+        }
+        catch { }
+    }
+
+    private void MigrateWorldsFromJson()
+    {
+        if (!File.Exists(WorldLegacyPath)) return;
+        try
+        {
+            var json = File.ReadAllText(WorldLegacyPath);
+            var legacy = JsonConvert.DeserializeObject<WorldLegacy>(json);
+            if (legacy?.Worlds == null) { File.Delete(WorldLegacyPath); return; }
+            using var tx = _db.BeginTransaction();
+            using var cmd = _db.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"INSERT OR IGNORE INTO world_tracking(world_id,total_seconds,visit_count,last_visited)
+                VALUES($wid,$ts,$vc,$lv)";
+            var pWid = cmd.Parameters.Add("$wid", SqliteType.Text);
+            var pTs  = cmd.Parameters.Add("$ts",  SqliteType.Integer);
+            var pVc  = cmd.Parameters.Add("$vc",  SqliteType.Integer);
+            var pLv  = cmd.Parameters.Add("$lv",  SqliteType.Text);
+            foreach (var (worldId, rec) in legacy.Worlds)
+            {
+                pWid.Value = worldId; pTs.Value = rec.TotalSeconds;
+                pVc.Value = rec.VisitCount; pLv.Value = rec.LastVisited ?? "";
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+            File.Delete(WorldLegacyPath);
+        }
+        catch { }
+    }
+
+    private void LoadUsersFromDb()
+    {
+        using var cmd = _db.CreateCommand();
+        cmd.CommandText = "SELECT user_id,total_seconds,last_seen,last_seen_location,display_name,image FROM user_tracking";
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+            Users[r.GetString(0)] = new UserRecord
+            {
+                TotalSeconds     = r.GetInt64(1),
+                LastSeen         = r.GetString(2),
+                LastSeenLocation = r.GetString(3),
+                DisplayName      = r.GetString(4),
+                Image            = r.GetString(5),
+            };
+    }
+
+    private void LoadWorldsFromDb()
+    {
+        using var cmd = _db.CreateCommand();
+        cmd.CommandText = "SELECT world_id,total_seconds,visit_count,last_visited,world_name,world_thumb FROM world_tracking";
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+            Worlds[r.GetString(0)] = new WorldRecord
+            {
+                TotalSeconds = r.GetInt64(1),
+                VisitCount   = r.GetInt32(2),
+                LastVisited  = r.GetString(3),
+                WorldName    = r.GetString(4),
+                WorldThumb   = r.GetString(5),
+            };
+    }
+
+    private void PersistUserLocked(string userId, DateTime now)
+    {
+        if (!Users.TryGetValue(userId, out var rec)) return;
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"INSERT INTO user_tracking(user_id,total_seconds,last_seen,last_seen_location,display_name,image)
+                VALUES($uid,$ts,$ls,$lsl,$dn,$img)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    total_seconds=excluded.total_seconds, last_seen=excluded.last_seen,
+                    last_seen_location=excluded.last_seen_location,
+                    display_name=CASE WHEN excluded.display_name!='' THEN excluded.display_name ELSE user_tracking.display_name END,
+                    image=CASE WHEN excluded.image!='' THEN excluded.image ELSE user_tracking.image END";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            cmd.Parameters.AddWithValue("$ts",  rec.TotalSeconds);
+            cmd.Parameters.AddWithValue("$ls",  now.ToString("o"));
+            cmd.Parameters.AddWithValue("$lsl", rec.LastSeenLocation);
+            cmd.Parameters.AddWithValue("$dn",  rec.DisplayName);
+            cmd.Parameters.AddWithValue("$img", rec.Image);
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
+    private void PersistAllUsersLocked(IEnumerable<string> userIds, DateTime now)
+    {
+        try
+        {
+            using var tx = _db.BeginTransaction();
+            using var cmd = _db.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"INSERT INTO user_tracking(user_id,total_seconds,last_seen,last_seen_location,display_name,image)
+                VALUES($uid,$ts,$ls,$lsl,$dn,$img)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    total_seconds=excluded.total_seconds, last_seen=excluded.last_seen,
+                    last_seen_location=excluded.last_seen_location,
+                    display_name=CASE WHEN excluded.display_name!='' THEN excluded.display_name ELSE user_tracking.display_name END,
+                    image=CASE WHEN excluded.image!='' THEN excluded.image ELSE user_tracking.image END";
+            var pUid = cmd.Parameters.Add("$uid", SqliteType.Text);
+            var pTs  = cmd.Parameters.Add("$ts",  SqliteType.Integer);
+            var pLs  = cmd.Parameters.Add("$ls",  SqliteType.Text);
+            var pLsl = cmd.Parameters.Add("$lsl", SqliteType.Text);
+            var pDn  = cmd.Parameters.Add("$dn",  SqliteType.Text);
+            var pImg = cmd.Parameters.Add("$img", SqliteType.Text);
+            var nowStr = now.ToString("o");
+            foreach (var userId in userIds)
+            {
+                if (!Users.TryGetValue(userId, out var rec)) continue;
+                pUid.Value = userId; pTs.Value = rec.TotalSeconds;
+                pLs.Value = nowStr;  pLsl.Value = rec.LastSeenLocation;
+                pDn.Value = rec.DisplayName; pImg.Value = rec.Image;
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+        }
+        catch { }
+    }
+
+    private void UpsertWorldLocked(string worldId, WorldRecord rec)
+    {
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"INSERT INTO world_tracking(world_id,total_seconds,visit_count,last_visited,world_name,world_thumb)
+                VALUES($wid,$ts,$vc,$lv,$wn,$wt)
+                ON CONFLICT(world_id) DO UPDATE SET
+                    total_seconds=excluded.total_seconds, visit_count=excluded.visit_count,
+                    last_visited=excluded.last_visited,
+                    world_name=CASE WHEN excluded.world_name!='' THEN excluded.world_name ELSE world_tracking.world_name END,
+                    world_thumb=CASE WHEN excluded.world_thumb!='' THEN excluded.world_thumb ELSE world_tracking.world_thumb END";
+            cmd.Parameters.AddWithValue("$wid", worldId);
+            cmd.Parameters.AddWithValue("$ts",  rec.TotalSeconds);
+            cmd.Parameters.AddWithValue("$vc",  rec.VisitCount);
+            cmd.Parameters.AddWithValue("$lv",  rec.LastVisited);
+            cmd.Parameters.AddWithValue("$wn",  rec.WorldName);
+            cmd.Parameters.AddWithValue("$wt",  rec.WorldThumb);
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Persists active session state to DB for crash recovery.
+    /// co_present_ids = JSON { "userId": "session_start_utc_iso", ... }
+    /// last_flush_utc = world session start UTC ISO (for world time recovery)
+    /// </summary>
+    private void PersistActiveSessionLocked()
+    {
+        if (_playerSessions.Count == 0 && !_worldSessionStart.HasValue)
+        {
+            ClearActiveSessionLocked();
+            return;
+        }
+        try
+        {
+            // Serialize per-player session starts as JSON
+            var sessionsDict = _playerSessions.ToDictionary(
+                kv => kv.Key,
+                kv => kv.Value.ToString("o"));
+            var sessionsJson = JsonConvert.SerializeObject(sessionsDict);
+
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"INSERT INTO active_session(id,location,co_present_ids,last_flush_utc)
+                VALUES(1,$loc,$ids,$ts)
+                ON CONFLICT(id) DO UPDATE SET
+                    location=excluded.location,
+                    co_present_ids=excluded.co_present_ids,
+                    last_flush_utc=excluded.last_flush_utc";
+            cmd.Parameters.AddWithValue("$loc", _currentLocation);
+            cmd.Parameters.AddWithValue("$ids", sessionsJson);
+            cmd.Parameters.AddWithValue("$ts", _worldSessionStart?.ToString("o") ?? "");
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
+    private void ClearActiveSessionLocked()
+    {
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "DELETE FROM active_session WHERE id=1";
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _watchdogTimer?.Dispose();
+        _watchdogTimer = null;
+        lock (_lock)
+        {
+            var vrcRunning = _isVrcRunning?.Invoke() ?? false;
+            if (vrcRunning && (_playerSessions.Count > 0 || _worldSessionStart.HasValue))
+            {
+                // VRC still running → VRCNext restart. Preserve active_session for RestoreActiveSession.
+                PersistActiveSessionLocked();
+            }
+            else
+            {
+                var now = DateTime.UtcNow;
+                EndAllPlayerSessionsLocked(now);
+                EndWorldSessionLocked(now);
+                ClearActiveSessionLocked();
+            }
+        }
+        try { _monitoredVrcProcess?.Dispose(); } catch { }
+        _monitoredVrcProcess = null;
+        try { _db.Close(); } catch { }
+        _db.Dispose();
+    }
+
+    private class UserLegacy { public Dictionary<string, UserRecord>? Users { get; set; } }
+    private class WorldLegacy { public Dictionary<string, WorldRecord>? Worlds { get; set; } }
+
+    public static string? ExtractWorldIdFromPng(string filePath)
+    {
+        try
+        {
+            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var sig = new byte[8];
+            if (fs.Read(sig, 0, 8) != 8) return null;
+            if (sig[0] != 137 || sig[1] != 80 || sig[2] != 78 || sig[3] != 71) return null;
+
+            while (fs.Position < fs.Length - 8)
+            {
+                var lenBuf = new byte[4];
+                if (fs.Read(lenBuf, 0, 4) != 4) break;
+                int chunkLen = (lenBuf[0] << 24) | (lenBuf[1] << 16) | (lenBuf[2] << 8) | lenBuf[3];
+
+                var typeBuf = new byte[4];
+                if (fs.Read(typeBuf, 0, 4) != 4) break;
+                var chunkType = System.Text.Encoding.ASCII.GetString(typeBuf);
+
+                if (chunkType == "IEND") break;
+
+                if ((chunkType == "tEXt" || chunkType == "iTXt" || chunkType == "zTXt") && chunkLen > 0 && chunkLen < 131072)
+                {
+                    var data = new byte[chunkLen];
+                    if (fs.Read(data, 0, chunkLen) != chunkLen) break;
+
+                    var text = System.Text.Encoding.UTF8.GetString(data);
+
+                    if (text.Contains("wrld_"))
+                    {
+                        var idx = text.IndexOf("wrld_");
+                        var end = idx;
+                        while (end < text.Length && (char.IsLetterOrDigit(text[end]) || text[end] == '_' || text[end] == '-'))
+                            end++;
+                        var worldId = text.Substring(idx, end - idx);
+                        if (worldId.Length > 10) return worldId;
+                    }
+
+                    fs.Seek(4, SeekOrigin.Current);
+                    continue;
+                }
+
+                fs.Seek(chunkLen + 4, SeekOrigin.Current);
+            }
+        }
+        catch { }
+        return null;
+    }
+}

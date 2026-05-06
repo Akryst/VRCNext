@@ -10,6 +10,12 @@ public class GroupsController
 {
     private readonly CoreLibrary _core;
     private int _groupsInFlight = 0;
+    private Dictionary<string, GroupMemberPerms> _memberPerms = new();
+
+    private record GroupMemberPerms(
+        bool CanPost, bool CanEvent, bool CanInvite, bool CanEdit,
+        bool CanKick, bool CanBan, bool CanManageRoles, bool CanAssignRoles,
+        string Visibility);
 
     public GroupsController(CoreLibrary core)
     {
@@ -23,25 +29,23 @@ public class GroupsController
         if (Interlocked.CompareExchange(ref _groupsInFlight, 1, 0) != 0) return; // already running
         try
         {
-            var groups = await _core.Groups.GetUserGroupsAsync();
-            var ids = groups.Cast<JObject>()
-                .Select(g => g["groupId"]?.ToString() ?? g["id"]?.ToString() ?? "")
-                .Where(id => !string.IsNullOrEmpty(id))
-                .Distinct()
-                .ToList();
+            var groupsTask = _core.Groups.GetUserGroupsAsync();
+            var permsTask  = _core.Groups.GetUserGroupPermissionsAsync();
+            await Task.WhenAll(groupsTask, permsTask);
 
-            var fullGroups = await Task.WhenAll(ids.Select(id => _core.Groups.GetGroupAsync(id)));
+            var groups   = groupsTask.Result;
+            var allPerms = permsTask.Result;
 
             var enriched = new List<object>();
-            for (int i = 0; i < ids.Count; i++)
-            {
-                var full = fullGroups[i];
-                if (full == null) continue;
+            var newPerms = new Dictionary<string, GroupMemberPerms>();
 
-                var myMember = full["myMember"] as JObject;
-                var perms = myMember?["permissions"]?.ToObject<List<string>>();
-                var name = full["name"]?.ToString() ?? "";
-                if (string.IsNullOrEmpty(name)) continue;
+            foreach (var g in groups.Cast<JObject>())
+            {
+                var gid  = g["groupId"]?.ToString() ?? "";
+                var name = g["name"]?.ToString() ?? "";
+                if (string.IsNullOrEmpty(gid) || string.IsNullOrEmpty(name)) continue;
+
+                var perms = allPerms[gid]?.ToObject<List<string>>();
 
                 var canCreate = perms == null
                     || perms.Contains("*")
@@ -50,29 +54,35 @@ public class GroupsController
                     || perms.Contains("group-instance-public-create")
                     || perms.Contains("group-instance-restricted-create");
 
-                var canPost   = perms != null && (perms.Contains("*") || perms.Contains("group-announcement-manage"));
-                var canEvent  = perms != null && (perms.Contains("*") || perms.Contains("group-calendar-manage"));
-                var canInvite = perms != null && (perms.Contains("*") || perms.Contains("group-invites-manage"));
+                var canPost        = perms != null && (perms.Contains("*") || perms.Contains("group-announcement-manage"));
+                var canEvent       = perms != null && (perms.Contains("*") || perms.Contains("group-calendar-manage"));
+                var canInvite      = perms != null && (perms.Contains("*") || perms.Contains("group-invites-manage"));
+                var canEdit        = perms != null && (perms.Contains("*") || perms.Contains("group-data-manage"));
+                var canKick        = perms != null && (perms.Contains("*") || perms.Contains("group-members-remove"));
+                var canBan         = perms != null && (perms.Contains("*") || perms.Contains("group-bans-manage"));
+                var canManageRoles = perms != null && (perms.Contains("*") || perms.Contains("group-roles-manage"));
+                var canAssignRoles = perms != null && (perms.Contains("*") || perms.Contains("group-roles-manage") || perms.Contains("group-roles-assign"));
+                var vis            = g["memberVisibility"]?.ToString() ?? "visible";
+
+                newPerms[gid] = new GroupMemberPerms(canPost, canEvent, canInvite, canEdit, canKick, canBan, canManageRoles, canAssignRoles, vis);
 
                 enriched.Add(new {
-                    id = full["id"]?.ToString() ?? ids[i],
+                    id = gid,
                     name,
-                    shortCode      = full["shortCode"]?.ToString() ?? "",
-                    discriminator  = full["discriminator"]?.ToString() ?? "",
-                    description    = full["description"]?.ToString() ?? "",
-                    iconUrl        = full["iconUrl"]?.ToString() ?? "",   // raw URL for FFC
-                    bannerUrl      = full["bannerUrl"]?.ToString() ?? "", // raw URL for FFC
-                    memberCount    = full["memberCount"]?.Value<int>() ?? 0,
-                    privacy        = full["privacy"]?.ToString() ?? "",
-                    joinState      = full["joinState"]?.ToString() ?? "",
-                    isRepresenting = myMember?["isRepresenting"]?.Value<bool>() ?? false,
-                    visibility     = myMember?["visibility"]?.ToString() ?? "visible",
+                    shortCode      = g["shortCode"]?.ToString() ?? "",
+                    discriminator  = g["discriminator"]?.ToString() ?? "",
+                    description    = g["description"]?.ToString() ?? "",
+                    iconUrl        = g["iconUrl"]?.ToString() ?? "",
+                    bannerUrl      = g["bannerUrl"]?.ToString() ?? "",
+                    memberCount    = g["memberCount"]?.Value<int>() ?? 0,
+                    privacy        = g["privacy"]?.ToString() ?? "",
+                    isRepresenting = g["isRepresenting"]?.Value<bool>() ?? false,
+                    visibility     = vis,
                     canCreateInstance = canCreate,
-                    canPost, canEvent, canInvite,
+                    canPost, canEvent, canInvite, canEdit, canKick, canBan, canManageRoles, canAssignRoles,
                 });
             }
-            if (_core.Settings.FfcEnabled) _core.Cache.Save(CacheHandler.KeyGroups, enriched);
-            // Process image URLs for JS send (FFC stores raw, JS gets cached/CDN URLs)
+            _memberPerms = newPerms;
             var enrichedForJs = enriched.Select(g => {
                 var jo = JObject.FromObject(g);
                 var gid = jo["id"]?.ToString();
@@ -164,15 +174,6 @@ public class GroupsController
 
             case "vrcGetMyGroups":
             {
-                if (_core.Settings.FfcEnabled)
-                {
-                    if (_core.Cache.LoadRaw(CacheHandler.KeyGroups) is JArray cachedGrps)
-                    {
-                        foreach (var g in cachedGrps)
-                            if (g is JObject go) go["iconUrl"] = ImageCacheHelper.GetGroupUrl(go["id"]?.ToString(), go["iconUrl"]?.ToString());
-                        _core.SendToJS("vrcMyGroups", cachedGrps);
-                    }
-                }
                 _ = Task.Run(FetchAndCacheAsync);
                 break;
             }
@@ -183,6 +184,7 @@ public class GroupsController
                 if (!string.IsNullOrEmpty(ggId))
                 {
                     var ggCached = _core.TimeEngine.GetGroupDetail(ggId);
+                    _memberPerms.TryGetValue(ggId, out var gp);
                     if (ggCached != null)
                         _core.SendToJS("vrcGroupDetail", new {
                             id = ggId, name = ggCached.Name, shortCode = ggCached.ShortCode,
@@ -190,12 +192,12 @@ public class GroupsController
                             bannerUrl = ImageCacheHelper.GetGroupBannerUrl(ggId, ggCached.BannerUrl), memberCount = ggCached.MemberCount,
                             privacy = ggCached.Privacy, joinState = ggCached.JoinState,
                             ownerId = ggCached.OwnerId, ownerDisplayName = ggCached.OwnerName,
-                            visibility = "", rules = ggCached.Rules,
+                            visibility = gp?.Visibility ?? "", rules = ggCached.Rules,
                             languages = ggCached.Languages.ToArray(),
                             links = ggCached.Links.ToArray(),
-                            isJoined = false, canPost = false, canEvent = false, canEdit = false,
-                            canInvite = false, canKick = false, canBan = false,
-                            canManageRoles = false, canAssignRoles = false,
+                            isJoined = gp != null, canPost = gp?.CanPost ?? false, canEvent = gp?.CanEvent ?? false, canEdit = gp?.CanEdit ?? false,
+                            canInvite = gp?.CanInvite ?? false, canKick = gp?.CanKick ?? false, canBan = gp?.CanBan ?? false,
+                            canManageRoles = gp?.CanManageRoles ?? false, canAssignRoles = gp?.CanAssignRoles ?? false,
                             roles = Array.Empty<object>(), posts = Array.Empty<object>(),
                             groupEvents = Array.Empty<object>(), groupInstances = Array.Empty<object>(),
                             galleryImages = Array.Empty<object>(), groupMembers = Array.Empty<object>(),
@@ -343,8 +345,8 @@ public class GroupsController
                                     location = i["location"]?.ToString() ?? "",
                                     worldName = i["world"]?["name"]?.ToString() ?? "",
                                     worldThumb = ImageCacheHelper.GetWorldUrl(i["world"]?["id"]?.ToString(), i["world"]?["imageUrl"]?.ToString()),
-                                    userCount = i["userCount"]?.Value<int>() ?? i["n_users"]?.Value<int>() ?? 0,
-                                    capacity = i["world"]?["capacity"]?.Value<int>() ?? 0,
+                                    userCount = i["n_users"]?.Value<int>() ?? i["userCount"]?.Value<int>() ?? 0,
+                                    capacity = i["capacity"]?.Value<int>() ?? i["world"]?["capacity"]?.Value<int>() ?? 0,
                                 }),
                                 galleryImages,
                                 groupMembers = members.Select(m => new {
