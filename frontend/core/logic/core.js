@@ -80,8 +80,8 @@ let _localHttpPort = 0;
 let _cursorFiles = [];
 let _customThemes = [];
 let _activeCustomThemes = new Set();
-let sidebarCollapsed = localStorage.getItem('vrcnext_sidebar') === '1';
-let rsidebarCollapsed = localStorage.getItem('vrcnext_rsidebar') === '1';
+let sidebarCollapsed = localStorage.getItem('vrcnext_sidebar') !== '0';
+let rsidebarCollapsed = localStorage.getItem('vrcnext_rsidebar') !== '0';
 // Apply saved sidebar state immediately on load
 (function() {
     const sidebar = document.getElementById('sidebarEl');
