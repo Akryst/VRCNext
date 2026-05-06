@@ -1,3 +1,5 @@
+let _sidebarGroupInstances = null;
+
 function toggleRsidebar() {
     rsidebarCollapsed = !rsidebarCollapsed;
     localStorage.setItem('vrcnext_rsidebar', rsidebarCollapsed ? '1' : '0');
@@ -28,6 +30,12 @@ function renderVrcFriends(friends, counts) {
     const lp = document.getElementById('vrcLoginPrompt');
     if (lp) lp.style.display = 'none';
     vrcFriendsData = friends || [];
+
+    // Lazy-load group instances once on first render
+    if (_sidebarGroupInstances === null && !window._groupInstInFlight) {
+        window._groupInstInFlight = true;
+        sendToCS({ action: 'vrcGetDashGroupInstances' });
+    }
 
     if (currentFriendDetail && friends) {
         const lf = friends.find(f => f.id === currentFriendDetail.id);
@@ -136,6 +144,47 @@ function renderVrcFriends(friends, counts) {
     }
 
     appendSection('favorites', favFriends.length, favFriends.slice(0, 100), f => f.presence);
+
+    // Group Instances section (expanded sidebar only, same as Same Location)
+    if (!rsidebarCollapsed && _sidebarGroupInstances !== null && _sidebarGroupInstances.length > 0) {
+        const _giByGroup = {};
+        _sidebarGroupInstances.forEach(inst => {
+            const gid = inst.groupId || '';
+            if (!gid) return;
+            if (!_giByGroup[gid]) _giByGroup[gid] = { name: inst.groupName || gid, icon: inst.groupIcon || '', instances: [] };
+            _giByGroup[gid].instances.push(inst);
+        });
+        const _giEntries = Object.entries(_giByGroup);
+        if (_giEntries.length) {
+            const _giTotal = _giEntries.reduce((s, [, g]) => s + g.instances.length, 0);
+            const _giKey = 'groupinstances';
+            const _giChev = friendSectionCollapsed[_giKey] ? 'expand_more' : 'expand_less';
+            const _giActive = !friendSectionCollapsed[_giKey] ? ' active' : '';
+            h += `<div class="vrc-section-label vrc-offline-toggle${_giActive}" onclick="toggleFriendSection('${_giKey}')" style="cursor:pointer;"><span class="ni msi">group</span><span class="nl">${t('sidebar.groups.label', 'GROUPS')} · ${_giTotal}</span><span class="nav-group-arrow msi nl" id="${_giKey}Chevron">${_giChev}</span></div>`;
+            h += `<div id="${_giKey}FriendsSection" class="friend-section-items${friendSectionCollapsed[_giKey] ? ' collapsed' : ''}">`;
+            _giEntries.forEach(([gid, grp]) => {
+                const _subKey = `gi_${gid}`;
+                const _subChev = friendSectionCollapsed[_subKey] ? 'expand_more' : 'expand_less';
+                const _subActive = !friendSectionCollapsed[_subKey] ? ' active' : '';
+                const _iconHtml = grp.icon
+                    ? `<img class="vrc-gi-group-icon" src="${grp.icon}" onerror="this.style.display='none'">`
+                    : `<span class="msi" style="font-size:13px;flex-shrink:0;">group</span>`;
+                h += `<div class="vrc-section-label vrc-gi-group-header vrc-offline-toggle${_subActive}" onclick="toggleFriendSection('${_subKey}')" style="cursor:pointer;padding-left:16px;"><span class="ni msi">group</span><span class="nl" style="display:flex;align-items:center;gap:5px;overflow:hidden;">${_iconHtml}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(grp.name)}</span><span style="flex-shrink:0;">· ${grp.instances.length}</span></span><span class="nav-group-arrow msi nl" id="${_subKey}Chevron">${_subChev}</span></div>`;
+                h += `<div id="${_subKey}FriendsSection" class="friend-section-items${friendSectionCollapsed[_subKey] ? ' collapsed' : ''}">`;
+                grp.instances.forEach(inst => {
+                    const _loc = (inst.location || '').replace(/'/g, "\\'");
+                    const _thumbHtml = inst.worldThumb ? `<img class="vrc-gi-world-thumb" src="${inst.worldThumb}" onerror="this.style.display='none'">` : '';
+                    h += `<div class="vrc-gi-instance-card" onclick="openGroupInstanceDetail('${_loc}')" style="cursor:pointer;">`;
+                    if (_thumbHtml) h += _thumbHtml;
+                    h += `<div class="vrc-gi-instance-info"><div class="vrc-gi-instance-name">${esc(inst.worldName || inst.location || '')}</div><div class="vrc-gi-instance-count">${inst.userCount}/${inst.capacity}</div></div>`;
+                    h += `</div>`;
+                });
+                h += `</div>`;
+            });
+            h += `</div>`;
+        }
+    }
+
     const ingameFriends = gameFriends.filter(f => !favIds.has(f.id));
     appendSection('ingame', ingameFriends.length, ingameFriends.slice(0, 100), 'game');
     appendSection('web', wc, webFriends.slice(0, 100), 'web');
@@ -147,11 +196,16 @@ function renderVrcFriends(friends, counts) {
     if (_activeQ) filterFriendsList();
 }
 
+function onSidebarGroupInstances(instances) {
+    _sidebarGroupInstances = instances || [];
+    if (vrcFriendsData && vrcFriendsData.length) renderVrcFriends(vrcFriendsData);
+}
+
 function toggleFriendSection(key) {
     friendSectionCollapsed[key] = !friendSectionCollapsed[key];
     try { localStorage.setItem('friendSectionCollapsed', JSON.stringify(friendSectionCollapsed)); } catch {}
     const ids = { samelocation: ['samelocationFriendsSection', 'samelocationChevron'], favorites: ['favoritesFriendsSection', 'favoritesChevron'], ingame: ['ingameFriendsSection', 'ingameChevron'], web: ['webFriendsSection', 'webChevron'], offline: ['offlineFriendsSection', 'offlineChevron'] };
-    const [secId, chevId] = ids[key] || [];
+    const [secId, chevId] = ids[key] || [`${key}FriendsSection`, `${key}Chevron`];
     const sec = secId && document.getElementById(secId);
     const chev = chevId && document.getElementById(chevId);
     if (sec) sec.classList.toggle('collapsed', !!friendSectionCollapsed[key]);

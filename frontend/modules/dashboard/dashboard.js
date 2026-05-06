@@ -414,11 +414,8 @@ const _discRefreshInterval = setInterval(() => {
 
 // Group Activity: refresh every 10 min
 const _groupInstRefreshInterval = setInterval(() => {
-    const tab0 = document.getElementById('tab0');
-    if (!tab0 || !tab0.classList.contains('active')) return;
-    const hidden = _dashLayout.hidden.includes('group_activity') && _dashLayout.hidden.includes('group_activity_small');
-    if (!hidden && !_dashGroupInstancesInFlight) {
-        _dashGroupInstancesInFlight = true;
+    if (!window._groupInstInFlight) {
+        window._groupInstInFlight = true;
         sendToCS({ action: 'vrcGetDashGroupInstances' });
     }
 }, 10 * 60 * 1000);
@@ -821,11 +818,10 @@ function renderDashGroupActivity() {
 /* === Dashboard — Group Activity Instances === */
 
 let _dashGroupInstances = null;
-let _dashGroupInstancesInFlight = false;
 
 function loadDashGroupInstances() {
-    if (_dashGroupInstancesInFlight) return;
-    _dashGroupInstancesInFlight = true;
+    if (window._groupInstInFlight) return;
+    window._groupInstInFlight = true;
     sendToCS({ action: 'vrcGetDashGroupInstances' });
 }
 
@@ -834,12 +830,12 @@ function refreshDashGroupInstances() {
     const btn2 = document.getElementById('dashGroupActivitySmallRefreshBtn');
     if (btn1) btn1.classList.add('spinning');
     if (btn2) btn2.classList.add('spinning');
-    _dashGroupInstancesInFlight = false;
+    window._groupInstInFlight = false;
     loadDashGroupInstances();
 }
 
 function onDashGroupInstances(instances) {
-    _dashGroupInstancesInFlight = false;
+    window._groupInstInFlight = false;
     _dashGroupInstances = instances || [];
     const btn1 = document.getElementById('dashGroupActivityRefreshBtn');
     const btn2 = document.getElementById('dashGroupActivitySmallRefreshBtn');

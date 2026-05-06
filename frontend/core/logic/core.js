@@ -125,7 +125,7 @@ let dashBgPath = '', dashBgDataUri = '';
 let dashWorldCache = {};
 let dashGroupCache = {};
 let vrcFriendsLoaded = false;
-const _fscDefaults = { samelocation: false, favorites: false, ingame: false, web: false, offline: true };
+const _fscDefaults = { samelocation: false, favorites: false, ingame: false, web: false, offline: true, groupinstances: false };
 let friendSectionCollapsed = (() => {
     try { return Object.assign({}, _fscDefaults, JSON.parse(localStorage.getItem('friendSectionCollapsed') || '{}')); }
     catch { return { ..._fscDefaults }; }

@@ -497,6 +497,7 @@ window.external.receiveMessage(rawMsg => {
                 break;
             case 'vrcDashGroupInstances':
                 if (typeof onDashGroupInstances === 'function') onDashGroupInstances(payload);
+                if (typeof onSidebarGroupInstances === 'function') onSidebarGroupInstances(payload);
                 break;
             case 'vrcGroupDetail':
             {

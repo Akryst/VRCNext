@@ -640,7 +640,7 @@ function buildPersonalListHtml(events) {
 
     return `<div class="tl-list-wrap">
         <table class="tl-list-table">
-            <colgroup><col style="width:155px"><col style="width:135px"><col style="width:42px"><col style="width:130px"><col></colgroup>
+            <colgroup><col style="width:155px"><col style="width:135px"><col style="width:80px"><col style="width:130px"><col></colgroup>
             <thead><tr>
                 <th>${esc(t('timeline.list.header.date_time', 'Date / Time'))}</th><th>${esc(t('timeline.list.header.type', 'Type'))}</th><th>${esc(t('timeline.list.header.profile', 'Profile'))}</th><th>${esc(t('timeline.list.header.user', 'User'))}</th><th>${esc(t('timeline.list.header.detail', 'Detail'))}</th>
             </tr></thead>
@@ -724,7 +724,7 @@ function buildFriendListHtml(events) {
 
     return `<div class="tl-list-wrap">
         <table class="tl-list-table">
-            <colgroup><col style="width:155px"><col style="width:135px"><col style="width:42px"><col style="width:130px"><col></colgroup>
+            <colgroup><col style="width:155px"><col style="width:135px"><col style="width:80px"><col style="width:130px"><col></colgroup>
             <thead><tr>
                 <th>${esc(t('timeline.list.header.date_time', 'Date / Time'))}</th><th>${esc(t('timeline.list.header.type', 'Type'))}</th><th>${esc(t('timeline.list.header.profile', 'Profile'))}</th><th>${esc(t('timeline.list.header.user', 'User'))}</th><th>${esc(t('timeline.list.header.detail', 'Detail'))}</th>
             </tr></thead>

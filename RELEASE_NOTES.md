@@ -1,4 +1,4 @@
-**2026.22.0**
+**2026.22.1**
 
 ### Changes
 
@@ -13,6 +13,11 @@
 * Favorites won't be shown "IN-GAME" to make sure we don't have duplicates.
 * Show "Age Gated" Info in instance info
 * Show "Age Gated" Info in instance list info
+* Added Groups to the sidebar
+
+**Timeline**
+* Fixed timeline table 
+* Fixed Profile and User Name being too close
 
 * **Dashboard**
 
