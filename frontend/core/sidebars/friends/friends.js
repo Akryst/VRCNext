@@ -79,10 +79,7 @@ function renderVrcFriends(friends, counts) {
     };
 
     const favIds = new Set(favFriendsData.map(f => f.favoriteId));
-    const favFriends = favIds.size > 0 ? [...friends].filter(f => favIds.has(f.id)).sort((a, b) => {
-        const order = { game: 0, web: 1, offline: 2 };
-        return (order[a.presence] ?? 2) - (order[b.presence] ?? 2);
-    }) : [];
+    const favFriends = favIds.size > 0 ? friends.filter(f => favIds.has(f.id) && f.presence === 'game') : [];
 
     const _sectionIcons = { favorites: 'favorite', ingame: 'sports_esports', web: 'language', offline: 'wifi_off' };
     let h = '';

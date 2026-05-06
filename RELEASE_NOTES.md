@@ -5,6 +5,9 @@
 **Modals**
 * All modals (Group, Profile, Avatars, Worlds) are now 15% bigger.
 
+**Friend Sidebar**
+* Favorites only show friends that are In-Game instead of every single one.
+
 * **Dashboard**
 
   * The Recently Visited widget no longer shows the current player count for each world.
