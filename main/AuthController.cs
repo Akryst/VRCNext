@@ -1484,10 +1484,9 @@ public class AuthController
             {
                 var id = w["id"]?.ToString();
                 if (string.IsNullOrEmpty(id)) continue;
-                var full = await _core.World.GetWorldFreshAsync(id);
-                var active    = full?["occupants"]?.Value<int>() ?? w["occupants"]?.Value<int>() ?? 0;
-                var favorites = full?["favorites"]?.Value<int>() ?? w["favorites"]?.Value<int>() ?? 0;
-                var visits    = full?["visits"]?.Value<int>() ?? 0;
+                var active    = w["occupants"]?.Value<int>() ?? 0;
+                var favorites = w["favorites"]?.Value<int>() ?? 0;
+                var visits    = w["visits"]?.Value<int>() ?? 0;
                 _core.Timeline.InsertWorldStats(id, active, favorites, visits);
             }
         }
