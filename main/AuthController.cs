@@ -1521,7 +1521,7 @@ public class AuthController
                     var payload = await _friends.BuildUserDetailPayloadAsync(uid);
                     if (payload != null)
                     {
-                        _core.TimeEngine.SaveUserProfileFull(uid, Newtonsoft.Json.JsonConvert.SerializeObject(payload));
+                        _core.TimeEngine.SaveUserProfileCache(uid, Newtonsoft.Json.JsonConvert.SerializeObject(payload));
                     }
                     await Task.Delay(250);
                 }

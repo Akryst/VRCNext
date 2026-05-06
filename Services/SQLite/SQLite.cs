@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.Sqlite;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 
 namespace VRCNext.Services;
@@ -666,16 +667,53 @@ public class UnifiedTimeEngine : IDisposable
 
     public class UserProfileCache
     {
-        public string ProfileJson          { get; set; } = "";
-        public string ProfileCachedAt      { get; set; } = "";
-        public string GroupsJson           { get; set; } = "[]";
-        public string GroupsCachedAt       { get; set; } = "";
-        public string ContentJson          { get; set; } = "{}";
-        public string ContentCachedAt      { get; set; } = "";
-        public string MutualsJson          { get; set; } = "{}";
-        public string MutualsCachedAt      { get; set; } = "";
-        public string MutualGroupsJson     { get; set; } = "[]";
-        public string MutualGroupsCachedAt { get; set; } = "";
+        public string DisplayName             { get; set; } = "";
+        public string Image                   { get; set; } = "";
+        public string ProfileStatus           { get; set; } = "";
+        public string ProfileStatusDesc       { get; set; } = "";
+        public string ProfileBio              { get; set; } = "";
+        public string ProfileLocation         { get; set; } = "";
+        public int    ProfileIsFriend         { get; set; }
+        public string ProfileAvatarImg        { get; set; } = "";
+        public string ProfileCachedAt         { get; set; } = "";
+        public string ProfileLastLogin        { get; set; } = "";
+        public string ProfileLastActivity     { get; set; } = "";
+        public string ProfileDateJoined       { get; set; } = "";
+        public string ProfileWorldName        { get; set; } = "";
+        public string ProfileWorldThumb       { get; set; } = "";
+        public string ProfileInstanceType     { get; set; } = "";
+        public int    ProfileUserCount        { get; set; }
+        public int    ProfileWorldCapacity    { get; set; }
+        public int    ProfileCanJoin          { get; set; }
+        public int    ProfileCanRequestInvite { get; set; }
+        public int    ProfileCanInvite        { get; set; }
+        public string ProfileCurrentAvatarId  { get; set; } = "";
+        public string ProfileAvatarFileId     { get; set; } = "";
+        public string ProfilePicOverride      { get; set; } = "";
+        public string ProfileTags             { get; set; } = "[]";
+        public string ProfileNote             { get; set; } = "";
+        public string ProfileFriendKey        { get; set; } = "";
+        public string ProfileTravelingTo      { get; set; } = "";
+        public string ProfileState            { get; set; } = "";
+        public string ProfileLastPlatform     { get; set; } = "";
+        public string ProfilePlatform         { get; set; } = "";
+        public string ProfileUserNote         { get; set; } = "";
+        public int    ProfileInSameInstance   { get; set; }
+        public string ProfilePronouns         { get; set; } = "";
+        public string ProfileAgeVerification  { get; set; } = "";
+        public int    ProfileAgeVerified      { get; set; }
+        public string ProfileBioLinks         { get; set; } = "[]";
+        public int    ProfileIsFavorited      { get; set; }
+        public string ProfileFavFriendId      { get; set; } = "";
+        public string ProfileBadges           { get; set; } = "[]";
+        public string GroupsJson              { get; set; } = "[]";
+        public string GroupsCachedAt          { get; set; } = "";
+        public string ContentJson             { get; set; } = "{}";
+        public string ContentCachedAt         { get; set; } = "";
+        public string MutualsJson             { get; set; } = "{}";
+        public string MutualsCachedAt         { get; set; } = "";
+        public string MutualGroupsJson        { get; set; } = "[]";
+        public string MutualGroupsCachedAt    { get; set; } = "";
     }
 
     public UserProfileCache? GetUserProfileCache(string userId)
@@ -686,20 +724,75 @@ public class UnifiedTimeEngine : IDisposable
             try
             {
                 using var cmd = _db.CreateCommand();
-                cmd.CommandText = @"SELECT profile, profile_cached_at,
+                cmd.CommandText = @"SELECT
+                    display_name, image, profile_status, profile_status_desc, profile_bio, profile_location,
+                    profile_is_friend, profile_avatar_img, profile_cached_at,
+                    profile_last_login, profile_last_activity, profile_date_joined,
+                    profile_world_name, profile_world_thumb, profile_instance_type,
+                    profile_user_count, profile_world_capacity, profile_can_join, profile_can_request_invite, profile_can_invite,
+                    profile_current_avatar_id, profile_avatar_file_id, profile_pic_override,
+                    profile_tags, profile_note, profile_friend_key, profile_traveling_to, profile_state,
+                    profile_last_platform, profile_platform, profile_user_note, profile_in_same_instance,
+                    profile_pronouns, profile_age_verification, profile_age_verified,
+                    profile_bio_links, profile_is_favorited, profile_fav_friend_id, profile_badges,
                     groups, groups_cached_at, content, content_cached_at,
                     mutuals, mutuals_cached_at, mutual_groups, mutual_groups_cached_at
                     FROM user_tracking WHERE user_id=$id";
                 cmd.Parameters.AddWithValue("$id", userId);
                 using var r = cmd.ExecuteReader();
                 if (!r.Read()) return null;
+                string S(string col) { var o = r.GetOrdinal(col); return r.IsDBNull(o) ? "" : r.GetString(o); }
+                int    I(string col) { var o = r.GetOrdinal(col); return r.IsDBNull(o) ? 0 : (int)r.GetInt64(o); }
+                string SA(string col, string def) { var v = S(col); return v.Length > 0 ? v : def; }
                 var c = new UserProfileCache
                 {
-                    ProfileJson          = r.GetString(0), ProfileCachedAt      = r.GetString(1),
-                    GroupsJson           = r.GetString(2), GroupsCachedAt       = r.GetString(3),
-                    ContentJson          = r.GetString(4), ContentCachedAt      = r.GetString(5),
-                    MutualsJson          = r.GetString(6), MutualsCachedAt      = r.GetString(7),
-                    MutualGroupsJson     = r.GetString(8), MutualGroupsCachedAt = r.GetString(9),
+                    DisplayName            = S("display_name"),
+                    Image                  = S("image"),
+                    ProfileStatus          = S("profile_status"),
+                    ProfileStatusDesc      = S("profile_status_desc"),
+                    ProfileBio             = S("profile_bio"),
+                    ProfileLocation        = S("profile_location"),
+                    ProfileIsFriend        = I("profile_is_friend"),
+                    ProfileAvatarImg       = S("profile_avatar_img"),
+                    ProfileCachedAt        = S("profile_cached_at"),
+                    ProfileLastLogin       = S("profile_last_login"),
+                    ProfileLastActivity    = S("profile_last_activity"),
+                    ProfileDateJoined      = S("profile_date_joined"),
+                    ProfileWorldName       = S("profile_world_name"),
+                    ProfileWorldThumb      = S("profile_world_thumb"),
+                    ProfileInstanceType    = S("profile_instance_type"),
+                    ProfileUserCount       = I("profile_user_count"),
+                    ProfileWorldCapacity   = I("profile_world_capacity"),
+                    ProfileCanJoin         = I("profile_can_join"),
+                    ProfileCanRequestInvite = I("profile_can_request_invite"),
+                    ProfileCanInvite       = I("profile_can_invite"),
+                    ProfileCurrentAvatarId = S("profile_current_avatar_id"),
+                    ProfileAvatarFileId    = S("profile_avatar_file_id"),
+                    ProfilePicOverride     = S("profile_pic_override"),
+                    ProfileTags            = SA("profile_tags", "[]"),
+                    ProfileNote            = S("profile_note"),
+                    ProfileFriendKey       = S("profile_friend_key"),
+                    ProfileTravelingTo     = S("profile_traveling_to"),
+                    ProfileState           = S("profile_state"),
+                    ProfileLastPlatform    = S("profile_last_platform"),
+                    ProfilePlatform        = S("profile_platform"),
+                    ProfileUserNote        = S("profile_user_note"),
+                    ProfileInSameInstance  = I("profile_in_same_instance"),
+                    ProfilePronouns        = S("profile_pronouns"),
+                    ProfileAgeVerification = S("profile_age_verification"),
+                    ProfileAgeVerified     = I("profile_age_verified"),
+                    ProfileBioLinks        = SA("profile_bio_links", "[]"),
+                    ProfileIsFavorited     = I("profile_is_favorited"),
+                    ProfileFavFriendId     = S("profile_fav_friend_id"),
+                    ProfileBadges          = SA("profile_badges", "[]"),
+                    GroupsJson             = SA("groups", "[]"),
+                    GroupsCachedAt         = S("groups_cached_at"),
+                    ContentJson            = SA("content", "{}"),
+                    ContentCachedAt        = S("content_cached_at"),
+                    MutualsJson            = SA("mutuals", "{}"),
+                    MutualsCachedAt        = S("mutuals_cached_at"),
+                    MutualGroupsJson       = SA("mutual_groups", "[]"),
+                    MutualGroupsCachedAt   = S("mutual_groups_cached_at"),
                 };
                 return string.IsNullOrEmpty(c.ProfileCachedAt) ? null : c;
             }
@@ -707,9 +800,11 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
-    public void SaveUserProfileFull(string userId, string profileJson)
+    public void SaveUserProfileCache(string userId, string payloadJson)
     {
         if (string.IsNullOrEmpty(userId)) return;
+        JObject p;
+        try { p = JObject.Parse(payloadJson); } catch { return; }
         var now = DateTime.UtcNow.ToString("o");
         lock (_lock)
         {
@@ -720,8 +815,61 @@ public class UnifiedTimeEngine : IDisposable
                 ins.Parameters.AddWithValue("$id", userId);
                 ins.ExecuteNonQuery();
                 using var cmd = _db.CreateCommand();
-                cmd.CommandText = "UPDATE user_tracking SET profile=$pj, profile_cached_at=$cat WHERE user_id=$id";
-                cmd.Parameters.AddWithValue("$id", userId); cmd.Parameters.AddWithValue("$pj", profileJson); cmd.Parameters.AddWithValue("$cat", now);
+                cmd.CommandText = @"UPDATE user_tracking SET
+                    display_name=$dn, image=$img,
+                    profile_status=$st, profile_status_desc=$sd, profile_bio=$bio, profile_location=$loc,
+                    profile_is_friend=$fr, profile_avatar_img=$ai, profile_cached_at=$cat,
+                    profile_last_login=$ll, profile_last_activity=$la, profile_date_joined=$dj,
+                    profile_world_name=$wn, profile_world_thumb=$wt, profile_instance_type=$it,
+                    profile_user_count=$uc, profile_world_capacity=$wc, profile_can_join=$cj,
+                    profile_can_request_invite=$cri, profile_can_invite=$ci,
+                    profile_current_avatar_id=$caid, profile_avatar_file_id=$afid, profile_pic_override=$po,
+                    profile_tags=$tags, profile_note=$note, profile_friend_key=$fk, profile_traveling_to=$tt,
+                    profile_state=$state, profile_last_platform=$lp, profile_platform=$pl, profile_user_note=$un,
+                    profile_in_same_instance=$isi, profile_pronouns=$pro, profile_age_verification=$av,
+                    profile_age_verified=$avd, profile_bio_links=$bl, profile_is_favorited=$ifav,
+                    profile_fav_friend_id=$ffid, profile_badges=$badges
+                    WHERE user_id=$id";
+                cmd.Parameters.AddWithValue("$id",    userId);
+                cmd.Parameters.AddWithValue("$dn",    p["displayName"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$img",   p["image"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$st",    p["status"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$sd",    p["statusDescription"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$bio",   p["bio"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$loc",   p["location"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$fr",    p["isFriend"]?.Value<bool>() == true ? 1 : 0);
+                cmd.Parameters.AddWithValue("$ai",    p["currentAvatarImageUrl"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$cat",   now);
+                cmd.Parameters.AddWithValue("$ll",    p["lastLogin"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$la",    p["lastActivity"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$dj",    p["dateJoined"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$wn",    p["worldName"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$wt",    p["worldThumb"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$it",    p["instanceType"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$uc",    p["userCount"]?.Value<int>() ?? 0);
+                cmd.Parameters.AddWithValue("$wc",    p["worldCapacity"]?.Value<int>() ?? 0);
+                cmd.Parameters.AddWithValue("$cj",    p["canJoin"]?.Value<bool>() == true ? 1 : 0);
+                cmd.Parameters.AddWithValue("$cri",   p["canRequestInvite"]?.Value<bool>() == true ? 1 : 0);
+                cmd.Parameters.AddWithValue("$ci",    p["canInvite"]?.Value<bool>() == true ? 1 : 0);
+                cmd.Parameters.AddWithValue("$caid",  p["currentAvatarId"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$afid",  p["avatarFileId"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$po",    p["profilePicOverride"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$tags",  p["tags"]?.ToString() ?? "[]");
+                cmd.Parameters.AddWithValue("$note",  p["note"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$fk",    p["friendKey"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$tt",    p["travelingToLocation"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$state", p["state"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$lp",    p["lastPlatform"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$pl",    p["platform"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$un",    p["userNote"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$isi",   p["inSameInstance"]?.Value<bool>() == true ? 1 : 0);
+                cmd.Parameters.AddWithValue("$pro",   p["pronouns"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$av",    p["ageVerificationStatus"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$avd",   p["ageVerified"]?.Value<bool>() == true ? 1 : 0);
+                cmd.Parameters.AddWithValue("$bl",    p["bioLinks"]?.ToString() ?? "[]");
+                cmd.Parameters.AddWithValue("$ifav",  p["isFavorited"]?.Value<bool>() == true ? 1 : 0);
+                cmd.Parameters.AddWithValue("$ffid",  p["favFriendId"]?.ToString() ?? "");
+                cmd.Parameters.AddWithValue("$badges", p["badges"]?.ToString() ?? "[]");
                 cmd.ExecuteNonQuery();
             }
             catch { }
@@ -1384,17 +1532,55 @@ public class UnifiedTimeEngine : IDisposable
 
         foreach (var col in new[]
         {
-            "display_name        TEXT NOT NULL DEFAULT ''",
-            "image               TEXT NOT NULL DEFAULT ''",
-            "profile_status      TEXT NOT NULL DEFAULT ''",
-            "profile_status_desc TEXT NOT NULL DEFAULT ''",
-            "profile_bio         TEXT NOT NULL DEFAULT ''",
-            "profile_location    TEXT NOT NULL DEFAULT ''",
-            "profile_is_friend   INTEGER NOT NULL DEFAULT 0",
-            "profile_avatar_img  TEXT NOT NULL DEFAULT ''",
-            "profile_cached_at   TEXT NOT NULL DEFAULT ''",
-            "first_meet_date     TEXT NOT NULL DEFAULT ''",
-            "meet_again_count    INTEGER NOT NULL DEFAULT 0",
+            "display_name                TEXT    NOT NULL DEFAULT ''",
+            "image                       TEXT    NOT NULL DEFAULT ''",
+            "profile_status              TEXT    NOT NULL DEFAULT ''",
+            "profile_status_desc         TEXT    NOT NULL DEFAULT ''",
+            "profile_bio                 TEXT    NOT NULL DEFAULT ''",
+            "profile_location            TEXT    NOT NULL DEFAULT ''",
+            "profile_is_friend           INTEGER NOT NULL DEFAULT 0",
+            "profile_avatar_img          TEXT    NOT NULL DEFAULT ''",
+            "profile_cached_at           TEXT    NOT NULL DEFAULT ''",
+            "first_meet_date             TEXT    NOT NULL DEFAULT ''",
+            "meet_again_count            INTEGER NOT NULL DEFAULT 0",
+            "profile_last_login          TEXT    NOT NULL DEFAULT ''",
+            "profile_last_activity       TEXT    NOT NULL DEFAULT ''",
+            "profile_date_joined         TEXT    NOT NULL DEFAULT ''",
+            "profile_world_name          TEXT    NOT NULL DEFAULT ''",
+            "profile_world_thumb         TEXT    NOT NULL DEFAULT ''",
+            "profile_instance_type       TEXT    NOT NULL DEFAULT ''",
+            "profile_user_count          INTEGER NOT NULL DEFAULT 0",
+            "profile_world_capacity      INTEGER NOT NULL DEFAULT 0",
+            "profile_can_join            INTEGER NOT NULL DEFAULT 0",
+            "profile_can_request_invite  INTEGER NOT NULL DEFAULT 0",
+            "profile_can_invite          INTEGER NOT NULL DEFAULT 0",
+            "profile_current_avatar_id   TEXT    NOT NULL DEFAULT ''",
+            "profile_avatar_file_id      TEXT    NOT NULL DEFAULT ''",
+            "profile_pic_override        TEXT    NOT NULL DEFAULT ''",
+            "profile_tags                TEXT    NOT NULL DEFAULT '[]'",
+            "profile_note                TEXT    NOT NULL DEFAULT ''",
+            "profile_friend_key          TEXT    NOT NULL DEFAULT ''",
+            "profile_traveling_to        TEXT    NOT NULL DEFAULT ''",
+            "profile_state               TEXT    NOT NULL DEFAULT ''",
+            "profile_last_platform       TEXT    NOT NULL DEFAULT ''",
+            "profile_platform            TEXT    NOT NULL DEFAULT ''",
+            "profile_user_note           TEXT    NOT NULL DEFAULT ''",
+            "profile_in_same_instance    INTEGER NOT NULL DEFAULT 0",
+            "profile_pronouns            TEXT    NOT NULL DEFAULT ''",
+            "profile_age_verification    TEXT    NOT NULL DEFAULT ''",
+            "profile_age_verified        INTEGER NOT NULL DEFAULT 0",
+            "profile_bio_links           TEXT    NOT NULL DEFAULT '[]'",
+            "profile_is_favorited        INTEGER NOT NULL DEFAULT 0",
+            "profile_fav_friend_id       TEXT    NOT NULL DEFAULT ''",
+            "profile_badges              TEXT    NOT NULL DEFAULT '[]'",
+            "groups                      TEXT    NOT NULL DEFAULT ''",
+            "groups_cached_at            TEXT    NOT NULL DEFAULT ''",
+            "content                     TEXT    NOT NULL DEFAULT ''",
+            "content_cached_at           TEXT    NOT NULL DEFAULT ''",
+            "mutuals                     TEXT    NOT NULL DEFAULT ''",
+            "mutuals_cached_at           TEXT    NOT NULL DEFAULT ''",
+            "mutual_groups               TEXT    NOT NULL DEFAULT ''",
+            "mutual_groups_cached_at     TEXT    NOT NULL DEFAULT ''",
         })
         {
             try

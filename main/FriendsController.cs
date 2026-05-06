@@ -150,15 +150,10 @@ public class FriendsController
 
                     // SQLite cache
                     var prevSqlite = _core.TimeEngine.GetUserProfileCache(prevId);
-                    if (prevSqlite != null && !string.IsNullOrEmpty(prevSqlite.ProfileJson))
+                    if (prevSqlite != null)
                     {
-                        try
-                        {
-                            var disk = JObject.Parse(prevSqlite.ProfileJson);
-                            bio = disk["bio"]?.ToString() ?? "";
-                            profilePicOverride = disk["profilePicOverride"]?.ToString() ?? "";
-                        }
-                        catch { }
+                        bio = prevSqlite.ProfileBio;
+                        profilePicOverride = prevSqlite.ProfilePicOverride;
                     }
 
                     // Live API fallback if no SQLite cache yet
@@ -1285,40 +1280,85 @@ public class FriendsController
         lock (_friendStore) isFriend = _friendStore.ContainsKey(userId);
 
         var cachedEntry = _core.TimeEngine.GetUserProfileCache(userId);
-        JObject? diskProfile = null;
-        if (cachedEntry != null && !string.IsNullOrEmpty(cachedEntry.ProfileJson))
-            try { diskProfile = JObject.Parse(cachedEntry.ProfileJson); } catch { }
-
-        if (diskProfile != null)
+        if (cachedEntry != null)
         {
+            var (cGroups, cRepGroup)       = BuildGroupsDisplay(TryParseJArray(cachedEntry.GroupsJson) ?? new JArray());
+            var cWorlds                    = BuildWorldsDisplay(TryParseJObject(cachedEntry.ContentJson)?["worlds"] as JArray ?? new JArray());
+            var mutualsRaw                 = TryParseJObject(cachedEntry.MutualsJson) ?? new JObject();
+            var cMutuals                   = BuildMutualsDisplay(mutualsRaw["mutuals"] as JArray ?? new JArray());
+            var cMutualsOptedOut           = mutualsRaw["optedOut"]?.Value<bool>() ?? false;
+            var cMutualGroups              = BuildMutualGroupsDisplay(TryParseJArray(cachedEntry.MutualGroupsJson) ?? new JArray());
+
             JObject? live;
             lock (_friendStore) _friendStore.TryGetValue(userId, out live);
-            diskProfile["status"] = live?["status"]?.ToString() ?? diskProfile["status"]?.ToString() ?? "offline";
-            diskProfile["statusDescription"] = live?["statusDescription"]?.ToString() ?? diskProfile["statusDescription"]?.ToString() ?? "";
-            diskProfile["location"] = live?["location"]?.ToString() ?? diskProfile["location"]?.ToString() ?? "";
-            diskProfile["userCount"] = 0;
-            diskProfile["worldCapacity"] = 0;
-            diskProfile["inSameInstance"] = false;
-            diskProfile["travelingToLocation"] = "";
-            var _liveStatus = diskProfile["status"]?.ToString() ?? "offline";
-            var _liveLoc = diskProfile["location"]?.ToString() ?? "";
-            var (_, _, _liveInstType) = VRChatApiService.ParseLocation(_liveLoc);
-            var _liveWid = _liveLoc.Contains(':') ? _liveLoc.Split(':')[0] : "";
-            (string name, string thumb) _liveWorld = ("", "");
-            if (_liveWid.StartsWith("wrld_"))
-                lock (_core.VrWorldCache) _core.VrWorldCache.TryGetValue(_liveWid, out _liveWorld);
-            diskProfile["worldName"] = _liveWorld.name;
-            diskProfile["worldThumb"] = _liveWorld.thumb;
-            bool _liveIsInWorld = !string.IsNullOrEmpty(_liveLoc) && _liveLoc != "offline" && _liveLoc != "private" && _liveLoc != "traveling";
-            diskProfile["instanceType"] = _liveInstType;
-            diskProfile["canJoin"] = _liveIsInWorld && _liveInstType is "public" or "friends" or "friends+" or "hidden" or "group-public" or "group-plus" or "group-members" or "group";
-            diskProfile["canRequestInvite"] = _liveInstType is "private" or "invite_plus";
-            bool _liveInGame = !string.IsNullOrEmpty(_liveLoc) && _liveLoc != "offline";
-            diskProfile["state"] = (_liveStatus != "offline" && !_liveInGame) ? "active" : "";
-            if (string.IsNullOrEmpty(diskProfile["currentAvatarId"]?.ToString()))
-                diskProfile["currentAvatarId"] = live?["currentAvatar"]?.ToString() ?? "";
-            if (string.IsNullOrEmpty(diskProfile["avatarFileId"]?.ToString()) && live != null)
-                diskProfile["avatarFileId"] = ExtractAvatarFileId(live);
+            var liveStatus     = live?["status"]?.ToString()            ?? cachedEntry.ProfileStatus;
+            var liveStatusDesc = live?["statusDescription"]?.ToString() ?? cachedEntry.ProfileStatusDesc;
+            var liveLoc        = live?["location"]?.ToString()           ?? cachedEntry.ProfileLocation;
+            var (_, _, liveInstType) = VRChatApiService.ParseLocation(liveLoc);
+            var liveWid = liveLoc.Contains(':') ? liveLoc.Split(':')[0] : "";
+            (string name, string thumb) liveWorld = ("", "");
+            if (liveWid.StartsWith("wrld_"))
+                lock (_core.VrWorldCache) _core.VrWorldCache.TryGetValue(liveWid, out liveWorld);
+            bool liveIsInWorld = !string.IsNullOrEmpty(liveLoc) && liveLoc != "offline" && liveLoc != "private" && liveLoc != "traveling";
+            bool liveInGame    = !string.IsNullOrEmpty(liveLoc) && liveLoc != "offline";
+            var liveAvatarId   = live?["currentAvatar"]?.ToString() ?? cachedEntry.ProfileCurrentAvatarId;
+            var liveFileId     = live != null ? ExtractAvatarFileId(live) : "";
+            if (string.IsNullOrEmpty(liveFileId)) liveFileId = cachedEntry.ProfileAvatarFileId;
+            var isCoPresent    = (_core.IsVrcRunning?.Invoke() ?? false) && _core.LogWatcher.GetCurrentPlayers().Any(p => p.UserId == userId);
+            var (totalSecs, _) = _core.TimeEngine.GetUserStats(userId, isCoPresent);
+
+            var diskProfile = new JObject
+            {
+                ["id"]                    = userId,
+                ["displayName"]           = cachedEntry.DisplayName,
+                ["image"]                 = cachedEntry.Image,
+                ["status"]                = liveStatus,
+                ["statusDescription"]     = liveStatusDesc,
+                ["bio"]                   = cachedEntry.ProfileBio,
+                ["lastLogin"]             = cachedEntry.ProfileLastLogin,
+                ["lastActivity"]          = cachedEntry.ProfileLastActivity,
+                ["dateJoined"]            = cachedEntry.ProfileDateJoined,
+                ["location"]              = liveLoc,
+                ["worldName"]             = liveWorld.name,
+                ["worldThumb"]            = liveWorld.thumb,
+                ["instanceType"]          = liveIsInWorld ? liveInstType : cachedEntry.ProfileInstanceType,
+                ["userCount"]             = 0,
+                ["worldCapacity"]         = 0,
+                ["isFriend"]              = cachedEntry.ProfileIsFriend != 0,
+                ["canJoin"]               = liveIsInWorld && liveInstType is "public" or "friends" or "friends+" or "hidden" or "group-public" or "group-plus" or "group-members" or "group",
+                ["canRequestInvite"]      = liveInstType is "private" or "invite_plus",
+                ["canInvite"]             = true,
+                ["currentAvatarImageUrl"] = cachedEntry.ProfileAvatarImg,
+                ["currentAvatarId"]       = liveAvatarId,
+                ["avatarFileId"]          = liveFileId,
+                ["profilePicOverride"]    = cachedEntry.ProfilePicOverride,
+                ["tags"]                  = TryParseJArray(cachedEntry.ProfileTags) ?? new JArray(),
+                ["note"]                  = cachedEntry.ProfileNote,
+                ["friendKey"]             = cachedEntry.ProfileFriendKey,
+                ["travelingToLocation"]   = live?["travelingToLocation"]?.ToString() ?? "",
+                ["state"]                 = (liveStatus != "offline" && !liveInGame) ? "active" : "",
+                ["lastPlatform"]          = cachedEntry.ProfileLastPlatform,
+                ["platform"]              = cachedEntry.ProfilePlatform,
+                ["userNote"]              = cachedEntry.ProfileUserNote,
+                ["totalTimeSeconds"]      = totalSecs,
+                ["meets"]                 = _core.Timeline?.GetMeetAgainCount(userId) ?? 0,
+                ["firstMeetDate"]         = _core.Timeline?.GetFirstMeetDate(userId) ?? "",
+                ["inSameInstance"]        = isCoPresent,
+                ["lastSeenTracked"]       = _core.Timeline?.GetLastSeenTimestamp(userId) ?? "",
+                ["pronouns"]              = cachedEntry.ProfilePronouns,
+                ["ageVerificationStatus"] = cachedEntry.ProfileAgeVerification,
+                ["ageVerified"]           = cachedEntry.ProfileAgeVerified != 0,
+                ["representedGroup"]      = cRepGroup != null ? JToken.FromObject(cRepGroup) : JValue.CreateNull(),
+                ["userGroups"]            = JArray.FromObject(cGroups),
+                ["mutuals"]               = JArray.FromObject(cMutuals),
+                ["mutualGroups"]          = JArray.FromObject(cMutualGroups),
+                ["mutualsOptedOut"]       = cMutualsOptedOut,
+                ["userWorlds"]            = JArray.FromObject(cWorlds),
+                ["bioLinks"]              = TryParseJArray(cachedEntry.ProfileBioLinks) ?? new JArray(),
+                ["isFavorited"]           = _favoriteFriends.ContainsKey(userId),
+                ["favFriendId"]           = GetFavoriteFriendId(userId),
+                ["badges"]                = TryParseJArray(cachedEntry.ProfileBadges) ?? new JArray(),
+            };
             _core.SendToJS("vrcFriendDetail", diskProfile);
 
             bool startRefresh;
@@ -1331,7 +1371,7 @@ public class FriendsController
                     {
                         var fresh = await BuildUserDetailPayloadAsync(userId);
                         if (fresh == null) return;
-                        _core.TimeEngine.SaveUserProfileFull(userId, Newtonsoft.Json.JsonConvert.SerializeObject(fresh));
+                        _core.TimeEngine.SaveUserProfileCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(fresh));
                         _core.SendToJS("vrcFriendDetail", fresh);
                     }
                     catch { }
@@ -1349,7 +1389,7 @@ public class FriendsController
                 _core.SendToJS("vrcFriendDetailError", new { error = "Could not load user profile" });
                 return;
             }
-            _core.TimeEngine.SaveUserProfileFull(userId, Newtonsoft.Json.JsonConvert.SerializeObject(payload));
+            _core.TimeEngine.SaveUserProfileCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(payload));
             _core.SendToJS("vrcFriendDetail", payload);
         }
         catch (Exception ex)
@@ -1400,6 +1440,102 @@ public class FriendsController
             if (m.Success) return m.Groups[1].Value;
         }
         return "";
+    }
+
+    private (List<object> userGroups, object? representedGroup) BuildGroupsDisplay(JArray raw)
+    {
+        var userGroups = new List<object>();
+        object? representedGroup = null;
+        foreach (var g in raw)
+        {
+            var gid = g["groupId"]?.ToString() ?? g["id"]?.ToString() ?? "";
+            if (string.IsNullOrEmpty(gid)) continue;
+            var isRep = g["isRepresenting"]?.Value<bool>() ?? false;
+            userGroups.Add(new
+            {
+                id = gid, name = g["name"]?.ToString() ?? "",
+                shortCode = g["shortCode"]?.ToString() ?? "",
+                discriminator = g["discriminator"]?.ToString() ?? "",
+                iconUrl = ImageCacheHelper.GetGroupUrl(gid, g["iconUrl"]?.ToString()),
+                bannerUrl = ImageCacheHelper.NormalizeTo512(g["bannerUrl"]?.ToString() ?? ""),
+                memberCount = g["memberCount"]?.Value<int>() ?? 0,
+                isRepresenting = isRep,
+            });
+            if (isRep && representedGroup == null)
+                representedGroup = new
+                {
+                    id = gid, name = g["name"]?.ToString() ?? "",
+                    shortCode = g["shortCode"]?.ToString() ?? "",
+                    discriminator = g["discriminator"]?.ToString() ?? "",
+                    iconUrl = ImageCacheHelper.GetGroupUrl(gid, g["iconUrl"]?.ToString()),
+                    bannerUrl = ImageCacheHelper.NormalizeTo512(g["bannerUrl"]?.ToString() ?? ""),
+                    memberCount = g["memberCount"]?.Value<int>() ?? 0,
+                };
+        }
+        return (userGroups, representedGroup);
+    }
+
+    private static List<object> BuildWorldsDisplay(JArray raw)
+    {
+        var list = new List<object>();
+        foreach (var w in raw)
+        {
+            if (w is not JObject wObj) continue;
+            list.Add(new
+            {
+                id = wObj["id"]?.ToString() ?? "", name = wObj["name"]?.ToString() ?? "",
+                thumbnailImageUrl = wObj["thumbnailImageUrl"]?.ToString() ?? "",
+                occupants = wObj["occupants"]?.Value<int>() ?? 0,
+                favorites = wObj["favorites"]?.Value<int>() ?? 0,
+                visits = wObj["visits"]?.Value<int>() ?? 0,
+            });
+        }
+        return list;
+    }
+
+    private List<object> BuildMutualsDisplay(JArray mutualsArr)
+    {
+        var list = new List<object>();
+        foreach (var mu in mutualsArr)
+        {
+            if (mu is not JObject muObj) continue;
+            var muId = muObj["id"]?.ToString() ?? "";
+            var muImage = ImageCacheHelper.GetUserUrl(muId, (_friendNameImg.TryGetValue(muId, out var muFi) && !string.IsNullOrEmpty(muFi.image))
+                ? muFi.image : VRChatApiService.GetUserImage(muObj));
+            var muLocation = muObj["location"]?.ToString() ?? "";
+            var muStatus = muObj["status"]?.ToString() ?? "offline";
+            bool muIsInGame = !string.IsNullOrEmpty(muLocation) && muLocation != "offline" && muLocation != "private" && muLocation != "traveling";
+            bool muIsOffline = muStatus == "offline" || muLocation == "offline";
+            list.Add(new
+            {
+                id = muId, displayName = muObj["displayName"]?.ToString() ?? "",
+                image = muImage, status = muStatus,
+                statusDescription = muObj["statusDescription"]?.ToString() ?? "",
+                presence = muIsOffline ? "offline" : muIsInGame ? "game" : "web",
+            });
+        }
+        return list;
+    }
+
+    private static List<object> BuildMutualGroupsDisplay(JArray raw)
+    {
+        var list = new List<object>();
+        foreach (var mg in raw)
+        {
+            if (mg is not JObject mgObj) continue;
+            var gid = mgObj["groupId"]?.ToString() ?? mgObj["id"]?.ToString() ?? "";
+            if (string.IsNullOrEmpty(gid)) continue;
+            list.Add(new
+            {
+                id = gid, name = mgObj["name"]?.ToString() ?? "",
+                shortCode = mgObj["shortCode"]?.ToString() ?? "",
+                discriminator = mgObj["discriminator"]?.ToString() ?? "",
+                iconUrl = ImageCacheHelper.GetGroupUrl(gid, mgObj["iconUrl"]?.ToString()),
+                bannerUrl = ImageCacheHelper.NormalizeTo512(mgObj["bannerUrl"]?.ToString() ?? ""),
+                memberCount = mgObj["memberCount"]?.Value<int>() ?? 0,
+            });
+        }
+        return list;
     }
 
     public async Task<object?> BuildUserDetailPayloadAsync(string userId)
@@ -1472,7 +1608,7 @@ public class FriendsController
             cf["worlds"] = JToken.FromObject(worlds);
             _core.TimeEngine.SaveUserContentCache(userId, cf.ToString(Newtonsoft.Json.Formatting.None));
         }
-        if (cachedMutualGroups == null && mutualGroupsTask.IsCompletedSuccessfully && mutualGroupsArr.Count > 0)
+        if (cachedMutualGroups == null && mutualGroupsTask.IsCompletedSuccessfully)
             _core.TimeEngine.SaveUserMutualGroupsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(mutualGroupsArr));
         var (mutualsArr, mutualsOptedOut) = mutualsTask.IsCompletedSuccessfully
             ? mutualsTask.Result : (new JArray(), false);
@@ -1495,91 +1631,10 @@ public class FriendsController
         bool canRequestInvite = instanceType is "private" or "invite_plus";
         bool isInWorld = !string.IsNullOrEmpty(worldId) && location != "private" && location != "offline" && location != "traveling";
 
-        object? representedGroup = null;
-        var repGroup = groups.OfType<JObject>().FirstOrDefault(g => g["isRepresenting"]?.Value<bool>() == true);
-        if (repGroup != null && !string.IsNullOrEmpty(repGroup["groupId"]?.ToString() ?? repGroup["id"]?.ToString()))
-        {
-            representedGroup = new
-            {
-                id = repGroup["groupId"]?.ToString() ?? repGroup["id"]?.ToString() ?? "",
-                name = repGroup["name"]?.ToString() ?? "",
-                shortCode = repGroup["shortCode"]?.ToString() ?? "",
-                discriminator = repGroup["discriminator"]?.ToString() ?? "",
-                iconUrl = ImageCacheHelper.GetGroupUrl(repGroup["groupId"]?.ToString() ?? repGroup["id"]?.ToString(), repGroup["iconUrl"]?.ToString()),
-                bannerUrl = ImageCacheHelper.NormalizeTo512(repGroup["bannerUrl"]?.ToString() ?? ""),
-                memberCount = repGroup["memberCount"]?.Value<int>() ?? 0,
-            };
-        }
-
-        List<object> userGroups = new();
-        foreach (var g in groups)
-        {
-            var gid = g["groupId"]?.ToString() ?? g["id"]?.ToString() ?? "";
-            if (string.IsNullOrEmpty(gid)) continue;
-            userGroups.Add(new
-            {
-                id = gid, name = g["name"]?.ToString() ?? "",
-                shortCode = g["shortCode"]?.ToString() ?? "",
-                discriminator = g["discriminator"]?.ToString() ?? "",
-                iconUrl = ImageCacheHelper.GetGroupUrl(gid, g["iconUrl"]?.ToString()),
-                bannerUrl = ImageCacheHelper.NormalizeTo512(g["bannerUrl"]?.ToString() ?? ""),
-                memberCount = g["memberCount"]?.Value<int>() ?? 0,
-                isRepresenting = g["isRepresenting"]?.Value<bool>() ?? false,
-            });
-        }
-
-        List<object> userWorlds = new();
-        foreach (var w in worlds)
-        {
-            if (w is not JObject wObj) continue;
-            userWorlds.Add(new
-            {
-                id = wObj["id"]?.ToString() ?? "", name = wObj["name"]?.ToString() ?? "",
-                thumbnailImageUrl = wObj["thumbnailImageUrl"]?.ToString() ?? "",
-                occupants = wObj["occupants"]?.Value<int>() ?? 0,
-                favorites = wObj["favorites"]?.Value<int>() ?? 0,
-                visits = wObj["visits"]?.Value<int>() ?? 0,
-            });
-        }
-
-        List<object> mutualGroupsList = new();
-        foreach (var mg in mutualGroupsArr)
-        {
-            if (mg is not JObject mgObj) continue;
-            var gid = mgObj["groupId"]?.ToString() ?? mgObj["id"]?.ToString() ?? "";
-            if (string.IsNullOrEmpty(gid)) continue;
-            mutualGroupsList.Add(new
-            {
-                id = gid,
-                name = mgObj["name"]?.ToString() ?? "",
-                shortCode = mgObj["shortCode"]?.ToString() ?? "",
-                discriminator = mgObj["discriminator"]?.ToString() ?? "",
-                iconUrl = ImageCacheHelper.GetGroupUrl(gid, mgObj["iconUrl"]?.ToString()),
-                bannerUrl = ImageCacheHelper.NormalizeTo512(mgObj["bannerUrl"]?.ToString() ?? ""),
-                memberCount = mgObj["memberCount"]?.Value<int>() ?? 0,
-            });
-        }
-
-        List<object> mutualsList = new();
-        foreach (var mu in mutualsArr)
-        {
-            if (mu is not JObject muObj) continue;
-            var muId = muObj["id"]?.ToString() ?? "";
-            var muImage = ImageCacheHelper.GetUserUrl(muId, (_friendNameImg.TryGetValue(muId, out var muFi) && !string.IsNullOrEmpty(muFi.image))
-                ? muFi.image : VRChatApiService.GetUserImage(muObj));
-            var muLocation = muObj["location"]?.ToString() ?? "";
-            var muStatus = muObj["status"]?.ToString() ?? "offline";
-            bool muIsInGame = !string.IsNullOrEmpty(muLocation) && muLocation != "offline" && muLocation != "private" && muLocation != "traveling";
-            bool muIsOffline = muStatus == "offline" || muLocation == "offline";
-            mutualsList.Add(new
-            {
-                id = muObj["id"]?.ToString() ?? "",
-                displayName = muObj["displayName"]?.ToString() ?? "",
-                image = muImage, status = muStatus,
-                statusDescription = muObj["statusDescription"]?.ToString() ?? "",
-                presence = muIsOffline ? "offline" : muIsInGame ? "game" : "web",
-            });
-        }
+        var (userGroups, representedGroup) = BuildGroupsDisplay(groups);
+        var userWorlds                     = BuildWorldsDisplay(worlds);
+        var mutualGroupsList               = BuildMutualGroupsDisplay(mutualGroupsArr);
+        var mutualsList                    = BuildMutualsDisplay(mutualsArr);
 
         List<object> badges = new();
         foreach (var b in badgesArr)
@@ -1593,7 +1648,8 @@ public class FriendsController
                 id = badgeId,
                 name = bObj["badgeName"]?.ToString() ?? "",
                 description = bObj["badgeDescription"]?.ToString() ?? "",
-                imageUrl = ImageCacheHelper.GetBadgeUrl(badgeId, rawBadgeUrl), showcased = bObj["showcased"]?.Value<bool>() ?? false,
+                imageUrl = ImageCacheHelper.GetBadgeUrl(badgeId, rawBadgeUrl),
+                showcased = bObj["showcased"]?.Value<bool>() ?? false,
             });
         }
 
