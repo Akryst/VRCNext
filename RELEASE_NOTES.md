@@ -2,6 +2,9 @@
 
 ### Changes
 
+**Fonts**
+* Changed font to Google Sans/Google Noto/Bolds
+
 **Modals**
 * All modals (Group, Profile, Avatars, Worlds) are now 15% bigger.
 
