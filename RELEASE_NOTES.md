@@ -10,6 +10,7 @@
 
 **Friend Sidebar**
 * Favorites only show friends that are In-Game instead of every single one.
+* Favorites won't be shown "IN-GAME" to make sure we don't have duplicates.
 
 * **Dashboard**
 
