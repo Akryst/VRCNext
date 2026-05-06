@@ -72,9 +72,11 @@ function _renderInstanceDetailContent(inst) {
     friendsHtml += '</div>';
 
     const loc = (inst.location || '').replace(/'/g, "\\'");
+    const _ageBadge1 = (inst.location || '').includes('~ageGate')
+        ? `<span class="vrcn-badge" style="background:rgba(255,75,85,.15);color:var(--err);">${esc(t('worlds.instances.age_gated', 'Age Gated'))}</span>` : '';
     c.innerHTML = `${bannerHtml}<div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:16px 32px;">
         <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(inst.worldName || worldId || t('dashboard.instances.unknown_world', 'Unknown World'))}</h2>
-        <div class="fd-badges-row"><span class="vrcn-badge ${cls}">${typeLabel}</span>${getOwnerBadgeHtml(inst.ownerId || '', inst.ownerName || '', inst.ownerGroup || '', 'closeMyInstanceDetail()')}${copyBadge}</div>
+        <div class="fd-badges-row"><span class="vrcn-badge ${cls}">${typeLabel}</span>${_ageBadge1}${getOwnerBadgeHtml(inst.ownerId || '', inst.ownerName || '', inst.ownerGroup || '', 'closeMyInstanceDetail()')}${copyBadge}</div>
         ${friendsHtml}
         <div class="fd-actions">
             <button class="vrcn-button-round vrcn-btn-join" onclick="closeMyInstanceDetail();sendToCS({action:'vrcJoinFriend',location:'${loc}'})">${t('dashboard.instances.join_world', 'Join World')}</button>
@@ -153,7 +155,7 @@ function _renderMyInstanceContent(inst) {
             <button class="vrcn-button-round" title="${esc(t('dashboard.instances.invite_friends', 'Invite Friends'))}" onclick="closeMyInstanceDetail();openInviteModalForLocation('${mloc}','${mwn}','${mwt}','${mit}')"><span class="msi" style="font-size:16px;">person_add</span></button>
             <button class="vrcn-button-round vrcn-btn-danger" title="${esc(t('dashboard.instances.remove_instance', 'Remove Instance'))}" onclick="removeMyInstance('${loc}')"><span class="msi" style="font-size:16px;">delete</span></button>
         </div>
-        <div class="fd-badges-row"><span class="vrcn-badge ${cls}">${typeLabel}</span>${getOwnerBadgeHtml(inst.ownerId, inst.ownerName, inst.ownerGroup, 'closeMyInstanceDetail()')}${copyBadge}</div>
+        <div class="fd-badges-row"><span class="vrcn-badge ${cls}">${typeLabel}</span>${(inst.location || '').includes('~ageGate') ? `<span class="vrcn-badge" style="background:rgba(255,75,85,.15);color:var(--err);">${esc(t('worlds.instances.age_gated', 'Age Gated'))}</span>` : ''}${getOwnerBadgeHtml(inst.ownerId, inst.ownerName, inst.ownerGroup, 'closeMyInstanceDetail()')}${copyBadge}</div>
         ${friendsHtml}
         <div class="fd-actions">
             <button class="vrcn-button-round vrcn-btn-join" onclick="closeMyInstanceDetail();sendToCS({action:'vrcJoinFriend',location:'${loc}'})">${t('dashboard.instances.join_world', 'Join World')}</button>

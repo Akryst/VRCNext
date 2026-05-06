@@ -806,6 +806,7 @@ public class InstanceController
                     instanceType = parsed.instanceType,
                     nUsers, capacity = worldCapacity, users, playerSource,
                     ownerId, ownerName, ownerGroup,
+                    ageGate = loc.Contains("~ageGate"),
                 });
             });
         }
@@ -873,6 +874,7 @@ public class InstanceController
             ownerId      = _cachedInstOwnerId,
             ownerName    = _cachedInstOwnerName,
             ownerGroup   = _cachedInstOwnerGroup,
+            ageGate      = _cachedInstLocation.Contains("~ageGate"),
         });
     }
 

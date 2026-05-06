@@ -56,14 +56,17 @@ function _renderInviteModal() {
     const worldName = _inviteOverride?.worldName || currentInstanceData?.worldName || t('invite.multi.current_instance', 'Current Instance');
     const worldThumb = _inviteOverride?.worldThumb || currentInstanceData?.worldThumb || '';
     const instanceType = _inviteOverride?.instanceType || currentInstanceData?.instanceType || '';
+    const ageGate = _inviteOverride?.ageGate || currentInstanceData?.ageGate || false;
     const { cls: badgeCls, label: badgeLabel } = getInstanceBadge(instanceType || 'public');
     const typeBadge = instanceType && instanceType !== 'public'
         ? `<span class="vrcn-badge ${badgeCls}">${esc(badgeLabel)}</span>` : '';
+    const ageGateBadge = ageGate
+        ? `<span class="vrcn-badge" style="background:rgba(255,75,85,.15);color:var(--err);">${esc(t('worlds.instances.age_gated', 'Age Gated'))}</span>` : '';
     box.innerHTML = `
         <div class="inv-world-banner" style="background-image:url('${esc(worldThumb)}')">
             <div class="inv-world-fade"></div>
             <div class="inv-world-info">
-                ${typeBadge ? `<div style="margin-bottom:4px;">${typeBadge}</div>` : ''}
+                ${(typeBadge || ageGateBadge) ? `<div style="margin-bottom:4px;display:flex;gap:4px;flex-wrap:wrap;">${typeBadge}${ageGateBadge}</div>` : ''}
                 <div class="inv-world-name">${esc(worldName)}</div>
                 <div style="font-size:10px;color:rgba(255,255,255,.65);margin-top:3px;">${esc(t('invite.multi.subtitle', 'Invite to this instance'))}</div>
             </div>

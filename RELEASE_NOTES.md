@@ -5,12 +5,14 @@
 **Fonts**
 * Changed font to Google Sans/Google Noto/Bolds
 
-**Modals**
+* **Modals**
 * All modals (Group, Profile, Avatars, Worlds) are now 15% bigger.
 
-**Friend Sidebar**
+* **Friend Sidebar**
 * Favorites only show friends that are In-Game instead of every single one.
 * Favorites won't be shown "IN-GAME" to make sure we don't have duplicates.
+* Show "Age Gated" Info in instance info
+* Show "Age Gated" Info in instance list info
 
 * **Dashboard**
 
@@ -18,7 +20,6 @@
   * This information was not important in this widget and caused extra VRChat API requests.
   * Added Video background support (Max 60MB Files 1440p) - not recommended to use but have it.
   
-
 * **User Profile Modal**
 
   * The Info tab has been redesigned to be cleaner and easier to read.
@@ -44,36 +45,16 @@
   * Links, Languages, and Open to new Members are now shown on the right side.
   * Visibility is shown as a full-width row at the bottom when you are a member of the group.
 
-### Fixes & Improvements
-
-* **Fewer World Insights requests**
+* **Fixes & Improvements**
 
   * VRCNext now updates World Insights with a single request instead of requesting every world one by one.
   * This makes the hourly refresh much lighter.
-
-* **Fewer Recently Visited requests**
-
   * Recently Visited now reuses cached data where possible instead of requesting the same information again.
-
-* **Fewer Friends Location requests**
-
   * If you restart VRCNext and are still in the same world, the app can now reuse your cached location data.
-
-* **Fewer Group Activity requests**
-
   * If a group event is still hosted in the same location, VRCNext no longer requests the same location data again.
-
-* **Fewer Mutual Friends requests**
-
   * Mutual friends are now cached for 24 hours.
   * Opening the same profile again will reuse the cached data instead of sending another request.
-
-* **Fixed Current World link**
-
   * Fixed an issue where the Current World button in the User Profile Modal could not be clicked when the world name contained an apostrophe.
-
-* **Fixed Group Live tab not showing instances**
-
   * The **Live** tab in the Group Modal now correctly shows active instances for all users, including non-members.
   * Before this fix, the tab could appear empty for non-members because VRChat blocked one of the instance requests until the user joined the group.
   * VRCNext now uses a better request for this data, so non-members can see public group instances, while members can still see all available group instances.

@@ -352,6 +352,9 @@ function renderCurrentInstance(data) {
     const { cls: _instCls, label: _instLabel } = getInstanceBadge(data.instanceType);
     const typeBadge = data.instanceType && data.instanceType !== 'public'
         ? `<span class="inst-type-badge vrcn-badge ${_instCls}">${esc(_instLabel)}</span>` : '';
+    const _ageGateLabel = t('worlds.instances.age_gated', 'Age Gated');
+    const ageGateBadge = data.ageGate
+        ? `<span class="inst-type-badge vrcn-badge" style="right:auto;left:8px;background:rgba(255,75,85,.15);color:var(--err);border-color:rgba(255,75,85,.3);">${esc(_ageGateLabel)}</span>` : '';
 
     const displayCount = users.length || data.nUsers || 0;
     const prevInstScroll = el.querySelector('.inst-users')?.scrollTop || 0;
@@ -359,6 +362,7 @@ function renderCurrentInstance(data) {
         <div class="inst-header" style="background-image:url('${cssUrl(data.worldThumb || '')}');cursor:pointer;" onclick="openInstanceInfoModal()">
             <div class="inst-header-fade"></div>
             ${typeBadge}
+            ${ageGateBadge}
             <div class="inst-header-info">
                 <div class="inst-world-name">${esc(name)}</div>
                 <div class="inst-player-count"><span class="msi" style="font-size:13px;">person</span> ${displayCount}${data.capacity ? '/' + data.capacity : ''}</div>
