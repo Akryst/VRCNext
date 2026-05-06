@@ -73,15 +73,11 @@ function handleAvatarByFileId(payload) {
 
 function filterFdGroups() {
     const q = document.getElementById('fdGroupsSearch')?.value.trim().toLowerCase() || '';
-    const repSlot = document.getElementById('fdGroupsRepSlot');
     const grid = document.getElementById('fdGroupsGrid');
     if (!grid) return;
-    const all = window._fdAllGroups || [];
-    const repG = window._fdRepGroup || null;
+    const all = window._fdAllGroupsAll || window._fdAllGroups || [];
     const filtered = q ? all.filter(g => (g.name || '').toLowerCase().includes(q)) : all;
-    const ownGroupIds = new Set((window._fdAllOwnGroups || []).map(g => g.id));
-    const otherGroups = filtered.filter(g => (!repG || g.id !== repG.id) && !ownGroupIds.has(g.id));
-    if (repSlot) repSlot.style.display = (q && repG && !(repG.name || '').toLowerCase().includes(q)) ? 'none' : '';
+    const otherGroups = filtered;
     const totalPages = Math.ceil(otherGroups.length / MINI_PG_SIZE) || 1;
     if ((window._fdGroupsPage || 0) >= totalPages) window._fdGroupsPage = totalPages - 1;
     const page = window._fdGroupsPage || 0;
@@ -102,12 +98,9 @@ function filterFdGroups() {
 function fdGroupsGoPage(page) {
     if (page < 0) return;
     const q = (document.getElementById('fdGroupsSearch')?.value || '').toLowerCase();
-    const all = window._fdAllGroups || [];
-    const repG = window._fdRepGroup || null;
+    const all = window._fdAllGroupsAll || window._fdAllGroups || [];
     const filtered = q ? all.filter(g => (g.name||'').toLowerCase().includes(q)) : all;
-    const ownGroupIds = new Set((window._fdAllOwnGroups || []).map(g => g.id));
-    const otherGroups = filtered.filter(g => (!repG || g.id !== repG.id) && !ownGroupIds.has(g.id));
-    const totalPages = Math.ceil(otherGroups.length / MINI_PG_SIZE) || 1;
+    const totalPages = Math.ceil(filtered.length / MINI_PG_SIZE) || 1;
     if (page >= totalPages) return;
     window._fdGroupsPage = page;
     filterFdGroups();
@@ -628,31 +621,24 @@ function renderFriendDetail(d) {
 
     window._fdRepGroup = (repG && repG.id) ? repG : null;
     window._fdAllGroups = allGroups;
+    // Include repG if it's not already in allGroups (VRC API sometimes returns it separately)
+    const _repInGroups = repG && allGroups.some(g => g.id === repG.id);
+    window._fdAllGroupsAll = (!repG || _repInGroups) ? allGroups : [repG, ...allGroups];
     window._fdAllOwnGroups = allGroups.filter(g => g.ownerId === d.id);
 
     let groupsContent = '';
-    if (allGroups.length > 0) {
+    if (window._fdAllGroupsAll.length > 0) {
         groupsContent += `<div class="search-bar-row" style="margin-bottom:6px;">
             <span class="msi search-ico">search</span>
             <input id="fdGroupsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.groups.search_placeholder', 'Search groups by name...'))}" style="background:var(--bg-input);" oninput="_dbFdGroups()">
         </div>`;
-        if (repG && repG.id) {
-            const repIcon = repG.iconUrl ? `<img class="fd-group-icon" src="${repG.iconUrl}" onerror="this.style.display='none'">` : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">group</span></div>`;
-            groupsContent += `<div id="fdGroupsRepSlot"><div class="fd-group-rep-label">${t('profiles.badges.representing', 'Representing')}</div>
-            <div class="fd-group-card fd-group-rep" onclick="navOpenModal('group','${jsq(repG.id)}','${jsq(repG.name || '')}')">
-                ${repIcon}<div class="fd-group-card-info"><div class="fd-group-card-name">${esc(repG.name)}</div><div class="fd-group-card-meta">${esc(repG.shortCode || '')}${repG.discriminator ? '.' + esc(repG.discriminator) : ''}${repG.memberCount ? ' &middot; ' + esc(getGroupMemberText(repG.memberCount, false)) : ''}</div></div>
-            </div></div>`;
-        }
         const ownGroups = window._fdAllOwnGroups || [];
         if (ownGroups.length > 0) {
-            groupsContent += `<div class="fd-group-rep-label" style="margin-top:${repG && repG.id ? '14' : '0'}px;">${t('profiles.groups.own_groups', 'Own Groups')}</div>`;
+            groupsContent += `<div class="fd-group-rep-label">${t('profiles.groups.own_groups', 'Own Groups')}</div>`;
             groupsContent += `<div id="fdOwnGroupsGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;column-gap:6px;"></div>`;
             groupsContent += `<div id="fdOwnGroupsPaginatorBar" class="mini-paginator"></div>`;
         }
-        const otherGroups = allGroups.filter(g => (!repG || g.id !== repG.id) && !ownGroups.some(og => og.id === g.id));
-        if (otherGroups.length > 0) {
-            groupsContent += `<div class="fd-group-rep-label" style="margin-top:${(repG && repG.id) || ownGroups.length > 0 ? '14' : '0'}px;">${t('profiles.badges.groups', 'Groups')}</div>`;
-        }
+        groupsContent += `<div class="fd-group-rep-label" style="margin-top:${ownGroups.length > 0 ? '14' : '0'}px;">${t('profiles.badges.groups', 'Groups')}</div>`;
         groupsContent += `<div id="fdGroupsGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;column-gap:6px;"></div>`;
         groupsContent += `<div id="fdGroupsPaginatorBar" class="mini-paginator"></div>`;
     }
@@ -748,11 +734,12 @@ function renderFriendDetail(d) {
     const allUserWorlds = d.userWorlds || [];
     const hasContent = true;
     const hasTabs = hasGroups || hasMutuals || hasContent;
+    const groupsTabCount = (window._fdAllGroupsAll || allGroups).length;
 
     let tabsHtml = '';
     if (hasTabs) {
         tabsHtml = `<div class="fd-tabs"><button class="fd-tab active" onclick="switchFdTab('info',this)">${t('profiles.tabs.info', 'Info')}</button>`;
-        if (hasGroups) tabsHtml += `<button class="fd-tab" onclick="switchFdTab('groups',this)">${tf('profiles.tabs.groups', { count: allGroups.length }, 'Groups ({count})')}</button>`;
+        if (hasGroups) tabsHtml += `<button class="fd-tab" onclick="switchFdTab('groups',this)">${tf('profiles.tabs.groups', { count: groupsTabCount }, 'Groups ({count})')}</button>`;
         if (hasMutuals) tabsHtml += `<button class="fd-tab" onclick="switchFdTab('mutuals',this)">${tf('profiles.tabs.mutuals', { count: mutualTotal }, 'Mutuals ({count})')}</button>`;
         tabsHtml += `<button class="fd-tab" id="fdTabContentBtn" onclick="switchFdTab('content',this)">${tf('profiles.tabs.content', { count: allUserWorlds.length }, 'Content ({count})')}</button>`;
         tabsHtml += `<button class="fd-tab" onclick="switchFdTab('favs',this)">${t('profiles.tabs.favs', 'Favs.')}</button>`;

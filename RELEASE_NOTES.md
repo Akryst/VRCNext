@@ -27,6 +27,7 @@
   * Section titles now use a more consistent style.
   * Added "Instance Owner" Information to "Current World" Section
   * Show "Own" Groups of an user.
+  * Removed "Representing Group" from "Group" Tab as it's already shown in header.
 
 * **World Modal**
 
