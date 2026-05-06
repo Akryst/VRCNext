@@ -314,7 +314,7 @@ function renderGroupDetail(g) {
         <span class="msi search-ico">search</span>
         <input id="gdMembersSearch" type="text" class="vrcn-input" placeholder="${esc(t('groups.members.search_placeholder', 'Search users by name... hit enter'))}" style="background:var(--bg-input);" onkeydown="if(event.key==='Enter')searchGroupMembers()">
     </div>`;
-    membersTab += '<div id="gdMembersList" style="display:grid;grid-template-columns:1fr 1fr;column-gap:6px;">';
+    membersTab += '<div id="gdMembersList" style="display:grid;grid-template-columns:1fr 1fr 1fr;column-gap:6px;">';
     if (members.length === 0) {
         membersTab += renderGroupEmptyMessage('groups.empty.no_members', 'No members');
     } else {

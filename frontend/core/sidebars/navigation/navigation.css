@@ -265,7 +265,7 @@
 }
 
 .clock-time {
-    font-family: 'Azeret Mono', monospace;
+    font-family: 'Google Sans Mono', monospace;
     font-size: 18px;
     font-weight: 600;
     color: var(--tx0);
@@ -274,7 +274,7 @@
 }
 
 .clock-date {
-    font-family: 'Azeret Mono', monospace;
+    font-family: 'Google Sans Mono', monospace;
     font-size: 9px;
     font-weight: 500;
     color: var(--tx3);

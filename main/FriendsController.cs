@@ -140,6 +140,57 @@ public class FriendsController
                     await GetFriendDetailAsync(fdId);
                 break;
 
+            case "vrcGetUserBasic":
+            {
+                var ubId        = msg["userId"]?.ToString();
+                var ubCtx       = msg["contextId"]?.ToString() ?? "";
+                if (string.IsNullOrEmpty(ubId)) break;
+
+                // 1. Live friend store (fastest, no API call)
+                JObject? ubLive;
+                lock (_friendStore) _friendStore.TryGetValue(ubId, out ubLive);
+                if (ubLive != null)
+                {
+                    _core.SendToJS("vrcUserBasic", new {
+                        contextId         = ubCtx,
+                        id                = ubId,
+                        displayName       = ubLive["displayName"]?.ToString() ?? "",
+                        image             = ImageCacheHelper.GetUserUrl(ubId, VRChatApiService.GetUserImage(ubLive)),
+                        status            = ubLive["status"]?.ToString() ?? "offline",
+                        statusDescription = ubLive["statusDescription"]?.ToString() ?? "",
+                    });
+                    break;
+                }
+
+                // 2. SQLite cache (fast, no API call)
+                var ubCache = _core.TimeEngine.GetUserProfileCache(ubId);
+                if (ubCache != null)
+                {
+                    _core.SendToJS("vrcUserBasic", new {
+                        contextId         = ubCtx,
+                        id                = ubId,
+                        displayName       = ubCache.DisplayName,
+                        image             = ubCache.Image,
+                        status            = ubCache.ProfileStatus,
+                        statusDescription = ubCache.ProfileStatusDesc,
+                    });
+                    break;
+                }
+
+                // 3. API fallback
+                var ubUser = await _core.Users.GetUserAsync(ubId);
+                if (ubUser != null)
+                    _core.SendToJS("vrcUserBasic", new {
+                        contextId         = ubCtx,
+                        id                = ubId,
+                        displayName       = ubUser["displayName"]?.ToString() ?? "",
+                        image             = ImageCacheHelper.GetUserUrl(ubId, VRChatApiService.GetUserImage(ubUser)),
+                        status            = ubUser["status"]?.ToString() ?? "offline",
+                        statusDescription = ubUser["statusDescription"]?.ToString() ?? "",
+                    });
+                break;
+            }
+
             case "vrcGetFriendPreview":
             {
                 var prevId = msg["userId"]?.ToString();

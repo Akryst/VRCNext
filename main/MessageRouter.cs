@@ -631,6 +631,7 @@ public partial class AppShell
                     break;
 
                 case "vrcGetFriendPreview":
+                case "vrcGetUserBasic":
                     await _friends.HandleMessage(action, msg);
                     break;
 

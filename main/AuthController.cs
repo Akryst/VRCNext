@@ -274,11 +274,20 @@ public class AuthController
 
             case "browseDashBg":
                 {
-                    var r = Dialog.FileOpen("png,jpg,jpeg,bmp,webp,gif");
+                    var r = Dialog.FileOpen("png,jpg,jpeg,bmp,webp,gif,mp4");
                     if (r.IsOk)
                     {
                         try
                         {
+                            if (r.Path.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var info = new FileInfo(r.Path);
+                                if (info.Length > 60L * 1024 * 1024)
+                                {
+                                    _core.SendToJS("toast", new { ok = false, msg = "Video must be under 60 MB" });
+                                    break;
+                                }
+                            }
                             var url = $"http://localhost:{_core.HttpPort}/dashbg?file={Uri.EscapeDataString(r.Path)}";
                             _core.SendToJS("dashBgSelected", new { path = r.Path, url });
                         }

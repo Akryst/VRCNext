@@ -44,13 +44,36 @@ function renderDashboard() {
     updateDashHeroStats();
 
     const bgEl = document.getElementById('dashHeroBg');
-    if (dashBgDataUri) {
-        bgEl.style.backgroundImage = `url('${dashBgDataUri}')`;
-    } else if (dashBgPath) {
-        const fileUri = 'file:///' + dashBgPath.replace(/\\/g, '/');
-        bgEl.style.backgroundImage = `url('${fileUri}')`;
+    const isVideoBg = dashBgPath && dashBgPath.toLowerCase().endsWith('.mp4');
+    if (isVideoBg) {
+        const src = dashBgDataUri || ('file:///' + dashBgPath.replace(/\\/g, '/'));
+        const existingVid = bgEl.querySelector('video');
+        if (existingVid && existingVid.getAttribute('data-src') === src) {
+            // same source — keep the video playing, don't recreate it
+        } else {
+            if (existingVid) existingVid.remove();
+            bgEl.style.backgroundImage = '';
+            const vid = document.createElement('video');
+            vid.setAttribute('data-src', src);
+            vid.src = src;
+            vid.autoplay = true;
+            vid.loop = true;
+            vid.muted = true;
+            vid.playsInline = true;
+            vid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
+            bgEl.appendChild(vid);
+        }
     } else {
-        bgEl.style.backgroundImage = `url('fallback_bg.png')`;
+        const existingVid = bgEl.querySelector('video');
+        if (existingVid) existingVid.remove();
+        if (dashBgDataUri) {
+            bgEl.style.backgroundImage = `url('${dashBgDataUri}')`;
+        } else if (dashBgPath) {
+            const fileUri = 'file:///' + dashBgPath.replace(/\\/g, '/');
+            bgEl.style.backgroundImage = `url('${fileUri}')`;
+        } else {
+            bgEl.style.backgroundImage = `url('fallback_bg.png')`;
+        }
     }
     const fadeEl = document.querySelector('.dash-hero-fade');
     if (fadeEl) fadeEl.style.background = `linear-gradient(to bottom, rgba(0,0,0,0.20) 0%, var(--bg-base) 100%)`;

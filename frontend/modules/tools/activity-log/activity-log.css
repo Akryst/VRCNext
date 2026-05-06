@@ -27,7 +27,7 @@
 
 .log-input-prompt {
     color: var(--tx3);
-    font-family: 'Consolas', 'Courier New', monospace;
+    font-family: 'Google Sans Mono', monospace;
     font-size: 11px;
     user-select: none;
     margin-right: 6px;
@@ -41,7 +41,7 @@
     border: none;
     outline: none;
     color: var(--tx2);
-    font-family: 'Consolas', 'Courier New', monospace;
+    font-family: 'Google Sans Mono', monospace;
     font-size: 11px;
     caret-color: var(--tx2);
     padding: 0;
@@ -52,7 +52,7 @@
     align-items: baseline;
     gap: 10px;
     padding: 4px 14px;
-    font-family: 'Consolas', 'Courier New', monospace;
+    font-family: 'Google Sans Mono', monospace;
     font-size: 11px;
     transition: background .08s;
 }

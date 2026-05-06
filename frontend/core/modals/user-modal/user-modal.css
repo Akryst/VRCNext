@@ -1,5 +1,11 @@
 /* === User Modal (Friend/Profile Detail) === */
 
+.fd-owner-col .fd-profile-item-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+}
+
 .fd-vrc-badge-tooltip-global {
     position: fixed;
     display: none;

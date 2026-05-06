@@ -5,10 +5,11 @@
 **Modals**
 * All modals (Group, Profile, Avatars, Worlds) are now 15% bigger.
 
-* **Dashboard: Recently Visited**
+* **Dashboard**
 
   * The Recently Visited widget no longer shows the current player count for each world.
   * This information was not important in this widget and caused extra VRChat API requests.
+  * Added Video background support (Max 60MB Files 1440p) - not recommended to use but have it.
   
 
 * **User Profile Modal**
@@ -17,6 +18,7 @@
   * Badges, Biography, and Trust & Safety are now shown on the left side.
   * Profile information and additional details are now shown on the right side.
   * Section titles now use a more consistent style.
+  * Added "Instance Owner" Information to "Current World" Section
 
 * **World Modal**
 

@@ -155,7 +155,7 @@
 
 html { overflow: hidden; }
 body {
-    font-family: 'Segoe UI',system-ui,-apple-system,sans-serif;
+    font-family: 'Google Sans', sans-serif;
     background: var(--bg-base);
     color: var(--tx1);
     display: flex;
@@ -385,7 +385,7 @@ html.text-tools-active * { user-select: text !important; }
     align-items: center;
     gap: 3px;
     font-size: 9px;
-    font-family: monospace;
+    font-family: 'Google Sans Mono', monospace;
     color: var(--tx3);
     background: var(--bg-input);
     border-radius: 5px;

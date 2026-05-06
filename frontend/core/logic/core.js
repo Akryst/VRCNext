@@ -393,7 +393,7 @@ function _teRenderRows() {
             `<span style="font-size:11px;color:var(--tx2);width:84px;flex-shrink:0;">${label}</span>` +
             `<div id="teSwatch_${v}" data-var="${v}" style="width:22px;height:22px;flex-shrink:0;border-radius:5px;border:1px solid var(--brd);background:${hex};cursor:pointer;"></div>` +
             `<input type="text" class="vrcn-input" id="teHex_${v}" value="${hex}" maxlength="7"` +
-                ` style="flex:1;font-size:11px;font-family:monospace;"` +
+                ` style="flex:1;font-size:11px;font-family:'Google Sans Mono',monospace;"` +
                 ` oninput="teSetColorFromHex('${v}',this.value)">`;
         row.querySelector(`#teSwatch_${v}`).addEventListener('click', function(e) {
             e.stopPropagation();
@@ -1664,7 +1664,7 @@ function animateModalBox(boxEl, doSwitch) {
     if (Math.abs(h1 - h0) < 2) return;
     boxEl.style.overflow = 'hidden';
     boxEl.style.height = h0 + 'px';
-    void boxEl.offsetHeight; // force reflow so transition fires
+    void boxEl.offsetHeight;
     boxEl.style.transition = 'height 0.2s ease';
     boxEl.style.height = h1 + 'px';
     boxEl.addEventListener('transitionend', () => {

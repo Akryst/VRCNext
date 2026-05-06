@@ -410,13 +410,13 @@ function renderFriendDetail(d) {
 
     let worldHtml = '';
     if (d.worldName) {
-        const { worldId: fdWorldId } = parseFriendLocation(d.location);
+        const { worldId: fdWorldId, ownerId: _fdOwnerId } = parseFriendLocation(d.location);
         const onclick = fdWorldId ? `navOpenModal('worldSearch','${jsq(fdWorldId)}','${jsq(d.worldName || '')}')` : '';
         const _loc = d.location || '';
         const _instId     = _loc.includes(':') ? (_loc.split(':')[1] || '').split('~')[0] : '';
         const _regionRaw  = (_loc.match(/~region\(([^)]+)\)/) || [])[1] || '';
         const _region     = _regionRaw ? getWorldRegionLabel(_regionRaw) : '';
-        worldHtml = `<div style="margin-bottom:14px;"><div class="fd-group-rep-label">${t('profiles.meta.current_world', 'Current World')}</div>` + renderInstanceItem({
+        const _instanceItemHtml = renderInstanceItem({
             thumb:        d.worldThumb || '',
             worldName:    d.worldName,
             instanceType: d.instanceType,
@@ -425,7 +425,25 @@ function renderFriendDetail(d) {
             userCount:    d.userCount || 0,
             capacity:     d.worldCapacity || 0,
             onclick,
-        }) + `</div>`;
+        });
+        if (_fdOwnerId && _fdOwnerId.startsWith('usr_')) {
+            const _ownerUser = vrcFriendsData.find(f => f.id === _fdOwnerId);
+            if (_ownerUser) {
+                const _ownerOnclick = `navOpenModal('friend','${jsq(_ownerUser.id)}','${jsq(_ownerUser.displayName || '')}')`;
+                worldHtml = `<div style="margin-bottom:14px;display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:22px;align-items:start;">` +
+                    `<div><div class="fd-group-rep-label">${t('profiles.meta.current_world', 'Current World')}</div>${_instanceItemHtml}</div>` +
+                    `<div class="fd-owner-col"><div class="fd-group-rep-label">${t('instance.owner', 'Instance Owner')}</div>${renderProfileItem(_ownerUser, _ownerOnclick)}</div>` +
+                    `</div>`;
+            } else {
+                worldHtml = `<div style="margin-bottom:14px;display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:22px;align-items:start;">` +
+                    `<div><div class="fd-group-rep-label">${t('profiles.meta.current_world', 'Current World')}</div>${_instanceItemHtml}</div>` +
+                    `<div class="fd-owner-col"><div class="fd-group-rep-label">${t('instance.owner', 'Instance Owner')}</div><div id="fdOwnerSlot" data-owner-id="${esc(_fdOwnerId)}"><div class="sk-block" style="height:44px;border-radius:8px;"></div></div></div>` +
+                    `</div>`;
+                sendToCS({ action: 'vrcGetUserBasic', userId: _fdOwnerId, contextId: d.id });
+            }
+        } else {
+            worldHtml = `<div style="margin-bottom:14px;"><div class="fd-group-rep-label">${t('profiles.meta.current_world', 'Current World')}</div>${_instanceItemHtml}</div>`;
+        }
     } else if (d.location === 'private') {
         worldHtml = `<div style="padding:12px;background:var(--bg-input);border-radius:10px;margin-bottom:14px;font-size:12px;color:var(--tx3);text-align:center;">${t('profiles.meta.private_instance', 'Private Instance')}</div>`;
     } else if (d.location === 'traveling') {
@@ -596,7 +614,7 @@ function renderFriendDetail(d) {
         if (otherGroups.length > 0) {
             groupsContent += `<div class="fd-group-rep-label" style="margin-top:${repG && repG.id ? '14' : '0'}px;">${t('profiles.badges.groups', 'Groups')}</div>`;
         }
-        groupsContent += `<div id="fdGroupsGrid" style="display:grid;grid-template-columns:1fr 1fr;column-gap:6px;"></div>`;
+        groupsContent += `<div id="fdGroupsGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;column-gap:6px;"></div>`;
         groupsContent += `<div id="fdGroupsPaginatorBar" class="mini-paginator"></div>`;
     }
 
@@ -627,7 +645,7 @@ function renderFriendDetail(d) {
             <span class="msi search-ico">search</span>
             <input id="fdMutualsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.mutuals.search_placeholder', 'Search users by name...'))}" style="background:var(--bg-input);" oninput="_dbFdMutuals()">
         </div>`;
-        mutualsFriendsHtml += '<div id="fdMutualsGrid" style="display:grid;grid-template-columns:1fr 1fr;column-gap:6px;"></div>';
+        mutualsFriendsHtml += '<div id="fdMutualsGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;column-gap:6px;"></div>';
         mutualsFriendsHtml += '<div id="fdMutualsPageBar" class="mini-paginator"></div>';
     }
 
@@ -642,7 +660,7 @@ function renderFriendDetail(d) {
             <span class="msi search-ico">search</span>
             <input id="fdMutualsGroupsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.mutuals.groups_search_placeholder', 'Search groups by name...'))}" style="background:var(--bg-input);" oninput="_dbFdMutualsGroups()">
         </div>`;
-        mutualsGroupsHtml += '<div id="fdMutualsGroupsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>';
+        mutualsGroupsHtml += '<div id="fdMutualsGroupsGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;"></div>';
         mutualsGroupsHtml += '<div id="fdMutualsGroupsPageBar" class="mini-paginator"></div>';
     }
 
@@ -989,6 +1007,14 @@ function toggleMod(userId, type, btn) {
         ? (type === 'block' ? 'vrcUnblock' : 'vrcUnmute')
         : (type === 'block' ? 'vrcBlock'   : 'vrcMute'),
         userId });
+}
+
+function handleUserBasic(payload) {
+    const slot = document.getElementById('fdOwnerSlot');
+    if (!slot || slot.dataset.ownerId !== payload.id) return;
+    if (!currentFriendDetail || currentFriendDetail.id !== payload.contextId) return;
+    const onclick = `navOpenModal('friend','${jsq(payload.id)}','${jsq(payload.displayName || '')}')`;
+    slot.outerHTML = renderProfileItem(payload, onclick);
 }
 
 // Global VRC badge tooltip (position: fixed, escapes modal overflow)

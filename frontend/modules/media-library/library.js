@@ -647,7 +647,17 @@ function toggleHidden(p) {
     renderDashRecentPhotos();
 }
 
-function setLibItemAsDashBg(path) {
+async function setLibItemAsDashBg(path, url) {
+    if (path.toLowerCase().endsWith('.mp4') && url) {
+        try {
+            const resp = await fetch(url, { method: 'HEAD' });
+            const size = parseInt(resp.headers.get('content-length') || '0');
+            if (size > 60 * 1024 * 1024) {
+                showToast(false, t('library.bg_video_too_large', 'Video must be under 60 MB'));
+                return;
+            }
+        } catch { /* proceed if check fails */ }
+    }
     dashBgPath = path;
     dashBgDataUri = '';
     const nameEl = document.getElementById('dashBgName');
