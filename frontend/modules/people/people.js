@@ -245,10 +245,9 @@ function refreshPeopleTab() {
 
 function _allFriendCategory(f) {
     const pres = f.presence || '';
-    const loc  = f.location || '';
-    if (!pres || pres === 'offline' || loc === 'offline') return 'offline';
-    if (loc && loc !== 'private' && pres !== 'web') return 'ingame';
-    return 'active';
+    if (!pres || pres === 'offline') return 'offline';
+    if (pres === 'web') return 'active';
+    return 'ingame';
 }
 
 function setAllFriendsStatusFilter(filter) {
