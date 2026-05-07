@@ -1637,6 +1637,7 @@ public partial class AppShell
                     break;
 
                 case "vrcCreateGroupPost":
+                case "vrcUpdateGroupPost":
                 case "vrcDeleteGroupPost":
                 case "vrcDeleteGroupEvent":
                     await _groups.HandleMessage(action, msg);

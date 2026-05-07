@@ -43,6 +43,9 @@
 .gd-post-del { flex-shrink: 0; color: var(--tx3); padding: 2px; transition: color .15s; }
 .gd-post-del:hover { color: var(--err); }
 .gd-post-del .msi { font-size: 15px; }
+.gd-post-edit { flex-shrink: 0; color: var(--tx3); padding: 2px; transition: color .15s; }
+.gd-post-edit:hover { color: var(--accent); }
+.gd-post-edit .msi { font-size: 15px; }
 
 #vn-ctx-submenu {
     position: fixed; display: none;

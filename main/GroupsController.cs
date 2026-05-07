@@ -590,6 +590,56 @@ public class GroupsController
                 break;
             }
 
+            case "vrcUpdateGroupPost":
+            {
+                var ugpGroupId    = msg["groupId"]?.ToString() ?? "";
+                var ugpPostId     = msg["postId"]?.ToString() ?? "";
+                var ugpTitle      = msg["title"]?.ToString() ?? "";
+                var ugpText       = msg["text"]?.ToString() ?? "";
+                var ugpVis        = msg["visibility"]?.ToString() ?? "group";
+                var ugpImageBase64 = msg["imageBase64"]?.ToString();
+                var ugpImageFileId = msg["imageFileId"]?.ToString();
+                if (!string.IsNullOrEmpty(ugpGroupId) && !string.IsNullOrEmpty(ugpPostId) && !string.IsNullOrEmpty(ugpTitle))
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        string? imageId = null;
+                        if (!string.IsNullOrEmpty(ugpImageFileId))
+                        {
+                            imageId = ugpImageFileId;
+                        }
+                        else if (!string.IsNullOrEmpty(ugpImageBase64))
+                        {
+                            try
+                            {
+                                var b64 = ugpImageBase64;
+                                string imgMime = "image/png";
+                                string imgExt = ".png";
+                                if (b64.StartsWith("data:"))
+                                {
+                                    var semi = b64.IndexOf(';');
+                                    if (semi > 5) imgMime = b64[5..semi];
+                                    imgExt = imgMime switch { "image/jpeg" => ".jpg", "image/gif" => ".gif", "image/webp" => ".webp", _ => ".png" };
+                                }
+                                var commaIdx = b64.IndexOf(',');
+                                if (commaIdx >= 0) b64 = b64[(commaIdx + 1)..];
+                                imageId = await _core.Files.UploadImageAsync(Convert.FromBase64String(b64), imgMime, imgExt);
+                            }
+                            catch (Exception ex) { _core.SendToJS("log", new { msg = $"[UpdateGroupPost] Image parse error: {ex.Message}", color = "err" }); }
+                        }
+                        var ok = await _core.Groups.UpdateGroupPostAsync(ugpGroupId, ugpPostId, ugpTitle, ugpText, ugpVis, imageId);
+                        _core.SendToJS("vrcActionResult", new
+                        {
+                            action = "updateGroupPost",
+                            success = ok,
+                            postId = ugpPostId,
+                            message = ok ? "Post updated!" : "Failed to update post"
+                        });
+                    });
+                }
+                break;
+            }
+
             case "vrcDeleteGroupPost":
             {
                 var dgpGroupId = msg["groupId"]?.ToString() ?? "";

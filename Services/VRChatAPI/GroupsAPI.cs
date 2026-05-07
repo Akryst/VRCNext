@@ -192,6 +192,28 @@ public class GroupsAPI(VRChatApiService ctx)
         catch (Exception ex) { ctx.Log($"CreateGroupPost exception: {ex.Message}"); return false; }
     }
 
+    public async Task<bool> UpdateGroupPostAsync(string groupId, string postId, string title, string text, string visibility, string? imageId)
+    {
+        if (!ctx.IsLoggedIn) return false;
+        try
+        {
+            var body = new JObject
+            {
+                ["title"]      = title,
+                ["text"]       = text,
+                ["visibility"] = visibility,
+            };
+            if (!string.IsNullOrEmpty(imageId)) body["imageId"] = imageId;
+            var resp = await ctx._http.PutAsync($"{VRChatApiService.BASE}/groups/{groupId}/posts/{postId}",
+                new StringContent(body.ToString(Newtonsoft.Json.Formatting.None), Encoding.UTF8, "application/json"));
+            ctx.Log($"UpdateGroupPost({groupId}/{postId}): {(int)resp.StatusCode}");
+            if (!resp.IsSuccessStatusCode)
+                ctx.Log($"UpdateGroupPost body: {await resp.Content.ReadAsStringAsync()}");
+            return resp.IsSuccessStatusCode;
+        }
+        catch (Exception ex) { ctx.Log($"UpdateGroupPost exception: {ex.Message}"); return false; }
+    }
+
     public async Task<bool> DeleteGroupPostAsync(string groupId, string postId)
     {
         if (!ctx.IsLoggedIn) return false;

@@ -143,9 +143,9 @@
 .sb-toggle, .rs-toggle,
 .file-del, .folder-remove, .exe-remove,
 .cb-line-del, .myp-edit-btn, .myp-lang-remove,
-.inv-msg-edit, .gd-post-del, .vf-block-chip-remove { background: none; border: none; cursor: pointer; display: flex; align-items: center; }
+.inv-msg-edit, .gd-post-del, .gd-post-edit, .vf-block-chip-remove { background: none; border: none; cursor: pointer; display: flex; align-items: center; }
 
-.file-del, .cb-line-del, .inv-msg-edit, .gd-post-del { border-radius: 4px; }
+.file-del, .cb-line-del, .inv-msg-edit, .gd-post-del, .gd-post-edit { border-radius: 4px; }
 
 * {
     margin: 0;
