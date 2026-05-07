@@ -37,9 +37,10 @@
 .vrcn-button:disabled { opacity: .4; cursor: not-allowed; }
 .vrcn-button.active { background: var(--accent); color: #fff; }
 
+/* was 25 before */
 .vrcn-button-round {
     padding: 6px 14px;
-    border-radius: 20px;
+    border-radius: 7px; 
     background: var(--bg-hover);
     color: var(--tx1);
     font-size: 11px;

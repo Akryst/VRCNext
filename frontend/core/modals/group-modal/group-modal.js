@@ -99,9 +99,9 @@ function renderGroupDetail(g) {
         ? `<div class="fd-bio-links">${grpLinks.map(url => renderBioLink(url)).join('')}</div>`
         : `<div class="myp-empty">${t('profiles.my_profile.empty.no_links', 'No links added')}</div>`;
     const infoTab = `
-        <div style="display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:22px;align-items:start;">
-            <div>
-                <div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;">
+        <div class="fd-info-cols">
+            <div class="fd-info-left">
+                <div class="fd-info-card">
                     <div class="myp-section-header">
                         <span class="myp-section-title">${t('groups.sections.description', 'Description')}</span>
                         ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('desc')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
@@ -117,7 +117,47 @@ function renderGroupDetail(g) {
                         </div>
                     </div>` : ''}
                 </div>
-                <div>
+                ${(() => {
+                    const lp = (g.posts || [])[0];
+                    if (!lp) return '';
+                    const lpDate = lp.createdAt ? fmtShortDate(new Date(lp.createdAt)) : '';
+                    const lpText = lp.text || '';
+                    const lpPreview = lpText.length > 80 ? lpText.slice(0, 80) + '...' : lpText;
+                    const lpImg = lp.imageUrl ? `<img src="${lp.imageUrl}" style="width:60px;align-self:stretch;object-fit:cover;border-radius:6px;flex-shrink:0;" onerror="this.style.display='none'">` : '';
+                    return `<div class="fd-info-card" style="cursor:pointer;" onclick="_switchGdTabByKey('posts')">
+                        <div class="fd-group-rep-label">${t('groups.sections.last_post', 'Last Post')}</div>
+                        <div style="display:flex;gap:10px;align-items:flex-start;">
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:12px;font-weight:600;color:var(--tx0);margin-bottom:2px;">${esc(lp.title || 'Untitled')}</div>
+                                ${lpDate ? `<div style="font-size:10px;color:var(--tx3);margin-bottom:4px;">${lpDate}</div>` : ''}
+                                ${lpPreview ? `<div style="font-size:11px;color:var(--tx2);line-height:1.4;">${esc(lpPreview)}</div>` : ''}
+                            </div>
+                            ${lpImg}
+                        </div>
+                    </div>`;
+                })()}
+                ${(() => {
+                    const le = (g.groupEvents || [])[0];
+                    if (!le) return '';
+                    const leStart = le.startsAt ? new Date(le.startsAt) : null;
+                    const leDateStr = leStart && !isNaN(leStart) ? fmtLongDate(leStart) : '';
+                    const leTimeStr = leStart && !isNaN(leStart) ? fmtTime(leStart) : '';
+                    const leImg = le.imageUrl ? `<img src="${le.imageUrl}" style="width:60px;align-self:stretch;object-fit:cover;border-radius:6px;flex-shrink:0;" onerror="this.style.display='none'">` : '';
+                    const leText = le.description || '';
+                    const lePrev = leText.length > 80 ? leText.slice(0, 80) + '...' : leText;
+                    return `<div class="fd-info-card" style="cursor:pointer;" onclick="_switchGdTabByKey('events')">
+                        <div class="fd-group-rep-label">${t('groups.sections.last_event', 'Last Event')}</div>
+                        <div style="display:flex;gap:10px;align-items:flex-start;">
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:12px;font-weight:600;color:var(--tx0);margin-bottom:2px;">${esc(le.title || 'Untitled Event')}</div>
+                                <div style="font-size:10px;color:var(--tx3);margin-bottom:4px;">${leDateStr}${leTimeStr ? ' · ' + leTimeStr : ''}</div>
+                                ${lePrev ? `<div style="font-size:11px;color:var(--tx2);line-height:1.4;">${esc(lePrev)}</div>` : ''}
+                            </div>
+                            ${leImg}
+                        </div>
+                    </div>`;
+                })()}
+                <div class="fd-info-card">
                     <div class="myp-section-header">
                         <span class="myp-section-title">${t('groups.sections.rules', 'Rules')}</span>
                         ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('rules')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
@@ -134,8 +174,37 @@ function renderGroupDetail(g) {
                     </div>` : ''}
                 </div>
             </div>
-            <div>
-                <div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;">
+            <div class="fd-info-right">
+                ${(() => {
+                    const insts = g.groupInstances || [];
+                    if (!insts.length) return '';
+                    const instsHtml = insts.slice(0, 3).map(inst => {
+                        const thumb = inst.worldThumb ? `<img style="width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0;" src="${inst.worldThumb}" onerror="this.style.display='none'">` : '';
+                        const users = inst.userCount > 0 ? (inst.capacity > 0 ? `${inst.userCount}/${inst.capacity}` : `${inst.userCount}`) : '';
+                        return `<div style="display:flex;align-items:center;gap:8px;padding:2px 0;">
+                            ${thumb}
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:11px;font-weight:600;color:var(--tx0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(inst.worldName || t('dashboard.instances.unknown_world', 'Unknown World'))}</div>
+                                ${users ? `<div style="font-size:10px;color:var(--tx3);">${users}</div>` : ''}
+                            </div>
+                        </div>`;
+                    }).join('');
+                    return `<div class="fd-info-card" style="cursor:pointer;" onclick="_switchGdTabByKey('instances')">
+                        <div class="fd-group-rep-label">${t('groups.sections.instances', 'Instances')}</div>
+                        <div style="display:grid;gap:4px;">${instsHtml}</div>
+                    </div>`;
+                })()}
+                <div class="fd-info-card">
+                    <div class="fd-group-rep-label">${t('groups.sections.group_info', 'Group Info')}</div>
+                    <div style="display:grid;gap:6px;">
+                        ${g.joinedAt ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"><span style="color:var(--tx3);">${t('groups.info.joined_at','Joined Group')}</span><span style="color:var(--tx1);text-align:right;">${fmtShortDate(new Date(g.joinedAt))}</span></div>` : ''}
+                        <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"><span style="color:var(--tx3);">${t('groups.info.created_at','Created')}</span><span style="color:var(--tx1);text-align:right;">${g.createdAt ? fmtShortDate(new Date(g.createdAt)) : '—'}</span></div>
+                        ${g.isJoined ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"><span style="color:var(--tx3);">${t('groups.info.representing','Representing')}</span><span style="color:var(--tx1);text-align:right;">${g.isRepresenting ? t('common.yes','Yes') : t('common.no','No')}</span></div>` : ''}
+                        <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"><span style="color:var(--tx3);">${t('groups.info.member_count','Members')}</span><span style="color:var(--tx1);text-align:right;">${g.memberCount ?? '—'}</span></div>
+                        <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"><span style="color:var(--tx3);">${t('groups.info.verified','Verified')}</span><span style="color:var(--tx1);text-align:right;">${g.isVerified ? t('common.yes','Yes') : t('common.no','No')}</span></div>
+                    </div>
+                </div>
+                <div class="fd-info-card">
                     <div class="myp-section-header">
                         <span class="myp-section-title">${t('groups.sections.links', 'Links')}</span>
                         ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('links')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
@@ -149,7 +218,7 @@ function renderGroupDetail(g) {
                         </div>
                     </div>` : ''}
                 </div>
-                <div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;">
+                <div class="fd-info-card">
                     <div class="myp-section-header">
                         <span class="myp-section-title">${t('groups.sections.languages', 'Languages')}</span>
                         ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('langs')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
@@ -167,7 +236,7 @@ function renderGroupDetail(g) {
                         </div>
                     </div>` : ''}
                 </div>
-                <div>
+                <div class="fd-info-card">
                     <div class="myp-section-header">
                         <span class="myp-section-title">${t('groups.sections.open_members', 'Open to new Members')}</span>
                         ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('joinState')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
@@ -190,7 +259,7 @@ function renderGroupDetail(g) {
                 </div>
             </div>
         </div>
-        ${g.isJoined ? `<div style="border-top:1px solid var(--brd);padding-top:12px;margin-top:12px;">
+        ${g.isJoined ? `<div class="fd-info-card" style="margin-top:10px;">
             <div class="myp-section-header">
                 <span class="myp-section-title">${t('groups.visibility.title', 'Visibility')}</span>
             </div>
@@ -217,22 +286,27 @@ function renderGroupDetail(g) {
     } else {
         posts.forEach((p, i) => {
             const date = p.createdAt ? fmtShortDate(new Date(p.createdAt)) : '';
-            const imgHtml = p.imageUrl ? `<img src="${p.imageUrl}" style="width:100%;border-radius:6px;margin-top:8px;" onerror="this.style.display='none'">` : '';
+            const imgHtml = p.imageUrl ? `<img src="${p.imageUrl}" style="width:120px;align-self:stretch;object-fit:cover;border-radius:6px;flex-shrink:0;" onerror="this.style.display='none'">` : '';
             const fullText = p.text || '';
             const isLong = fullText.length > 120;
             const preview = isLong ? fullText.slice(0, 120) + '...' : fullText;
             const pid = esc(p.id || ''), gid = esc(g.id || '');
+            const editBtn = (canPost && p.id)
+                ? `<button class="gd-post-edit" onclick="openGroupPostEditModal('${gid}','${pid}')" title="${esc(t('groups.posts.edit_title', 'Edit post'))}"><span class="msi">edit</span></button>`
+                : '';
             const delBtn = (canPost && p.id)
                 ? `<button class="gd-post-del" onclick="deleteGroupPost('${gid}','${pid}',this)" title="${esc(t('groups.posts.delete_title', 'Delete post'))}"><span class="msi">delete</span></button>`
                 : '';
-            postsTab += `<div class="fd-group-card" data-post-id="${pid}" style="display:block;cursor:default;padding:12px;">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
-                    <div style="font-size:13px;font-weight:600;color:var(--tx0);flex:1;">${esc(p.title || 'Untitled')}</div>
-                    ${delBtn}
+            postsTab += `<div class="fd-group-card" data-post-id="${pid}" style="display:flex;align-items:flex-start;gap:12px;cursor:default;padding:12px;">
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+                        <div style="font-size:13px;font-weight:600;color:var(--tx0);flex:1;">${esc(p.title || 'Untitled')}</div>
+                        ${editBtn}${delBtn}
+                    </div>
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:6px;">${date}${p.visibility ? ' · ' + esc(p.visibility) : ''}</div>
+                    <div class="gd-post-text" id="gpost${i}" data-full="${esc(fullText).replace(/"/g,'&quot;')}" data-preview="${esc(preview).replace(/"/g,'&quot;')}" style="font-size:12px;color:var(--tx2);line-height:1.4;">${esc(preview)}</div>
+                    ${isLong ? `<div style="margin-top:4px;"><span class="gd-expand" data-expanded="0" onclick="toggleGPost(${i})">${t('groups.posts.show_more', 'Show more')}</span></div>` : ''}
                 </div>
-                <div style="font-size:10px;color:var(--tx3);margin-bottom:6px;">${date}${p.visibility ? ' · ' + esc(p.visibility) : ''}</div>
-                <div class="gd-post-text" id="gpost${i}" data-full="${esc(fullText).replace(/"/g,'&quot;')}" data-preview="${esc(preview).replace(/"/g,'&quot;')}" style="font-size:12px;color:var(--tx2);line-height:1.4;">${esc(preview)}</div>
-                ${isLong ? `<div style="margin-top:4px;"><span class="gd-expand" data-expanded="0" onclick="toggleGPost(${i})">${t('groups.posts.show_more', 'Show more')}</span></div>` : ''}
                 ${imgHtml}
             </div>`;
         });
@@ -672,6 +746,11 @@ function switchGdTab(tab, btn) {
     if (tab === 'banned' && !window._gdBannedLoaded) loadGroupBans();
 }
 
+function _switchGdTabByKey(key) {
+    const btn = document.querySelector(`.gd-tabs .fd-tab[onclick*="'${key}'"]`);
+    if (btn) switchGdTab(key, btn);
+}
+
 function toggleGPost(i) {
     const el = document.getElementById('gpost' + i);
     const link = el?.parentElement?.querySelector('.gd-expand');
@@ -708,15 +787,30 @@ function deleteGroupEvent(groupId, eventId, btn) {
 let _groupPostGroupId = null;
 let _groupPostImageBase64 = null;
 let _groupPostSelectedFileId = null; // file_xxx from library picker
+let _groupPostEditPostId = null;
 
 function renderGroupImageUploadTile(onclickHandler) {
     return `<div style="width:100%;aspect-ratio:1;border-radius:6px;cursor:pointer;background:var(--bg-input);border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'" onclick="${onclickHandler}()" title="${esc(t('groups.common.upload_new_photo', 'Upload new photo'))}"><span class="msi" style="font-size:22px;color:var(--tx3);pointer-events:none;">add_photo_alternate</span></div>`;
 }
 
-function openGroupPostModal(groupId) {
+function openGroupPostEditModal(groupId, postId) {
+    const g = window._currentGroupDetailFull;
+    if (!g) return;
+    const post = (g.posts || []).find(p => p.id === postId);
+    if (!post) return;
+    openGroupPostModal(groupId, post);
+}
+
+function openGroupPostModal(groupId, editPost = null) {
     _groupPostGroupId = groupId;
     _groupPostImageBase64 = null;
     _groupPostSelectedFileId = null;
+    _groupPostEditPostId = editPost ? (editPost.id || null) : null;
+
+    const isEdit = !!_groupPostEditPostId;
+    const modalTitle    = isEdit ? t('groups.posts.modal.title_edit',    'Edit Group Post')   : t('groups.posts.modal.title',    'Create Group Post');
+    const modalAriaLabel = isEdit ? t('groups.posts.modal.aria_label_edit','Edit Group Post')  : t('groups.posts.modal.aria_label','Create Group Post');
+    const submitLabel   = isEdit ? t('groups.posts.submit_edit', 'Save')                      : t('groups.posts.submit', 'Post');
 
     let overlay = document.getElementById('groupPostOverlay');
     if (!overlay) {
@@ -726,10 +820,10 @@ function openGroupPostModal(groupId) {
         document.body.appendChild(overlay);
     }
     overlay.innerHTML = `
-    <div class="gp-modal" role="dialog" aria-label="${esc(t('groups.posts.modal.aria_label', 'Create Group Post'))}">
+    <div class="gp-modal" role="dialog" aria-label="${esc(modalAriaLabel)}">
         <div class="gp-modal-header">
             <span class="msi" style="font-size:20px;color:var(--accent);">edit</span>
-            <span>${t('groups.posts.modal.title', 'Create Group Post')}</span>
+            <span>${esc(modalTitle)}</span>
         </div>
         <div class="gp-modal-body">
             <label class="gp-label">${t('groups.posts.fields.title', 'Title')}</label>
@@ -757,12 +851,20 @@ function openGroupPostModal(groupId) {
             <div id="gpError" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(255,80,80,.12);border-radius:8px;color:var(--err);font-size:12px;"></div>
         </div>
         <div class="gp-modal-footer">
-            <button class="vrcn-button-round vrcn-btn-join" id="gpSubmitBtn" onclick="submitGroupPost()"><span class="msi" style="font-size:16px;vertical-align:middle;margin-right:4px;">send</span>${t('groups.posts.submit', 'Post')}</button>
+            <button class="vrcn-button-round vrcn-btn-join" id="gpSubmitBtn" onclick="submitGroupPost()"><span class="msi" style="font-size:16px;vertical-align:middle;margin-right:4px;">send</span>${esc(submitLabel)}</button>
             <button class="vrcn-button-round" onclick="closeGroupPostModal()" style="margin-left:auto;">${t('common.cancel', 'Cancel')}</button>
         </div>
     </div>`;
     initAllVnSelects();
     overlay.style.display = 'flex';
+    if (isEdit && editPost) {
+        const titleEl = document.getElementById('gpTitle');
+        const textEl  = document.getElementById('gpText');
+        const visEl   = document.getElementById('gpVisibility');
+        if (titleEl) titleEl.value = editPost.title || '';
+        if (textEl)  textEl.value  = editPost.text  || '';
+        if (visEl)   visEl.value   = editPost.visibility || 'group';
+    }
     setTimeout(() => document.getElementById('gpTitle')?.focus(), 50);
     const _gpCached = (typeof invFilesCache !== 'undefined') && invFilesCache['gallery'];
     if (_gpCached && _gpCached.length > 0) renderGpImgGrid(_gpCached);
@@ -811,6 +913,7 @@ function closeGroupPostModal() {
     _groupPostGroupId = null;
     _groupPostImageBase64 = null;
     _groupPostSelectedFileId = null;
+    _groupPostEditPostId = null;
 }
 
 
@@ -829,18 +932,24 @@ function submitGroupPost() {
     const btn = document.getElementById('gpSubmitBtn');
     if (btn) { btn.disabled = true; btn.innerHTML = `<span class="msi" style="font-size:16px;vertical-align:middle;margin-right:4px;">hourglass_empty</span>${t('groups.posts.submitting', 'Posting...')}`; }
 
-    const payload = {
-        action: 'vrcCreateGroupPost',
-        groupId: _groupPostGroupId,
-        title,
-        text,
-        visibility,
-        sendNotification,
-    };
-    if (_groupPostSelectedFileId) payload.imageFileId = _groupPostSelectedFileId;
-    else if (_groupPostImageBase64) payload.imageBase64 = _groupPostImageBase64;
-
-    sendToCS(payload);
+    if (_groupPostEditPostId) {
+        const editPayload = { action: 'vrcUpdateGroupPost', groupId: _groupPostGroupId, postId: _groupPostEditPostId, title, text, visibility };
+        if (_groupPostSelectedFileId) editPayload.imageFileId = _groupPostSelectedFileId;
+        else if (_groupPostImageBase64) editPayload.imageBase64 = _groupPostImageBase64;
+        sendToCS(editPayload);
+    } else {
+        const payload = {
+            action: 'vrcCreateGroupPost',
+            groupId: _groupPostGroupId,
+            title,
+            text,
+            visibility,
+            sendNotification,
+        };
+        if (_groupPostSelectedFileId) payload.imageFileId = _groupPostSelectedFileId;
+        else if (_groupPostImageBase64) payload.imageBase64 = _groupPostImageBase64;
+        sendToCS(payload);
+    }
     closeGroupPostModal();
 }
 

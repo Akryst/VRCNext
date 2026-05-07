@@ -64,7 +64,7 @@
 </head>
 <body>
     <div class="sidebar" id="sidebarEl">
-        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.22.0</div></div><button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar" data-i18n-title="common.toggle_sidebar"><span class="msi" id="sbIcon">chevron_left</span></button></div>
+        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.22.1</div></div><button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar" data-i18n-title="common.toggle_sidebar"><span class="msi" id="sbIcon">chevron_left</span></button></div>
         <div class="nav vrcn-scrollbar">
             <button class="nav-btn active" onclick="showTab(0)" data-nav="dashboard"><span class="ni msi">dashboard</span><span class="nl" data-i18n="nav.dashboard">Dashboard</span></button>
             <button class="nav-btn" onclick="showTab(1)"><span class="ni msi">travel_explore</span><span class="nl" data-i18n="nav.worlds">Worlds</span></button>
@@ -1089,6 +1089,28 @@
                             <div class="set-desc" style="margin-top:6px;" data-i18n="settings.db.entries_desc">Min: 500, Max: 250,000. Loads the N most recent entries for Personal and Friends separately.</div>
                         </div>
                         <div id="dbOptimizeOffWarning" style="display:none;margin-top:12px;color:var(--red,#e55);" class="set-desc" data-i18n="settings.db.optimize_off_warning">Warning: Optimize Database is disabled. All entries will be loaded on startup. This may significantly impact performance with large databases.</div>
+                    </div>
+
+                    <!-- DATABASE OPTIMIZATION -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">cleaning_services</span> Database Optimization</div>
+                        <div class="set-desc" style="margin-bottom:8px;color:var(--err);" data-i18n="settings.db.cleanup.danger">Danger Zone! This Database Optimization will delete certain things from the database.</div>
+                        <div class="set-desc" style="margin-bottom:8px;" data-i18n="settings.db.cleanup.user_cache">It will delete all cached non-friended users from the whole database. This is mostly safe as it does not contain any important information. Time Spent and Meet Counts are still present on those profiles and will not be wiped.</div>
+                        <div class="set-desc" style="margin-bottom:8px;" data-i18n="settings.db.cleanup.events">It will also delete certain events in your Personal and Friends Timeline. In the Personal Timeline, all notifications and URL entries will be wiped. In the Friends Timeline, all "Online", "Offline", and "Status Change" entries, for example "Ask Me" > "Join Me", will be wiped.</div>
+                        <div class="set-desc" style="margin-bottom:4px;" data-i18n="settings.db.cleanup.instructions">Run the analysis first. After that, you will see what will be wiped. It is recommended to create a backup of your database in case you still need those entries. Your database is usually stored at:</div>
+                        <div class="set-desc" style="font-family:monospace;color:var(--tx2);">C:\Users\USERNAME\AppData\Roaming\VRCNext</div>
+                        <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
+                            <button class="vrcn-button" id="btnDbAnalyze" onclick="dbRunAnalysis()"><span class="msi" style="font-size:16px;">analytics</span> Run Analysis</button>
+                            <button class="vrcn-button" id="btnDbBackup" onclick="dbCreateBackup()"><span class="msi" style="font-size:16px;">backup</span> Create Backup</button>
+                            <button class="vrcn-button" id="btnDbOptimize" onclick="dbRunOptimize()" style="display:none;"><span class="msi" style="font-size:16px;">cleaning_services</span> Run Optimization</button>
+                        </div>
+                        <div id="dbOptProgressWrap" style="display:none;margin-top:12px;">
+                            <div class="ts-bar-wrap">
+                                <div id="dbOptProgressBar" class="ts-bar" style="width:0%;background:var(--accent);"></div>
+                            </div>
+                            <span id="dbOptProgressLabel" style="font-size:11px;color:var(--tx3);margin-top:4px;display:block;">Analyzing…</span>
+                        </div>
+                        <div id="dbAnalysisResults" style="display:none;margin-top:14px;"></div>
                     </div>
 
                     <div class="vrcn-panel-card">

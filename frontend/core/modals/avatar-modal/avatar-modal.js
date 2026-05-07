@@ -139,105 +139,103 @@ function renderAvatarDetail(a) {
         ? `<div class="fd-lang-tags">${a.tags.map(tag => `<span class="vrcn-badge">${esc(tag)}</span>`).join('')}</div>`
         : `<div class="myp-empty">${t('avatars.detail.empty_tags', 'No tags')}</div>`;
 
+    const _descCard = `<div class="fd-info-card">
+        <div class="myp-section-header">
+            <span class="myp-section-title">${t('avatars.detail.sections.description', 'Description')}</span>
+            ${isOwn ? `<button class="myp-edit-btn" onclick="editAvField('desc')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
+        </div>
+        <div id="avfDescView">${a.description ? `<div class="fd-bio">${esc(a.description)}</div>` : `<div class="myp-empty">${t('avatars.detail.empty_description', 'No description')}</div>`}</div>
+        ${isOwn ? `<div id="avfDescEdit" style="display:none;">
+            <textarea id="avDescInput" class="myp-textarea" rows="4" maxlength="2000" placeholder="${esc(t('avatars.detail.description_placeholder', 'Avatar description...'))}">${esc(a.description || '')}</textarea>
+            <div class="myp-edit-actions">
+                <button class="vrcn-button" onclick="cancelAvField('desc')">${t('common.cancel', 'Cancel')}</button>
+                <button class="vrcn-button vrcn-btn-primary" onclick="saveAvField('desc','${aid}')">${t('common.save', 'Save')}</button>
+            </div>
+        </div>` : ''}
+    </div>`;
+
+    const _tagsCard = `<div class="fd-info-card">
+        <div class="myp-section-header">
+            <span class="myp-section-title">${t('avatars.detail.sections.tags', 'Tags')}</span>
+            ${isOwn ? `<button class="myp-edit-btn" onclick="editAvField('tags')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
+        </div>
+        <div id="avfTagsView">${tagsViewHtml}</div>
+        ${isOwn ? `<div id="avfTagsEdit" style="display:none;">
+            <div id="avTagsChips" class="myp-lang-chips" style="margin-bottom:6px;"></div>
+            <div style="display:flex;gap:6px;margin-bottom:8px;">
+                <input id="avTagInput" class="vrcn-edit-field" placeholder="${esc(t('avatars.detail.add_tag_placeholder', 'Add tag...'))}" style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();avAddTag();}">
+                <button class="myp-add-lang-btn" onclick="avAddTag()"><span class="msi" style="font-size:15px;">add</span></button>
+            </div>
+            <div class="myp-edit-actions">
+                <button class="vrcn-button" onclick="cancelAvField('tags')">${t('common.cancel', 'Cancel')}</button>
+                <button class="vrcn-button vrcn-btn-primary" onclick="saveAvField('tags','${aid}')">${t('common.save', 'Save')}</button>
+            </div>
+        </div>` : ''}
+    </div>`;
+
+    const _mr = (label, valueHtml) =>
+        `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"><span style="color:var(--tx3);">${label}</span><span style="color:var(--tx1);text-align:right;">${valueHtml}</span></div>`;
+
+    const _infosCard = `<div class="fd-info-card">
+        <div class="fd-group-rep-label">${t('avatars.detail.sections.infos', 'Infos')}</div>
+        <div style="display:grid;gap:6px;margin-bottom:10px;">
+            ${_mr(t('avatars.detail.meta.created_at', 'Created'), fmtDate(a.created_at))}
+            ${_mr(t('avatars.detail.meta.updated_at', 'Updated'), fmtDate(a.updated_at))}
+            ${a.version ? _mr(t('avatars.detail.meta.version', 'Version'), `v${a.version}`) : ''}
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">${pcBadge}${questBadge}${impostorBadge}</div>
+        <div class="myp-section-header">
+            <span class="myp-section-title">${t('avatars.detail.sections.visibility', 'Visibility')}</span>
+            ${isOwn ? `<button class="myp-edit-btn" onclick="editAvField('visibility')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
+        </div>
+        <div id="avfVisView">${statusBadge}</div>
+        ${isOwn ? `<div id="avfVisEdit" style="display:none;">
+            <div style="display:flex;gap:6px;margin-bottom:8px;">
+                <button id="avVisPublicBtn" class="vrcn-button-round${isPublic ? ' active' : ''}" onclick="avVisToggle('public',this)">
+                    <span class="msi" style="font-size:14px;">public</span> ${t('avatars.labels.public', 'Public')}
+                </button>
+                <button id="avVisPrivateBtn" class="vrcn-button-round${!isPublic ? ' active' : ''}" onclick="avVisToggle('private',this)">
+                    <span class="msi" style="font-size:14px;">lock</span> ${t('avatars.labels.private', 'Private')}
+                </button>
+            </div>
+            <div class="myp-edit-actions">
+                <button class="vrcn-button" onclick="cancelAvField('visibility')">${t('common.cancel', 'Cancel')}</button>
+                <button class="vrcn-button vrcn-btn-primary" onclick="saveAvField('visibility','${aid}')">${t('common.save', 'Save')}</button>
+            </div>
+        </div>` : ''}
+    </div>`;
+
     c.innerHTML = `
         ${thumb ? `<div class="fd-banner"><img src="${thumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/avatar/${esc(a.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>` : ''}
         <div class="fd-content${thumb ? ' fd-has-banner' : ''}">
-
-            <!-- Name -->
-            <div id="avfNameView" style="display:flex;align-items:center;gap:6px;padding:20px 0 0;">
-                <h2 style="margin:0;color:var(--tx0);font-size:18px;flex:1;min-width:0;">${esc(a.name || t('avatars.detail.unnamed', 'Unnamed Avatar'))}</h2>
-                ${isOwn ? `<button class="myp-edit-btn" onclick="editAvField('name')" title="${esc(t('avatars.detail.actions.edit_name', 'Edit name'))}"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
+            <div class="fd-header">
+                <div style="flex:1;min-width:0;">
+                    <div id="avfNameView" style="display:flex;align-items:center;gap:6px;">
+                        <div class="fd-name">${esc(a.name || t('avatars.detail.unnamed', 'Unnamed Avatar'))}</div>
+                        ${isOwn ? `<button class="myp-edit-btn" onclick="editAvField('name')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
+                    </div>
+                    ${isOwn ? `<div id="avfNameEdit" style="display:none;margin-top:6px;">
+                        <input id="avNameInput" class="vrcn-edit-field" value="${esc(a.name || '')}" maxlength="64" style="width:100%;">
+                        <div class="myp-edit-actions">
+                            <button class="vrcn-button" onclick="cancelAvField('name')">${t('common.cancel', 'Cancel')}</button>
+                            <button class="vrcn-button vrcn-btn-primary" onclick="saveAvField('name','${aid}')">${t('common.save', 'Save')}</button>
+                        </div>
+                    </div>` : ''}
+                    <div style="font-size:12px;color:var(--tx3);margin-top:4px;">${t('avatars.detail.by', 'by')} ${authorHtml}</div>
+                </div>
             </div>
-            ${isOwn ? `<div id="avfNameEdit" style="display:none;padding:8px 0 0;">
-                <input id="avNameInput" class="vrcn-edit-field" value="${esc(a.name || '')}" maxlength="64" style="width:100%;">
-                <div class="myp-edit-actions">
-                    <button class="vrcn-button" onclick="cancelAvField('name')">${t('common.cancel', 'Cancel')}</button>
-                    <button class="vrcn-button vrcn-btn-primary" onclick="saveAvField('name','${aid}')">${t('common.save', 'Save')}</button>
+            <div class="fd-badges-row" style="margin-bottom:10px;">${statusBadge}${idBadge(a.id)}</div>
+            <div class="fd-info-wrap">
+                <div class="fd-info-cols">
+                    <div class="fd-info-left">${_descCard}${_tagsCard}</div>
+                    <div class="fd-info-right">${_infosCard}</div>
                 </div>
-            </div>` : ''}
-
-            <!-- Author + badges -->
-            <div style="padding:4px 0 12px;">
-                <div style="font-size:12px;color:var(--tx3);margin-bottom:10px;">${t('avatars.detail.by', 'by')} ${authorHtml}</div>
-                <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">
-                    ${statusBadge}${pcBadge}${questBadge}${impostorBadge}
-                </div>
-                ${idBadge(a.id)}
             </div>
-
-            <div style="padding:0 0 20px;">
-                <!-- Description -->
-                <div class="myp-section">
-                    <div class="myp-section-header">
-                        <span class="myp-section-title">${t('avatars.detail.sections.description', 'Description')}</span>
-                        ${isOwn ? `<button class="myp-edit-btn" onclick="editAvField('desc')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
-                    </div>
-                    <div id="avfDescView">
-                        ${a.description ? `<div class="fd-bio">${esc(a.description)}</div>` : `<div class="myp-empty">${t('avatars.detail.empty_description', 'No description')}</div>`}
-                    </div>
-                    ${isOwn ? `<div id="avfDescEdit" style="display:none;">
-                        <textarea id="avDescInput" class="myp-textarea" rows="4" maxlength="2000" placeholder="${esc(t('avatars.detail.description_placeholder', 'Avatar description...'))}">${esc(a.description || '')}</textarea>
-                        <div class="myp-edit-actions">
-                            <button class="vrcn-button" onclick="cancelAvField('desc')">${t('common.cancel', 'Cancel')}</button>
-                            <button class="vrcn-button vrcn-btn-primary" onclick="saveAvField('desc','${aid}')">${t('common.save', 'Save')}</button>
-                        </div>
-                    </div>` : ''}
-                </div>
-
-                <!-- Visibility -->
-                <div class="myp-section">
-                    <div class="myp-section-header">
-                        <span class="myp-section-title">${t('avatars.detail.sections.visibility', 'Visibility')}</span>
-                        ${isOwn ? `<button class="myp-edit-btn" onclick="editAvField('visibility')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
-                    </div>
-                    <div id="avfVisView">${statusBadge}</div>
-                    ${isOwn ? `<div id="avfVisEdit" style="display:none;">
-                        <div style="display:flex;gap:6px;margin-bottom:8px;">
-                            <button id="avVisPublicBtn" class="vrcn-button-round${isPublic ? ' active' : ''}" onclick="avVisToggle('public',this)">
-                                <span class="msi" style="font-size:14px;">public</span> ${t('avatars.labels.public', 'Public')}
-                            </button>
-                            <button id="avVisPrivateBtn" class="vrcn-button-round${!isPublic ? ' active' : ''}" onclick="avVisToggle('private',this)">
-                                <span class="msi" style="font-size:14px;">lock</span> ${t('avatars.labels.private', 'Private')}
-                            </button>
-                        </div>
-                        <div class="myp-edit-actions">
-                            <button class="vrcn-button" onclick="cancelAvField('visibility')">${t('common.cancel', 'Cancel')}</button>
-                            <button class="vrcn-button vrcn-btn-primary" onclick="saveAvField('visibility','${aid}')">${t('common.save', 'Save')}</button>
-                        </div>
-                    </div>` : ''}
-                </div>
-
-                <!-- Tags -->
-                <div class="myp-section">
-                    <div class="myp-section-header">
-                        <span class="myp-section-title">${t('avatars.detail.sections.tags', 'Tags')}</span>
-                        ${isOwn ? `<button class="myp-edit-btn" onclick="editAvField('tags')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
-                    </div>
-                    <div id="avfTagsView">${tagsViewHtml}</div>
-                    ${isOwn ? `<div id="avfTagsEdit" style="display:none;">
-                        <div id="avTagsChips" class="myp-lang-chips" style="margin-bottom:6px;"></div>
-                        <div style="display:flex;gap:6px;margin-bottom:8px;">
-                            <input id="avTagInput" class="vrcn-edit-field" placeholder="${esc(t('avatars.detail.add_tag_placeholder', 'Add tag...'))}" style="flex:1;"
-                                onkeydown="if(event.key==='Enter'){event.preventDefault();avAddTag();}">
-                            <button class="myp-add-lang-btn" onclick="avAddTag()"><span class="msi" style="font-size:15px;">add</span></button>
-                        </div>
-                        <div class="myp-edit-actions">
-                            <button class="vrcn-button" onclick="cancelAvField('tags')">${t('common.cancel', 'Cancel')}</button>
-                            <button class="vrcn-button vrcn-btn-primary" onclick="saveAvField('tags','${aid}')">${t('common.save', 'Save')}</button>
-                        </div>
-                    </div>` : ''}
-                </div>
-
-                <!-- Meta -->
-                <div class="fd-meta" style="margin-bottom:14px;">${metaRows}</div>
-
-                <!-- Actions -->
-                <div style="display:flex;justify-content:flex-end;gap:6px;">
-                    <button class="vrcn-button-round vrcn-btn-join" onclick="selectAvatar('${aid}');closeAvatarDetail()">
-                        <span class="msi" style="font-size:14px;">checkroom</span> ${t('avatars.detail.actions.use_avatar', 'Use Avatar')}
-                    </button>
-                    <button class="vrcn-button-round" onclick="closeAvatarDetail()">${t('common.close', 'Close')}</button>
-                </div>
+            <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:6px;">
+                <button class="vrcn-button-round vrcn-btn-join" onclick="selectAvatar('${aid}');closeAvatarDetail()">
+                    <span class="msi" style="font-size:14px;">checkroom</span> ${t('avatars.detail.actions.use_avatar', 'Use Avatar')}
+                </button>
+                <button class="vrcn-button-round" onclick="closeAvatarDetail()">${t('common.close', 'Close')}</button>
             </div>
         </div>`;
 }

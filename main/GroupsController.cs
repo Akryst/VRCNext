@@ -22,6 +22,26 @@ public class GroupsController
         _core = core;
     }
 
+    // Represented group
+
+    public async Task FetchRepresentedGroupAsync()
+    {
+        var g = await _core.Groups.GetRepresentedGroupAsync();
+        if (g == null) { _core.SendToJS("vrcRepresentedGroup", (object?)null); return; }
+        var gid = g["groupId"]?.ToString() ?? "";
+        var iconUrl = ImageCacheHelper.GetGroupUrl(gid, g["iconUrl"]?.ToString());
+        _core.SendToJS("vrcRepresentedGroup", new
+        {
+            id            = gid,
+            name          = g["name"]?.ToString() ?? "",
+            shortCode     = g["shortCode"]?.ToString() ?? "",
+            discriminator = g["discriminator"]?.ToString() ?? "",
+            iconUrl,
+            memberCount   = g["memberCount"]?.Value<int>() ?? 0,
+            isRepresenting = true,
+        });
+    }
+
     // Cache fetch
 
     public async Task FetchAndCacheAsync()
@@ -186,11 +206,16 @@ public class GroupsController
                     var ggCached = _core.TimeEngine.GetGroupDetail(ggId);
                     _memberPerms.TryGetValue(ggId, out var gp);
                     if (ggCached != null)
+                    {
+                        var cachedPost  = string.IsNullOrEmpty(ggCached.LastPostJson)  ? null : Newtonsoft.Json.JsonConvert.DeserializeObject(ggCached.LastPostJson);
+                        var cachedEvent = string.IsNullOrEmpty(ggCached.LastEventJson) ? null : Newtonsoft.Json.JsonConvert.DeserializeObject(ggCached.LastEventJson);
                         _core.SendToJS("vrcGroupDetail", new {
                             id = ggId, name = ggCached.Name, shortCode = ggCached.ShortCode,
                             description = ggCached.Description, iconUrl = ImageCacheHelper.GetGroupUrl(ggId, ggCached.IconUrl),
                             bannerUrl = ImageCacheHelper.GetGroupBannerUrl(ggId, ggCached.BannerUrl), memberCount = ggCached.MemberCount,
                             privacy = ggCached.Privacy, joinState = ggCached.JoinState,
+                            createdAt = ggCached.CreatedAt, isVerified = ggCached.IsVerified,
+                            joinedAt = ggCached.JoinedAt, isRepresenting = ggCached.IsRepresenting,
                             ownerId = ggCached.OwnerId, ownerDisplayName = ggCached.OwnerName,
                             visibility = gp?.Visibility ?? "", rules = ggCached.Rules,
                             languages = ggCached.Languages.ToArray(),
@@ -198,10 +223,13 @@ public class GroupsController
                             isJoined = gp != null, canPost = gp?.CanPost ?? false, canEvent = gp?.CanEvent ?? false, canEdit = gp?.CanEdit ?? false,
                             canInvite = gp?.CanInvite ?? false, canKick = gp?.CanKick ?? false, canBan = gp?.CanBan ?? false,
                             canManageRoles = gp?.CanManageRoles ?? false, canAssignRoles = gp?.CanAssignRoles ?? false,
-                            roles = Array.Empty<object>(), posts = Array.Empty<object>(),
-                            groupEvents = Array.Empty<object>(), groupInstances = Array.Empty<object>(),
+                            roles = Array.Empty<object>(),
+                            posts = cachedPost != null ? new[] { cachedPost } : Array.Empty<object>(),
+                            groupEvents = cachedEvent != null ? new[] { cachedEvent } : Array.Empty<object>(),
+                            groupInstances = Array.Empty<object>(),
                             galleryImages = Array.Empty<object>(), groupMembers = Array.Empty<object>(),
                         });
+                    }
                     _ = Task.Run(async () =>
                     {
                         var g = await _core.Groups.GetGroupAsync(ggId);
@@ -209,6 +237,7 @@ public class GroupsController
                         {
                             // Save basic detail to DB immediately so future opens are instant
                             var saveId = g["id"]?.ToString() ?? "";
+                            var earlyMember = g["myMember"] as JObject;
                             _core.TimeEngine.SaveGroupDetail(
                                 saveId,
                                 g["name"]?.ToString() ?? "",
@@ -222,7 +251,11 @@ public class GroupsController
                                 g["ownerId"]?.ToString() ?? "", "",
                                 g["rules"]?.ToString() ?? "",
                                 (g["languages"] as JArray)?.Select(x => x.ToString()).ToList() ?? new(),
-                                (g["links"]     as JArray)?.Select(x => x.ToString()).ToList() ?? new());
+                                (g["links"]     as JArray)?.Select(x => x.ToString()).ToList() ?? new(),
+                                createdAt:      g["createdAt"]?.ToString() ?? "",
+                                isVerified:     g["isVerified"]?.Value<bool>() ?? false,
+                                joinedAt:       earlyMember?["joinedAt"]?.ToString() ?? "",
+                                isRepresenting: earlyMember?["isRepresenting"]?.Value<bool>() ?? false);
 
                             bool isMember = g["myMember"] != null && g["myMember"]!.Type != JTokenType.Null;
                             // Fetch additional data in parallel
@@ -280,6 +313,25 @@ public class GroupsController
                                 ownerDisplayName = ownerUser?["displayName"]?.ToString() ?? "";
                             }
 
+                            var firstPost  = posts.Cast<JObject>().FirstOrDefault();
+                            var firstEvent = events.Cast<JObject>().FirstOrDefault();
+                            var lastPostJson = firstPost == null ? "" : Newtonsoft.Json.JsonConvert.SerializeObject(new {
+                                id        = firstPost["id"]?.ToString() ?? "",
+                                title     = firstPost["title"]?.ToString() ?? "",
+                                text      = firstPost["text"]?.ToString() ?? "",
+                                imageUrl  = ImageCacheHelper.GetGroupUrl(firstPost["id"]?.ToString(), firstPost["imageUrl"]?.ToString()),
+                                createdAt = firstPost["createdAt"]?.ToString() ?? "",
+                                visibility = firstPost["visibility"]?.ToString() ?? "",
+                            });
+                            var lastEventJson = firstEvent == null ? "" : Newtonsoft.Json.JsonConvert.SerializeObject(new {
+                                id          = firstEvent["id"]?.ToString() ?? "",
+                                title       = firstEvent["title"]?.ToString() ?? "",
+                                description = firstEvent["description"]?.ToString() ?? "",
+                                imageUrl    = ImageCacheHelper.GetEventUrl(firstEvent["id"]?.ToString(), firstEvent["imageUrl"]?.ToString()),
+                                startsAt    = firstEvent["startsAt"]?.ToString() ?? "",
+                                endsAt      = firstEvent["endsAt"]?.ToString() ?? "",
+                                accessType  = firstEvent["accessType"]?.ToString() ?? "",
+                            });
                             _core.TimeEngine.SaveGroupDetail(
                                 g["id"]?.ToString() ?? "",
                                 g["name"]?.ToString() ?? "",
@@ -293,13 +345,23 @@ public class GroupsController
                                 ownerId, ownerDisplayName,
                                 g["rules"]?.ToString() ?? "",
                                 (g["languages"] as JArray)?.Select(x => x.ToString()).ToList() ?? new(),
-                                (g["links"]     as JArray)?.Select(x => x.ToString()).ToList() ?? new());
+                                (g["links"]     as JArray)?.Select(x => x.ToString()).ToList() ?? new(),
+                                createdAt:      g["createdAt"]?.ToString() ?? "",
+                                isVerified:     g["isVerified"]?.Value<bool>() ?? false,
+                                joinedAt:       myMember?["joinedAt"]?.ToString() ?? "",
+                                isRepresenting: myMember?["isRepresenting"]?.Value<bool>() ?? false,
+                                lastPostJson:   lastPostJson,
+                                lastEventJson:  lastEventJson);
                             _core.SendToJS("vrcGroupDetail", new {
                                 id = g["id"]?.ToString() ?? "", name = g["name"]?.ToString() ?? "",
                                 shortCode = g["shortCode"]?.ToString() ?? "", description = g["description"]?.ToString() ?? "",
                                 iconUrl = ImageCacheHelper.GetGroupUrl(g["id"]?.ToString(), g["iconUrl"]?.ToString()), bannerUrl = ImageCacheHelper.GetGroupBannerUrl(g["id"]?.ToString(), g["bannerUrl"]?.ToString()),
                                 memberCount = g["memberCount"]?.Value<int>() ?? 0, privacy = g["privacy"]?.ToString() ?? "",
                                 joinState = g["joinState"]?.ToString() ?? "",
+                                createdAt    = g["createdAt"]?.ToString() ?? "",
+                                isVerified   = g["isVerified"]?.Value<bool>() ?? false,
+                                joinedAt     = myMember?["joinedAt"]?.ToString() ?? "",
+                                isRepresenting = myMember?["isRepresenting"]?.Value<bool>() ?? false,
                                 ownerId, ownerDisplayName,
                                 visibility = myMember?["visibility"]?.ToString() ?? "",
                                 rules = g["rules"]?.ToString() ?? "",
@@ -564,6 +626,56 @@ public class GroupsController
                             action = "createGroupPost",
                             success = ok,
                             message = ok ? "Post created!" : "Failed to create post"
+                        });
+                    });
+                }
+                break;
+            }
+
+            case "vrcUpdateGroupPost":
+            {
+                var ugpGroupId    = msg["groupId"]?.ToString() ?? "";
+                var ugpPostId     = msg["postId"]?.ToString() ?? "";
+                var ugpTitle      = msg["title"]?.ToString() ?? "";
+                var ugpText       = msg["text"]?.ToString() ?? "";
+                var ugpVis        = msg["visibility"]?.ToString() ?? "group";
+                var ugpImageBase64 = msg["imageBase64"]?.ToString();
+                var ugpImageFileId = msg["imageFileId"]?.ToString();
+                if (!string.IsNullOrEmpty(ugpGroupId) && !string.IsNullOrEmpty(ugpPostId) && !string.IsNullOrEmpty(ugpTitle))
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        string? imageId = null;
+                        if (!string.IsNullOrEmpty(ugpImageFileId))
+                        {
+                            imageId = ugpImageFileId;
+                        }
+                        else if (!string.IsNullOrEmpty(ugpImageBase64))
+                        {
+                            try
+                            {
+                                var b64 = ugpImageBase64;
+                                string imgMime = "image/png";
+                                string imgExt = ".png";
+                                if (b64.StartsWith("data:"))
+                                {
+                                    var semi = b64.IndexOf(';');
+                                    if (semi > 5) imgMime = b64[5..semi];
+                                    imgExt = imgMime switch { "image/jpeg" => ".jpg", "image/gif" => ".gif", "image/webp" => ".webp", _ => ".png" };
+                                }
+                                var commaIdx = b64.IndexOf(',');
+                                if (commaIdx >= 0) b64 = b64[(commaIdx + 1)..];
+                                imageId = await _core.Files.UploadImageAsync(Convert.FromBase64String(b64), imgMime, imgExt);
+                            }
+                            catch (Exception ex) { _core.SendToJS("log", new { msg = $"[UpdateGroupPost] Image parse error: {ex.Message}", color = "err" }); }
+                        }
+                        var ok = await _core.Groups.UpdateGroupPostAsync(ugpGroupId, ugpPostId, ugpTitle, ugpText, ugpVis, imageId);
+                        _core.SendToJS("vrcActionResult", new
+                        {
+                            action = "updateGroupPost",
+                            success = ok,
+                            postId = ugpPostId,
+                            message = ok ? "Post updated!" : "Failed to update post"
                         });
                     });
                 }

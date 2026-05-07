@@ -397,6 +397,9 @@ public partial class AppShell
                 case "getImgCacheSize":
                 case "optimizeImgCache":
                 case "clearFfcCache":
+                case "dbAnalyze":
+                case "dbOptimize":
+                case "dbBackup":
                 case "forceFfcAll":
                 case "setupSaveLanguage":
                 case "setupSaveStartWithWindows":
@@ -1637,6 +1640,7 @@ public partial class AppShell
                     break;
 
                 case "vrcCreateGroupPost":
+                case "vrcUpdateGroupPost":
                 case "vrcDeleteGroupPost":
                 case "vrcDeleteGroupEvent":
                     await _groups.HandleMessage(action, msg);

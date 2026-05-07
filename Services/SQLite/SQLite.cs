@@ -364,6 +364,12 @@ public class UnifiedTimeEngine : IDisposable
         public string Rules           { get; set; } = "";
         public List<string> Languages { get; set; } = new();
         public List<string> Links     { get; set; } = new();
+        public string CreatedAt       { get; set; } = "";
+        public bool   IsVerified      { get; set; }
+        public string JoinedAt        { get; set; } = "";
+        public bool   IsRepresenting  { get; set; }
+        public string LastPostJson    { get; set; } = "";
+        public string LastEventJson   { get; set; } = "";
     }
 
     public string GetGroupDetailStatus(string groupId)
@@ -394,7 +400,8 @@ public class UnifiedTimeEngine : IDisposable
             {
                 using var cmd = _db.CreateCommand();
                 cmd.CommandText = @"SELECT name,short_code,description,icon_url,banner_url,member_count,
-                    privacy,join_state,owner_id,owner_display_name,rules,languages,links,detail_cached_at
+                    privacy,join_state,owner_id,owner_display_name,rules,languages,links,detail_cached_at,
+                    created_at,is_verified,joined_at,is_representing,last_post_json,last_event_json
                     FROM group_tracking WHERE group_id=$id";
                 cmd.Parameters.AddWithValue("$id", groupId);
                 using var r = cmd.ExecuteReader();
@@ -403,19 +410,25 @@ public class UnifiedTimeEngine : IDisposable
                 if (string.IsNullOrEmpty(cachedAt)) { System.Diagnostics.Debug.WriteLine($"[GRP-CACHE] empty detail_cached_at for {groupId}"); return null; }
                 return new GroupDetailCache
                 {
-                    Name        = r.IsDBNull(0)  ? "" : r.GetString(0),
-                    ShortCode   = r.IsDBNull(1)  ? "" : r.GetString(1),
-                    Description = r.IsDBNull(2)  ? "" : r.GetString(2),
-                    IconUrl     = r.IsDBNull(3)  ? "" : r.GetString(3),
-                    BannerUrl   = r.IsDBNull(4)  ? "" : r.GetString(4),
-                    MemberCount = r.IsDBNull(5)  ? 0  : r.GetInt32(5),
-                    Privacy     = r.IsDBNull(6)  ? "" : r.GetString(6),
-                    JoinState   = r.IsDBNull(7)  ? "" : r.GetString(7),
-                    OwnerId     = r.IsDBNull(8)  ? "" : r.GetString(8),
-                    OwnerName   = r.IsDBNull(9)  ? "" : r.GetString(9),
-                    Rules       = r.IsDBNull(10) ? "" : r.GetString(10),
-                    Languages   = r.IsDBNull(11) ? new() : JsonConvert.DeserializeObject<List<string>>(r.GetString(11)) ?? new(),
-                    Links       = r.IsDBNull(12) ? new() : JsonConvert.DeserializeObject<List<string>>(r.GetString(12)) ?? new(),
+                    Name          = r.IsDBNull(0)  ? "" : r.GetString(0),
+                    ShortCode     = r.IsDBNull(1)  ? "" : r.GetString(1),
+                    Description   = r.IsDBNull(2)  ? "" : r.GetString(2),
+                    IconUrl       = r.IsDBNull(3)  ? "" : r.GetString(3),
+                    BannerUrl     = r.IsDBNull(4)  ? "" : r.GetString(4),
+                    MemberCount   = r.IsDBNull(5)  ? 0  : r.GetInt32(5),
+                    Privacy       = r.IsDBNull(6)  ? "" : r.GetString(6),
+                    JoinState     = r.IsDBNull(7)  ? "" : r.GetString(7),
+                    OwnerId       = r.IsDBNull(8)  ? "" : r.GetString(8),
+                    OwnerName     = r.IsDBNull(9)  ? "" : r.GetString(9),
+                    Rules         = r.IsDBNull(10) ? "" : r.GetString(10),
+                    Languages     = r.IsDBNull(11) ? new() : JsonConvert.DeserializeObject<List<string>>(r.GetString(11)) ?? new(),
+                    Links         = r.IsDBNull(12) ? new() : JsonConvert.DeserializeObject<List<string>>(r.GetString(12)) ?? new(),
+                    CreatedAt     = r.IsDBNull(14) ? "" : r.GetString(14),
+                    IsVerified    = !r.IsDBNull(15) && r.GetInt32(15) != 0,
+                    JoinedAt      = r.IsDBNull(16) ? "" : r.GetString(16),
+                    IsRepresenting = !r.IsDBNull(17) && r.GetInt32(17) != 0,
+                    LastPostJson  = r.IsDBNull(18) ? "" : r.GetString(18),
+                    LastEventJson = r.IsDBNull(19) ? "" : r.GetString(19),
                 };
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[GRP-CACHE] exception: {ex.Message}"); return null; }
@@ -424,7 +437,9 @@ public class UnifiedTimeEngine : IDisposable
 
     public void SaveGroupDetail(string groupId, string name, string shortCode, string description,
         string iconUrl, string bannerUrl, int memberCount, string privacy, string joinState,
-        string ownerId, string ownerDisplayName, string rules, List<string> languages, List<string> links)
+        string ownerId, string ownerDisplayName, string rules, List<string> languages, List<string> links,
+        string createdAt = "", bool isVerified = false, string joinedAt = "", bool isRepresenting = false,
+        string lastPostJson = "", string lastEventJson = "")
     {
         if (string.IsNullOrEmpty(groupId)) return;
         var now = DateTime.UtcNow.ToString("o");
@@ -434,14 +449,19 @@ public class UnifiedTimeEngine : IDisposable
             {
                 using var cmd = _db.CreateCommand();
                 cmd.CommandText = @"INSERT INTO group_tracking(group_id,name,short_code,description,icon_url,banner_url,
-                    member_count,privacy,join_state,owner_id,owner_display_name,rules,languages,links,detail_cached_at)
-                    VALUES($id,$n,$sc,$desc,$ic,$bn,$mc,$pr,$js,$oid,$odn,$rul,$lng,$lnk,$cat)
+                    member_count,privacy,join_state,owner_id,owner_display_name,rules,languages,links,detail_cached_at,
+                    created_at,is_verified,joined_at,is_representing,last_post_json,last_event_json)
+                    VALUES($id,$n,$sc,$desc,$ic,$bn,$mc,$pr,$js,$oid,$odn,$rul,$lng,$lnk,$cat,$ca,$iv,$ja,$ir,$lpj,$lej)
                     ON CONFLICT(group_id) DO UPDATE SET
                         name=excluded.name, short_code=excluded.short_code, description=excluded.description,
                         icon_url=excluded.icon_url, banner_url=excluded.banner_url, member_count=excluded.member_count,
                         privacy=excluded.privacy, join_state=excluded.join_state, owner_id=excluded.owner_id,
                         owner_display_name=excluded.owner_display_name, rules=excluded.rules,
-                        languages=excluded.languages, links=excluded.links, detail_cached_at=excluded.detail_cached_at";
+                        languages=excluded.languages, links=excluded.links, detail_cached_at=excluded.detail_cached_at,
+                        created_at=excluded.created_at, is_verified=excluded.is_verified,
+                        joined_at=excluded.joined_at, is_representing=excluded.is_representing,
+                        last_post_json=CASE WHEN excluded.last_post_json='' THEN last_post_json ELSE excluded.last_post_json END,
+                        last_event_json=CASE WHEN excluded.last_event_json='' THEN last_event_json ELSE excluded.last_event_json END";
                 cmd.Parameters.AddWithValue("$id",  groupId);
                 cmd.Parameters.AddWithValue("$n",   name);
                 cmd.Parameters.AddWithValue("$sc",  shortCode);
@@ -457,6 +477,12 @@ public class UnifiedTimeEngine : IDisposable
                 cmd.Parameters.AddWithValue("$lng", JsonConvert.SerializeObject(languages));
                 cmd.Parameters.AddWithValue("$lnk", JsonConvert.SerializeObject(links));
                 cmd.Parameters.AddWithValue("$cat", now);
+                cmd.Parameters.AddWithValue("$ca",  createdAt);
+                cmd.Parameters.AddWithValue("$iv",  isVerified ? 1 : 0);
+                cmd.Parameters.AddWithValue("$ja",  joinedAt);
+                cmd.Parameters.AddWithValue("$ir",  isRepresenting ? 1 : 0);
+                cmd.Parameters.AddWithValue("$lpj", lastPostJson);
+                cmd.Parameters.AddWithValue("$lej", lastEventJson);
                 cmd.ExecuteNonQuery();
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[GRP-SAVE-ERR] {ex.Message}"); _lastGroupSaveError = ex.Message; }
@@ -1611,7 +1637,13 @@ public class UnifiedTimeEngine : IDisposable
                 rules              TEXT NOT NULL DEFAULT '',
                 languages          TEXT NOT NULL DEFAULT '',
                 links              TEXT NOT NULL DEFAULT '',
-                detail_cached_at   TEXT NOT NULL DEFAULT ''
+                detail_cached_at   TEXT NOT NULL DEFAULT '',
+                created_at         TEXT NOT NULL DEFAULT '',
+                is_verified        INTEGER NOT NULL DEFAULT 0,
+                joined_at          TEXT NOT NULL DEFAULT '',
+                is_representing    INTEGER NOT NULL DEFAULT 0,
+                last_post_json     TEXT NOT NULL DEFAULT '',
+                last_event_json    TEXT NOT NULL DEFAULT ''
             )";
             gc.ExecuteNonQuery();
         }
@@ -1633,6 +1665,12 @@ public class UnifiedTimeEngine : IDisposable
             "languages          TEXT NOT NULL DEFAULT ''",
             "links              TEXT NOT NULL DEFAULT ''",
             "detail_cached_at   TEXT NOT NULL DEFAULT ''",
+            "created_at         TEXT NOT NULL DEFAULT ''",
+            "is_verified        INTEGER NOT NULL DEFAULT 0",
+            "joined_at          TEXT NOT NULL DEFAULT ''",
+            "is_representing    INTEGER NOT NULL DEFAULT 0",
+            "last_post_json     TEXT NOT NULL DEFAULT ''",
+            "last_event_json    TEXT NOT NULL DEFAULT ''",
         })
         {
             try { using var mc = _db.CreateCommand(); mc.CommandText = $"ALTER TABLE group_tracking ADD COLUMN {col}"; mc.ExecuteNonQuery(); } catch { }

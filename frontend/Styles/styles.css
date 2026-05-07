@@ -143,9 +143,9 @@
 .sb-toggle, .rs-toggle,
 .file-del, .folder-remove, .exe-remove,
 .cb-line-del, .myp-edit-btn, .myp-lang-remove,
-.inv-msg-edit, .gd-post-del, .vf-block-chip-remove { background: none; border: none; cursor: pointer; display: flex; align-items: center; }
+.inv-msg-edit, .gd-post-del, .gd-post-edit, .vf-block-chip-remove { background: none; border: none; cursor: pointer; display: flex; align-items: center; }
 
-.file-del, .cb-line-del, .inv-msg-edit, .gd-post-del { border-radius: 4px; }
+.file-del, .cb-line-del, .inv-msg-edit, .gd-post-del, .gd-post-edit { border-radius: 4px; }
 
 * {
     margin: 0;
@@ -237,7 +237,7 @@ html.text-tools-active * { user-select: text !important; }
 
 .fd-banner {
     margin: -28px -32px 0 -32px;
-    height: 160px;
+    height: 209px;
     overflow: hidden;
     border-radius: 14px 14px 0 0;
     position: relative;
@@ -248,6 +248,7 @@ html.text-tools-active * { user-select: text !important; }
     height: 100%;
     object-fit: cover;
     display: block;
+    filter: brightness(0.75);
 }
 
 .fd-banner-fade {
@@ -257,7 +258,7 @@ html.text-tools-active * { user-select: text !important; }
 }
 
 .fd-content.fd-has-banner {
-    margin-top: -60px;
+    margin-top: -109px;
     position: relative;
 }
 

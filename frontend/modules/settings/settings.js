@@ -947,3 +947,236 @@ function rerenderSettingsTranslations() {
 }
 
 document.documentElement.addEventListener('languagechange', rerenderSettingsTranslations);
+
+// === Database Optimization ===
+
+function dbRunAnalysis() {
+    const btn = document.getElementById('btnDbAnalyze');
+    const optBtn = document.getElementById('btnDbOptimize');
+    if (btn) btn.disabled = true;
+    if (optBtn) { optBtn.style.display = 'none'; optBtn.disabled = false; }
+    document.getElementById('dbAnalysisResults').style.display = 'none';
+    const wrap = document.getElementById('dbOptProgressWrap');
+    const bar  = document.getElementById('dbOptProgressBar');
+    const lbl  = document.getElementById('dbOptProgressLabel');
+    if (wrap) wrap.style.display = '';
+    if (bar)  bar.style.width = '30%';
+    if (lbl)  lbl.textContent = 'Analyzing…';
+    sendToCS({ action: 'dbAnalyze' });
+}
+
+function dbRunOptimize() {
+    const btn = document.getElementById('btnDbOptimize');
+    if (btn) btn.disabled = true;
+    document.getElementById('btnDbAnalyze').disabled = true;
+    document.getElementById('dbAnalysisResults').style.display = 'none';
+    const wrap = document.getElementById('dbOptProgressWrap');
+    const bar  = document.getElementById('dbOptProgressBar');
+    const lbl  = document.getElementById('dbOptProgressLabel');
+    if (wrap) wrap.style.display = '';
+    if (bar)  bar.style.width = '10%';
+    if (lbl)  lbl.textContent = 'Clearing cache data…';
+    sendToCS({ action: 'dbOptimize' });
+}
+
+function handleDbAnalyzeProgress() {
+    const bar = document.getElementById('dbOptProgressBar');
+    const lbl = document.getElementById('dbOptProgressLabel');
+    if (bar) bar.style.width = '60%';
+    if (lbl) lbl.textContent = 'Analyzing…';
+}
+
+function handleDbAnalyzeResult(data) {
+    const wrap = document.getElementById('dbOptProgressWrap');
+    const bar  = document.getElementById('dbOptProgressBar');
+    const lbl  = document.getElementById('dbOptProgressLabel');
+    const btn  = document.getElementById('btnDbAnalyze');
+    const res  = document.getElementById('dbAnalysisResults');
+
+    if (bar) bar.style.width = '100%';
+
+    if (data.error) {
+        if (lbl) lbl.textContent = 'Error: ' + data.error;
+        if (btn) btn.disabled = false;
+        return;
+    }
+
+    setTimeout(() => {
+        if (wrap) wrap.style.display = 'none';
+        if (bar)  bar.style.width = '0%';
+        if (btn)  btn.disabled = false;
+
+        // Summary row
+        const total    = (data.totalRows     || 0).toLocaleString(settingsUiLocale());
+        const friends  = (data.friendRows    || 0).toLocaleString(settingsUiLocale());
+        const clean    = (data.cleanableRows || 0).toLocaleString(settingsUiLocale());
+
+        const counts = data.counts || [];
+        const gridItems = counts.map(c =>
+            `<div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;">
+                <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.label)}</div>
+                <div style="font-size:14px;font-weight:700;color:var(--tx0);">${(c.count||0).toLocaleString(settingsUiLocale())}</div>
+            </div>`
+        ).join('');
+
+        const fOnline   = (data.friendOnlineCount    || 0).toLocaleString(settingsUiLocale());
+        const fOffline  = (data.friendOfflineCount   || 0).toLocaleString(settingsUiLocale());
+        const fStatus   = (data.friendStatusCount    || 0).toLocaleString(settingsUiLocale());
+        const fTotal    = ((data.friendOnlineCount || 0) + (data.friendOfflineCount || 0) + (data.friendStatusCount || 0)).toLocaleString(settingsUiLocale());
+        const eNotif    = (data.notificationCount    || 0).toLocaleString(settingsUiLocale());
+        const eVideo    = (data.videoUrlCount        || 0).toLocaleString(settingsUiLocale());
+        const epPlayers = (data.instancePlayersCount || 0).toLocaleString(settingsUiLocale());
+
+        res.innerHTML =
+            `<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 12px;flex:1;min-width:120px;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Total Users</div>
+                    <div style="font-size:15px;font-weight:700;color:var(--tx0);">${total}</div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 12px;flex:1;min-width:120px;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Friends (skipped)</div>
+                    <div style="font-size:15px;font-weight:700;color:var(--tx0);">${friends}</div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 12px;flex:1;min-width:120px;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Cleanable Rows</div>
+                    <div style="font-size:15px;font-weight:700;color:var(--accent);">${clean}</div>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:12px;">
+                ${gridItems}
+            </div>
+            <div style="font-size:11px;font-weight:600;color:var(--tx3);margin-bottom:6px;margin-top:4px;text-transform:uppercase;letter-spacing:.05em;">events</div>
+            <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:12px;">
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Notifications</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--tx0);">${eNotif}</div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Video URL</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--tx0);">${eVideo}</div>
+                </div>
+            </div>
+            <div style="font-size:11px;font-weight:600;color:var(--tx3);margin-bottom:6px;margin-top:4px;text-transform:uppercase;letter-spacing:.05em;">friend_events</div>
+            <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:12px;">
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Friend Online</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--tx0);">${fOnline}</div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Friend Offline</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--tx0);">${fOffline}</div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Friend Status</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--tx0);">${fStatus}</div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;grid-column:span 3;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Total Deletable Rows</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--accent);">${fTotal}</div>
+                </div>
+            </div>
+            <div style="font-size:11px;font-weight:600;color:var(--tx3);margin-bottom:6px;margin-top:4px;text-transform:uppercase;letter-spacing:.05em;">event_players</div>
+            <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:12px;">
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Instance Players</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--tx0);">${epPlayers}</div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;grid-column:span 5;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Total Deletable Rows</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--accent);">${epPlayers}</div>
+                </div>
+            </div>`;
+
+        res.style.display = '';
+
+        const optBtn = document.getElementById('btnDbOptimize');
+        if (optBtn) optBtn.style.display = '';
+    }, 300);
+}
+
+function handleDbOptimizeProgress(data) {
+    const bar = document.getElementById('dbOptProgressBar');
+    const lbl = document.getElementById('dbOptProgressLabel');
+    if (data.phase === 'optimize') {
+        if (bar) bar.style.width = '40%';
+        if (lbl) lbl.textContent = 'Clearing cache data…';
+    } else if (data.phase === 'vacuum') {
+        if (bar) bar.style.width = '75%';
+        if (lbl) lbl.textContent = 'Running VACUUM…';
+    }
+}
+
+function handleDbOptimizeDone(data) {
+    const wrap = document.getElementById('dbOptProgressWrap');
+    const bar  = document.getElementById('dbOptProgressBar');
+    const lbl  = document.getElementById('dbOptProgressLabel');
+    const btn  = document.getElementById('btnDbAnalyze');
+    const optBtn = document.getElementById('btnDbOptimize');
+    const res  = document.getElementById('dbAnalysisResults');
+
+    if (bar) bar.style.width = '100%';
+
+    setTimeout(() => {
+        if (wrap)   wrap.style.display = 'none';
+        if (bar)    bar.style.width = '0%';
+        if (btn)    btn.disabled = false;
+        if (optBtn) { optBtn.style.display = 'none'; optBtn.disabled = false; }
+
+        if (data.error) {
+            if (res) { res.innerHTML = `<div style="color:var(--err);font-size:12px;">Error: ${esc(data.error)}</div>`; res.style.display = ''; }
+            return;
+        }
+
+        const userCleaned  = (data.userCleaned  || 0).toLocaleString(settingsUiLocale());
+        const feCleaned    = (data.feCleaned    || 0).toLocaleString(settingsUiLocale());
+        const notifCleaned = (data.notifCleaned || 0).toLocaleString(settingsUiLocale());
+        const epCleaned    = (data.epCleaned    || 0).toLocaleString(settingsUiLocale());
+        if (res) {
+            res.innerHTML =
+                `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(var(--ok-rgb,80,200,120),.12);border:1px solid rgba(var(--ok-rgb,80,200,120),.30);border-radius:8px;">
+                    <span class="msi" style="font-size:20px;color:var(--ok);">check_circle</span>
+                    <div>
+                        <div style="font-size:13px;font-weight:600;color:var(--tx1);">Optimization complete</div>
+                        <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${userCleaned} user cache rows cleared &nbsp;·&nbsp; ${feCleaned} friend events deleted &nbsp;·&nbsp; ${notifCleaned} notifications deleted &nbsp;·&nbsp; ${epCleaned} instance player rows deleted &nbsp;·&nbsp; VACUUM done</div>
+                    </div>
+                </div>`;
+            res.style.display = '';
+        }
+    }, 300);
+}
+
+function dbCreateBackup() {
+    const btn = document.getElementById('btnDbBackup');
+    if (btn) { btn.disabled = true; btn.textContent = 'Creating backup…'; }
+    sendToCS({ action: 'dbBackup' });
+}
+
+function handleDbBackupDone(data) {
+    const btn = document.getElementById('btnDbBackup');
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="msi" style="font-size:16px;">backup</span> Create Backup';
+    }
+    const res = document.getElementById('dbAnalysisResults');
+    if (!res) return;
+
+    if (data.error) {
+        const el = document.createElement('div');
+        el.style.cssText = 'color:var(--err);font-size:12px;margin-top:8px;';
+        el.textContent = 'Backup failed: ' + data.error;
+        res.prepend(el);
+        res.style.display = '';
+        return;
+    }
+
+    const el = document.createElement('div');
+    el.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(var(--ok-rgb,80,200,120),.12);border:1px solid rgba(var(--ok-rgb,80,200,120),.30);border-radius:8px;margin-top:8px;';
+    el.innerHTML =
+        `<span class="msi" style="font-size:20px;color:var(--ok);">check_circle</span>
+        <div>
+            <div style="font-size:13px;font-weight:600;color:var(--tx1);">Backup created</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:2px;font-family:monospace;">${esc(data.path)}</div>
+        </div>`;
+    res.prepend(el);
+    res.style.display = '';
+}
