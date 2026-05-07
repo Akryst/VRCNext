@@ -243,17 +243,36 @@ function refreshPeopleTab() {
     if (peopleFilter === 'muted')     sendToCS({ action: 'vrcGetMuted' });
 }
 
+function _allFriendCategory(f) {
+    const pres = f.presence || '';
+    const loc  = f.location || '';
+    if (!pres || pres === 'offline' || loc === 'offline') return 'offline';
+    if (loc && loc !== 'private' && pres !== 'web') return 'ingame';
+    return 'active';
+}
+
+function setAllFriendsStatusFilter(filter) {
+    _allFriendsStatusFilter = filter;
+    _peopleAllPage = 0;
+    ['all', 'ingame', 'active', 'offline'].forEach(k => {
+        const btn = document.getElementById('allFriendFilter' + k.charAt(0).toUpperCase() + k.slice(1));
+        if (btn) btn.classList.toggle('active', k === filter);
+    });
+    filterAllFriends();
+}
+
 function filterAllFriends() {
     const el = document.getElementById('allFriendsGrid');
     if (!el) return;
     const q = (document.getElementById('allFriendSearchInput')?.value || '').toLowerCase();
-    const all = (q
+    let all = q
         ? vrcFriendsData.filter(f =>
             (f.displayName || '').toLowerCase().includes(q) ||
             (f.username || f.userName || '').toLowerCase().includes(q) ||
             (f.id || '').toLowerCase().includes(q))
-        : [...vrcFriendsData])
-        .sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
+        : [...vrcFriendsData];
+    if (_allFriendsStatusFilter !== 'all') all = all.filter(f => _allFriendCategory(f) === _allFriendsStatusFilter);
+    all = all.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
     const totalPages = Math.ceil(all.length / PEOPLE_PAGE_SIZE) || 1;
     if (_peopleAllPage >= totalPages) _peopleAllPage = totalPages - 1;
     if (_peopleAllPage < 0) _peopleAllPage = 0;

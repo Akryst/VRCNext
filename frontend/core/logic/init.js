@@ -1,6 +1,27 @@
 /* === Init === */
 document.addEventListener('contextmenu', e => e.preventDefault());
 
+/* === Grid Size Toggle === */
+function setGridSize(tab, size) {
+    localStorage.setItem('vrcn_gridSize_' + tab, size);
+    const compact = size === 'compact';
+    const gridIds = {
+        worlds:  ['favWorldsGrid', 'worldMineGrid', 'searchWorldsResults'],
+        groups:  ['myGroupsGrid', 'searchGroupsResults'],
+        avatars: ['avatarGrid', 'favAvatarsGrid', 'roseDbGrid', 'avatarSearchGrid'],
+    };
+    (gridIds[tab] || []).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('grid-compact', compact);
+    });
+    const btnPrefix = { worlds: 'world', groups: 'group', avatars: 'avatar' };
+    const pfx = btnPrefix[tab] || tab;
+    const largeBtn = document.getElementById(pfx + 'GridLarge');
+    const smallBtn = document.getElementById(pfx + 'GridSmall');
+    if (largeBtn) largeBtn.classList.toggle('active', !compact);
+    if (smallBtn) smallBtn.classList.toggle('active', compact);
+}
+
 // Restore nav group collapsed states (default: collapsed)
 (function() {
     document.querySelectorAll('.nav-group[id]').forEach(group => {
@@ -11,6 +32,12 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 }());
 
 initAllVnSelects();
+(function() {
+    ['worlds', 'groups', 'avatars'].forEach(tab => {
+        const saved = localStorage.getItem('vrcn_gridSize_' + tab) || 'default';
+        setGridSize(tab, saved);
+    });
+}());
 (function() {
     const el = document.getElementById('avatarSearchDbDrop');
     if (el) { const w = el._vnSelect ? el.parentNode : el; w.style.display = 'none'; }

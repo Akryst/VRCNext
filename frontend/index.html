@@ -346,7 +346,11 @@
                         </div>
                         <button id="worldEditRemoveBtn" class="vrcn-button wd-edit-action" disabled onclick="worldEditRemoveSelected()"><span class="msi" style="font-size:14px;">star_border</span> <span data-i18n="worlds.edit.remove">Remove</span></button>
                     </div>
-                    <button id="worldEditModeBtn" class="vrcn-button" onclick="toggleWorldEditMode()" title="Edit favorites" data-i18n-title="worlds.edit.button"><span class="msi" style="font-size:16px;">edit</span> <span data-i18n="worlds.edit.button">Edit</span></button>
+                    <div style="display:flex;gap:4px;align-items:center;">
+                        <button id="worldEditModeBtn" class="vrcn-button" onclick="toggleWorldEditMode()" title="Edit favorites" data-i18n-title="worlds.edit.button"><span class="msi" style="font-size:16px;">edit</span> <span data-i18n="worlds.edit.button">Edit</span></button>
+                        <button class="vrcn-button sub-tab-btn active" id="worldGridLarge" onclick="setGridSize('worlds','default')" title="Large grid"><span class="msi" style="font-size:16px;">grid_on</span></button>
+                        <button class="vrcn-button sub-tab-btn" id="worldGridSmall" onclick="setGridSize('worlds','compact')" title="Compact grid"><span class="msi" style="font-size:14px;">apps</span></button>
+                    </div>
                 </div>
                 <div id="worldMineArea" style="display:none;">
                     <div id="worldMineGrid" class="search-grid"><div class="empty-msg" data-i18n="worlds.mine.loading">Loading your worlds...</div></div>
@@ -394,6 +398,8 @@
                         <button class="vrcn-button sub-tab-btn" id="groupFilterSearch" onclick="setGroupFilter('search')"><span class="msi" style="font-size:16px;">search</span> <span data-i18n="common.search">Search</span></button>
                     </div>
                     <button id="groupsRefreshBtn" class="vrcn-button" onclick="refreshGroups()" title="Refresh my groups" data-i18n-title="groups.mine.refresh_title" style="margin-left:auto;"><span class="msi" style="font-size:16px;">refresh</span> <span data-i18n="common.refresh">Refresh</span></button>
+                    <button class="vrcn-button sub-tab-btn active" id="groupGridLarge" onclick="setGridSize('groups','default')" title="Large grid"><span class="msi" style="font-size:16px;">grid_on</span></button>
+                    <button class="vrcn-button sub-tab-btn" id="groupGridSmall" onclick="setGridSize('groups','compact')" title="Compact grid"><span class="msi" style="font-size:14px;">apps</span></button>
                 </div>
                 <div id="groupMineArea">
                     <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
@@ -468,7 +474,15 @@
                     <div id="favFriendsGrid" class="search-grid"><div class="empty-msg" data-i18n="friends.favorites.loading">Loading favorite friends...</div></div>
                 </div>
                 <div id="peopleAllArea" style="display:none;">
-                    <div class="search-bar-row" style="margin-bottom:12px;"><span class="msi search-ico">search</span><input type="text" id="allFriendSearchInput" class="vrcn-input" placeholder="Filter friends..." data-i18n-placeholder="profiles.people.all_search_placeholder" oninput="_dbFilterAllFriends()"></div>
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+                        <div style="display:flex;gap:4px;flex-shrink:0;">
+                            <button class="vrcn-button sub-tab-btn active" id="allFriendFilterAll" onclick="setAllFriendsStatusFilter('all')" data-i18n="profiles.people.status_filter.all">All</button>
+                            <button class="vrcn-button sub-tab-btn" id="allFriendFilterIngame" onclick="setAllFriendsStatusFilter('ingame')" data-i18n="profiles.people.status_filter.ingame">In-Game</button>
+                            <button class="vrcn-button sub-tab-btn" id="allFriendFilterActive" onclick="setAllFriendsStatusFilter('active')" data-i18n="profiles.people.status_filter.active">Active</button>
+                            <button class="vrcn-button sub-tab-btn" id="allFriendFilterOffline" onclick="setAllFriendsStatusFilter('offline')" data-i18n="profiles.people.status_filter.offline">Offline</button>
+                        </div>
+                        <div class="search-bar-row" style="margin-bottom:0;flex:1;min-width:140px;"><span class="msi search-ico">search</span><input type="text" id="allFriendSearchInput" class="vrcn-input" placeholder="Filter friends..." data-i18n-placeholder="profiles.people.all_search_placeholder" oninput="_dbFilterAllFriends()"></div>
+                    </div>
                     <div id="allFriendsGrid" class="search-grid"><div class="empty-msg" data-i18n="profiles.people.loading_all">Loading friends...</div></div>
                 </div>
                 <div id="peopleSearchArea" style="display:none;">
@@ -507,7 +521,11 @@
                         </div>
                         <button id="avatarEditRemoveBtn" class="vrcn-button av-edit-action" disabled onclick="avEditRemoveSelected()"><span class="msi" style="font-size:14px;">star_border</span> <span data-i18n="avatars.edit.remove">Remove</span></button>
                     </div>
-                    <button id="avatarEditModeBtn" class="vrcn-button" style="display:none;" onclick="toggleAvEditMode()" title="Edit favorites" data-i18n-title="avatars.edit.button"><span class="msi" style="font-size:16px;">edit</span> <span data-i18n="avatars.edit.button">Edit</span></button>
+                    <div style="display:flex;gap:4px;align-items:center;">
+                        <button id="avatarEditModeBtn" class="vrcn-button" style="display:none;" onclick="toggleAvEditMode()" title="Edit favorites" data-i18n-title="avatars.edit.button"><span class="msi" style="font-size:16px;">edit</span> <span data-i18n="avatars.edit.button">Edit</span></button>
+                        <button class="vrcn-button sub-tab-btn active" id="avatarGridLarge" onclick="setGridSize('avatars','default')" title="Large grid"><span class="msi" style="font-size:16px;">grid_on</span></button>
+                        <button class="vrcn-button sub-tab-btn" id="avatarGridSmall" onclick="setGridSize('avatars','compact')" title="Compact grid"><span class="msi" style="font-size:14px;">apps</span></button>
+                    </div>
                 </div>
                 <!-- Own Avatars -->
                 <div id="avatarOwnArea">

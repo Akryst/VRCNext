@@ -387,6 +387,7 @@ const SmartSearch = (() => {
         _open = true;
         _badge.classList.add('ss-badge-hidden');
         _inputWrap.classList.add('ss-visible');
+        if (!myGroupsLoaded && typeof loadMyGroups === 'function') loadMyGroups();
         // Focus after the expand transition starts
         setTimeout(() => _input.focus(), 60);
         _input.value = '';

@@ -186,6 +186,18 @@
     margin-left: 6px;
 }
 
+.grid-compact .vrcn-content-card {
+    min-height: 150px;
+    border-radius: 12px;
+}
+.grid-compact .vrcn-content-card .cc-name {
+    font-size: 15px;
+    margin-bottom: 2px;
+}
+.grid-compact .vrcn-content-card .cc-content {
+    padding: 14px;
+}
+
 .s-card {
     background: var(--bg-card);
     border-radius: 12px;

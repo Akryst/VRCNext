@@ -158,6 +158,7 @@ let favFriendsData = []; // [{ fvrtId, favoriteId }]
 let blockedData = null; // null = not yet loaded
 let mutedData = null;
 // People Tab pagination state
+let _allFriendsStatusFilter = 'all';
 let _peopleAllPage = 0;
 let _peopleBlockedPage = 0;
 let _peopleMutedPage = 0;
