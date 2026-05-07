@@ -117,6 +117,46 @@ function renderGroupDetail(g) {
                         </div>
                     </div>` : ''}
                 </div>
+                ${(() => {
+                    const lp = (g.posts || [])[0];
+                    if (!lp) return '';
+                    const lpDate = lp.createdAt ? fmtShortDate(new Date(lp.createdAt)) : '';
+                    const lpText = lp.text || '';
+                    const lpPreview = lpText.length > 80 ? lpText.slice(0, 80) + '...' : lpText;
+                    const lpImg = lp.imageUrl ? `<img src="${lp.imageUrl}" style="width:60px;align-self:stretch;object-fit:cover;border-radius:6px;flex-shrink:0;" onerror="this.style.display='none'">` : '';
+                    return `<div class="fd-info-card" style="cursor:pointer;" onclick="_switchGdTabByKey('posts')">
+                        <div class="fd-group-rep-label">${t('groups.sections.last_post', 'Last Post')}</div>
+                        <div style="display:flex;gap:10px;align-items:flex-start;">
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:12px;font-weight:600;color:var(--tx0);margin-bottom:2px;">${esc(lp.title || 'Untitled')}</div>
+                                ${lpDate ? `<div style="font-size:10px;color:var(--tx3);margin-bottom:4px;">${lpDate}</div>` : ''}
+                                ${lpPreview ? `<div style="font-size:11px;color:var(--tx2);line-height:1.4;">${esc(lpPreview)}</div>` : ''}
+                            </div>
+                            ${lpImg}
+                        </div>
+                    </div>`;
+                })()}
+                ${(() => {
+                    const le = (g.groupEvents || [])[0];
+                    if (!le) return '';
+                    const leStart = le.startsAt ? new Date(le.startsAt) : null;
+                    const leDateStr = leStart && !isNaN(leStart) ? fmtLongDate(leStart) : '';
+                    const leTimeStr = leStart && !isNaN(leStart) ? fmtTime(leStart) : '';
+                    const leImg = le.imageUrl ? `<img src="${le.imageUrl}" style="width:60px;align-self:stretch;object-fit:cover;border-radius:6px;flex-shrink:0;" onerror="this.style.display='none'">` : '';
+                    const leText = le.description || '';
+                    const lePrev = leText.length > 80 ? leText.slice(0, 80) + '...' : leText;
+                    return `<div class="fd-info-card" style="cursor:pointer;" onclick="_switchGdTabByKey('events')">
+                        <div class="fd-group-rep-label">${t('groups.sections.last_event', 'Last Event')}</div>
+                        <div style="display:flex;gap:10px;align-items:flex-start;">
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:12px;font-weight:600;color:var(--tx0);margin-bottom:2px;">${esc(le.title || 'Untitled Event')}</div>
+                                <div style="font-size:10px;color:var(--tx3);margin-bottom:4px;">${leDateStr}${leTimeStr ? ' · ' + leTimeStr : ''}</div>
+                                ${lePrev ? `<div style="font-size:11px;color:var(--tx2);line-height:1.4;">${esc(lePrev)}</div>` : ''}
+                            </div>
+                            ${leImg}
+                        </div>
+                    </div>`;
+                })()}
                 <div class="fd-info-card">
                     <div class="myp-section-header">
                         <span class="myp-section-title">${t('groups.sections.rules', 'Rules')}</span>
@@ -135,6 +175,35 @@ function renderGroupDetail(g) {
                 </div>
             </div>
             <div class="fd-info-right">
+                ${(() => {
+                    const insts = g.groupInstances || [];
+                    if (!insts.length) return '';
+                    const instsHtml = insts.slice(0, 3).map(inst => {
+                        const thumb = inst.worldThumb ? `<img style="width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0;" src="${inst.worldThumb}" onerror="this.style.display='none'">` : '';
+                        const users = inst.userCount > 0 ? (inst.capacity > 0 ? `${inst.userCount}/${inst.capacity}` : `${inst.userCount}`) : '';
+                        return `<div style="display:flex;align-items:center;gap:8px;padding:2px 0;">
+                            ${thumb}
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:11px;font-weight:600;color:var(--tx0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(inst.worldName || t('dashboard.instances.unknown_world', 'Unknown World'))}</div>
+                                ${users ? `<div style="font-size:10px;color:var(--tx3);">${users}</div>` : ''}
+                            </div>
+                        </div>`;
+                    }).join('');
+                    return `<div class="fd-info-card" style="cursor:pointer;" onclick="_switchGdTabByKey('instances')">
+                        <div class="fd-group-rep-label">${t('groups.sections.instances', 'Instances')}</div>
+                        <div style="display:grid;gap:4px;">${instsHtml}</div>
+                    </div>`;
+                })()}
+                <div class="fd-info-card">
+                    <div class="fd-group-rep-label">${t('groups.sections.group_info', 'Group Info')}</div>
+                    <div style="display:grid;gap:6px;">
+                        ${g.joinedAt ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"><span style="color:var(--tx3);">${t('groups.info.joined_at','Joined Group')}</span><span style="color:var(--tx1);text-align:right;">${fmtShortDate(new Date(g.joinedAt))}</span></div>` : ''}
+                        <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"><span style="color:var(--tx3);">${t('groups.info.created_at','Created')}</span><span style="color:var(--tx1);text-align:right;">${g.createdAt ? fmtShortDate(new Date(g.createdAt)) : '—'}</span></div>
+                        ${g.isJoined ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"><span style="color:var(--tx3);">${t('groups.info.representing','Representing')}</span><span style="color:var(--tx1);text-align:right;">${g.isRepresenting ? t('common.yes','Yes') : t('common.no','No')}</span></div>` : ''}
+                        <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"><span style="color:var(--tx3);">${t('groups.info.member_count','Members')}</span><span style="color:var(--tx1);text-align:right;">${g.memberCount ?? '—'}</span></div>
+                        <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"><span style="color:var(--tx3);">${t('groups.info.verified','Verified')}</span><span style="color:var(--tx1);text-align:right;">${g.isVerified ? t('common.yes','Yes') : t('common.no','No')}</span></div>
+                    </div>
+                </div>
                 <div class="fd-info-card">
                     <div class="myp-section-header">
                         <span class="myp-section-title">${t('groups.sections.links', 'Links')}</span>
@@ -675,6 +744,11 @@ function switchGdTab(tab, btn) {
         btn.classList.add('active');
     });
     if (tab === 'banned' && !window._gdBannedLoaded) loadGroupBans();
+}
+
+function _switchGdTabByKey(key) {
+    const btn = document.querySelector(`.gd-tabs .fd-tab[onclick*="'${key}'"]`);
+    if (btn) switchGdTab(key, btn);
 }
 
 function toggleGPost(i) {

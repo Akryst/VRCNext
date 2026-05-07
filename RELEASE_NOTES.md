@@ -19,6 +19,12 @@
 * **Own Profile info updated:** Your own profile can now show Joined, Last Login, Platform, Age Verified, Avatar Cloning, and Booping.
 * **User Profile info updated:** Other user profiles can now show Age Verified and Avatar Cloning.
 
+* **Group posts can now be edited:** An edit button now appears next to the delete button on each post. Clicking it opens the post modal pre-filled with the existing title, content, visibility, and image so you can make changes and save.
+* **Group post design updated:** Posts now show the image on the right side of the card, filling the full card height, with title and text content on the left — similar to the layout on VRChat.com.
+* **Group Info tab: preview cards added:** The Info tab now shows a Last Post and Last Event card in the left column (between Description and Rules), and an Instances card at the top of the right column. Clicking any card navigates directly to the corresponding tab.
+* **Group Info tab: Group Info card added:** A new card in the right column shows Joined Group, Created, Representing, Members, and Verified for the current group.
+* **Group data cached:** Group creation date, verification status, join date, representing status, last post, and last event are now stored in the local SQLite cache so the Info tab loads instantly on repeat opens.
+
 ### Fixes
 
 * **Own Profile represented group fixed:** Your represented group now loads correctly again after restarting VRCNext.
