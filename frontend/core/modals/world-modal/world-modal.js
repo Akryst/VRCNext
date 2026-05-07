@@ -168,16 +168,16 @@ function renderWorldSearchDetail(w) {
             <div class="wd-section-label" style="margin-bottom:6px;">${t('worlds.favorites.add_group_title', 'ADD TO FAVORITE GROUP')}</div>
             <div class="ci-group-list" id="wdFavGroupList"><div style="font-size:11px;color:var(--tx3);padding:8px 0;">${t('worlds.favorites.loading_groups', 'Loading groups...')}</div></div>
         </div>
-        <div style="display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:22px;align-items:start;margin-top:10px;">
-            <div>
-                ${tagsHtml ? `<div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;"><div class="fd-group-rep-label">${t('worlds.meta.tags_title', 'Tags')}</div>${tagsHtml}</div>` : ''}
-                ${(w.worldTimeSeconds > 0 || currentInstanceData?.worldId === wid) ? `<div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;"><div class="wd-your-time"><span class="msi" style="font-size:15px;">schedule</span><div><div style="font-size:12px;font-weight:600;color:var(--tx1);">${t('worlds.time_spent.label', 'Your Time Spent')}</div><div style="font-size:11px;color:var(--tx3);"><span id="wdTimeSpent">${formatDuration(w.worldTimeSeconds || 0)}</span>${w.worldVisitCount > 0 ? ' &middot; ' + getWorldVisitCountLabel(w.worldVisitCount) : ''}</div></div></div></div>` : ''}
-                ${desc ? `<div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;"><div class="fd-group-rep-label">${t('worlds.meta.description_title', 'Description')}</div><div style="font-size:12px;color:var(--tx2);max-height:150px;overflow-y:auto;line-height:1.5;white-space:pre-wrap;">${esc(desc)}</div></div>` : ''}
+        <div class="fd-info-cols" style="margin-top:10px;">
+            <div class="fd-info-left">
+                ${tagsHtml ? `<div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.tags_title', 'Tags')}</div>${tagsHtml}</div>` : ''}
+                ${(w.worldTimeSeconds > 0 || currentInstanceData?.worldId === wid) ? `<div class="fd-info-card"><div class="wd-your-time"><span class="msi" style="font-size:15px;">schedule</span><div><div style="font-size:12px;font-weight:600;color:var(--tx1);">${t('worlds.time_spent.label', 'Your Time Spent')}</div><div style="font-size:11px;color:var(--tx3);"><span id="wdTimeSpent">${formatDuration(w.worldTimeSeconds || 0)}</span>${w.worldVisitCount > 0 ? ' &middot; ' + getWorldVisitCountLabel(w.worldVisitCount) : ''}</div></div></div></div>` : ''}
+                ${desc ? `<div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.description_title', 'Description')}</div><div style="font-size:12px;color:var(--tx2);max-height:150px;overflow-y:auto;line-height:1.5;white-space:pre-wrap;">${esc(desc)}</div></div>` : ''}
             </div>
-            <div>
-                <div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;"><div class="fd-group-rep-label">${t('worlds.meta.infos_title', 'Infos')}</div><div style="display:grid;gap:6px;">${wdInfosRows}</div></div>
-                ${wdCommunityRows ? `<div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;"><div class="fd-group-rep-label">${t('worlds.meta.community_title', 'Community')}</div><div style="display:grid;gap:6px;">${wdCommunityRows}</div></div>` : ''}
-                ${wdPopularityRows ? `<div><div class="fd-group-rep-label">${t('worlds.meta.popularity_title', 'Popularity')}</div><div style="display:grid;gap:6px;">${wdPopularityRows}</div></div>` : ''}
+            <div class="fd-info-right">
+                <div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.infos_title', 'Infos')}</div><div style="display:grid;gap:6px;">${wdInfosRows}</div></div>
+                ${wdCommunityRows ? `<div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.community_title', 'Community')}</div><div style="display:grid;gap:6px;">${wdCommunityRows}</div></div>` : ''}
+                ${wdPopularityRows ? `<div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.popularity_title', 'Popularity')}</div><div style="display:grid;gap:6px;">${wdPopularityRows}</div></div>` : ''}
             </div>
         </div>
         </div>

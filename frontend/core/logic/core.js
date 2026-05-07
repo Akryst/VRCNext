@@ -134,7 +134,7 @@ let avatarsData = [], avatarFavData = [], avatarFilter = 'own', avatarsLoaded = 
 let avatarInfoCache = {}; // avtr_XXX -> { id, name, thumbnailImageUrl }
 let avatarSearchResults = [], avatarSearchPage = 0, avatarSearchQuery = '', avatarSearchHasMore = false, avatarSearchDb = 'avtrdb';
 let favAvatarsData = [], favAvatarGroups = [], favAvatarGroupFilter = '';
-let notifications = [], notifPanelOpen = false, myGroups = [], myGroupsLoaded = false;
+let notifications = [], notifPanelOpen = false, myGroups = [], myGroupsLoaded = false, myRepresentedGroup = null;
 let currentInstanceData = null;
 // Pagination state for search
 let searchState = {

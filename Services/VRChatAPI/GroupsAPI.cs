@@ -37,6 +37,19 @@ public class GroupsAPI(VRChatApiService ctx)
         return new JArray();
     }
 
+    public async Task<JObject?> GetRepresentedGroupAsync()
+    {
+        if (!ctx.IsLoggedIn || ctx.CurrentUserId == null) return null;
+        try
+        {
+            var resp = await ctx._http.GetAsync($"{VRChatApiService.BASE}/users/{ctx.CurrentUserId}/groups/represented");
+            if (resp.IsSuccessStatusCode)
+                return JObject.Parse(await resp.Content.ReadAsStringAsync());
+        }
+        catch (Exception ex) { ctx.Log($"GetRepresentedGroup exception: {ex.Message}"); }
+        return null;
+    }
+
     public async Task<JObject> GetUserGroupPermissionsAsync()
     {
         if (!ctx.IsLoggedIn || ctx.CurrentUserId == null) return new JObject();

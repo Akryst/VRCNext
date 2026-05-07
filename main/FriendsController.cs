@@ -1746,6 +1746,7 @@ public class FriendsController
             pronouns = user["pronouns"]?.ToString() ?? "",
             ageVerificationStatus = user["ageVerificationStatus"]?.ToString() ?? "",
             ageVerified = user["ageVerified"]?.Value<bool>() ?? false,
+            allowAvatarCopying = user["allowAvatarCopying"]?.Value<bool>() ?? false,
             representedGroup, userGroups, mutuals = mutualsList, mutualGroups = mutualGroupsList, mutualsOptedOut, userWorlds,
             bioLinks = user["bioLinks"]?.ToObject<List<string>>() ?? new List<string>(),
             isFavorited = _favoriteFriends.ContainsKey(userId),

@@ -494,6 +494,11 @@ window.external.receiveMessage(rawMsg => {
                 renderMyGroups(payload);
                 if (document.getElementById('ciGroupRow')?.style.display !== 'none')
                     renderCiGroupPicker(myGroups);
+                { const _myp = document.getElementById('modalMyProfile'); if (_myp && _myp.style.display !== 'none') renderMyProfileContent(); }
+                break;
+            case 'vrcRepresentedGroup':
+                myRepresentedGroup = payload && payload.id ? payload : null;
+                { const _myp = document.getElementById('modalMyProfile'); if (_myp && _myp.style.display !== 'none') renderMyProfileContent(); }
                 break;
             case 'vrcDashGroupInstances':
                 if (typeof onDashGroupInstances === 'function') onDashGroupInstances(payload);

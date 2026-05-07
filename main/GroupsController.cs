@@ -22,6 +22,26 @@ public class GroupsController
         _core = core;
     }
 
+    // Represented group
+
+    public async Task FetchRepresentedGroupAsync()
+    {
+        var g = await _core.Groups.GetRepresentedGroupAsync();
+        if (g == null) { _core.SendToJS("vrcRepresentedGroup", (object?)null); return; }
+        var gid = g["groupId"]?.ToString() ?? "";
+        var iconUrl = ImageCacheHelper.GetGroupUrl(gid, g["iconUrl"]?.ToString());
+        _core.SendToJS("vrcRepresentedGroup", new
+        {
+            id            = gid,
+            name          = g["name"]?.ToString() ?? "",
+            shortCode     = g["shortCode"]?.ToString() ?? "",
+            discriminator = g["discriminator"]?.ToString() ?? "",
+            iconUrl,
+            memberCount   = g["memberCount"]?.Value<int>() ?? 0,
+            isRepresenting = true,
+        });
+    }
+
     // Cache fetch
 
     public async Task FetchAndCacheAsync()

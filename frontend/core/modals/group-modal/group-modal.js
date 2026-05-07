@@ -99,9 +99,9 @@ function renderGroupDetail(g) {
         ? `<div class="fd-bio-links">${grpLinks.map(url => renderBioLink(url)).join('')}</div>`
         : `<div class="myp-empty">${t('profiles.my_profile.empty.no_links', 'No links added')}</div>`;
     const infoTab = `
-        <div style="display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:22px;align-items:start;">
-            <div>
-                <div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;">
+        <div class="fd-info-cols">
+            <div class="fd-info-left">
+                <div class="fd-info-card">
                     <div class="myp-section-header">
                         <span class="myp-section-title">${t('groups.sections.description', 'Description')}</span>
                         ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('desc')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
@@ -117,7 +117,7 @@ function renderGroupDetail(g) {
                         </div>
                     </div>` : ''}
                 </div>
-                <div>
+                <div class="fd-info-card">
                     <div class="myp-section-header">
                         <span class="myp-section-title">${t('groups.sections.rules', 'Rules')}</span>
                         ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('rules')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
@@ -134,8 +134,8 @@ function renderGroupDetail(g) {
                     </div>` : ''}
                 </div>
             </div>
-            <div>
-                <div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;">
+            <div class="fd-info-right">
+                <div class="fd-info-card">
                     <div class="myp-section-header">
                         <span class="myp-section-title">${t('groups.sections.links', 'Links')}</span>
                         ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('links')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
@@ -149,7 +149,7 @@ function renderGroupDetail(g) {
                         </div>
                     </div>` : ''}
                 </div>
-                <div style="border-bottom:1px solid var(--brd);padding-bottom:12px;margin-bottom:12px;">
+                <div class="fd-info-card">
                     <div class="myp-section-header">
                         <span class="myp-section-title">${t('groups.sections.languages', 'Languages')}</span>
                         ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('langs')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
@@ -167,7 +167,7 @@ function renderGroupDetail(g) {
                         </div>
                     </div>` : ''}
                 </div>
-                <div>
+                <div class="fd-info-card">
                     <div class="myp-section-header">
                         <span class="myp-section-title">${t('groups.sections.open_members', 'Open to new Members')}</span>
                         ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('joinState')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
@@ -190,7 +190,7 @@ function renderGroupDetail(g) {
                 </div>
             </div>
         </div>
-        ${g.isJoined ? `<div style="border-top:1px solid var(--brd);padding-top:12px;margin-top:12px;">
+        ${g.isJoined ? `<div class="fd-info-card" style="margin-top:10px;">
             <div class="myp-section-header">
                 <span class="myp-section-title">${t('groups.visibility.title', 'Visibility')}</span>
             </div>

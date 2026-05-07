@@ -743,6 +743,12 @@ public class AuthController
             tags = user["tags"]?.ToObject<List<string>>() ?? new List<string>(),
             profilePicOverride    = ImageCacheHelper.GetUserBannerUrl(user["id"]?.ToString(), user["profilePicOverride"]?.ToString()),
             currentAvatarImageUrl = ImageCacheHelper.GetAvatarUrl(user["currentAvatar"]?.ToString(), user["currentAvatarImageUrl"]?.ToString()),
+            dateJoined        = user["date_joined"]?.ToString() ?? "",
+            lastLogin         = user["last_login"]?.ToString() ?? "",
+            lastPlatform      = user["last_platform"]?.ToString() ?? "",
+            ageVerified       = user["ageVerified"]?.Value<bool>() ?? false,
+            allowAvatarCopying = user["allowAvatarCopying"]?.Value<bool>() ?? false,
+            isBoopingEnabled  = user["isBoopingEnabled"]?.Value<bool>() ?? false,
         });
 
 #if WINDOWS
@@ -1445,6 +1451,7 @@ public class AuthController
     private async Task TriggerStartupBackgroundRefreshAsync()
     {
         if (!_core.VrcApi.IsLoggedIn) return;
+        _ = Task.Run(_groups.FetchRepresentedGroupAsync);
         if (!_core.Cache.IsFresh(CacheHandler.KeyAvatars,    StartupCacheTtl)) _ = Task.Run(FetchAndCacheAvatarsAsync);
         if (!_core.Cache.IsFresh(CacheHandler.KeyGroups,    StartupCacheTtl))  _ = Task.Run(_groups.FetchAndCacheAsync);
         if (!_core.Cache.IsFresh(CacheHandler.KeyFavWorlds, StartupCacheTtl)) _ = Task.Run(FetchAndCacheFavWorldsAsync);
