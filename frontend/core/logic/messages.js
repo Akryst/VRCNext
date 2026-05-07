@@ -43,6 +43,11 @@ window.external.receiveMessage(rawMsg => {
             case 'relayState': setRelayState(payload.running, payload.streams); break;
             case 'imgCacheSize':             updateImgCacheSizeBar(payload.bytes); break;
             case 'imgCacheOptimizeProgress': handleImgCacheOptimizeProgress(payload); break;
+            case 'dbAnalyzeProgress': handleDbAnalyzeProgress(payload); break;
+            case 'dbAnalyzeResult':   handleDbAnalyzeResult(payload); break;
+            case 'dbOptimizeProgress':handleDbOptimizeProgress(payload); break;
+            case 'dbOptimizeDone':    handleDbOptimizeDone(payload); break;
+            case 'dbBackupDone':      handleDbBackupDone(payload); break;
             case 'log': addLog(payload.msg, payload.color); break;
             case 'consoleOutput': addLog(payload.text, payload.color); break;
             case 'debugImgCacheState':

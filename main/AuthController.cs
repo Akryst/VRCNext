@@ -169,6 +169,67 @@ public class AuthController
                 });
                 break;
 
+            case "dbAnalyze":
+                _ = Task.Run(() =>
+                {
+                    Invoke(() => _core.SendToJS("dbAnalyzeProgress", new { running = true }));
+                    try
+                    {
+                        var result = SQLiteOptimizing.Analyze();
+                        Invoke(() => _core.SendToJS("dbAnalyzeResult", new
+                        {
+                            totalRows          = result.TotalRows,
+                            friendRows         = result.FriendRows,
+                            cleanableRows      = result.CleanableRows,
+                            counts             = result.Counts.Select(c => new { label = c.Label, count = c.Count }).ToArray(),
+                            friendOnlineCount   = result.FriendOnlineCount,
+                            friendOfflineCount  = result.FriendOfflineCount,
+                            friendStatusCount   = result.FriendStatusCount,
+                            notificationCount      = result.NotificationCount,
+                            videoUrlCount          = result.VideoUrlCount,
+                            instancePlayersCount   = result.InstancePlayersCount,
+                        }));
+                    }
+                    catch (Exception ex)
+                    {
+                        Invoke(() => _core.SendToJS("dbAnalyzeResult", new { error = ex.Message }));
+                    }
+                });
+                break;
+
+            case "dbOptimize":
+                _ = Task.Run(() =>
+                {
+                    Invoke(() => _core.SendToJS("dbOptimizeProgress", new { phase = "optimize" }));
+                    try
+                    {
+                        var (userCleaned, feCleaned, notifCleaned, epCleaned) = SQLiteOptimizing.Optimize();
+                        Invoke(() => _core.SendToJS("dbOptimizeProgress", new { phase = "vacuum" }));
+                        SQLiteOptimizing.Vacuum();
+                        Invoke(() => _core.SendToJS("dbOptimizeDone", new { userCleaned, feCleaned, notifCleaned, epCleaned }));
+                    }
+                    catch (Exception ex)
+                    {
+                        Invoke(() => _core.SendToJS("dbOptimizeDone", new { error = ex.Message }));
+                    }
+                });
+                break;
+
+            case "dbBackup":
+                _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        var path = SQLiteOptimizing.CreateBackup();
+                        Invoke(() => _core.SendToJS("dbBackupDone", new { path }));
+                    }
+                    catch (Exception ex)
+                    {
+                        Invoke(() => _core.SendToJS("dbBackupDone", new { error = ex.Message }));
+                    }
+                });
+                break;
+
             case "forceFfcAll":
                 _ = Task.Run(ForceFfcAllAsync);
                 break;

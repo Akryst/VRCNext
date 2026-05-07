@@ -397,6 +397,9 @@ public partial class AppShell
                 case "getImgCacheSize":
                 case "optimizeImgCache":
                 case "clearFfcCache":
+                case "dbAnalyze":
+                case "dbOptimize":
+                case "dbBackup":
                 case "forceFfcAll":
                 case "setupSaveLanguage":
                 case "setupSaveStartWithWindows":
