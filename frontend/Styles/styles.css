@@ -237,7 +237,7 @@ html.text-tools-active * { user-select: text !important; }
 
 .fd-banner {
     margin: -28px -32px 0 -32px;
-    height: 246px;
+    height: 209px;
     overflow: hidden;
     border-radius: 14px 14px 0 0;
     position: relative;
@@ -258,7 +258,7 @@ html.text-tools-active * { user-select: text !important; }
 }
 
 .fd-content.fd-has-banner {
-    margin-top: -146px;
+    margin-top: -109px;
     position: relative;
 }
 
