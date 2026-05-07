@@ -26,50 +26,70 @@ function _renderInstanceDetailContent(inst) {
     const c = document.getElementById('myInstanceContent');
     if (!m || !c) return;
 
-    const thumb    = inst.worldThumb || '';
-    const worldId  = inst.worldId || inst.location?.split(':')[0] || '';
+    const thumb   = inst.worldThumb || '';
+    const worldId = inst.worldId || inst.location?.split(':')[0] || '';
     const { cls, label: typeLabel } = getInstanceBadge(inst.instanceType);
-    // Alle Freunde dieser Welt finden, nach Instance gruppieren
-    const allWorldFriends = (typeof vrcFriendsData !== 'undefined')
-        ? vrcFriendsData.filter(f => f.location && f.location.split(':')[0] === worldId)
-        : [];
-
-    const instanceGroups = {};
-    allWorldFriends.forEach(f => {
-        const key = f.location.split('~')[0];
-        if (!instanceGroups[key]) instanceGroups[key] = [];
-        instanceGroups[key].push(f);
-    });
-
     const bannerHtml = thumb
         ? `<div class="fd-banner"><img src="${thumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>`
         : '';
 
     let friendsHtml = '';
-    const groupKeys = Object.keys(instanceGroups);
-    if (groupKeys.length > 0) {
-        groupKeys.forEach(key => {
-            const instId = key.includes(':') ? key.split(':')[1] : key;
-            const { instanceType: iType } = (typeof parseFriendLocation === 'function') ? parseFriendLocation(instanceGroups[key][0].location) : { instanceType: 'public' };
-            const { cls: iCls, label: iLabel } = getInstanceBadge(iType);
-            const iLoc = (instanceGroups[key][0].location || '').replace(/'/g, "\\'");
-            const copyBadgeI = instId
-                ? `<span class="vrcn-id-clip" onclick="copyInstanceLink('${jsq(instanceGroups[key][0].location || '')}')"><span class="msi" style="font-size:12px;">content_copy</span>#${esc(instId)}</span>`
-                : '';
-            friendsHtml += `<div class="wd-friends-label" style="display:flex;align-items:center;gap:6px;"><span class="vrcn-badge ${iCls}">${iLabel}</span>${copyBadgeI}<button class="vrcn-button-round vrcn-btn-join" style="font-size:11px;padding:3px 10px;margin-left:auto;" onclick="closeMyInstanceDetail();sendToCS({action:'vrcJoinFriend',location:'${iLoc}'})">${t('dashboard.instances.join_world', 'Join World')}</button></div><div class="wd-friends-list">`;
-            instanceGroups[key].forEach(f => {
-                friendsHtml += renderProfileItem(f, `navOpenModal('friend','${jsq(f.id || '')}','${jsq(f.displayName || '')}')`);
-            });
-            friendsHtml += '</div>';
+
+    if (inst.allInstances) {
+        // Dashboard Friends Location: alle Instanzen der Welt gruppiert anzeigen
+        const allWorldFriends = (typeof vrcFriendsData !== 'undefined')
+            ? vrcFriendsData.filter(f => f.location && f.location.split(':')[0] === worldId)
+            : [];
+        const instanceGroups = {};
+        allWorldFriends.forEach(f => {
+            const key = f.location.split('~')[0];
+            if (!instanceGroups[key]) instanceGroups[key] = [];
+            instanceGroups[key].push(f);
         });
+        const groupKeys = Object.keys(instanceGroups);
+        if (groupKeys.length > 0) {
+            groupKeys.forEach(key => {
+                const instId = key.includes(':') ? key.split(':')[1] : key;
+                const { instanceType: iType } = (typeof parseFriendLocation === 'function') ? parseFriendLocation(instanceGroups[key][0].location) : { instanceType: 'public' };
+                const { cls: iCls, label: iLabel } = getInstanceBadge(iType);
+                const iLoc = (instanceGroups[key][0].location || '').replace(/'/g, "\\'");
+                const copyBadgeI = instId
+                    ? `<span class="vrcn-id-clip" onclick="copyInstanceLink('${jsq(instanceGroups[key][0].location || '')}')"><span class="msi" style="font-size:12px;">content_copy</span>#${esc(instId)}</span>`
+                    : '';
+                friendsHtml += `<div class="wd-friends-label" style="display:flex;align-items:center;gap:6px;"><span class="vrcn-badge ${iCls}">${iLabel}</span>${copyBadgeI}<button class="vrcn-button-round vrcn-btn-join" style="font-size:11px;padding:3px 10px;margin-left:auto;" onclick="closeMyInstanceDetail();sendToCS({action:'vrcJoinFriend',location:'${iLoc}'})">${t('dashboard.instances.join_world', 'Join World')}</button></div><div class="wd-friends-list">`;
+                instanceGroups[key].forEach(f => {
+                    friendsHtml += renderProfileItem(f, `navOpenModal('friend','${jsq(f.id || '')}','${jsq(f.displayName || '')}')`);
+                });
+                friendsHtml += '</div>';
+            });
+        } else {
+            friendsHtml = `<div class="wd-friends-label">${tf('dashboard.instances.friends_title', { count: 0 }, 'FRIENDS IN THIS INSTANCE (0)')}</div><div class="wd-friends-list"><div class="vrcn-profile-item" style="pointer-events:none;opacity:0.55;"><div class="fd-profile-item-avatar" style="display:flex;align-items:center;justify-content:center;"><span class="msi" style="font-size:20px;color:var(--tx3);">person</span></div><div class="fd-profile-item-info"><div class="fd-profile-item-name">${t('dashboard.instances.no_friends_title', 'No friends here yet!')}</div><div class="fd-profile-item-status">${t('dashboard.instances.no_friends_desc', 'Invite friends to this instance!')}</div></div></div></div>`;
+        }
     } else {
-        friendsHtml = `<div class="wd-friends-label">${t('dashboard.instances.friends_title', 'FRIENDS IN THIS WORLD')}</div><div class="wd-friends-list"><div class="vrcn-profile-item" style="pointer-events:none;opacity:0.55;">
-            <div class="fd-profile-item-avatar" style="display:flex;align-items:center;justify-content:center;"><span class="msi" style="font-size:20px;color:var(--tx3);">person</span></div>
-            <div class="fd-profile-item-info">
-                <div class="fd-profile-item-name">${t('dashboard.instances.no_friends_title', 'No friends here yet!')}</div>
-                <div class="fd-profile-item-status">${t('dashboard.instances.no_friends_desc', 'Invite friends to this instance!')}</div>
-            </div>
-        </div></div>`;
+        // Group Activity / Sidebar: spezifische Instance anzeigen
+        const locBase = (inst.location || '').split('~')[0];
+        const instId  = locBase.includes(':') ? locBase.split(':')[1] : '';
+        const locFriends = (typeof vrcFriendsData !== 'undefined')
+            ? vrcFriendsData.filter(f => f.location && f.location.split('~')[0] === locBase)
+            : [];
+        const curBase  = (currentInstanceData?.location || '').split('~')[0];
+        const logUsers = (locBase && curBase === locBase && currentInstanceData?.users) ? currentInstanceData.users : [];
+        const friendById = {};
+        if (typeof vrcFriendsData !== 'undefined') vrcFriendsData.forEach(f => { if (f.id) friendById[f.id] = f; });
+        const seenIds = new Set(locFriends.map(f => f.id));
+        logUsers.forEach(u => { if (u.id && !seenIds.has(u.id) && friendById[u.id]) { locFriends.push(friendById[u.id]); seenIds.add(u.id); } });
+        const copyBadge = instId
+            ? `<span class="vrcn-id-clip" onclick="copyInstanceLink('${jsq(inst.location || '')}')"><span class="msi" style="font-size:12px;">content_copy</span>#${esc(instId)}</span>`
+            : '';
+        const loc = (inst.location || '').replace(/'/g, "\\'");
+        const { cls: iCls, label: iLabel } = getInstanceBadge(inst.instanceType);
+        friendsHtml = `<div class="wd-friends-label" style="display:flex;align-items:center;gap:6px;"><span class="vrcn-badge ${iCls}">${iLabel}</span>${copyBadge}<button class="vrcn-button-round vrcn-btn-join" style="font-size:11px;padding:3px 10px;margin-left:auto;" onclick="closeMyInstanceDetail();sendToCS({action:'vrcJoinFriend',location:'${loc}'})">${t('dashboard.instances.join_world', 'Join World')}</button></div><div class="wd-friends-list">`;
+        if (locFriends.length > 0) {
+            locFriends.forEach(f => { friendsHtml += renderProfileItem(f, `navOpenModal('friend','${jsq(f.id || '')}','${jsq(f.displayName || '')}')`); });
+        } else {
+            friendsHtml += `<div class="vrcn-profile-item" style="pointer-events:none;opacity:0.55;"><div class="fd-profile-item-avatar" style="display:flex;align-items:center;justify-content:center;"><span class="msi" style="font-size:20px;color:var(--tx3);">person</span></div><div class="fd-profile-item-info"><div class="fd-profile-item-name">${t('dashboard.instances.no_friends_title', 'No friends here yet!')}</div><div class="fd-profile-item-status">${t('dashboard.instances.no_friends_desc', 'Invite friends to this instance!')}</div></div></div>`;
+        }
+        friendsHtml += '</div>';
     }
 
     c.innerHTML = `${bannerHtml}<div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:16px 32px;">

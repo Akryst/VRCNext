@@ -275,6 +275,7 @@ function openFriendLocationDetail(worldId, location) {
         ownerId:    ownerId || '',
         ownerName:  '',
         ownerGroup: '',
+        allInstances: true,
     });
 }
 
