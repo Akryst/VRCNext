@@ -124,6 +124,7 @@
 .friend-section-items.collapsed {
     max-height: 0;
     opacity: 0;
+    transition: max-height .15s ease-in, opacity .15s;
 }
 
 .win-dots {
