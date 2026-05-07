@@ -881,8 +881,6 @@
   "settings.image_cache.optimize.label": "キャッシュを最適化",
   "settings.image_cache.optimize.desc": "1.5 MBを超えるPNG画像は自動的にJPEGに圧縮されます",
   "settings.image_cache.force_optimize": "最適化を強制実行",
-  "settings.image_cache.hq.label": "高解像度画像",
-  "settings.image_cache.hq.desc": "512pxではなくフル解像度の画像をダウンロードします。有効にするとキャッシュサイズとメモリ使用量が増加します。",
   "settings.ffc.title": "高速フェッチキャッシュ",
   "settings.ffc.desc": "高速フェッチキャッシュはユーザープロフィール、ワールド、グループ、アバターをローカルに保存して読み込み時間を改善します。有効にすると、VRCNextはキャッシュされたコンテンツ（説明、テキスト、画像）を即座に表示しながら、バックグラウンドで静かに更新します。無効にすると、すべてのデータがリクエストごとに新しくダウンロードされ、キャッシュの保存や使用は行われません。",
   "settings.ffc.enable": "FFCを有効化",

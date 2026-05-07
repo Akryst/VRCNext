@@ -15,7 +15,6 @@ public static class ImageCacheHelper
     public static int  Port            { get; set; } = 49152;
     public static int  LimitGb         { get; set; } = 5;
     public static bool OptimizeEnabled { get; set; } = true;
-    public static bool HqImages        { get; set; } = false;
 
     // Toggle ImageCache Debugging
     public static bool DebugMode { get; set; } = false;
@@ -337,19 +336,16 @@ public static class ImageCacheHelper
     private static string? StripLocalhostUrl(string? url) =>
         url != null && url.StartsWith("http://localhost:") ? null : url;
 
-    // Extract VRChat file version number from a URL (/image/file_xxx/2/512 or /file/file_xxx/2/file → 2)
+    // Extract VRChat file version number from a normalized URL (e.g. .../image/file_xxx/2/512 → 2)
     private static int ExtractVersion(string? url)
     {
         if (string.IsNullOrEmpty(url)) return 0;
-        foreach (var marker in new[] { "/image/", "/file/" })
-        {
-            var i = url.IndexOf(marker, StringComparison.Ordinal);
-            if (i < 0) continue;
-            var parts = url[(i + marker.Length)..].Split('/');
-            // parts[0] = file_xxx, parts[1] = version
-            if (parts.Length >= 2 && parts[0].StartsWith("file_", StringComparison.OrdinalIgnoreCase)
-                && int.TryParse(parts[1], out var v)) return v;
-        }
+        var marker = "/image/";
+        var i = url.IndexOf(marker, StringComparison.Ordinal);
+        if (i < 0) return 0;
+        var parts = url[(i + marker.Length)..].Split('/');
+        // parts[0] = file_xxx, parts[1] = version, parts[2] = size
+        if (parts.Length >= 2 && int.TryParse(parts[1], out var v)) return v;
         return 0;
     }
 
@@ -568,23 +564,9 @@ public static class ImageCacheHelper
         }
     }
 
-    // Converts VRC Url to CDN 512 Endpoints, or to raw /file/ endpoint when HqImages is enabled
+    // Converts VRC Url to CDN 512 Endpoints
     public static string NormalizeTo512(string url)
     {
-        if (HqImages)
-        {
-            // Convert /image/file_xxx/version/SIZE → /file/file_xxx/version/file (raw)
-            const string imgPrefix = "/api/1/image/";
-            var ii = url.IndexOf(imgPrefix, StringComparison.Ordinal);
-            if (ii >= 0)
-            {
-                var rest  = url[(ii + imgPrefix.Length)..];
-                var parts = rest.Split('/');
-                if (parts.Length >= 2 && parts[0].StartsWith("file_", StringComparison.OrdinalIgnoreCase))
-                    return $"https://api.vrchat.cloud/api/1/file/{parts[0]}/{parts[1]}/file";
-            }
-            return url; // already /file/ URL or external — pass through
-        }
         const string filePrefix = "/api/1/file/";
         var fi = url.IndexOf(filePrefix, StringComparison.Ordinal);
         if (fi >= 0)

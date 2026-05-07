@@ -202,7 +202,6 @@ function saveSettings() {
             dpHidePlayersBusy:   document.getElementById('dpHidePlayers_busy')?.checked   ?? false,
             imgCacheLimitGb:         parseInt(document.getElementById('setImgCacheLimit').value) || 5,
             imgCacheOptimizeEnabled: document.getElementById('setImgCacheOptimizeEnabled').checked,
-            imgCacheHqImages:        document.getElementById('setImgCacheHqImages').checked,
             ffcEnabled: document.getElementById('setFfcEnabled').checked,
             memoryTrimEnabled: document.getElementById('setMemoryTrimEnabled').checked,
             dbOptimize: document.getElementById('setDbOptimize').checked,
@@ -485,11 +484,9 @@ function loadSettingsToUI(s) {
     // Image cache settings
     const imgCacheLimitGb         = Math.max(5, Math.min(30, s.ImgCacheLimitGb ?? s.imgCacheLimitGb ?? 5));
     const imgCacheOptimizeEnabled = s.ImgCacheOptimizeEnabled ?? s.imgCacheOptimizeEnabled ?? true;
-    const imgCacheHqImages        = s.ImgCacheHqImages ?? s.imgCacheHqImages ?? false;
     document.getElementById('setImgCacheLimit').value = imgCacheLimitGb;
     document.getElementById('imgCacheLimitVal').textContent = imgCacheLimitGb + ' GB';
     document.getElementById('setImgCacheOptimizeEnabled').checked = imgCacheOptimizeEnabled;
-    document.getElementById('setImgCacheHqImages').checked = imgCacheHqImages;
     sendToCS({ action: 'getImgCacheSize' });
 
     // Fast Fetch Cache

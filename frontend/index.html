@@ -64,7 +64,7 @@
 </head>
 <body>
     <div class="sidebar" id="sidebarEl">
-        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.22.5</div></div><button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar" data-i18n-title="common.toggle_sidebar"><span class="msi" id="sbIcon">chevron_left</span></button></div>
+        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.22.1</div></div><button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar" data-i18n-title="common.toggle_sidebar"><span class="msi" id="sbIcon">chevron_left</span></button></div>
         <div class="nav vrcn-scrollbar">
             <button class="nav-btn active" onclick="showTab(0)" data-nav="dashboard"><span class="ni msi">dashboard</span><span class="nl" data-i18n="nav.dashboard">Dashboard</span></button>
             <button class="nav-btn" onclick="showTab(1)"><span class="ni msi">travel_explore</span><span class="nl" data-i18n="nav.worlds">Worlds</span></button>
@@ -1032,13 +1032,6 @@
                                 <div style="font-size:11px;color:var(--tx3);margin-top:2px;" data-i18n="settings.image_cache.optimize.desc">PNG images &gt; 1.5 MB are compressed to JPEG automatically</div>
                             </div>
                             <label class="toggle"><input type="checkbox" id="setImgCacheOptimizeEnabled" checked onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
-                        </div>
-                        <div class="sf-toggle-row" style="margin-top:10px;">
-                            <div>
-                                <span data-i18n="settings.image_cache.hq.label">HQ Images</span>
-                                <div style="font-size:11px;color:var(--tx3);margin-top:2px;" data-i18n="settings.image_cache.hq.desc">Downloads full-resolution images instead of 512px images. Enabling this will increase cache size and memory usage.</div>
-                            </div>
-                            <label class="toggle"><input type="checkbox" id="setImgCacheHqImages" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
                         </div>
                         <div id="imgCacheLimitRow" style="margin-top:12px;">
                             <div class="sf-row">
