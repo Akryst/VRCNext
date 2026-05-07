@@ -1,6 +1,10 @@
-**2026.22.2**
+**2026.22.5**
 
 ### New
+
+* **Database Optimization added:** A new "Database Optimization" card is available at the bottom of the Settings tab. Run Analysis first to see exactly how many rows will be affected, then run the optimization to free up space. A "Create Backup" button is also available to save a clean copy of your database before making any changes.
+
+  > ⚠️ **Warning:** This operation permanently deletes data from your database and cannot be undone. It removes cached data for non-friended users, friend online/offline/status events, notifications, video URL events, and instance player lists. It is strongly recommended to create a backup before running the optimization.
 
 * **Avatar Modal redesigned:** The Avatar Modal now uses the same cleaner card layout as the Profile, Group, and World modals.
 * **Avatar information improved:** Avatar details are now easier to read and better separated into sections.
