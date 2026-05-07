@@ -17,3 +17,4 @@
 
 **Fixes**
 * Fixed Smart Search not showing groups unless the Groups tab was visited first
+* Fixed some small UI issues.
