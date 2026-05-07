@@ -131,7 +131,7 @@ function renderDashWorlds() {
         return;
     }
 
-    // Group friends by worldId parsed from location
+    // Group friends by worldId
     const worlds = {};
     vrcFriendsData.forEach(f => {
         const { worldId, instanceType } = parseFriendLocation(f.location);
