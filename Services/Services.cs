@@ -377,6 +377,7 @@ public class AppSettings
     // Image cache settings
     public int  ImgCacheLimitGb         { get; set; } = 5;
     public bool ImgCacheOptimizeEnabled { get; set; } = true;
+    public bool ImgCacheHqImages        { get; set; } = false;
 
     // Notification V2 endpoint support (set false if account gets 404, persists across sessions)
     public bool NotifV2Supported { get; set; } = true;

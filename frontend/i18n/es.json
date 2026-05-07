@@ -881,6 +881,8 @@
   "settings.image_cache.optimize.label": "Optimizar caché",
   "settings.image_cache.optimize.desc": "Las imágenes PNG > 1,5 MB se comprimen automáticamente a JPEG",
   "settings.image_cache.force_optimize": "Forzar optimización",
+  "settings.image_cache.hq.label": "Imágenes HQ",
+  "settings.image_cache.hq.desc": "Descarga imágenes en resolución completa en lugar de 512px. Activar esto aumentará el tamaño del caché y el uso de memoria.",
   "settings.ffc.title": "Caché de carga rápida",
   "settings.ffc.desc": "La caché de carga rápida almacena perfiles de usuario, mundos, grupos y avatares localmente para mejorar los tiempos de carga. Cuando está activada, VRCNext muestra al instante el contenido almacenado (descripciones, textos, imágenes) mientras lo actualiza silenciosamente en segundo plano. Cuando está desactivada, todos los datos se descargan de nuevo en cada solicitud sin almacenar ni usar caché.",
   "settings.ffc.enable": "Activar FFC",

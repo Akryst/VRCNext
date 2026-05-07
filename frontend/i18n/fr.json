@@ -881,6 +881,8 @@
   "settings.image_cache.optimize.label": "Optimiser le cache",
   "settings.image_cache.optimize.desc": "Les images PNG > 1,5 Mo sont compressées automatiquement en JPEG",
   "settings.image_cache.force_optimize": "Forcer l'optimisation",
+  "settings.image_cache.hq.label": "Images HQ",
+  "settings.image_cache.hq.desc": "Télécharge les images en pleine résolution plutôt qu'en 512px. Activer cette option augmentera la taille du cache et l'utilisation de la mémoire.",
   "settings.ffc.title": "Cache de récupération rapide",
   "settings.ffc.desc": "Le cache de récupération rapide stocke les profils utilisateurs, mondes, groupes et avatars localement pour améliorer les temps de chargement. Lorsqu'il est activé, VRCNext affiche instantanément le contenu en cache (descriptions, textes, images) tout en l'actualisant silencieusement en arrière-plan. Lorsqu'il est désactivé, toutes les données sont téléchargées à chaque requête sans cache stocké ni utilisé.",
   "settings.ffc.enable": "Activer FFC",

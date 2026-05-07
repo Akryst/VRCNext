@@ -998,8 +998,10 @@ public class AuthController
             // Image cache
             _core.Settings.ImgCacheLimitGb         = Math.Clamp(data["imgCacheLimitGb"]?.Value<int>() ?? 5, 5, 30);
             _core.Settings.ImgCacheOptimizeEnabled = data["imgCacheOptimizeEnabled"]?.Value<bool>() ?? true;
+            _core.Settings.ImgCacheHqImages        = data["imgCacheHqImages"]?.Value<bool>() ?? false;
             ImageCacheHelper.LimitGb         = _core.Settings.ImgCacheLimitGb;
             ImageCacheHelper.OptimizeEnabled = _core.Settings.ImgCacheOptimizeEnabled;
+            ImageCacheHelper.HqImages        = _core.Settings.ImgCacheHqImages;
 
             // Fast Fetch Cache
             _core.Settings.FfcEnabled = data["ffcEnabled"]?.Value<bool>() ?? true;

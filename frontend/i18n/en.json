@@ -884,6 +884,8 @@
   "settings.image_cache.optimize.label": "Optimize Caching",
   "settings.image_cache.optimize.desc": "PNG images > 1.5 MB are compressed to JPEG automatically",
   "settings.image_cache.force_optimize": "Force Optimization",
+  "settings.image_cache.hq.label": "HQ Images",
+  "settings.image_cache.hq.desc": "Downloads full-resolution images instead of 512px images. Enabling this will increase cache size and memory usage.",
   "settings.ffc.title": "Fast Fetch Cache",
   "settings.ffc.desc": "Fast Fetch Cache stores user profiles, worlds, groups, and avatars locally to improve load times. When enabled, VRCNext instantly shows cached content (descriptions, texts, images) while silently refreshing it in the background. When disabled, all data is freshly downloaded on every request with no cache stored or used.",
   "settings.ffc.enable": "Enable FFC",

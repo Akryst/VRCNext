@@ -108,6 +108,20 @@ public class VRChatApiService
 
     public static string UpgradeImageResolution(string url)
     {
+        if (ImageCacheHelper.HqImages)
+        {
+            // Convert /image/file_xxx/version/SIZE → /file/file_xxx/version/file (raw)
+            const string imgPrefix = "/api/1/image/";
+            var ii = url.IndexOf(imgPrefix, StringComparison.Ordinal);
+            if (ii >= 0)
+            {
+                var rest  = url[(ii + imgPrefix.Length)..];
+                var parts = rest.Split('/');
+                if (parts.Length >= 2 && parts[0].StartsWith("file_", StringComparison.OrdinalIgnoreCase))
+                    return $"https://api.vrchat.cloud/api/1/file/{parts[0]}/{parts[1]}/file";
+            }
+            return url;
+        }
         if (url.Contains("/api/1/image/") && url.EndsWith("/256"))
             return url[..^3] + "512";
         return url;
