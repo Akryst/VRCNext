@@ -185,6 +185,10 @@ public partial class AppShell
             _relayCtrl.IsRunning,
             _chatboxCtrl.IsEnabled);
         _fileWatcher.NewFile += _photos.OnNewFile;
+        _ = SQLiteMigrator.PruneOrphanedTimelinePhotosAsync(
+            _timeline,
+            pct => _core.SendToJS("dbMigrationProgress", new { percent = pct }),
+            id  => _core.SendToJS("timelineEventDeleted", new { id }));
 
         // Permini — load persisted list into memory
         LoadPerminiList();

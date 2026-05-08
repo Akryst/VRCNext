@@ -814,6 +814,7 @@ case 'popularWorlds':
             case 'timelineMonthActivity': handleTimelineMonthActivity(payload); break;
             case 'timelineData': renderTimeline(payload); renderDashRecentPhotos(); break;
             case 'timelineEvent': handleTimelineEvent(payload); renderDashRecentPhotos(); break;
+            case 'timelineEventDeleted': handleTimelineEventDeleted(payload); renderDashRecentPhotos(); break;
             case 'timelineSearchResults': handleTlSearchResults(payload); break;
             case 'friendTimelineData':          renderFriendTimeline(payload); break;
             case 'friendTimelineEvent':         handleFriendTimelineEvent(payload); break;

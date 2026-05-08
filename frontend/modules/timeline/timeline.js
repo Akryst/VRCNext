@@ -309,6 +309,13 @@ function renderTimeline(payload) {
     if (typeof renderDashMyRecentTimeline === 'function') renderDashMyRecentTimeline();
 }
 
+function handleTimelineEventDeleted(payload) {
+    if (!payload?.id) return;
+    const before = timelineEvents.length;
+    timelineEvents = timelineEvents.filter(e => e.id !== payload.id);
+    if (timelineEvents.length !== before) filterTimeline();
+}
+
 function handleTimelineEvent(ev) {
     if (!ev || !ev.id) return;
     // If a type filter is active, only inject events that match it to avoid polluting the view

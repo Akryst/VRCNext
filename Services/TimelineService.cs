@@ -513,6 +513,53 @@ public class TimelineService : IDisposable
             return _events.OrderByDescending(e => e.Timestamp).ToList();
     }
 
+    public List<string> PruneOrphanedPhotos(Action<int>? onProgress = null)
+    {
+        var deleted = new List<string>();
+        List<(string Id, string Path)> photos;
+        lock (_lock)
+        {
+            photos = _events
+                .Where(e => e.Type == "photo" && !string.IsNullOrEmpty(e.PhotoPath))
+                .Select(e => (e.Id, e.PhotoPath))
+                .ToList();
+        }
+        if (photos.Count == 0) return deleted;
+
+        int total = photos.Count, done = 0;
+        var orphanPaths = new List<string>();
+        var orphanIds   = new List<string>();
+
+        foreach (var (id, path) in photos)
+        {
+            if (!File.Exists(path)) { orphanPaths.Add(path); orphanIds.Add(id); }
+            done++;
+            if (done % 20 == 0 || done == total)
+                onProgress?.Invoke(5 + (int)(done * 85.0 / total));
+        }
+
+        if (orphanPaths.Count == 0) return deleted;
+
+        lock (_lock)
+        {
+            try
+            {
+                using var tx  = _db.BeginTransaction();
+                using var cmd = _db.CreateCommand();
+                cmd.Transaction = tx;
+                cmd.CommandText = "DELETE FROM events WHERE photo_path = $p";
+                var p = cmd.Parameters.Add("$p", Microsoft.Data.Sqlite.SqliteType.Text);
+                foreach (var path in orphanPaths) { p.Value = path; cmd.ExecuteNonQuery(); }
+                tx.Commit();
+                var set = new HashSet<string>(orphanIds, StringComparer.Ordinal);
+                _events.RemoveAll(e => set.Contains(e.Id));
+                deleted.AddRange(orphanIds);
+            }
+            catch { }
+        }
+        return deleted;
+    }
+
     public HashSet<string> GetPhotoFilePaths()
     {
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
