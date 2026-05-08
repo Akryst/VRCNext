@@ -1225,7 +1225,10 @@ function _applyLogFilter() {
 function toggleLogShowFull() {
     _logShowFull = !_logShowFull;
     const btn = document.getElementById('logShowFullBtn');
-    if (btn) btn.textContent = _logShowFull ? 'Show Last 100' : 'Show Full';
+    if (btn) {
+        const ic = btn.querySelector('.logShowFullIcon'); if (ic) ic.textContent = _logShowFull ? 'unfold_less' : 'unfold_more';
+        const tx = btn.querySelector('.logShowFullText'); if (tx) tx.textContent = _logShowFull ? 'Show Last 100' : 'Show Full';
+    }
     _applyLogFilter();
     if (!_logShowFull) { const a = document.getElementById('logArea'); if (a) a.scrollTop = a.scrollHeight; }
 }
@@ -1383,7 +1386,11 @@ document.documentElement.addEventListener('languagechange', rerenderVcTranslatio
 function clearLog() {
     _logSearch = ''; _logShowFull = false;
     const si = document.getElementById('logSearchInput'); if (si) si.value = '';
-    const btn = document.getElementById('logShowFullBtn'); if (btn) btn.textContent = 'Show Full';
+    const btn = document.getElementById('logShowFullBtn');
+    if (btn) {
+        const ic = btn.querySelector('.logShowFullIcon'); if (ic) ic.textContent = 'unfold_more';
+        const tx = btn.querySelector('.logShowFullText'); if (tx) tx.textContent = 'Show Full';
+    }
     const a = document.getElementById('logArea');
     if (a) a.innerHTML = '';
 }

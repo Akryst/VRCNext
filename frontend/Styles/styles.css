@@ -803,20 +803,20 @@ html.text-tools-active * { user-select: text !important; }
 .iim-scroll {
     max-height: 420px;
     overflow-y: auto;
-    border-radius: 8px;
-    border: 1px solid var(--bg-line);
+    border-radius: 10px;
+    background: var(--bg-input);
     margin-bottom: 14px;
 }
 .iim-table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--bg-card);
+    background: transparent;
 }
 .iim-table thead th {
     position: sticky;
     top: 0;
     z-index: 1;
-    background: var(--bg-card);
+    background: var(--bg-input);
     border-bottom: 1px solid var(--bg-line);
     padding: 6px 8px;
     font-size: 10px;
