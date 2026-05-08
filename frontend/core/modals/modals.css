@@ -43,6 +43,10 @@
     width: 800px;
 }
 
+.modal-box.wide.narrow {
+    width: 560px;
+}
+
 .modal-icon {
     width: 44px;
     height: 44px;

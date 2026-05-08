@@ -24,6 +24,8 @@ function openWorldSearchDetail(id) {
     _wdCurrentId = id;
     const el = document.getElementById('detailModalContent');
     el.innerHTML = sk('content-modal');
+    const _wdMb = document.querySelector('#modalDetail .modal-box');
+    if (_wdMb) _wdMb.classList.remove('narrow');
     document.getElementById('modalDetail').style.display = 'flex';
     sendToCS({ action: 'vrcGetWorldDetail', worldId: id });
 }

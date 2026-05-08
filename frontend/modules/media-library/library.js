@@ -733,6 +733,8 @@ function openPhotoDetail(idx) {
         ${metaHtml}${playersHtml}
         <div style="margin-top:14px;text-align:right;"><button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${t('common.close', 'Close')}</button></div>
     </div>`;
+    const _libMb = document.querySelector('#modalDetail .modal-box');
+    if (_libMb) _libMb.classList.remove('narrow');
     document.getElementById('modalDetail').style.display = 'flex';
 }
 

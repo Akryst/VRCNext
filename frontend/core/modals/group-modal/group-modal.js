@@ -21,6 +21,8 @@ const _groupDetailCache = {};
 
 function openGroupDetail(groupId) {
     if (typeof navSetCurrent === 'function') navSetCurrent('group', groupId);
+    const _gpMb = document.querySelector('#modalDetail .modal-box');
+    if (_gpMb) _gpMb.classList.remove('narrow');
     document.getElementById('modalDetail').style.display = 'flex';
     const cached = _groupDetailCache[groupId];
     if (cached) {
