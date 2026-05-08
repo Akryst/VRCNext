@@ -182,6 +182,39 @@
 }
 .inst-item-join { height: 24px !important; padding: 0 10px !important; font-size: 11px !important; }
 
+/* Instance Card (Layout A — world modal, matches instance modal style) */
+.inst-item-card {
+    background: var(--bg-input);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--brd) 60%, transparent);
+    flex-shrink: 0;
+}
+.inst-item-card-hdr {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    padding: 9px 12px;
+}
+.inst-item-card-hdr-sep {
+    border-bottom: 1px solid color-mix(in srgb, var(--brd) 50%, transparent);
+}
+.inst-item-card-title {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--tx2);
+    flex-wrap: wrap;
+}
+.inst-item-card-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 4px;
+}
 
 /* Instance Friend Strip */
 .inst-friends-strip {

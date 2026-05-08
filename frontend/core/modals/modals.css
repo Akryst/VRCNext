@@ -8,8 +8,8 @@
     animation: fadeIn .12s ease forwards;
     backdrop-filter: blur(4px);
     will-change: opacity;
-    overflow-y: hidden;
-    padding: 20px 0;
+    overflow-y: auto;
+    padding: calc(20px / var(--gui-zoom, 1)) 0;
 }
 
 #modalFriendDetail { z-index: 10001; }
@@ -30,7 +30,7 @@
     padding: 28px 32px 22px;
     width: 460px;
     max-width: 90%;
-    max-height: calc(100vh - 40px);
+    max-height: calc((100vh / var(--gui-zoom, 1)) - 40px);
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-gutter: stable;

@@ -227,7 +227,7 @@ public partial class AppShell
         VRCNext.Services.Helpers.ImageCacheHelper.Port            = _httpPort;
         VRCNext.Services.Helpers.ImageCacheHelper.LimitGb         = _settings.ImgCacheLimitGb;
         VRCNext.Services.Helpers.ImageCacheHelper.OptimizeEnabled = _settings.ImgCacheOptimizeEnabled;
-        VRCNext.Services.Helpers.ImageCacheHelper.Log             = msg => _core.SendToJS("log", new { msg, color = "sec" });
+        VRCNext.Services.Helpers.ImageCacheHelper.Log             = (msg, color) => _core.SendToJS("log", new { msg, color });
 
         _thumbCacheDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),

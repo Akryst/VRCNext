@@ -16,6 +16,7 @@ function _getWorldBannerImg(worldId, src) {
 let _wdLiveTimer = null;
 let _wdCurrentId = '';
 let _wdCurrentTab = 'info';
+let _wdRefreshing = false;
 
 /* === Detail Modals (shared) === */
 function openWorldSearchDetail(id) {
@@ -29,9 +30,106 @@ function openWorldSearchDetail(id) {
 
 function refreshWorldInstances() {
     if (!_wdCurrentId) return;
+    _wdRefreshing = true;
     const btn = document.getElementById('wdInstancesRefreshBtn');
     if (btn) btn.classList.add('spinning');
     sendToCS({ action: 'vrcGetWorldDetail', worldId: _wdCurrentId });
+}
+
+function _wdUpdateInstancesInPlace(w) {
+    const tab = document.getElementById('wdTabInstances');
+    if (!tab) return;
+    const thumb = w.imageUrl || w.thumbnailImageUrl || '';
+
+    // Build friend-by-location map
+    const worldFriendsByLoc = {};
+    if (typeof vrcFriendsData !== 'undefined') {
+        vrcFriendsData.forEach(f => {
+            const { worldId: fwid } = parseFriendLocation(f.location);
+            if (fwid === w.id) {
+                if (!worldFriendsByLoc[f.location]) worldFriendsByLoc[f.location] = [];
+                worldFriendsByLoc[f.location].push(f);
+            }
+        });
+    }
+    const stripNonce = l => (l || '').replace(/~nonce\([^)]*\)/g, '');
+    const allInstances = [...(w.instances || [])];
+    Object.keys(worldFriendsByLoc).forEach(loc => {
+        const existing = allInstances.find(i => stripNonce(i.location) === stripNonce(loc));
+        if (existing) { existing.location = loc; }
+        else {
+            const { instanceType: iType } = parseFriendLocation(loc);
+            const regionMatch = loc.match(/region\(([^)]+)\)/);
+            allInstances.push({ instanceId: loc.includes(':') ? loc.split(':')[1] : loc, users: worldFriendsByLoc[loc].length, type: iType, region: regionMatch ? regionMatch[1] : 'us', location: loc });
+        }
+    });
+    allInstances.sort((a, b) => ((worldFriendsByLoc[b.location] || []).length) - ((worldFriendsByLoc[a.location] || []).length));
+
+    const makeCard = inst => renderInstanceItem({
+        thumb, worldTitle: w.name || '', instanceType: inst.type,
+        instanceId: inst.instanceId || '', owner: inst.ownerName || '',
+        ownerGroup: inst.ownerGroup || '', ownerId: inst.ownerId || '',
+        region: getWorldRegionLabel(inst.region), userCount: inst.users,
+        capacity: w.capacity || 0, friends: worldFriendsByLoc[inst.location] || [],
+        location: inst.location, ageGate: inst.ageGate || false,
+        languageRatio: inst.languageRatio || {},
+    });
+
+    const newIds = new Set(allInstances.map(i => i.instanceId || ''));
+    let list = tab.querySelector('.wd-instances-list');
+
+    if (!list) {
+        // Currently showing empty-state text; replace with a fresh list
+        const after = tab.querySelector('.wd-section-label');
+        while (after && after.nextSibling) tab.removeChild(after.nextSibling);
+        if (allInstances.length > 0) {
+            list = document.createElement('div');
+            list.className = 'wd-instances-list';
+            list.style.cssText = 'max-height:370px;overflow-y:auto;';
+            list.innerHTML = allInstances.map(makeCard).join('');
+            tab.appendChild(list);
+        } else {
+            const empty = document.createElement('div');
+            empty.style.cssText = 'font-size:11px;color:var(--tx3);padding:14px 0;';
+            empty.textContent = t('worlds.instances.none_active', 'No active instances');
+            tab.appendChild(empty);
+        }
+    } else {
+        // Remove cards whose instance is gone
+        [...list.querySelectorAll('[data-iid]')].forEach(card => {
+            if (!newIds.has(card.getAttribute('data-iid'))) card.remove();
+        });
+
+        // Update existing cards and append new ones
+        allInstances.forEach(inst => {
+            const iid = inst.instanceId || '';
+            const existing = [...list.querySelectorAll('[data-iid]')].find(c => c.getAttribute('data-iid') === iid);
+            const tmp = document.createElement('div');
+            tmp.innerHTML = makeCard(inst);
+            const newCard = tmp.firstElementChild;
+            if (!newCard) return;
+            if (existing) {
+                list.replaceChild(newCard, existing);
+            } else {
+                list.appendChild(newCard);
+            }
+        });
+
+        // If list is now empty, show empty state
+        if (allInstances.length === 0) {
+            list.remove();
+            const empty = document.createElement('div');
+            empty.style.cssText = 'font-size:11px;color:var(--tx3);padding:14px 0;';
+            empty.textContent = t('worlds.instances.none_active', 'No active instances');
+            tab.appendChild(empty);
+        }
+    }
+
+    // Update count label and tab button
+    const countSpan = tab.querySelector('.wd-section-label span');
+    if (countSpan) countSpan.textContent = tf('worlds.instances.active_title', { count: allInstances.length }, `ACTIVE INSTANCES (${allInstances.length})`);
+    const tabBtn = [...document.querySelectorAll('.fd-tab')].find(b => b.getAttribute('onclick') && b.getAttribute('onclick').includes("'instances'"));
+    if (tabBtn) tabBtn.innerHTML = tf('worlds.tabs.instances', { count: allInstances.length }, `Instances (${allInstances.length})`);
 }
 
 function renderWorldSearchDetail(w) {
@@ -39,6 +137,15 @@ function renderWorldSearchDetail(w) {
     // Stop refresh spinner if running
     const refreshBtn = document.getElementById('wdInstancesRefreshBtn');
     if (refreshBtn) refreshBtn.classList.remove('spinning');
+    // During a refresh: skip the cached response entirely (it has no instances),
+    // and intercept the live response to update in-place without clearing the list.
+    if (_wdRefreshing) {
+        if (w.fromCache) return; // ignore cached response during refresh — it has empty instances
+        _wdRefreshing = false;
+        if (w.id) worldInfoCache[w.id] = w;
+        _wdUpdateInstancesInPlace(w);
+        return;
+    }
     // Cache full world data so favorites grid can render it immediately after favoriting
     if (w.id) worldInfoCache[w.id] = w;
     const el = document.getElementById('detailModalContent');
@@ -95,18 +202,20 @@ function renderWorldSearchDetail(w) {
     let instancesHtml = '';
     if (allInstances.length > 0) {
         instancesHtml = `<div class="wd-instances-list" style="max-height:370px;overflow-y:auto;">${allInstances.map(inst => renderInstanceItem({
-            thumb:        thumb,
-            instanceType: inst.type,
-            instanceId:   inst.instanceId || '',
-            owner:        inst.ownerName  || '',
-            ownerGroup:   inst.ownerGroup || '',
-            ownerId:      inst.ownerId    || '',
-            region:       getWorldRegionLabel(inst.region),
-            userCount:    inst.users,
-            capacity:     w.capacity || 0,
-            friends:      worldFriendsByLoc[inst.location] || [],
-            location:     inst.location,
-            ageGate:      inst.ageGate || false,
+            thumb:         thumb,
+            worldTitle:    w.name || '',
+            instanceType:  inst.type,
+            instanceId:    inst.instanceId || '',
+            owner:         inst.ownerName  || '',
+            ownerGroup:    inst.ownerGroup || '',
+            ownerId:       inst.ownerId    || '',
+            region:        getWorldRegionLabel(inst.region),
+            userCount:     inst.users,
+            capacity:      w.capacity || 0,
+            friends:       worldFriendsByLoc[inst.location] || [],
+            location:      inst.location,
+            ageGate:       inst.ageGate || false,
+            languageRatio: inst.languageRatio || {},
         })).join('')}</div>`;
     } else {
         instancesHtml = `<div style="font-size:11px;color:var(--tx3);padding:14px 0;">${t('worlds.instances.none_active', 'No active instances')}</div>`;

@@ -47,6 +47,7 @@
     <link rel="stylesheet" href="core/modals/world-modal/world-modal.css">
     <link rel="stylesheet" href="core/modals/create-instance-modal/create-instance-modal.css">
     <link rel="stylesheet" href="core/modals/group-modal/group-modal.css">
+    <link rel="stylesheet" href="core/modals/my-instance-modal/my-instance-modal.css">
     <link rel="stylesheet" href="core/modals/timeline-modal/timeline-modal.css">
     <link rel="stylesheet" href="core/context-menu/context-menu.css">
     <link rel="stylesheet" href="core/messenger/messenger.css">
@@ -727,6 +728,9 @@
                     <div class="search-bar-row" style="margin-bottom:0;flex:1;min-width:120px;max-width:200px;"><span class="msi search-ico">search</span><input id="logSearchInput" type="text" class="vrcn-input" placeholder="Search..." data-i18n-placeholder="logs.search.placeholder" oninput="onLogSearch(this.value)"></div>
                     <button id="logShowFullBtn" class="vrcn-button" onclick="toggleLogShowFull()">Show Full</button>
                     <div style="flex:1;"></div>
+                    <div class="mini-badge" id="agetBadge" style="display:none;background:var(--bg-hover);border-color:var(--brd);"><span class="mini-badge-label" style="color:var(--tx2);font-variant-numeric:tabular-nums;">AGET/H: 0</span></div>
+                    <div class="mini-badge" id="acdnBadge" style="display:none;background:var(--bg-hover);border-color:var(--brd);"><span class="mini-badge-label" style="color:var(--tx2);font-variant-numeric:tabular-nums;">ACDN/H: 0</span></div>
+                    <div class="mini-badge" id="cdnBadge" style="display:none;background:rgba(100,170,255,.12);border-color:rgba(100,170,255,.4);"><span class="mini-badge-label" style="color:#64aaff;font-variant-numeric:tabular-nums;">CDN: 0</span></div>
                     <div class="mini-badge" id="httpBadge200" style="display:none;background:rgba(59,165,93,.12);border-color:rgba(59,165,93,.4);"><span class="mini-badge-label" style="color:#3ba55d;font-variant-numeric:tabular-nums;">200: 0</span></div>
                     <div class="mini-badge" id="httpBadge429" style="display:none;background:rgba(240,165,0,.12);border-color:rgba(240,165,0,.4);"><span class="mini-badge-label" style="color:#f0a500;font-variant-numeric:tabular-nums;">429: 0</span></div>
                     <div class="mini-badge" id="httpBadge404" style="display:none;background:rgba(237,66,69,.12);border-color:rgba(237,66,69,.4);"><span class="mini-badge-label" style="color:#ed4245;font-variant-numeric:tabular-nums;">404: 0</span></div>
@@ -2399,7 +2403,7 @@
 
     <!-- My Instance Detail Modal -->
     <div class="modal-overlay" id="modalMyInstance" style="display:none;" onclick="if(event.target===this)closeMyInstanceDetail()">
-        <div class="modal-box wide" style="position:relative;padding:0;">
+        <div class="modal-box wide" style="position:relative;padding:0;overflow:hidden;">
             <div class="myp-breadcrumb-bar" id="mi_navBar" style="display:none;">
                 <div class="myp-breadcrumbs">
                     <button class="myp-crumb" id="mi_ov" hidden onclick="navGoTo(0)">···</button>

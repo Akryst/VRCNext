@@ -762,6 +762,9 @@ case 'popularWorlds':
             case 'instanceDetail':
                 if (typeof openInstanceDetailFromData === 'function') openInstanceDetailFromData(payload);
                 break;
+            case 'worldInstancesDetail':
+                if (typeof handleWorldInstancesDetail === 'function') handleWorldInstancesDetail(payload);
+                break;
             case 'refreshMyInstances':
                 if (typeof loadMyInstances === 'function') loadMyInstances();
                 break;

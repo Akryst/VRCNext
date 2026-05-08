@@ -103,7 +103,8 @@ public class InstanceController
 
                     // 2. Verify all stored instances via API — remove dead ones, keep active
                     var miRaw = new List<(string loc, string worldId, string worldName, string worldThumb,
-                        string instanceType, int userCount, int capacity, string region, string ownerId)>();
+                        string instanceType, int userCount, int capacity, string region, string ownerId,
+                        string authorId, string authorName)>();
                     var miDead = new List<string>();
                     foreach (var instLoc in _core.Settings.MyInstances.ToList())
                     {
@@ -140,7 +141,9 @@ public class InstanceController
                             userCount,
                             inst["capacity"]?.Value<int>() ?? 0,
                             inst["region"]?.ToString() ?? ParseRegionFromLoc(instLoc),
-                            apiOwnerId));
+                            apiOwnerId,
+                            inst["world"]?["authorId"]?.ToString()   ?? "",
+                            inst["world"]?["authorName"]?.ToString() ?? ""));
                     }
                     foreach (var d in miDead) _core.Settings.MyInstances.Remove(d);
                     if (miDead.Count > 0) _core.Settings.Save();
@@ -167,6 +170,7 @@ public class InstanceController
                             location = r.loc, r.worldId, r.worldName, r.worldThumb,
                             r.instanceType, r.userCount, r.capacity, r.region,
                             r.ownerId, ownerName, ownerGroup,
+                            r.authorId, r.authorName,
                         };
                     }).ToList();
                     _core.SendToJS("myInstances", miResults);
@@ -236,6 +240,158 @@ public class InstanceController
                         ownerName,
                         ownerGroup,
                     });
+                });
+                break;
+
+            case "vrcGetWorldInstancesDetail":
+                _ = Task.Run(async () =>
+                {
+                    var wid  = msg["worldId"]?.ToString() ?? "";
+                    var locs = msg["locations"]?.ToObject<List<string>>() ?? new List<string>();
+                    if (locs.Count == 0) return;
+
+                    // 1. SQLite cache hit → send world info immediately
+                    var wdCached = _core.TimeEngine.GetWorldDetail(wid);
+                    if (wdCached != null)
+                    {
+                        _core.SendToJS("worldInstancesDetail", new
+                        {
+                            worldId = wid,
+                            world = new
+                            {
+                                name        = wdCached.WorldName,
+                                thumb       = ImageCacheHelper.GetWorldUrl(wid, wdCached.WorldThumb),
+                                description = wdCached.Description,
+                                authorId    = wdCached.AuthorId,
+                                authorName  = wdCached.AuthorName,
+                                capacity    = wdCached.Capacity,
+                                favorites   = wdCached.Favorites,
+                                visits      = wdCached.Visits,
+                            },
+                            instances = new List<object>()
+                        });
+                    }
+
+                    // 2. Always fetch fresh from API
+                    var results       = new System.Collections.Concurrent.ConcurrentBag<object>();
+                    var sem           = new SemaphoreSlim(3);
+                    JObject? firstWorld = null;
+                    var firstWorldLock  = new object();
+
+                    await Task.WhenAll(locs.Select(async loc =>
+                    {
+                        await sem.WaitAsync();
+                        try
+                        {
+                            var inst = await _core.Instances.GetInstanceAsync(loc);
+                            if (inst == null) return;
+
+                            if (inst["world"] is JObject wObj)
+                                lock (firstWorldLock) { if (firstWorld == null) firstWorld = wObj; }
+
+                            var iType = ParseInstanceTypeFromLoc(loc);
+                            if (iType == "private" && inst["canRequestInvite"]?.Value<bool>() == true) iType = "invite_plus";
+
+                            var apiOwnerId = inst["ownerId"]?.ToString() ?? "";
+                            var ownerName  = "";
+                            var ownerGroup = "";
+                            if (apiOwnerId.StartsWith("grp_"))
+                            {
+                                var grp = await _core.Groups.GetGroupAsync(apiOwnerId);
+                                if (grp != null) { ownerName = grp["name"]?.ToString() ?? ""; ownerGroup = grp["shortCode"]?.ToString() ?? ""; }
+                            }
+                            else if (apiOwnerId.StartsWith("usr_"))
+                            {
+                                var f = _friends.GetStoreValue(apiOwnerId);
+                                ownerName = f?["displayName"]?.ToString() ?? "";
+                            }
+
+                            var fullLoc = inst["location"]?.ToString() ?? loc;
+                            var pl      = inst["platforms"];
+                            var cs      = inst["contentSettings"];
+
+                            results.Add(new
+                            {
+                                location     = fullLoc,
+                                instanceType = iType,
+                                userCount    = inst["userCount"]?.Value<int>()  ?? 0,
+                                capacity     = inst["capacity"]?.Value<int>()   ?? 0,
+                                region       = inst["region"]?.ToString()       ?? ParseRegionFromLoc(loc),
+                                queueEnabled = inst["queueEnabled"]?.Value<bool>() ?? false,
+                                queueSize    = inst["queueSize"]?.Value<int>()  ?? 0,
+                                displayName  = inst["displayName"]?.ToString() ?? "",
+                                ageGate      = fullLoc.Contains("~ageGate"),
+                                ownerId      = apiOwnerId,
+                                ownerName,
+                                ownerGroup,
+                                authorId     = inst["world"]?["authorId"]?.ToString()   ?? "",
+                                authorName   = inst["world"]?["authorName"]?.ToString() ?? "",
+                                platforms = new
+                                {
+                                    pc      = pl?["standalonewindows"]?.Value<int>() ?? 0,
+                                    android = pl?["android"]?.Value<int>()           ?? 0,
+                                    ios     = pl?["ios"]?.Value<int>()               ?? 0,
+                                },
+                                contentSettings = new
+                                {
+                                    emoji     = cs?["emoji"]?.Value<bool>()     ?? true,
+                                    drones    = cs?["drones"]?.Value<bool>()    ?? true,
+                                    pedestals = cs?["pedestals"]?.Value<bool>() ?? true,
+                                    props     = cs?["props"]?.Value<bool>()     ?? true,
+                                    prints    = cs?["prints"]?.Value<bool>()    ?? true,
+                                    stickers  = cs?["stickers"]?.Value<bool>()  ?? true,
+                                },
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            _core.SendToJS("log", new { msg = $"GetWorldInstancesDetail ex: {ex.Message}", color = "err" });
+                        }
+                        finally { sem.Release(); }
+                    }));
+
+                    // 3. Save world detail and send final payload
+                    object? worldPayload = null;
+                    if (!string.IsNullOrEmpty(wid) && firstWorld != null)
+                    {
+                        var wName   = firstWorld["name"]?.ToString()                    ?? "";
+                        var wThumb  = firstWorld["thumbnailImageUrl"]?.ToString()
+                                   ?? firstWorld["imageUrl"]?.ToString()                ?? "";
+                        var wImg    = firstWorld["imageUrl"]?.ToString()                ?? "";
+                        var wDesc   = firstWorld["description"]?.ToString()             ?? "";
+                        var wAuth   = firstWorld["authorName"]?.ToString()              ?? "";
+                        var wAId    = firstWorld["authorId"]?.ToString()                ?? "";
+                        var wPub    = firstWorld["created_at"]?.ToString()              ?? "";
+                        var wUpd    = firstWorld["updated_at"]?.ToString()              ?? "";
+                        var wCap    = firstWorld["capacity"]?.Value<int>()              ?? 0;
+                        var wRCap   = firstWorld["recommendedCapacity"]?.Value<int>()   ?? 0;
+                        var wTags   = firstWorld["tags"]?.ToObject<List<string>>()      ?? new List<string>();
+                        var wFav    = firstWorld["favorites"]?.Value<int>()             ?? 0;
+                        var wVis    = firstWorld["visits"]?.Value<int>()                ?? 0;
+                        var wHeat   = firstWorld["heat"]?.Value<int>()                  ?? 0;
+                        var wPop    = firstWorld["popularity"]?.Value<int>()            ?? 0;
+                        var wPubOcc = firstWorld["publicOccupants"]?.Value<int>()       ?? 0;
+                        var wPriOcc = firstWorld["privateOccupants"]?.Value<int>()      ?? 0;
+                        var wVer    = firstWorld["version"]?.Value<int>()               ?? 0;
+
+                        _core.TimeEngine.SaveWorldDetail(wid, wName, wThumb, wDesc, wImg, wAuth, wAId, wPub, wUpd,
+                            wCap, wRCap, wTags, wFav, wVis, 0, 0, wHeat, wPop, wPubOcc, wPriOcc, wVer);
+
+                        worldPayload = new
+                        {
+                            name        = wName,
+                            thumb       = ImageCacheHelper.GetWorldUrl(wid, wThumb),
+                            description = wDesc,
+                            authorId    = wAId,
+                            authorName  = wAuth,
+                            capacity    = wCap,
+                            favorites   = wFav,
+                            visits      = wVis,
+                        };
+                    }
+
+                    if (results.Count > 0)
+                        _core.SendToJS("worldInstancesDetail", new { worldId = wid, world = worldPayload, instances = results.ToList() });
                 });
                 break;
 

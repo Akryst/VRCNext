@@ -138,8 +138,11 @@ function renderNotifications(list) {
         } else if (n.type === 'invite') {
             const worldName = det.worldName ? esc(det.worldName) : t('notifications.unknown_world', 'unknown world');
             const wid = det.worldId ? det.worldId.split(':')[0] : '';
+            const instanceId = det.instanceId || '';
+            const location = wid && instanceId ? `${wid}:${instanceId}` : (det.worldId || '');
+            const { instanceType } = location ? parseFriendLocation(location) : { instanceType: 'public' };
             const worldLink = wid
-                ? `<strong style="cursor:pointer;" onclick="toggleNotifPanel();openWorldDetail('${esc(wid)}')">${worldName}</strong>`
+                ? `<strong style="cursor:pointer;" onclick="toggleNotifPanel();openInstanceDetailFromData({location:'${jsq(location)}',worldId:'${jsq(wid)}',worldName:'${jsq(det.worldName||'')}',instanceType:'${jsq(instanceType)}'})">${worldName}</strong>`
                 : `<strong>${worldName}</strong>`;
             const msg = det.inviteMessage || '';
             titleHtml = `${senderLink} <span style="color:var(--tx2);font-weight:400;">${t('notifications.title.invited_you_to', 'invited you to')}</span> ${worldLink}`;
