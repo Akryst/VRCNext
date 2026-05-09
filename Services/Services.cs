@@ -416,6 +416,14 @@ public class AppSettings
     public int  SavedWindowX           { get; set; } = -1;
     public int  SavedWindowY           { get; set; } = -1;
 
+    // Auto-Backups
+    public bool     RegBackupEnabled    { get; set; } = true;
+    public int      RegBackupDays       { get; set; } = 30;
+    public bool     DbAutoBackupEnabled { get; set; } = true;
+    public int      DbAutoBackupDays    { get; set; } = 60;
+    public DateTime LastRegBackup       { get; set; } = DateTime.MinValue;
+    public DateTime LastDbAutoBackup    { get; set; } = DateTime.MinValue;
+
     // Performance — WebView2/Chromium flags (all require restart)
     public bool GpuAcceleration     { get; set; } = false;
     public bool GpuShaderCache      { get; set; } = false;

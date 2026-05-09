@@ -230,6 +230,21 @@ public class AuthController
                 });
                 break;
 
+            case "regBackup":
+                _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        var path = SQLiteOptimizing.CreateRegistryBackup();
+                        Invoke(() => _core.SendToJS("regBackupDone", new { path }));
+                    }
+                    catch (Exception ex)
+                    {
+                        Invoke(() => _core.SendToJS("regBackupDone", new { error = ex.Message }));
+                    }
+                });
+                break;
+
             case "forceFfcAll":
                 _ = Task.Run(ForceFfcAllAsync);
                 break;
@@ -1036,6 +1051,12 @@ public class AuthController
             // Window Behavior
             _core.Settings.RememberWindowSize     = data["rememberWindowSize"]?.Value<bool>()     ?? false;
             _core.Settings.RememberWindowPosition = data["rememberWindowPosition"]?.Value<bool>() ?? false;
+
+            // Auto-Backups
+            _core.Settings.RegBackupEnabled    = data["regBackupEnabled"]?.Value<bool>()    ?? true;
+            _core.Settings.RegBackupDays       = data["regBackupDays"]?.Value<int>()        ?? 30;
+            _core.Settings.DbAutoBackupEnabled = data["dbAutoBackupEnabled"]?.Value<bool>() ?? true;
+            _core.Settings.DbAutoBackupDays    = data["dbAutoBackupDays"]?.Value<int>()     ?? 60;
 
             // Performance flags (require restart)
             _core.Settings.GpuAcceleration    = data["gpuAcceleration"]?.Value<bool>()    ?? false;

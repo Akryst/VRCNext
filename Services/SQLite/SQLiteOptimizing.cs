@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using System.Diagnostics;
 
 namespace VRCNext.Services;
 
@@ -199,6 +200,32 @@ public static class SQLiteOptimizing
         using var cmd = db.CreateCommand();
         cmd.CommandText = $"VACUUM INTO '{destPath.Replace("'", "''")}'";
         cmd.ExecuteNonQuery();
+
+        return destPath;
+    }
+
+    public static string CreateRegistryBackup()
+    {
+        var backupDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "VRCNext", "Backup");
+        Directory.CreateDirectory(backupDir);
+
+        var stamp    = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        var destPath = Path.Combine(backupDir, $"VRChat_Registry_{stamp}.reg");
+
+        var psi = new ProcessStartInfo("reg")
+        {
+            Arguments              = $"export \"HKCU\\Software\\VRChat\" \"{destPath}\" /y",
+            UseShellExecute        = false,
+            CreateNoWindow         = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError  = true,
+        };
+        using var proc = Process.Start(psi) ?? throw new Exception("Could not start reg.exe");
+        proc.WaitForExit(15000);
+        if (proc.ExitCode != 0)
+            throw new Exception($"reg export failed (exit code {proc.ExitCode})");
 
         return destPath;
     }

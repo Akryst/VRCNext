@@ -48,6 +48,7 @@ window.external.receiveMessage(rawMsg => {
             case 'dbOptimizeProgress':handleDbOptimizeProgress(payload); break;
             case 'dbOptimizeDone':    handleDbOptimizeDone(payload); break;
             case 'dbBackupDone':      handleDbBackupDone(payload); break;
+            case 'regBackupDone':     handleRegBackupDone(payload); break;
             case 'log': addLog(payload.msg, payload.color); break;
             case 'consoleOutput': addLog(payload.text, payload.color); break;
             case 'debugImgCacheState':

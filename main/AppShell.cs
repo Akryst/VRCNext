@@ -359,6 +359,7 @@ public partial class AppShell
         if (File.Exists(iconPath)) windowBuilder.SetIconFile(iconPath);
         _window = windowBuilder.Load(startPage);
         _core.Window = _window;
+        _ = RunAutoBackupsAsync();
 
         if (_minimized) _window.SetMinimized(true);
         _window.WaitForClose();
@@ -456,6 +457,39 @@ public partial class AppShell
             }
         }
         catch { }
+    }
+
+    // Auto-Backups
+
+    private async Task RunAutoBackupsAsync()
+    {
+        await Task.Delay(8000); // let the app finish initializing
+
+        if (_settings.DbAutoBackupEnabled &&
+            (DateTime.Now - _settings.LastDbAutoBackup).TotalDays >= _settings.DbAutoBackupDays)
+        {
+            try
+            {
+                await Task.Run(() => SQLiteOptimizing.CreateBackup());
+                _settings.LastDbAutoBackup = DateTime.Now;
+                _settings.Save();
+            }
+            catch { }
+        }
+
+        if (_settings.RegBackupEnabled &&
+            (DateTime.Now - _settings.LastRegBackup).TotalDays >= _settings.RegBackupDays)
+        {
+            try
+            {
+#if WINDOWS
+                await Task.Run(() => SQLiteOptimizing.CreateRegistryBackup());
+#endif
+                _settings.LastRegBackup = DateTime.Now;
+                _settings.Save();
+            }
+            catch { }
+        }
     }
 
     // OnClose

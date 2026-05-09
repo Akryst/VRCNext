@@ -400,6 +400,7 @@ public partial class AppShell
                 case "dbAnalyze":
                 case "dbOptimize":
                 case "dbBackup":
+                case "regBackup":
                 case "forceFfcAll":
                 case "setupSaveLanguage":
                 case "setupSaveStartWithWindows":

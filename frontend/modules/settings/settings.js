@@ -211,6 +211,10 @@ function saveSettings() {
             restartAfterCrash: document.getElementById('setRestartAfterCrash').checked,
             rememberWindowSize:     document.getElementById('setRememberWindowSize')?.checked     ?? false,
             rememberWindowPosition: document.getElementById('setRememberWindowPosition')?.checked ?? false,
+            regBackupEnabled:    document.getElementById('setRegBackupEnabled')?.checked    ?? true,
+            regBackupDays:       parseInt(document.getElementById('setRegBackupCycle')?.value    ?? '30'),
+            dbAutoBackupEnabled: document.getElementById('setDbAutoBackupEnabled')?.checked  ?? true,
+            dbAutoBackupDays:    parseInt(document.getElementById('setDbAutoBackupCycle')?.value ?? '60'),
             textToolsEnabled: document.getElementById('setTextToolsEnabled')?.checked ?? false,
             legacyWindow: document.getElementById('setLegacyWindow')?.checked ?? false,
             gpuAcceleration:    document.getElementById('setPerfGpuAccel')?.checked    ?? false,
@@ -522,6 +526,16 @@ function loadSettingsToUI(s) {
     if (rwsEl) rwsEl.checked = s.RememberWindowSize ?? s.rememberWindowSize ?? false;
     const rwpEl = document.getElementById('setRememberWindowPosition');
     if (rwpEl) rwpEl.checked = s.RememberWindowPosition ?? s.rememberWindowPosition ?? false;
+
+    // Auto-Backups
+    const rbeEl = document.getElementById('setRegBackupEnabled');
+    if (rbeEl) rbeEl.checked = s.RegBackupEnabled ?? s.regBackupEnabled ?? true;
+    const rbcEl = document.getElementById('setRegBackupCycle');
+    if (rbcEl) rbcEl.value = String(s.RegBackupDays ?? s.regBackupDays ?? 30);
+    const dbeEl = document.getElementById('setDbAutoBackupEnabled');
+    if (dbeEl) dbeEl.checked = s.DbAutoBackupEnabled ?? s.dbAutoBackupEnabled ?? true;
+    const dbcEl = document.getElementById('setDbAutoBackupCycle');
+    if (dbcEl) dbcEl.value = String(s.DbAutoBackupDays ?? s.dbAutoBackupDays ?? 60);
 
     // Text Tools
     const textToolsEnabled = s.TextToolsEnabled ?? s.textToolsEnabled ?? false;
@@ -1159,32 +1173,73 @@ function dbCreateBackup() {
     sendToCS({ action: 'dbBackup' });
 }
 
+function manualDbBackup() {
+    const btn = document.getElementById('btnManualDbBackup');
+    if (btn) btn.disabled = true;
+    sendToCS({ action: 'dbBackup' });
+}
+
+function manualRegBackup() {
+    const btn = document.getElementById('btnManualRegBackup');
+    if (btn) btn.disabled = true;
+    sendToCS({ action: 'regBackup' });
+}
+
+function _showBackupResult(containerId, label, data) {
+    const res = document.getElementById(containerId);
+    if (!res) return;
+    if (data.error) {
+        res.innerHTML = `<div style="color:var(--err);font-size:12px;">${esc(label)} failed: ${esc(data.error)}</div>`;
+    } else {
+        res.innerHTML =
+            `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(var(--ok-rgb,80,200,120),.12);border:1px solid rgba(var(--ok-rgb,80,200,120),.30);border-radius:8px;">
+                <span class="msi" style="font-size:20px;color:var(--ok);">check_circle</span>
+                <div>
+                    <div style="font-size:13px;font-weight:600;color:var(--tx1);">${esc(label)}</div>
+                    <div style="font-size:11px;color:var(--tx3);margin-top:2px;font-family:monospace;">${esc(data.path ?? '')}</div>
+                </div>
+            </div>`;
+    }
+    res.style.display = '';
+}
+
+function handleRegBackupDone(data) {
+    const btn = document.getElementById('btnManualRegBackup');
+    if (btn) btn.disabled = false;
+    _showBackupResult('manualBackupResult', 'Registry backup created', data);
+}
+
 function handleDbBackupDone(data) {
     const btn = document.getElementById('btnDbBackup');
     if (btn) {
         btn.disabled = false;
         btn.innerHTML = '<span class="msi" style="font-size:16px;">backup</span> Create Backup';
     }
-    const res = document.getElementById('dbAnalysisResults');
-    if (!res) return;
+    const btn2 = document.getElementById('btnManualDbBackup');
+    if (btn2) btn2.disabled = false;
 
-    if (data.error) {
+    // DB Optimization card result — replace any existing backup result (max 1)
+    const res = document.getElementById('dbAnalysisResults');
+    if (res) {
+        res.querySelectorAll('[data-backup-result]').forEach(el => el.remove());
         const el = document.createElement('div');
-        el.style.cssText = 'color:var(--err);font-size:12px;margin-top:8px;';
-        el.textContent = 'Backup failed: ' + data.error;
+        el.dataset.backupResult = '1';
+        if (data.error) {
+            el.style.cssText = 'color:var(--err);font-size:12px;margin-top:8px;';
+            el.textContent = 'Backup failed: ' + data.error;
+        } else {
+            el.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(var(--ok-rgb,80,200,120),.12);border:1px solid rgba(var(--ok-rgb,80,200,120),.30);border-radius:8px;margin-top:8px;';
+            el.innerHTML =
+                `<span class="msi" style="font-size:20px;color:var(--ok);">check_circle</span>
+                <div>
+                    <div style="font-size:13px;font-weight:600;color:var(--tx1);">Backup created</div>
+                    <div style="font-size:11px;color:var(--tx3);margin-top:2px;font-family:monospace;">${esc(data.path)}</div>
+                </div>`;
+        }
         res.prepend(el);
         res.style.display = '';
-        return;
     }
 
-    const el = document.createElement('div');
-    el.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(var(--ok-rgb,80,200,120),.12);border:1px solid rgba(var(--ok-rgb,80,200,120),.30);border-radius:8px;margin-top:8px;';
-    el.innerHTML =
-        `<span class="msi" style="font-size:20px;color:var(--ok);">check_circle</span>
-        <div>
-            <div style="font-size:13px;font-weight:600;color:var(--tx1);">Backup created</div>
-            <div style="font-size:11px;color:var(--tx3);margin-top:2px;font-family:monospace;">${esc(data.path)}</div>
-        </div>`;
-    res.prepend(el);
-    res.style.display = '';
+    // Auto-Backups card result
+    _showBackupResult('manualBackupResult', 'Database backup created', data);
 }

@@ -1009,6 +1009,40 @@
                         </div>
                     </div>
 
+                    <!-- AUTO-BACKUPS -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">backup</span> <span data-i18n="settings.backup.title">Auto-Backups</span></div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.backup.registry_enabled">Enable VRChat Registry Backups</span>
+                            <label class="toggle"><input type="checkbox" id="setRegBackupEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.backup.registry_enabled_desc">Automatically backs up your VRChat registry settings at the selected interval. Backups are saved to your VRCNext data folder.</div>
+                        <div class="sf-section-label" data-i18n="settings.backup.registry_cycle">Registry Backup Cycle</div>
+                        <select id="setRegBackupCycle" class="vrcn-dropdown" onchange="autoSave()" style="margin-bottom:14px;">
+                            <option value="14" data-i18n="settings.backup.days_14">14 Days</option>
+                            <option value="30" data-i18n="settings.backup.days_30">30 Days</option>
+                            <option value="60" data-i18n="settings.backup.days_60">60 Days</option>
+                            <option value="120" data-i18n="settings.backup.days_120">120 Days</option>
+                        </select>
+                        <div class="sf-toggle-row" style="margin-top:4px;">
+                            <span data-i18n="settings.backup.db_enabled">Enable VRCN Database Backups</span>
+                            <label class="toggle"><input type="checkbox" id="setDbAutoBackupEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.backup.db_enabled_desc">Automatically backs up your VRCNext database at the selected interval. Backups are saved to your VRCNext data folder.</div>
+                        <div class="sf-section-label" data-i18n="settings.backup.db_cycle">Database Backup Cycle</div>
+                        <select id="setDbAutoBackupCycle" class="vrcn-dropdown" onchange="autoSave()" style="margin-bottom:14px;">
+                            <option value="60" data-i18n="settings.backup.days_60">60 Days</option>
+                            <option value="120" data-i18n="settings.backup.days_120">120 Days</option>
+                            <option value="240" data-i18n="settings.backup.days_240">240 Days</option>
+                            <option value="356" data-i18n="settings.backup.days_356">356 Days</option>
+                        </select>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button class="vrcn-button" id="btnManualDbBackup" onclick="manualDbBackup()"><span class="msi" style="font-size:16px;">backup</span> <span data-i18n="settings.backup.btn_db">Create Database Backup</span></button>
+                            <button class="vrcn-button" id="btnManualRegBackup" onclick="manualRegBackup()"><span class="msi" style="font-size:16px;">app_registration</span> <span data-i18n="settings.backup.btn_registry">Create VRChat Registry Backup</span></button>
+                        </div>
+                        <div id="manualBackupResult" style="display:none;margin-top:10px;"></div>
+                    </div>
+
                     <!-- WATCH FOLDERS -->
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">folder_open</span> <span data-i18n="settings.watch_folders.title">Watch Folders</span></div>

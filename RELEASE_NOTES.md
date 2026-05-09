@@ -1,22 +1,32 @@
 **2026.23.0**
 
 ## Community feature requests
-* "Add Start VRChat button to right click context menu in System Tray"
-Requested by @octomiku01
-* "Add status icons to instances + ability to close instances if permitted"
-- Closing Instance works if it is your own instance
-- Shows Age Gated instances across all modals and lists
-Requested by @octomiku01
-* "Remember Window Size" - in Settings > Window Behavior
-Requested by @aghostofthepast
-* "Remember Monitor" - in Settings > Window Behavior
-Requested by @kivvio
 
-## Instance List
+* **Added “Start VRChat” to the System Tray right-click menu**
+  You can now start VRChat directly from the tray icon without opening the main VRCNext window.
+  Requested by @octomiku01
+
+* **Added instance status icons and close-instance support**
+  Instances now show clearer status icons, including Age Gated information across modals and lists. You can also close an instance directly from VRCNext if it is your own instance and you have permission to close it.
+  Requested by @octomiku01
+
+* **Added “Remember Window Size” setting**
+  VRCNext can now remember your last window size and restore it the next time you open the app. This can be enabled in **Settings > Window Behavior**.
+  Requested by @aghostofthepast
+
+* **Added “Remember Monitor” setting**
+  VRCNext can now remember which monitor it was last opened on and restore the window there on the next launch. This can be enabled in **Settings > Window Behavior**.
+  Requested by @kivvio
+
+* **Added VRChat Registry Backup**
+  VRCNext can now create backups of the VRChat registry data through **Settings > Auto-Backups**. This helps preserve important VRChat-related settings before changes or issues happen.
+  Requested by @octomiku01
+
+
+### Instance List
 * Redesigned the instance list design to match the new V2 design.
 
 ### World Modal
-
 * The Instances tab now refreshes in-place when pressing the Refresh button.
 * Existing instance cards stay visible while the refresh runs in the background.
 * New instances are added, removed instances are removed, and changed data is updated without clearing the list.
@@ -25,44 +35,23 @@ Requested by @kivvio
 * Manually opening a group profile still updates its cached data as before.
 
 ### Instance Modal
-
-* The Instance Modal now loads world information much faster.
-* World name, author, description, and banner are loaded from the local cache when available.
-* This removes the pop-in effect when reopening a world you have visited before.
-* If no cache exists yet, the API response will automatically fill it for the next time.
+* The Instance Modal now loads world information much faster by using locally cached data when available, including world name, author, description, and banner.
+* Reopening previously visited worlds should no longer cause visible pop-in. If no cache exists yet, the API response automatically fills it for next time.
 * The world description is now shown in the left panel.
 * Removed the `X instances` and `X friends` stat lines from the left panel for a cleaner layout.
-* Info chips in the instance card header now use proper badge styling.
-* Region, PC percentage, Quest percentage, player count, and display name now better match the app theme.
+* Instance card header info now uses proper badge styling for region, PC percentage, Quest percentage, player count, and display name.
 * The Instance ID copy badge has been moved to the far right of the header row.
-* The old `Join World` button was replaced with a compact round icon button.
-* This now matches the style of the Invite and Delete buttons.
-* Internal cleanup: Instance Modal logic is now split into two clean functions:
-* `setInstanceModal` for Dashboard, Groups, and Sidebar.
-* `setOwnInstanceModal` for My Instances.
+* The old `Join World` button was replaced with a compact round icon button to match the Invite and Delete buttons.
+* Internal cleanup: Instance Modal logic is now split into `setInstanceModal` for Dashboard, Groups, and Sidebar, and `setOwnInstanceModal` for My Instances.
 
 ### Image Cache
-
-* The Instance Modal no longer loads images directly from the VRChat CDN.
-* It only displays locally cached images now.
+* The Instance Modal no longer loads images directly from the VRChat CDN and only displays locally cached images now.
 * This helps reduce unnecessary load on VRChat servers.
-* If an image is not cached yet, the banner stays hidden.
-* Once the image has been downloaded, it will appear the next time the modal is opened.
-* This now works for all image types:
-* Worlds, Users, Groups, Avatars, Badges, and Events.
+* If an image is not cached yet, the banner stays hidden until it has been downloaded and will appear the next time the modal is opened.
+* This now works for all cached image types: Worlds, Users, Groups, Avatars, Badges, and Events.
 
 ### Activity Log
-
-* CDN image downloads are now shown in the Activity Log.
-* Example: `CDN - Worlds - <url>`
-* CDN status codes are also shown, such as `CDN 200`, `CDN 404`, and `CDN 429`.
-* Status codes now use matching colors, for example green, red, or yellow.
-* Added a new `CDN` counter badge.
-* This shows the total amount of image downloads since the app was started.
-* Added a new `AGET/H` badge.
-* This shows the average VRChat API GET requests per hour.
-* Added a new `ACDN/H` badge.
-* This shows the average CDN image downloads per hour.
-* Counter badges are no longer reset when pressing `Clear`.
-* This includes `200`, `429`, `404`, `403`, `400`, `CDN`, `AGET/H`, and `ACDN/H`.
-* Pressing `Clear` now only clears the visible log text.
+* CDN image downloads are now tracked in the Activity Log, including request type, URL, and status codes like `CDN 200`, `CDN 404`, and `CDN 429`.
+* CDN status entries now use matching colors to make successful, failed, and rate-limited requests easier to identify.
+* Added new Activity Log badges for total CDN downloads, average VRChat API GET requests per hour, and average CDN downloads per hour.
+* Pressing `Clear` now only clears the visible log text. Counter badges such as `200`, `429`, `404`, `403`, `400`, `CDN`, `AGET/H`, and `ACDN/H` are no longer reset.
