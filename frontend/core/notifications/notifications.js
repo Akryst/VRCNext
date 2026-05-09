@@ -1,6 +1,7 @@
 /* === Notifications === */
 let _notifDismiss = null;
 let _notifTab = 'current';
+let _notifNoDecline = false;
 
 function _updatePillIndicator() {
     const group     = document.getElementById('notifPillGroup');
@@ -15,8 +16,9 @@ function _updatePillIndicator() {
 
 function setNotifTab(tab) {
     _notifTab = tab;
+    _notifNoDecline = tab === 'hidden';
     notifications = [];
-    ['current', 'all', 'hidden'].forEach(t => {
+    ['current', 'hidden'].forEach(t => {
         const el = document.getElementById('notifTab' + t.charAt(0).toUpperCase() + t.slice(1));
         if (el) el.classList.toggle('active', t === tab);
     });
@@ -50,8 +52,7 @@ function toggleNotifPanel() {
 }
 
 function refreshNotifications() {
-    const actionMap = { current: 'vrcGetNotifications', all: 'vrcGetAllNotifications', hidden: 'vrcGetHiddenNotifications' };
-    sendToCS({ action: actionMap[_notifTab] || 'vrcGetNotifications' });
+    sendToCS({ action: _notifTab === 'hidden' ? 'vrcGetHiddenNotifications' : 'vrcGetNotifications' });
 }
 
 function getNotificationTypeMeta(type) {
@@ -124,7 +125,7 @@ function _resolveNotifImage(n) {
     return '';
 }
 
-function renderNotifications(list) {
+function renderNotifications(list, noDecline = _notifNoDecline) {
     notifications = (list || []).filter(n => n.type !== 'boop'); // boops only in messenger
     const unseen = notifications.filter(n => !n.seen).length;
     const badge = document.getElementById('notifBadge');
@@ -198,7 +199,7 @@ function renderNotifications(list) {
             </div>
             <div class="notif-actions">
                 ${canAccept ? `<button class="vrcn-notify-button primary notif-accept-btn" onclick="acceptNotif('${nid}',this)"><span class="msi">check</span> ${t('notifications.actions.accept', 'Accept')}</button>` : ''}
-                ${(canAccept || !n.seen) ? `<button class="vrcn-notify-button danger notif-decline-btn" onclick="declineNotif('${nid}',this)" title="${t('notifications.actions.decline', 'Decline')}"><span class="msi">close</span></button>` : ''}
+                ${(!noDecline && (canAccept || !n.seen)) ? `<button class="vrcn-notify-button danger notif-decline-btn" onclick="declineNotif('${nid}',this)" title="${t('notifications.actions.decline', 'Decline')}"><span class="msi">close</span></button>` : ''}
             </div>
         </div>`;
     }).join('');

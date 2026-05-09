@@ -729,6 +729,8 @@ case 'vrcNews':
                 }
                 break;
             case 'vrcHiddenNotifications':
+                renderNotifications(payload || [], true);
+                break;
             case 'vrcAllNotifications':
                 renderNotifications(payload || []);
                 break;

@@ -657,25 +657,114 @@ public class NotificationsController
         });
     });
 
-    public Task GetHiddenNotificationsAsync() => Task.Run(async () =>
+    // Enriches a list of normalized notifications with user avatar images.
+    // Priority: in-memory notif cache → friend store → disk image cache → API call.
+    // API calls are batched in parallel and only made for users not found by faster means.
+    private async Task<JArray> EnrichNotifUserImagesAsync(IEnumerable<dynamic> list)
     {
-        var raw = await _core.Notifications.GetHiddenFriendRequestsAsync();
-        var list = raw.Cast<JObject>().Select(NormalizeNotifV1).ToList();
+        var items = list.Select(n => (n, j: JObject.FromObject(n))).ToList();
 
-        var enrichedList = new JArray();
-        foreach (var n in list)
+        // Collect senderUserIds that still need an image after cheap lookups
+        var needApi = new List<(string uid, JObject j)>();
+
+        foreach (var (n, j) in items)
         {
-            var j = JObject.FromObject(n);
             var sid = (string?)n.senderUserId;
             string img = "";
-            if (!string.IsNullOrEmpty(sid)
-                && _friends.TryGetNameImage(sid, out var fi) && !string.IsNullOrEmpty(fi.image))
-                img = fi.image;
+
+            // 1. In-memory notif image cache (seeded from timeline)
+            lock (_notifImageCache)
+            {
+                var nid = (string?)n.id ?? "";
+                if (!string.IsNullOrEmpty(nid)) _notifImageCache.TryGetValue(nid, out img!);
+            }
+
+            // 2. Friend store
+            if (string.IsNullOrEmpty(img) && !string.IsNullOrEmpty(sid)
+                && _friends.TryGetNameImage(sid, out var fi))
+                img = fi.image ?? "";
+
+            // 3. Disk image cache (already downloaded from a previous profile view)
+            if (string.IsNullOrEmpty(img) && !string.IsNullOrEmpty(sid))
+            {
+                var diskPath = ImageCacheHelper.GetUserCached(sid);
+                if (diskPath != null) img = ImageCacheHelper.ToLocalUrl(diskPath);
+            }
+
             j["_image"] = img;
-            enrichedList.Add(j);
+
+            // 4. Queue for API call if still empty
+            if (string.IsNullOrEmpty(img) && !string.IsNullOrEmpty(sid))
+                needApi.Add((sid, j));
         }
 
-        Invoke(() => _core.SendToJS("vrcHiddenNotifications", enrichedList));
+        // Batch API calls in parallel for users not found by any cheap method
+        if (needApi.Count > 0)
+        {
+            await Task.WhenAll(needApi.Select(async entry =>
+            {
+                var user = await _core.Users.GetUserAsync(entry.uid);
+                if (user != null)
+                    entry.j["_image"] = ImageCacheHelper.GetUserUrl(entry.uid, VRChatApiService.GetUserImage(user));
+            }));
+        }
+
+        var result = new JArray();
+        foreach (var (_, j) in items) result.Add(j);
+        return result;
+    }
+
+    public Task GetHiddenNotificationsAsync() => Task.Run(async () =>
+    {
+        var raw  = await _core.Notifications.GetHiddenFriendRequestsAsync();
+        var list = raw.Cast<JObject>().Select(NormalizeNotifV1).ToList();
+
+        // Build initial list immediately using only cheap sources (no API calls)
+        var initial = new JArray();
+        var needApi = new List<(string uid, string notifId)>();
+
+        foreach (var n in list)
+        {
+            var j   = JObject.FromObject(n);
+            var sid = (string?)n.senderUserId ?? "";
+            var nid = (string?)n.id ?? "";
+            string img = "";
+
+            lock (_notifImageCache)
+                if (!string.IsNullOrEmpty(nid)) _notifImageCache.TryGetValue(nid, out img!);
+
+            if (string.IsNullOrEmpty(img) && !string.IsNullOrEmpty(sid)
+                && _friends.TryGetNameImage(sid, out var fi))
+                img = fi.image ?? "";
+
+            if (string.IsNullOrEmpty(img) && !string.IsNullOrEmpty(sid))
+            {
+                var diskPath = ImageCacheHelper.GetUserCached(sid);
+                if (diskPath != null) img = ImageCacheHelper.ToLocalUrl(diskPath);
+            }
+
+            j["_image"] = img;
+            initial.Add(j);
+
+            if (string.IsNullOrEmpty(img) && !string.IsNullOrEmpty(sid) && !string.IsNullOrEmpty(nid))
+                needApi.Add((sid, nid));
+        }
+
+        // Send list immediately
+        Invoke(() => _core.SendToJS("vrcHiddenNotifications", initial));
+
+        // Fetch missing images in background, push updates one by one
+        if (needApi.Count > 0)
+        {
+            await Task.WhenAll(needApi.Select(async entry =>
+            {
+                var user = await _core.Users.GetUserAsync(entry.uid);
+                if (user == null) return;
+                var img = ImageCacheHelper.GetUserUrl(entry.uid, VRChatApiService.GetUserImage(user));
+                if (!string.IsNullOrEmpty(img))
+                    Invoke(() => _core.SendToJS("vrcNotifImageUpdate", new { notifId = entry.notifId, image = img }));
+            }));
+        }
     });
 
     public Task GetAllNotificationsAsync() => Task.Run(async () =>
@@ -697,26 +786,9 @@ public class NotificationsController
             var id = n["id"]?.ToString() ?? "";
             if (!seenIds.Contains(id)) { list.Add(NormalizeNotifV1(n)); seenIds.Add(id); }
         }
-        list = list.OrderByDescending(n => (string)n.created_at).ToList();
-
-        var enrichedList = new JArray();
-        foreach (var n in list)
-        {
-            var j = JObject.FromObject(n);
-            var sid = (string?)n.senderUserId;
-            string img = "";
-            lock (_notifImageCache)
-            {
-                var nid = (string?)n.id ?? "";
-                if (!string.IsNullOrEmpty(nid)) _notifImageCache.TryGetValue(nid, out img!);
-            }
-            if (string.IsNullOrEmpty(img) && !string.IsNullOrEmpty(sid)
-                && _friends.TryGetNameImage(sid, out var fi)) img = fi.image ?? "";
-            j["_image"] = img;
-            enrichedList.Add(j);
-        }
-
-        Invoke(() => _core.SendToJS("vrcAllNotifications", enrichedList));
+        var sorted   = list.OrderByDescending(n => (string)n.created_at);
+        var enriched = await EnrichNotifUserImagesAsync(sorted);
+        Invoke(() => _core.SendToJS("vrcAllNotifications", enriched));
     });
 
     // Push actionable notifications to VR overlay (wrist alerts tab + HMD toast)
