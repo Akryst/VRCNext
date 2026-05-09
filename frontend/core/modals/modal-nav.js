@@ -1,6 +1,7 @@
 let _navStack        = [];
 let _navIdx          = -1;
 let _navCurrentEntry = null;
+let _navBackdropEl   = null;
 
 function navSetCurrent(type, id, id2) {
     _navCurrentEntry = { type, id: id || '', id2: id2 || '', label: '' };
@@ -17,26 +18,49 @@ function navOpenModal(type, id, label, id2) {
     const cur = _navIdx >= 0 ? _navStack[_navIdx] : null;
     if (cur && cur.type === type && cur.id === id && cur.id2 === (id2 || '')) return;
 
-    _navCloseCurrentSilent();
+    const leavingEntry = cur ? { ...cur } : null;
 
     _navStack = _navStack.slice(0, _navIdx + 1);
     _navStack.push({ type, id, label: label || '', id2: id2 || '' });
     _navIdx = _navStack.length - 1;
 
-    if (cur !== null) document.documentElement.classList.add('modal-nav-instant');
-    _navDoOpen(type, id, id2);
-    _navRender();
+    if (_navStack.length >= 2) {
+        _navShowBackdrop();
+        document.documentElement.classList.add('modal-nav-active');
+    }
+
+    if (leavingEntry && _navSameOverlay(leavingEntry.type, type)) {
+        // Same overlay (e.g. friend→friend): animate box out first, then reopen
+        _navAnimateLeaveThen(leavingEntry, () => {
+            _navDoOpen(type, id, id2);
+            _navRender();
+        });
+    } else {
+        // Different overlays: animate leave async, open new immediately
+        if (leavingEntry) _navAnimateLeave(leavingEntry);
+        _navDoOpen(type, id, id2);
+        _navRender();
+    }
 }
 
 function navGoTo(idx) {
     if (idx < 0 || idx >= _navStack.length || idx === _navIdx) return;
-    _navCloseCurrentSilent();
+
+    const leavingEntry = _navStack[_navIdx] ? { ..._navStack[_navIdx] } : null;
+    const targetEntry  = { ..._navStack[idx] };
+
     _navIdx = idx;
-    const e = _navStack[_navIdx];
-    _navCurrentEntry = { ...e };
-    document.documentElement.classList.add('modal-nav-instant');
-    _navDoOpen(e.type, e.id, e.id2);
+    _navCurrentEntry = { ...targetEntry };
     _navRender();
+
+    if (leavingEntry && _navSameOverlay(leavingEntry.type, targetEntry.type)) {
+        _navAnimateLeaveThen(leavingEntry, () => {
+            _navDoOpen(targetEntry.type, targetEntry.id, targetEntry.id2);
+        });
+    } else {
+        if (leavingEntry) _navAnimateLeave(leavingEntry);
+        _navDoOpen(targetEntry.type, targetEntry.id, targetEntry.id2);
+    }
 }
 
 function navClear() {
@@ -44,6 +68,8 @@ function navClear() {
     _navIdx          = -1;
     _navCurrentEntry = null;
     document.documentElement.classList.remove('modal-nav-instant');
+    document.documentElement.classList.remove('modal-nav-active');
+    _navHideBackdrop();
     _navRender();
 }
 
@@ -67,8 +93,85 @@ function _navDoOpen(type, id, id2) {
     }
 }
 
+function _navOverlayIdForType(type) {
+    switch (type) {
+        case 'friend':      return 'modalFriendDetail';
+        case 'world':       return 'modalWorldDetail';
+        case 'worldSearch': return 'modalDetail';
+        case 'avatar':      return 'modalAvatarDetail';
+        case 'group':       return 'modalDetail';
+        case 'event':       return 'modalDetail';
+        case 'instance':    return 'modalMyInstance';
+        default:            return null;
+    }
+}
+
+function _navSameOverlay(typeA, typeB) {
+    return _navOverlayIdForType(typeA) === _navOverlayIdForType(typeB);
+}
+
+function _navBoxForEntry(entry) {
+    if (!entry) return null;
+    const ovId = _navOverlayIdForType(entry.type);
+    if (!ovId) return null;
+    const ov = document.getElementById(ovId);
+    return ov ? ov.querySelector('.modal-box') : null;
+}
+
+// Animate box out, then call onDone (used when same overlay is reused).
+// Cuts in at 80ms — box is mostly faded by then — so enter starts almost in parallel.
+function _navAnimateLeaveThen(entry, onDone) {
+    const box = _navBoxForEntry(entry);
+    if (!box) {
+        _navCloseForEntry(entry);
+        onDone();
+        return;
+    }
+    box.classList.remove('nav-leaving');
+    void box.offsetWidth;
+    box.classList.add('nav-leaving');
+    setTimeout(() => {
+        box.classList.remove('nav-leaving');
+        _navCloseForEntry(entry);
+        onDone();
+    }, 80);
+}
+
+// Animate box out, close overlay after animation (used when switching overlays)
+function _navAnimateLeave(entry) {
+    const box = _navBoxForEntry(entry);
+    if (!box) {
+        _navCloseForEntry(entry);
+        return;
+    }
+    box.classList.remove('nav-leaving');
+    void box.offsetWidth;
+    box.classList.add('nav-leaving');
+    setTimeout(() => {
+        box.classList.remove('nav-leaving');
+        _navCloseForEntry(entry);
+    }, 110);
+}
+
+function _navShowBackdrop() {
+    if (!_navBackdropEl) {
+        _navBackdropEl = document.createElement('div');
+        _navBackdropEl.id = 'modalNavBackdrop';
+        document.body.appendChild(_navBackdropEl);
+    }
+    _navBackdropEl.style.display = 'block';
+}
+
+function _navHideBackdrop() {
+    if (_navBackdropEl) _navBackdropEl.style.display = 'none';
+}
+
 function _navCloseCurrentSilent() {
     const entry = (_navIdx >= 0 && _navStack[_navIdx]) ? _navStack[_navIdx] : _navCurrentEntry;
+    _navCloseForEntry(entry);
+}
+
+function _navCloseForEntry(entry) {
     if (!entry) return;
     switch (entry.type) {
         case 'friend':
@@ -108,8 +211,8 @@ const _NAV_SHELLS = [
 const _NAV_SLOTS = 5;
 
 function _navRender() {
-    const show     = _navStack.length >= 2 && _navIdx > 0;
-    const start    = Math.max(0, (_navIdx + 1) - _NAV_SLOTS);
+    const show      = _navStack.length >= 2 && _navIdx > 0;
+    const start     = Math.max(0, (_navIdx + 1) - _NAV_SLOTS);
     const ovVisible = start > 0;
 
     for (const s of _NAV_SHELLS) {
