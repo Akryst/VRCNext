@@ -489,9 +489,21 @@
             if (id) return buildWorldItems(id);
         }
 
+        const miniWorld = el.closest('#fdContentWorlds .vrcn-mini-content');
+        if (miniWorld) {
+            const id = miniWorld.dataset.worldId;
+            if (id) return buildWorldItems(id);
+        }
+
         const avatarCard = el.closest('.av-card');
         if (avatarCard) {
             const id = (avatarCard.getAttribute('onclick') || '').match(/selectAvatar\('([^']+)'\)/)?.[1] || avatarCard.dataset.avid;
+            if (id) return buildAvatarItems(id);
+        }
+
+        const miniAvatar = el.closest('#fdContentAvatars .vrcn-mini-content');
+        if (miniAvatar) {
+            const id = miniAvatar.dataset.avatarId;
             if (id) return buildAvatarItems(id);
         }
 

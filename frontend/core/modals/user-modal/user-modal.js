@@ -336,10 +336,11 @@ function renderFdAvatarsPage(page) {
     grid.innerHTML = '<div class="vrcn-mini-content-grid">' + slice.map(a => {
         const thumb = a.thumbnailImageUrl || a.imageUrl || '';
         const aid = jsq(a.id || '');
+        const aname = jsq(a.name || '');
         const isPublic = a.releaseStatus === 'public';
         const platBadges = _avPlatformBadges(a);
         const pubBadge = `<span class="vrcn-badge" style="${isPublic ? '' : 'background:rgba(255,100,100,.15);color:var(--err);'}">${isPublic ? t('avatars.labels.public','Public') : t('avatars.labels.private','Private')}</span>`;
-        return `<div class="vrcn-mini-content" onclick="selectAvatar('${aid}')">
+        return `<div class="vrcn-mini-content" data-avatar-id="${esc(a.id || '')}" onclick="navOpenModal('avatar','${aid}','${aname}')">
             <div class="vrcn-mini-content-thumb" style="background-image:url('${cssUrl(thumb)}')"></div>
             <div class="vrcn-mini-content-info">
                 <div class="vrcn-mini-content-name">${esc(a.name || t('avatars.labels.unnamed','Unnamed'))}</div>
@@ -380,7 +381,7 @@ function renderFdWorldsPage(page) {
         const wid = jsq(w.id);
         const tags = (w.tags || []).filter(tag => tag.startsWith('author_tag_')).map(tag => tag.replace('author_tag_', '')).slice(0, 2);
         const tagsHtml = tags.map(tag => `<span class="vrcn-badge">${esc(tag)}</span>`).join('');
-        h += `<div class="vrcn-mini-content" onclick="navOpenModal('worldSearch','${wid}','${jsq(w.name || '')}')">
+        h += `<div class="vrcn-mini-content" data-world-id="${esc(w.id || '')}" onclick="navOpenModal('worldSearch','${wid}','${jsq(w.name || '')}')">
             <div class="vrcn-mini-content-thumb" style="background-image:url('${cssUrl(thumb)}')"></div>
             <div class="vrcn-mini-content-info">
                 <div class="vrcn-mini-content-name">${esc(w.name || '')}</div>
