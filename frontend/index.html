@@ -198,6 +198,13 @@
                     </div>
                 </div>
                 <div id="dashSectionsContainer">
+                    <div class="dash-section-wrap" data-section="vrchat_news">
+                        <div class="dash-section-label">
+                            <span data-i18n="dashboard.section.vrchat_news">VRCHAT NEWS</span>
+                            <button class="mi-refresh-btn" id="dashVrcNewsRefreshBtn" onclick="refreshDashVrcNews()" title="Refresh">&#8635;</button>
+                        </div>
+                        <div class="dash-news-grid" id="dashVrcNewsGrid"></div>
+                    </div>
                     <div class="dash-section-wrap" data-section="my_instances">
                         <div class="dash-section-label" id="dashMyInstancesLabel" style="display:none;"><span data-i18n="dashboard.section.my_instances">YOUR INSTANCES</span><button class="mi-refresh-btn" id="miRefreshBtn" onclick="refreshMyInstances()" title="Refresh instances" data-i18n-title="dashboard.section.refresh_instances">&#8635;</button></div>
                         <div class="dash-worlds-grid" id="dashMyInstances" style="display:none;"></div>

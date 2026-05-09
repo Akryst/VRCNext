@@ -2422,6 +2422,34 @@ public partial class AppShell
                 case "vroCancelScaleRecording":
                     await _vroCtrl.HandleMessage(action, msg);
                     break;
+
+                case "vrcGetNews":
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            using var http = new System.Net.Http.HttpClient();
+                            http.DefaultRequestHeaders.Add("User-Agent", AppInfo.UserAgent);
+                            http.DefaultRequestHeaders.Add("Accept", "application/json");
+                            var json = await http.GetStringAsync("https://ask.vrchat.com/c/official/31.json");
+                            var data = JObject.Parse(json);
+                            var topics = data["topic_list"]?["topics"] as JArray ?? new JArray();
+                            var items = topics.Take(3).Select(t => new
+                            {
+                                title   = t["title"]?.ToString() ?? "",
+                                link    = $"https://ask.vrchat.com/t/{t["slug"]}/{t["id"]}",
+                                pubDate = t["created_at"]?.ToString() ?? "",
+                                img     = t["image_url"]?.ToString() ?? "",
+                                excerpt = t["excerpt"]?.ToString() ?? "",
+                            }).ToArray();
+                            Invoke(() => SendToJS("vrcNews", new { items }));
+                        }
+                        catch (Exception ex)
+                        {
+                            Invoke(() => SendToJS("log", new { msg = $"[News] fetch failed: {ex.Message}", color = "warn" }));
+                        }
+                    });
+                    break;
             }
         }
         catch (Exception ex)

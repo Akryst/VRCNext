@@ -391,6 +391,66 @@ function removeMyInstance(location) {
     showToast(true, t('dashboard.instances.removed', 'Instance removed.'));
 }
 
+/* === VRChat News Widget === */
+
+const _VRC_NEWS_TTL = 30 * 60 * 1000;
+let _vrcNewsCache   = { items: [], ts: 0 };
+let _vrcNewsLoading = false;
+
+function _fetchVrcNews() {
+    if (_vrcNewsLoading) return;
+    if (Date.now() - _vrcNewsCache.ts < _VRC_NEWS_TTL && _vrcNewsCache.items.length) {
+        renderDashVrcNews();
+        return;
+    }
+    _vrcNewsLoading = true;
+    renderDashVrcNews();
+    sendToCS({ action: 'vrcGetNews' });
+}
+
+function onVrcNews(items) {
+    _vrcNewsLoading = false;
+    _vrcNewsCache   = { items: items || [], ts: Date.now() };
+    renderDashVrcNews();
+}
+
+function _fmtNewsDate(str) {
+    if (!str) return '';
+    try { return new Date(str).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
+    catch { return ''; }
+}
+
+function renderDashVrcNews() {
+    const el = document.getElementById('dashVrcNewsGrid');
+    if (!el) return;
+    if (_vrcNewsLoading && !_vrcNewsCache.items.length) {
+        el.innerHTML = `<div class="empty-msg">${t('dashboard.news.loading', 'Loading news...')}</div>`;
+        return;
+    }
+    if (!_vrcNewsCache.items.length) {
+        el.innerHTML = `<div class="empty-msg">${t('dashboard.news.empty', 'No news available')}</div>`;
+        return;
+    }
+    el.innerHTML = _vrcNewsCache.items.map(item => `
+        <div class="dash-news-card" onclick="sendToCS({action:'openUrl',url:'${jsq(item.link)}'})">
+            ${item.img ? `<div class="dash-news-img-wrap"><img class="dash-news-img" src="${esc(item.img)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'"></div>` : ''}
+            <div class="dash-news-body">
+                <div class="dash-news-title">${esc(item.title)}</div>
+                ${item.excerpt ? `<div class="dash-news-excerpt">${esc(item.excerpt)}</div>` : ''}
+                <div class="dash-news-meta">${esc(_fmtNewsDate(item.pubDate))}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function refreshDashVrcNews() {
+    const btn = document.getElementById('dashVrcNewsRefreshBtn');
+    if (btn) btn.classList.add('spinning');
+    _vrcNewsCache = { items: [], ts: 0 };
+    _fetchVrcNews();
+    setTimeout(() => { if (btn) btn.classList.remove('spinning'); }, 1500);
+}
+
 /* === Discovery Section === */
 let _discTab  = 'popular';
 let _discPage = 0;
@@ -1055,6 +1115,7 @@ function renderDashRecentTimeline() {
 /* === Dashboard Layout System === */
 
 const DASH_SECTION_META = [
+    { id: 'vrchat_news',             nameKey: 'dashboard.section.vrchat_news',             name: 'VRChat News' },
     { id: 'quick_controls',          nameKey: 'dashboard.section.quick_controls',          name: 'Quick Controls' },
     { id: 'my_instances',            nameKey: 'dashboard.section.my_instances',            name: 'Your Instances' },
     { id: 'friend_locations',        nameKey: 'dashboard.section.friend_locations',        name: 'Friends Locations' },
@@ -1076,7 +1137,7 @@ const DASH_SECTION_META = [
     { id: 'friends_recent_activity', nameKey: 'dashboard.section.friends_recent_activity', name: 'Friends Recent Activity' },
 ];
 const DASH_DEFAULT_ORDER   = DASH_SECTION_META.map(s => s.id);
-const DASH_DEFAULT_VISIBLE = new Set(['quick_controls', 'my_instances', 'friend_locations', 'discovery', 'friend_activity']);
+const DASH_DEFAULT_VISIBLE = new Set(['vrchat_news', 'quick_controls', 'my_instances', 'friend_locations', 'discovery', 'friend_activity']);
 
 let _dashLayout = {
     order:  [...DASH_DEFAULT_ORDER],
@@ -1125,6 +1186,7 @@ function applyDashLayout() {
         if (!hidden && id === 'my_recent_activity') renderDashMyRecentTimeline();
         if (!hidden && id === 'friends_recent_activity') renderDashFriendsRecentTimeline();
         if (!hidden && id === 'upcoming_events') { renderDashUpcomingEvents(); if (_dashUpcomingEvents === null && !_dashUpcomingLoading) refreshDashUpcomingEvents(); }
+        if (!hidden && id === 'vrchat_news') { renderDashVrcNews(); if (!_vrcNewsCache.items.length && !_vrcNewsLoading) _fetchVrcNews(); }
     });
 }
 
@@ -1398,42 +1460,48 @@ function renderDashUpcomingEvents() {
 
     const myGroupsList = (typeof myGroups !== 'undefined') ? myGroups : [];
 
-    const cards = _dashUpcomingEvents.slice(0, 3).map(evt => {
+    const cards = _dashUpcomingEvents.slice(0, 4).map(evt => {
         const groupId = jsq(evt.ownerId || evt.groupId || '');
         const eventId = jsq(evt.id || '');
         const title   = esc(evt.title || evt.name || t('calendar.untitled_event', 'Untitled Event'));
         const featured = evt.featured === true || (Array.isArray(evt.tags) && evt.tags.some(tag => /featured/i.test(tag)));
 
+        const startDate = new Date(evt.startsAt || evt.startDateTime || evt.startDate || '');
+        const endDate   = new Date(evt.endsAt || '');
+        const hasStart  = !isNaN(startDate.getTime());
+        const hasEnd    = !isNaN(endDate.getTime());
+        const dateStr   = hasStart ? startDate.toLocaleDateString(getLanguageLocale(), { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+        const timeStr   = hasStart ? fmtTime(startDate) + (hasEnd ? ' – ' + fmtTime(endDate) : '') : '';
+        const whenStr   = [dateStr, timeStr].filter(Boolean).join(' · ');
+
+        const imgSrc = evt.imageUrl || '';
+        const imgHtml = imgSrc
+            ? `<img class="dash-evt-img" src="${imgSrc}" alt="" loading="lazy" onerror="this.style.display='none'">`
+            : `<div class="dash-evt-img dash-evt-img-placeholder"><span class="msi">event</span></div>`;
+
+        const desc = esc(evt.description || '');
+        const featuredBadge = featured
+            ? `<span class="dash-evt-featured"><span class="msi">star</span>${esc(t('dashboard.upcoming.featured', 'Featured'))}</span>`
+            : '';
+
         const gid = evt.ownerId || evt.groupId || '';
         const groupData = myGroupsList.find(g => g.id === gid) || {};
-        const groupIconUrl = evt.group?.iconUrl || groupData.iconUrl || '';
-        const groupName = esc(evt.group?.name || groupData.name || '');
-
-        const startDate = new Date(evt.startsAt || evt.startDateTime || evt.startDate || '');
-        const timeTop = !isNaN(startDate)
-            ? `<div class="cc-time-top"><span class="msi">calendar_today</span>${esc(startDate.toLocaleDateString(getLanguageLocale(), { month: 'short', day: 'numeric' }))} · ${esc(fmtTime(startDate))}</div>`
-            : '';
-        const badgesTop = featured
-            ? `<div class="cc-badges-top"><span class="vrcn-badge warn"><span class="msi" style="font-size:9px;">star</span> ${esc(t('dashboard.upcoming.featured', 'Featured'))}</span></div>`
-            : '';
-
-        const bgStyle = `background-image:url('${evt.imageUrl || 'fallback_cover.png'}')`;
+        const groupName = evt.group?.name || groupData.name || '';
         const groupMeta = groupName
-            ? `<div class="cc-meta">${groupIconUrl ? `<img src="${groupIconUrl}" style="width:12px;height:12px;border-radius:2px;object-fit:cover;flex-shrink:0;vertical-align:middle;margin-right:3px;">` : '<span class="msi">group</span>'}${groupName}</div>`
+            ? `<div class="dash-evt-group"><span class="msi">group</span>${esc(groupName)}</div>`
             : '';
 
-        return `<div class="vrcn-content-card" onclick="openEventDetail('${groupId}','${eventId}')">
-            <div class="cc-bg" style="${bgStyle}"></div>
-            <div class="cc-scrim"></div>
-            ${timeTop}
-            ${badgesTop}
-            <div class="cc-content">
-                <div class="cc-name">${title}</div>
-                ${groupMeta ? `<div class="cc-bottom-row">${groupMeta}</div>` : ''}
+        return `<div class="dash-evt-card" onclick="openEventDetail('${groupId}','${eventId}')">
+            ${imgHtml}
+            <div class="dash-evt-body">
+                <div class="dash-evt-title">${title}${featuredBadge}</div>
+                ${whenStr ? `<div class="dash-evt-when"><span class="msi">calendar_today</span>${esc(whenStr)}</div>` : ''}
+                ${desc ? `<div class="dash-evt-desc">${desc}</div>` : ''}
+                ${groupMeta}
             </div>
         </div>`;
     }).join('');
 
-    grid.innerHTML = `<div class="dash-worlds-grid">${cards}</div>`;
+    grid.innerHTML = `<div class="dash-evt-grid">${cards}</div>`;
 }
 

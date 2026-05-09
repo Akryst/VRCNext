@@ -656,7 +656,10 @@ window.external.receiveMessage(rawMsg => {
                     renderDashboard();
                 }
                 break;
-case 'popularWorlds':
+case 'vrcNews':
+                if (typeof onVrcNews === 'function') onVrcNews(payload.items);
+                break;
+            case 'popularWorlds':
                 onPopularWorlds(payload.worlds);
                 break;
             case 'activeWorlds':
