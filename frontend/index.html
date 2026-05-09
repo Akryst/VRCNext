@@ -167,7 +167,7 @@
 
         <!-- Notification panel -->
         <div class="notif-panel" id="notifPanel" style="display:none;">
-            <div class="notif-panel-header"><span style="font-weight:700;font-size:13px;" data-i18n="common.notifications">Notifications</span><button class="vrcn-button" onclick="refreshNotifications()" style="padding:2px 8px;font-size:10px;" data-i18n-title="common.refresh"><span class="msi" style="font-size:14px;">refresh</span></button></div>
+            <div class="notif-panel-header"><span style="font-weight:700;font-size:13px;" data-i18n="common.notifications">Notifications</span><div style="display:flex;gap:6px;align-items:center;"><div class="vrcn-mini-pill-group" id="notifPillGroup"><div class="vrcn-mini-pill-indicator" id="notifPillIndicator"></div><button class="vrcn-mini-pill active" id="notifTabCurrent" onclick="setNotifTab('current')" data-i18n="notifications.tab.current">Current</button><button class="vrcn-mini-pill" id="notifTabAll" onclick="setNotifTab('all')" data-i18n="notifications.tab.all">All</button><button class="vrcn-mini-pill" id="notifTabHidden" onclick="setNotifTab('hidden')" data-i18n="notifications.tab.hidden">Hidden</button></div><button class="vrcn-button" onclick="refreshNotifications()" style="padding:2px 8px;font-size:10px;" data-i18n-title="common.refresh"><span class="msi" style="font-size:14px;">refresh</span></button></div></div>
             <div class="notif-panel-list" id="notifList"><div class="empty-msg" data-i18n="notifications.empty">No notifications</div></div>
         </div>
         <div class="content">

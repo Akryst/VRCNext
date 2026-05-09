@@ -67,6 +67,14 @@ public class NotificationsController
                 _ = GetNotificationsAsync();
                 break;
 
+            case "vrcGetHiddenNotifications":
+                _ = GetHiddenNotificationsAsync();
+                break;
+
+            case "vrcGetAllNotifications":
+                _ = GetAllNotificationsAsync();
+                break;
+
             case "vrcAcceptNotification":
             {
                 var anId   = msg["notifId"]?.ToString();
@@ -647,6 +655,68 @@ public class NotificationsController
             foreach (var ev in newTimeline)
                 _core.SendToJS("timelineEvent", ev);
         });
+    });
+
+    public Task GetHiddenNotificationsAsync() => Task.Run(async () =>
+    {
+        var raw = await _core.Notifications.GetHiddenFriendRequestsAsync();
+        var list = raw.Cast<JObject>().Select(NormalizeNotifV1).ToList();
+
+        var enrichedList = new JArray();
+        foreach (var n in list)
+        {
+            var j = JObject.FromObject(n);
+            var sid = (string?)n.senderUserId;
+            string img = "";
+            if (!string.IsNullOrEmpty(sid)
+                && _friends.TryGetNameImage(sid, out var fi) && !string.IsNullOrEmpty(fi.image))
+                img = fi.image;
+            j["_image"] = img;
+            enrichedList.Add(j);
+        }
+
+        Invoke(() => _core.SendToJS("vrcHiddenNotifications", enrichedList));
+    });
+
+    public Task GetAllNotificationsAsync() => Task.Run(async () =>
+    {
+        var t1 = _core.Notifications.GetNotificationsAsync();
+        var t2 = _core.Notifications.GetNotificationsV2Async();
+        var t3 = _core.Notifications.GetHiddenFriendRequestsAsync();
+        await Task.WhenAll(t1, t2, t3);
+
+        var list = t1.Result.Cast<JObject>().Select(NormalizeNotifV1).ToList();
+        var seenIds = new HashSet<string>(list.Select(n => (string)n.id));
+        foreach (JObject n in t2.Result.Cast<JObject>())
+        {
+            var id = n["id"]?.ToString() ?? "";
+            if (!seenIds.Contains(id)) { list.Add(NormalizeNotifV2(n)); seenIds.Add(id); }
+        }
+        foreach (JObject n in t3.Result.Cast<JObject>())
+        {
+            var id = n["id"]?.ToString() ?? "";
+            if (!seenIds.Contains(id)) { list.Add(NormalizeNotifV1(n)); seenIds.Add(id); }
+        }
+        list = list.OrderByDescending(n => (string)n.created_at).ToList();
+
+        var enrichedList = new JArray();
+        foreach (var n in list)
+        {
+            var j = JObject.FromObject(n);
+            var sid = (string?)n.senderUserId;
+            string img = "";
+            lock (_notifImageCache)
+            {
+                var nid = (string?)n.id ?? "";
+                if (!string.IsNullOrEmpty(nid)) _notifImageCache.TryGetValue(nid, out img!);
+            }
+            if (string.IsNullOrEmpty(img) && !string.IsNullOrEmpty(sid)
+                && _friends.TryGetNameImage(sid, out var fi)) img = fi.image ?? "";
+            j["_image"] = img;
+            enrichedList.Add(j);
+        }
+
+        Invoke(() => _core.SendToJS("vrcAllNotifications", enrichedList));
     });
 
     // Push actionable notifications to VR overlay (wrist alerts tab + HMD toast)

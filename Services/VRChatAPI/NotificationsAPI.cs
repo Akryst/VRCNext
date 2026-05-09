@@ -10,7 +10,7 @@ public class NotificationsAPI(VRChatApiService ctx)
         if (!ctx.IsLoggedIn) return new JArray();
         try
         {
-            var resp = await ctx._http.GetAsync($"{VRChatApiService.BASE}/auth/user/notifications?n=100");
+            var resp = await ctx._http.GetAsync($"{VRChatApiService.BASE}/auth/user/notifications?n=100&hidden=false");
             if (resp.IsSuccessStatusCode)
             {
                 var result = JArray.Parse(await resp.Content.ReadAsStringAsync());
@@ -43,6 +43,23 @@ public class NotificationsAPI(VRChatApiService ctx)
             }
         }
         catch (Exception ex) { ctx.Log($"GetNotificationsV2 exception: {ex.Message}"); }
+        return new JArray();
+    }
+
+    public async Task<JArray> GetHiddenFriendRequestsAsync()
+    {
+        if (!ctx.IsLoggedIn) return new JArray();
+        try
+        {
+            var resp = await ctx._http.GetAsync($"{VRChatApiService.BASE}/auth/user/notifications?type=friendRequest&hidden=true&n=100");
+            if (resp.IsSuccessStatusCode)
+            {
+                var result = JArray.Parse(await resp.Content.ReadAsStringAsync());
+                ctx.Log($"GetHiddenFriendRequests: got {result.Count}");
+                return result;
+            }
+        }
+        catch (Exception ex) { ctx.Log($"GetHiddenFriendRequests exception: {ex.Message}"); }
         return new JArray();
     }
 

@@ -54,6 +54,13 @@
 * If an image is not cached yet, the banner stays hidden until it has been downloaded and will appear the next time the modal is opened.
 * This now works for all cached image types: Worlds, Users, Groups, Avatars, Badges, and Events.
 
+### Notification Center
+* Added **Current / All / Hidden** tabs to the notification panel.
+  * **Current** shows only active, non-hidden notifications (previous behavior).
+  * **All** shows everything — active and hidden notifications combined.
+  * **Hidden** shows ignored friend requests
+* Tab switching uses an animated sliding pill selector.
+
 ### Activity Log
 * CDN image downloads are now tracked in the Activity Log, including request type, URL, and status codes like `CDN 200`, `CDN 404`, and `CDN 429`.
 * CDN status entries now use matching colors to make successful, failed, and rate-limited requests easier to identify.

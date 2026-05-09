@@ -1,12 +1,35 @@
 /* === Notifications === */
 let _notifDismiss = null;
+let _notifTab = 'current';
+
+function _updatePillIndicator() {
+    const group     = document.getElementById('notifPillGroup');
+    const indicator = document.getElementById('notifPillIndicator');
+    const active    = group?.querySelector('.vrcn-mini-pill.active');
+    if (!group || !indicator || !active) return;
+    const gRect = group.getBoundingClientRect();
+    const aRect = active.getBoundingClientRect();
+    indicator.style.width     = aRect.width + 'px';
+    indicator.style.transform = `translateX(${aRect.left - gRect.left - 2}px)`;
+}
+
+function setNotifTab(tab) {
+    _notifTab = tab;
+    notifications = [];
+    ['current', 'all', 'hidden'].forEach(t => {
+        const el = document.getElementById('notifTab' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (el) el.classList.toggle('active', t === tab);
+    });
+    _updatePillIndicator();
+    refreshNotifications();
+}
 
 function toggleNotifPanel() {
     notifPanelOpen = !notifPanelOpen;
     const panel = document.getElementById('notifPanel');
     if (notifPanelOpen) {
         panel.style.display = '';
-        requestAnimationFrame(() => panel.classList.add('panel-open'));
+        requestAnimationFrame(() => { panel.classList.add('panel-open'); _updatePillIndicator(); });
         refreshNotifications();
         setTimeout(() => {
             _notifDismiss = e => {
@@ -27,7 +50,8 @@ function toggleNotifPanel() {
 }
 
 function refreshNotifications() {
-    sendToCS({ action: 'vrcGetNotifications' });
+    const actionMap = { current: 'vrcGetNotifications', all: 'vrcGetAllNotifications', hidden: 'vrcGetHiddenNotifications' };
+    sendToCS({ action: actionMap[_notifTab] || 'vrcGetNotifications' });
 }
 
 function getNotificationTypeMeta(type) {

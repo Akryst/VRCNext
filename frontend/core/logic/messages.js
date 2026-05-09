@@ -728,6 +728,10 @@ case 'vrcNews':
                     showNotificationToasts(merged);
                 }
                 break;
+            case 'vrcHiddenNotifications':
+            case 'vrcAllNotifications':
+                renderNotifications(payload || []);
+                break;
             case 'vrcNotificationPrepend':
                 // Single notification arrived via WebSocket — prepend to existing list
                 notifications = [payload, ...(notifications || []).filter(n => n.id !== payload.id)];
