@@ -1014,6 +1014,17 @@
         } else {
             items.push('sep');
             items.push({ icon: 'person_add', label: cm('friend.send_request', 'Send Friend Request'), action: () => sendToCS({ action: 'vrcSendFriendRequest', userId: id }) });
+            const isMutedNf = Array.isArray(mutedData) && mutedData.some(x => x.targetUserId === id);
+            const isBlockedNf = Array.isArray(blockedData) && blockedData.some(x => x.targetUserId === id);
+            items.push('sep');
+            items.push(isMutedNf
+                ? { icon: 'mic', label: cm('friend.unmute', 'Unmute'), action: () => sendToCS({ action: 'vrcUnmute', userId: id }) }
+                : { icon: 'mic_off', label: cm('friend.mute', 'Mute'), action: () => sendToCS({ action: 'vrcMute', userId: id }) }
+            );
+            items.push(isBlockedNf
+                ? { icon: 'lock_open', label: cm('friend.unblock', 'Unblock'), action: () => sendToCS({ action: 'vrcUnblock', userId: id }) }
+                : { icon: 'block', label: cm('friend.block', 'Block'), action: () => sendToCS({ action: 'vrcBlock', userId: id }), danger: true, confirm: true }
+            );
         }
         return items;
     }
