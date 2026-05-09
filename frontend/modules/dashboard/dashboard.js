@@ -1124,29 +1124,29 @@ function renderDashRecentTimeline() {
 /* === Dashboard Layout System === */
 
 const DASH_SECTION_META = [
-    { id: 'vrchat_news',             nameKey: 'dashboard.section.vrchat_news',             name: 'VRChat News' },
-    { id: 'quick_controls',          nameKey: 'dashboard.section.quick_controls',          name: 'Quick Controls' },
     { id: 'my_instances',            nameKey: 'dashboard.section.my_instances',            name: 'Your Instances' },
-    { id: 'friend_locations',        nameKey: 'dashboard.section.friend_locations',        name: 'Friends Locations' },
+    { id: 'vrchat_news',             nameKey: 'dashboard.section.vrchat_news',             name: 'VRChat News' },
+    { id: 'upcoming_events',         nameKey: 'dashboard.section.upcoming_events',         name: 'Upcoming Events' },
+    { id: 'group_activity_small',    nameKey: 'dashboard.section.group_activity_small',    name: 'Group Activity (Small)' },
     { id: 'friend_locations_small',  nameKey: 'dashboard.section.friend_locations_small',  name: 'Friends Location (Small)' },
+    { id: 'recently_visited',        nameKey: 'dashboard.section.recently_visited',        name: 'Recently Visited' },
+    { id: 'recent_photos',           nameKey: 'dashboard.section.recent_photos',           name: 'Recent Photos' },
+    { id: 'quick_controls',          nameKey: 'dashboard.section.quick_controls',          name: 'Quick Controls' },
+    { id: 'friend_locations',        nameKey: 'dashboard.section.friend_locations',        name: 'Friends Locations' },
     { id: 'discovery',               nameKey: 'dashboard.section.discovery',               name: 'Discover Worlds' },
     { id: 'friend_activity',         nameKey: 'dashboard.section.friend_activity',         name: 'Friends Activity' },
     { id: 'fav_worlds',              nameKey: 'dashboard.section.fav_worlds',              name: 'Favorite Worlds' },
     { id: 'fav_avatars',             nameKey: 'dashboard.section.fav_avatars',             name: 'Favorite Avatars' },
     { id: 'own_avatars',             nameKey: 'dashboard.section.own_avatars',             name: 'My Avatars' },
-    { id: 'recent_photos',           nameKey: 'dashboard.section.recent_photos',           name: 'Recent Photos' },
     { id: 'groups',                  nameKey: 'dashboard.section.your_groups',             name: 'Your Groups' },
     { id: 'group_activity',          nameKey: 'dashboard.section.group_activity',          name: 'Group Activity' },
-    { id: 'group_activity_small',    nameKey: 'dashboard.section.group_activity_small',    name: 'Group Activity (Small)' },
-    { id: 'upcoming_events',         nameKey: 'dashboard.section.upcoming_events',         name: 'Upcoming Events' },
-    { id: 'recently_visited',        nameKey: 'dashboard.section.recently_visited',        name: 'Recently Visited' },
     { id: 'popular_worlds',          nameKey: 'dashboard.section.popular_worlds',          name: 'Popular Worlds' },
     { id: 'active_worlds',           nameKey: 'dashboard.section.active_worlds',           name: 'Very Active Worlds' },
     { id: 'my_recent_activity',      nameKey: 'dashboard.section.my_recent_activity',      name: 'My Recent Activity' },
     { id: 'friends_recent_activity', nameKey: 'dashboard.section.friends_recent_activity', name: 'Friends Recent Activity' },
 ];
 const DASH_DEFAULT_ORDER   = DASH_SECTION_META.map(s => s.id);
-const DASH_DEFAULT_VISIBLE = new Set(['vrchat_news', 'quick_controls', 'my_instances', 'friend_locations', 'discovery', 'friend_activity']);
+const DASH_DEFAULT_VISIBLE = new Set(['my_instances', 'vrchat_news', 'upcoming_events', 'group_activity_small', 'friend_locations_small', 'recently_visited', 'recent_photos']);
 
 let _dashLayout = {
     order:  [...DASH_DEFAULT_ORDER],
