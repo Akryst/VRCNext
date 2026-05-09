@@ -19,8 +19,8 @@ public static class ImageCacheHelper
     // Toggle ImageCache Debugging
     public static bool DebugMode { get; set; } = false;
 
-    /// <summary>Set at startup to route download logs to the activity log.</summary>
-    public static Action<string>? Log { get; set; }
+    /// <summary>Set at startup to route download logs to the activity log. Args: (message, color).</summary>
+    public static Action<string, string>? Log { get; set; }
     private static readonly ConcurrentDictionary<string, Task<string?>> _downloads = new();
     // Session-scoped path memo: "" = checked, not found; non-empty = full path
     private static readonly ConcurrentDictionary<string, string> _pathCache = new();
@@ -219,7 +219,6 @@ public static class ImageCacheHelper
                 var normalized = NormalizeTo512(iconUrl);
                 var storedUrl  = GetStoredUrl("Users", userId);
                 if (storedUrl == normalized) return ToLocalUrl(cached);
-                if (!IsNewerOrUnknown(normalized, storedUrl)) return ToLocalUrl(cached);
                 _ = CacheAsync("Users", userId, iconUrl, forceRefresh: true);
                 return normalized;
             }
@@ -242,7 +241,6 @@ public static class ImageCacheHelper
                 var normalized = NormalizeTo512(bannerUrl);
                 var storedUrl  = GetStoredUrl("Users", bannerId);
                 if (storedUrl == normalized) return ToLocalUrl(cached);
-                if (!IsNewerOrUnknown(normalized, storedUrl)) return ToLocalUrl(cached);
                 _ = CacheAsync("Users", bannerId, bannerUrl, forceRefresh: true);
                 return normalized;
             }
@@ -336,6 +334,17 @@ public static class ImageCacheHelper
     private static string? StripLocalhostUrl(string? url) =>
         url != null && url.StartsWith("http://localhost:") ? null : url;
 
+    // Extract VRChat file ID from a normalized URL (e.g. .../image/file_xxx/2/512 → file_xxx)
+    private static string ExtractFileId(string? url)
+    {
+        if (string.IsNullOrEmpty(url)) return "";
+        var marker = "/image/";
+        var i = url.IndexOf(marker, StringComparison.Ordinal);
+        if (i < 0) return "";
+        var parts = url[(i + marker.Length)..].Split('/');
+        return parts.Length >= 1 ? parts[0] : "";
+    }
+
     // Extract VRChat file version number from a normalized URL (e.g. .../image/file_xxx/2/512 → 2)
     private static int ExtractVersion(string? url)
     {
@@ -349,11 +358,16 @@ public static class ImageCacheHelper
         return 0;
     }
 
-    // Returns true if incomingUrl is newer than (or same version as) the stored URL.
-    // Prevents old timeline/event URLs from overwriting a newer cached image.
+    // Returns true if incomingUrl should replace the stored cached image.
+    // Different file IDs always refresh (user switched to a different file entirely).
+    // Same file ID: only refresh if incoming version is newer or equal.
     private static bool IsNewerOrUnknown(string incomingUrl, string? storedUrl)
     {
         if (string.IsNullOrEmpty(storedUrl)) return true;
+        var incomingFileId = ExtractFileId(incomingUrl);
+        var storedFileId   = ExtractFileId(storedUrl);
+        if (!string.IsNullOrEmpty(incomingFileId) && !string.IsNullOrEmpty(storedFileId) && incomingFileId != storedFileId)
+            return true;
         var incomingVer = ExtractVersion(incomingUrl);
         var storedVer   = ExtractVersion(storedUrl);
         if (incomingVer == 0 || storedVer == 0) return true;
@@ -376,9 +390,6 @@ public static class ImageCacheHelper
 
         var key = $"{subdir}/{entityId}";
 
-        // forceRefresh: remove any in-flight task so new URL download always starts fresh
-        if (forceRefresh) _downloads.TryRemove(key, out _);
-
         return _downloads.GetOrAdd(key, _key =>
         {
             var task = DownloadAsync(subdir, entityId, imageUrl, forceRefresh);
@@ -396,15 +407,16 @@ public static class ImageCacheHelper
         var tmpPath  = Path.Combine(dir, entityId + ".tmp");
         var fetchUrl = NormalizeTo512(imageUrl);
 
-        Log?.Invoke($"[IMG] GET {subdir}/{entityId} → {fetchUrl}");
+        Log?.Invoke($"CDN - {subdir} - {fetchUrl}", "sec");
 
         try
         {
             using var resp = await _http!.GetAsync(fetchUrl, HttpCompletionOption.ResponseHeadersRead);
+            var code = (int)resp.StatusCode;
             if (!resp.IsSuccessStatusCode)
             {
-                var code = (int)resp.StatusCode;
-                Log?.Invoke($"[IMG] FAIL {subdir}/{entityId} → {code}");
+                var color = code == 429 ? "warn" : "err";
+                Log?.Invoke($"CDN {code} - {subdir} - {fetchUrl}", color);
                 if (code == 403 || code == 404) PermafailHelper.Add(fetchUrl, "Image", code);
                 return null;
             }
@@ -415,7 +427,7 @@ public static class ImageCacheHelper
         }
         catch (Exception ex)
         {
-            Log?.Invoke($"[IMG] ERR {subdir}/{entityId} → {ex.Message}");
+            Log?.Invoke($"CDN ERR - {subdir} - {fetchUrl} ({ex.Message})", "err");
             TryDelete(tmpPath);
             return null;
         }
@@ -423,7 +435,7 @@ public static class ImageCacheHelper
         var ext = DetectExtension(tmpPath);
         if (ext == null)
         {
-            Log?.Invoke($"[IMG] SKIP {subdir}/{entityId} → not an image");
+            Log?.Invoke($"CDN SKIP - {subdir} - {fetchUrl} (not an image)", "warn");
             TryDelete(tmpPath);
             return null;
         }
@@ -448,7 +460,7 @@ public static class ImageCacheHelper
 
         _pathCache[$"{subdir}/{entityId}"] = finalPath;
         SaveUrl(subdir, entityId, fetchUrl);
-        Log?.Invoke($"[IMG] OK {subdir}/{entityId}{ext}");
+        Log?.Invoke($"CDN 200 - {subdir} - {fetchUrl}", "ok");
         _ = Task.Run(TrimIfNeeded);
         return finalPath;
     }

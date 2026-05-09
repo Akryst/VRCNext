@@ -20,6 +20,8 @@ public class TimelineService : IDisposable
         public string Location    { get; set; } = "";
         public string OldValue    { get; set; } = "";
         public string NewValue    { get; set; } = "";
+        public string LeftAt      { get; set; } = "";
+        public int    Tracked     { get; set; } = 0;
     }
 
     public class PlayerSnap
@@ -153,6 +155,23 @@ public class TimelineService : IDisposable
         cmd.ExecuteNonQuery();
         // Column migration — SQLite ADD COLUMN is idempotent with catch
         try { using var mc = _db.CreateCommand(); mc.CommandText = "ALTER TABLE events ADD COLUMN notif_title TEXT NOT NULL DEFAULT ''"; mc.ExecuteNonQuery(); } catch { }
+        try { using var mc = _db.CreateCommand(); mc.CommandText = "ALTER TABLE friend_events ADD COLUMN left_at  TEXT    DEFAULT NULL"; mc.ExecuteNonQuery(); } catch { }
+        try { using var mc = _db.CreateCommand(); mc.CommandText = "ALTER TABLE friend_events ADD COLUMN tracked  INTEGER NOT NULL DEFAULT 0"; mc.ExecuteNonQuery(); } catch { }
+        // Colocated friends per GPS event
+        try
+        {
+            using var cc = _db.CreateCommand();
+            cc.CommandText = @"
+                CREATE TABLE IF NOT EXISTS friend_event_colocated (
+                    event_id     TEXT NOT NULL,
+                    friend_id    TEXT NOT NULL,
+                    friend_name  TEXT NOT NULL DEFAULT '',
+                    friend_image TEXT NOT NULL DEFAULT '',
+                    PRIMARY KEY (event_id, friend_id)
+                )";
+            cc.ExecuteNonQuery();
+        }
+        catch { }
         // World Insights stats table
         try
         {
@@ -300,7 +319,7 @@ public class TimelineService : IDisposable
             using (var cmd = _db.CreateCommand())
             {
                 cmd.CommandText = @"SELECT id,type,timestamp,friend_id,friend_name,friend_image,
-                    world_id,world_name,world_thumb,location,old_value,new_value
+                    world_id,world_name,world_thumb,location,old_value,new_value,left_at,tracked
                     FROM friend_events
                     WHERE id IN (SELECT id FROM friend_events ORDER BY timestamp DESC LIMIT $n)
                     ORDER BY timestamp DESC";
@@ -321,6 +340,8 @@ public class TimelineService : IDisposable
                         Location    = r.GetString(9),
                         OldValue    = r.GetString(10),
                         NewValue    = r.GetString(11),
+                        LeftAt      = r.IsDBNull(12) ? "" : r.GetString(12),
+                        Tracked     = r.GetInt32(13),
                     });
             }
 
@@ -403,7 +424,7 @@ public class TimelineService : IDisposable
         using (var cmd = _db.CreateCommand())
         {
             cmd.CommandText = @"SELECT id,type,timestamp,friend_id,friend_name,friend_image,
-                world_id,world_name,world_thumb,location,old_value,new_value
+                world_id,world_name,world_thumb,location,old_value,new_value,left_at,tracked
                 FROM friend_events ORDER BY timestamp ASC";
             using var r = cmd.ExecuteReader();
             while (r.Read())
@@ -422,6 +443,8 @@ public class TimelineService : IDisposable
                     Location    = r.GetString(9),
                     OldValue    = r.GetString(10),
                     NewValue    = r.GetString(11),
+                    LeftAt      = r.IsDBNull(12) ? "" : r.GetString(12),
+                    Tracked     = r.GetInt32(13),
                 });
             }
         }
@@ -511,6 +534,53 @@ public class TimelineService : IDisposable
     {
         lock (_lock)
             return _events.OrderByDescending(e => e.Timestamp).ToList();
+    }
+
+    public List<string> PruneOrphanedPhotos(Action<int>? onProgress = null)
+    {
+        var deleted = new List<string>();
+        List<(string Id, string Path)> photos;
+        lock (_lock)
+        {
+            photos = _events
+                .Where(e => e.Type == "photo" && !string.IsNullOrEmpty(e.PhotoPath))
+                .Select(e => (e.Id, e.PhotoPath))
+                .ToList();
+        }
+        if (photos.Count == 0) return deleted;
+
+        int total = photos.Count, done = 0;
+        var orphanPaths = new List<string>();
+        var orphanIds   = new List<string>();
+
+        foreach (var (id, path) in photos)
+        {
+            if (!File.Exists(path)) { orphanPaths.Add(path); orphanIds.Add(id); }
+            done++;
+            if (done % 20 == 0 || done == total)
+                onProgress?.Invoke(5 + (int)(done * 85.0 / total));
+        }
+
+        if (orphanPaths.Count == 0) return deleted;
+
+        lock (_lock)
+        {
+            try
+            {
+                using var tx  = _db.BeginTransaction();
+                using var cmd = _db.CreateCommand();
+                cmd.Transaction = tx;
+                cmd.CommandText = "DELETE FROM events WHERE photo_path = $p";
+                var p = cmd.Parameters.Add("$p", Microsoft.Data.Sqlite.SqliteType.Text);
+                foreach (var path in orphanPaths) { p.Value = path; cmd.ExecuteNonQuery(); }
+                tx.Commit();
+                var set = new HashSet<string>(orphanIds, StringComparer.Ordinal);
+                _events.RemoveAll(e => set.Contains(e.Id));
+                deleted.AddRange(orphanIds);
+            }
+            catch { }
+        }
+        return deleted;
     }
 
     public HashSet<string> GetPhotoFilePaths()
@@ -1228,11 +1298,11 @@ public class TimelineService : IDisposable
             var hasType = !string.IsNullOrEmpty(type) && type != "all";
             cmd.CommandText = hasType
                 ? @"SELECT id,type,timestamp,friend_id,friend_name,friend_image,
-                       world_id,world_name,world_thumb,location,old_value,new_value
+                       world_id,world_name,world_thumb,location,old_value,new_value,left_at,tracked
                        FROM friend_events WHERE type=$type AND timestamp >= $s AND timestamp < $e
                        ORDER BY timestamp DESC"
                 : @"SELECT id,type,timestamp,friend_id,friend_name,friend_image,
-                       world_id,world_name,world_thumb,location,old_value,new_value
+                       world_id,world_name,world_thumb,location,old_value,new_value,left_at,tracked
                        FROM friend_events WHERE timestamp >= $s AND timestamp < $e
                        ORDER BY timestamp DESC";
             cmd.Parameters.AddWithValue("$s", utcStart);
@@ -1254,6 +1324,8 @@ public class TimelineService : IDisposable
                     Location    = r.GetString(9),
                     OldValue    = r.GetString(10),
                     NewValue    = r.GetString(11),
+                    LeftAt      = r.IsDBNull(12) ? "" : r.GetString(12),
+                    Tracked     = r.GetInt32(13),
                 });
         }
         catch { }
@@ -1281,7 +1353,7 @@ public class TimelineService : IDisposable
             var typeClause = string.IsNullOrEmpty(typeFilter) ? "" : "AND type = $type";
             cmd.CommandText = $@"
                 SELECT id,type,timestamp,friend_id,friend_name,friend_image,
-                       world_id,world_name,world_thumb,location,old_value,new_value
+                       world_id,world_name,world_thumb,location,old_value,new_value,left_at,tracked
                 FROM friend_events
                 WHERE 1=1
                   {dateClause}
@@ -1320,6 +1392,8 @@ public class TimelineService : IDisposable
                     Location    = r.GetString(9),
                     OldValue    = r.GetString(10),
                     NewValue    = r.GetString(11),
+                    LeftAt      = r.IsDBNull(12) ? "" : r.GetString(12),
+                    Tracked     = r.GetInt32(13),
                 });
         }
         catch { }
@@ -1351,33 +1425,128 @@ public class TimelineService : IDisposable
         catch { }
     }
 
+    public void SetFriendEventLeftAt(string id, string leftAt)
+    {
+        lock (_lock)
+        {
+            var ev = _friendEvents.FirstOrDefault(e => e.Id == id);
+            if (ev != null) ev.LeftAt = leftAt;
+        }
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "UPDATE friend_events SET left_at=$la WHERE id=$id";
+            cmd.Parameters.AddWithValue("$la", leftAt);
+            cmd.Parameters.AddWithValue("$id", id);
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
+    public void AddFriendEventColocated(string eventId, string friendId, string friendName, string friendImage)
+    {
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"
+                INSERT OR IGNORE INTO friend_event_colocated (event_id, friend_id, friend_name, friend_image)
+                VALUES ($eid, $fid, $fn, $fi)";
+            cmd.Parameters.AddWithValue("$eid", eventId);
+            cmd.Parameters.AddWithValue("$fid", friendId);
+            cmd.Parameters.AddWithValue("$fn",  friendName);
+            cmd.Parameters.AddWithValue("$fi",  friendImage);
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
+    public List<FriendTimelineEvent> GetOpenTrackedGpsEvents()
+    {
+        var result = new List<FriendTimelineEvent>();
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"
+                SELECT id, friend_id, location
+                FROM friend_events
+                WHERE type='friend_gps' AND tracked=1 AND left_at IS NULL";
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+                result.Add(new FriendTimelineEvent
+                {
+                    Id       = r.GetString(0),
+                    FriendId = r.GetString(1),
+                    Location = r.GetString(2),
+                });
+        }
+        catch { }
+        return result;
+    }
+
     public List<FriendTimelineEvent> GetFriendGpsColocated(string location, string excludeId)
     {
-        // Match on base location (before first ~) so nonce differences don't block matching
         var colon = location.IndexOf('~');
         var locBase = colon > 0 ? location[..colon] : location;
         if (string.IsNullOrEmpty(locBase)) return new();
         var result = new List<FriendTimelineEvent>();
         try
         {
-            using var cmd = _db.CreateCommand();
-            cmd.CommandText = @"
-                SELECT DISTINCT friend_id, friend_name, friend_image
-                FROM friend_events
-                WHERE type='friend_gps' AND id != $excl
-                  AND (location = $loc OR location LIKE $locPrefix)
-                ORDER BY timestamp DESC LIMIT 50";
-            cmd.Parameters.AddWithValue("$excl",      excludeId);
-            cmd.Parameters.AddWithValue("$loc",       locBase);
-            cmd.Parameters.AddWithValue("$locPrefix", locBase + "~%");
-            using var r = cmd.ExecuteReader();
-            while (r.Read())
-                result.Add(new FriendTimelineEvent
+            // tracked = 1 → new system, tracked = 0 → legacy
+            bool isTracked = false;
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = "SELECT tracked FROM friend_events WHERE id = $id";
+                cmd.Parameters.AddWithValue("$id", excludeId);
+                using var r = cmd.ExecuteReader();
+                if (r.Read()) isTracked = r.GetInt32(0) == 1;
+            }
+
+            if (isTracked)
+            {
+                // New system: read only from friend_event_colocated, never fall back
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT friend_id, friend_name, friend_image
+                    FROM friend_event_colocated
+                    WHERE event_id = $eid";
+                cmd.Parameters.AddWithValue("$eid", excludeId);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    result.Add(new FriendTimelineEvent
+                    {
+                        FriendId    = r.GetString(0),
+                        FriendName  = r.GetString(1),
+                        FriendImage = r.GetString(2),
+                    });
+            }
+            else
+            {
+                // Legacy: old query across all history
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT friend_id, friend_name, friend_image
+                    FROM friend_events
+                    WHERE type='friend_gps' AND id != $excl
+                      AND (location = $loc OR location LIKE $locPrefix)
+                    ORDER BY timestamp DESC";
+                cmd.Parameters.AddWithValue("$excl",      excludeId);
+                cmd.Parameters.AddWithValue("$loc",       locBase);
+                cmd.Parameters.AddWithValue("$locPrefix", locBase + "~%");
+                var seen = new HashSet<string>();
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
                 {
-                    FriendId    = r.GetString(0),
-                    FriendName  = r.GetString(1),
-                    FriendImage = r.GetString(2),
-                });
+                    var friendId = r.GetString(0);
+                    if (!seen.Add(friendId)) continue;
+                    result.Add(new FriendTimelineEvent
+                    {
+                        FriendId    = friendId,
+                        FriendName  = r.GetString(1),
+                        FriendImage = r.GetString(2),
+                    });
+                    if (result.Count >= 50) break;
+                }
+            }
         }
         catch { }
         return result;
@@ -1592,9 +1761,9 @@ public class TimelineService : IDisposable
             cmd.CommandText = @"
                 INSERT OR REPLACE INTO friend_events
                     (id,type,timestamp,friend_id,friend_name,friend_image,
-                     world_id,world_name,world_thumb,location,old_value,new_value)
+                     world_id,world_name,world_thumb,location,old_value,new_value,left_at,tracked)
                 VALUES
-                    ($id,$type,$ts,$fid,$fn,$fi,$wid,$wn,$wt,$loc,$ov,$nv)";
+                    ($id,$type,$ts,$fid,$fn,$fi,$wid,$wn,$wt,$loc,$ov,$nv,$la,$tr)";
             cmd.Parameters.AddWithValue("$id",   ev.Id);
             cmd.Parameters.AddWithValue("$type", ev.Type);
             cmd.Parameters.AddWithValue("$ts",   ev.Timestamp);
@@ -1607,6 +1776,8 @@ public class TimelineService : IDisposable
             cmd.Parameters.AddWithValue("$loc",  ev.Location);
             cmd.Parameters.AddWithValue("$ov",   ev.OldValue);
             cmd.Parameters.AddWithValue("$nv",   ev.NewValue);
+            cmd.Parameters.AddWithValue("$la",   string.IsNullOrEmpty(ev.LeftAt) ? (object)DBNull.Value : ev.LeftAt);
+            cmd.Parameters.AddWithValue("$tr",   ev.Tracked);
             cmd.ExecuteNonQuery();
         }
         catch { }

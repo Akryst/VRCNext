@@ -14,6 +14,7 @@ public class FriendsController
     // Friend State
     private readonly Dictionary<string, JObject> _friendStore = new();
     private readonly Dictionary<string, string> _friendLastLoc = new();
+    private readonly Dictionary<string, string> _friendCurrentGpsEventId = new();
     private readonly Dictionary<string, string> _friendLastStatus = new();
     private readonly Dictionary<string, string> _friendLastStatusDesc = new();
     private readonly Dictionary<string, string> _friendLastBio = new();
@@ -250,6 +251,8 @@ public class FriendsController
                 var avtrId = msg["avatarId"]?.ToString() ?? "";
                 if (!string.IsNullOrEmpty(avtrId))
                 {
+                    if (ModalCacheHelper.IsCached(avtrId)) break;
+                    ModalCacheHelper.Mark(avtrId);
                     var avtrObj = await _core.Avatars.GetAvatarAsync(avtrId);
                     var avatarName = avtrObj?["name"]?.ToString() ?? "";
                     var avatarImage = ImageCacheHelper.GetAvatarUrl(avtrId, avtrObj?["imageUrl"]?.ToString());
@@ -605,6 +608,33 @@ public class FriendsController
                 });
                 break;
 
+            case "vrcGetAllModerations":
+                _ = Task.Run(async () =>
+                {
+                    var tasks = new[]
+                    {
+                        _core.PlayerModeration.GetPlayerModerationsAsync("block"),
+                        _core.PlayerModeration.GetPlayerModerationsAsync("mute"),
+                        _core.PlayerModeration.GetPlayerModerationsAsync("hideAvatar"),
+                        _core.PlayerModeration.GetPlayerModerationsAsync("interactOff"),
+                        _core.PlayerModeration.GetPlayerModerationsAsync("muteChat"),
+                    };
+                    await Task.WhenAll(tasks);
+                    var blockArr   = tasks[0].Result;
+                    var muteArr    = tasks[1].Result;
+                    var hideArr    = tasks[2].Result;
+                    var interactArr= tasks[3].Result;
+                    var chatArr    = tasks[4].Result;
+                    await EnrichModerationsWithImagesAsync(blockArr);
+                    await EnrichModerationsWithImagesAsync(muteArr);
+                    _core.SendToJS("vrcBlockedList",    blockArr);
+                    _core.SendToJS("vrcMutedList",      muteArr);
+                    _core.SendToJS("vrcHideAvatarList", hideArr);
+                    _core.SendToJS("vrcInteractOffList",interactArr);
+                    _core.SendToJS("vrcMuteChatList",   chatArr);
+                });
+                break;
+
             case "vrcBlock":
             {
                 var uid = msg["userId"]?.ToString();
@@ -666,6 +696,78 @@ public class FriendsController
                         if (ok) { _core.Cache.Delete(CacheHandler.KeyMutedPersons); _core.SendToJS("vrcModDone", new { userId = uid, type = "mute", active = false }); }
                     });
                 }
+                break;
+            }
+
+            case "vrcHideAvatar":
+            {
+                var uid = msg["userId"]?.ToString();
+                if (!string.IsNullOrEmpty(uid))
+                    _ = Task.Run(async () =>
+                    {
+                        var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "hideAvatar");
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "hideAvatar", active = true });
+                    });
+                break;
+            }
+
+            case "vrcShowAvatar":
+            {
+                var uid = msg["userId"]?.ToString();
+                if (!string.IsNullOrEmpty(uid))
+                    _ = Task.Run(async () =>
+                    {
+                        var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "hideAvatar");
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "hideAvatar", active = false });
+                    });
+                break;
+            }
+
+            case "vrcInteractOff":
+            {
+                var uid = msg["userId"]?.ToString();
+                if (!string.IsNullOrEmpty(uid))
+                    _ = Task.Run(async () =>
+                    {
+                        var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "interactOff");
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "interactOff", active = true });
+                    });
+                break;
+            }
+
+            case "vrcInteractOn":
+            {
+                var uid = msg["userId"]?.ToString();
+                if (!string.IsNullOrEmpty(uid))
+                    _ = Task.Run(async () =>
+                    {
+                        var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "interactOff");
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "interactOff", active = false });
+                    });
+                break;
+            }
+
+            case "vrcMuteChat":
+            {
+                var uid = msg["userId"]?.ToString();
+                if (!string.IsNullOrEmpty(uid))
+                    _ = Task.Run(async () =>
+                    {
+                        var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "muteChat");
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "muteChat", active = true });
+                    });
+                break;
+            }
+
+            case "vrcUnmuteChat":
+            {
+                var uid = msg["userId"]?.ToString();
+                if (!string.IsNullOrEmpty(uid))
+                    _ = Task.Run(async () =>
+                    {
+                        var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "muteChat");
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "muteChat", active = false });
+                    });
                 break;
             }
 
@@ -827,8 +929,10 @@ public class FriendsController
         "vrcUpdateInviteMessage", "vrcRequestInvite", "vrcUpdateNote", "vrcBatchInvite",
         "vrcGetFavoriteFriends", "vrcAddFavoriteFriend", "vrcRemoveFavoriteFriend",
         "vrcAddFavoriteFriendToGroup",
-        "vrcSendFriendRequest", "vrcUnfriend", "vrcGetBlocked", "vrcGetMuted",
-        "vrcBlock", "vrcMute", "vrcUnblock", "vrcUnmute", "vrcBoop",
+        "vrcSendFriendRequest", "vrcUnfriend", "vrcGetBlocked", "vrcGetMuted", "vrcGetAllModerations",
+        "vrcBlock", "vrcMute", "vrcUnblock", "vrcUnmute",
+        "vrcHideAvatar", "vrcShowAvatar", "vrcInteractOff", "vrcInteractOn", "vrcMuteChat", "vrcUnmuteChat",
+        "vrcBoop",
         "vrcSendChatMessage", "vrcGetChatHistory", "vrcGetUser",
         "vrcGetUserAvatars", "vrcGetUserFavWorlds",
     };
@@ -1005,6 +1109,20 @@ public class FriendsController
                     if (!string.IsNullOrEmpty(fid0)) _friendLastAvatarFileId[uid] = fid0;
                 }
                 _friendStateSeeded = true;
+
+                // Startup recovery: resume or close open tracked GPS events
+                var openGpsEvents = _core.Timeline.GetOpenTrackedGpsEvents();
+                var now = DateTime.UtcNow.ToString("o");
+                foreach (var ev in openGpsEvents)
+                {
+                    var curLoc    = _friendLastLoc.GetValueOrDefault(ev.FriendId, "");
+                    var storedBase = ev.Location.Contains('~') ? ev.Location[..ev.Location.IndexOf('~')] : ev.Location;
+                    var curBase    = curLoc.Contains('~')      ? curLoc[..curLoc.IndexOf('~')]           : curLoc;
+                    if (!string.IsNullOrEmpty(curBase) && curBase == storedBase && curBase != "offline" && curBase != "traveling")
+                        _friendCurrentGpsEventId[ev.FriendId] = ev.Id;  // still in same instance — resume
+                    else
+                        _core.Timeline.SetFriendEventLeftAt(ev.Id, now); // left — close
+                }
             }
             else
             {
@@ -1184,6 +1302,10 @@ public class FriendsController
         bool isInGame = !string.IsNullOrEmpty(location) && location != "offline" && location != "" && !isWebPlatform;
         var status = f["status"]?.ToString() ?? "offline";
         var presence = (location == "offline" && status == "offline") ? "offline" : isInGame ? "game" : "web";
+        var (locWorldId, _, locInstType) = VRChatApiService.ParseLocation(location);
+        (string name, string thumb) locWorld = ("", "");
+        if (locWorldId.StartsWith("wrld_"))
+            lock (_core.VrWorldCache) _core.VrWorldCache.TryGetValue(locWorldId, out locWorld);
         _core.SendToJS("vrcFriendUpdate", new
         {
             id = f["id"]?.ToString() ?? "",
@@ -1191,9 +1313,18 @@ public class FriendsController
             image = ImageCacheHelper.GetUserUrl(f["id"]?.ToString(), VRChatApiService.GetUserImage(f)),
             status, statusDescription = f["statusDescription"]?.ToString() ?? "",
             location, platform, presence,
+            worldName = locWorld.name,
+            worldThumb = locWorld.thumb,
+            instanceType = locInstType,
             tags = f["tags"]?.ToObject<List<string>>() ?? new List<string>(),
             ageVerified = f["ageVerified"]?.Value<bool>() ?? false,
             avatarFileId = ExtractAvatarFileId(f),
+            bio = f["bio"]?.ToString() ?? "",
+            pronouns = f["pronouns"]?.ToString() ?? "",
+            bioLinks = f["bioLinks"]?.ToObject<List<string>>() ?? new List<string>(),
+            profilePicOverride = f["profilePicOverride"]?.ToString() ?? "",
+            currentAvatarImageUrl = f["currentAvatarThumbnailImageUrl"]?.ToString() ?? f["currentAvatarImageUrl"]?.ToString() ?? "",
+            badges = f["badges"] ?? new JArray(),
         });
     }
 
@@ -1201,6 +1332,8 @@ public class FriendsController
     {
         List<JObject> snapshot;
         lock (_friendStore) snapshot = _friendStore.Values.ToList();
+
+        _core.SendToJS("log", new { msg = $"[WS] DoPushFriendsFromStore: {snapshot.Count} friends @ {DateTime.UtcNow:HH:mm:ss.fff}", color = "info" });
 
         var list = snapshot.Select(f =>
         {
@@ -1342,9 +1475,22 @@ public class FriendsController
 
             JObject? live;
             lock (_friendStore) _friendStore.TryGetValue(userId, out live);
-            var liveStatus     = live?["status"]?.ToString()            ?? cachedEntry.ProfileStatus;
-            var liveStatusDesc = live?["statusDescription"]?.ToString() ?? cachedEntry.ProfileStatusDesc;
-            var liveLoc        = live?["location"]?.ToString()           ?? cachedEntry.ProfileLocation;
+            var liveStatus          = live?["status"]?.ToString()                                            ?? cachedEntry.ProfileStatus;
+            var liveStatusDesc      = live?["statusDescription"]?.ToString()                                 ?? cachedEntry.ProfileStatusDesc;
+            var liveLoc             = live?["location"]?.ToString()                                          ?? cachedEntry.ProfileLocation;
+            var liveDisplayName     = live?["displayName"]?.ToString();
+            var liveRawImage        = live != null ? VRChatApiService.GetUserImage(live) : "";
+            var liveBio             = live?["bio"]?.ToString();
+            var livePronouns        = live?["pronouns"]?.ToString();
+            var liveAvatarImg       = live?["currentAvatarThumbnailImageUrl"]?.ToString() ?? live?["currentAvatarImageUrl"]?.ToString();
+            var livePicOverride     = live?["profilePicOverride"]?.ToString();
+            var liveTags            = live?["tags"] as JArray;
+            var liveBioLinks        = live?["bioLinks"] as JArray;
+            var liveBadges          = live?["badges"] as JArray;
+            var liveAgeVerified     = live?["ageVerified"]?.Value<bool>();
+            var liveAgeVerifStatus  = live?["ageVerificationStatus"]?.ToString();
+            var livePlatform        = live?["platform"]?.ToString();
+            var liveLastPlatform    = live?["last_platform"]?.ToString() ?? live?["lastMobile"]?.ToString();
             var (_, _, liveInstType) = VRChatApiService.ParseLocation(liveLoc);
             var liveWid = liveLoc.Contains(':') ? liveLoc.Split(':')[0] : "";
             (string name, string thumb) liveWorld = ("", "");
@@ -1361,11 +1507,11 @@ public class FriendsController
             var diskProfile = new JObject
             {
                 ["id"]                    = userId,
-                ["displayName"]           = cachedEntry.DisplayName,
-                ["image"]                 = cachedEntry.Image,
+                ["displayName"]           = !string.IsNullOrEmpty(liveDisplayName) ? liveDisplayName : cachedEntry.DisplayName,
+                ["image"]                 = !string.IsNullOrEmpty(liveRawImage) ? ImageCacheHelper.GetUserUrl(userId, liveRawImage) : cachedEntry.Image,
                 ["status"]                = liveStatus,
                 ["statusDescription"]     = liveStatusDesc,
-                ["bio"]                   = cachedEntry.ProfileBio,
+                ["bio"]                   = liveBio ?? cachedEntry.ProfileBio,
                 ["lastLogin"]             = cachedEntry.ProfileLastLogin,
                 ["lastActivity"]          = cachedEntry.ProfileLastActivity,
                 ["dateJoined"]            = cachedEntry.ProfileDateJoined,
@@ -1379,38 +1525,43 @@ public class FriendsController
                 ["canJoin"]               = liveIsInWorld && liveInstType is "public" or "friends" or "friends+" or "hidden" or "group-public" or "group-plus" or "group-members" or "group",
                 ["canRequestInvite"]      = liveInstType is "private" or "invite_plus",
                 ["canInvite"]             = true,
-                ["currentAvatarImageUrl"] = cachedEntry.ProfileAvatarImg,
+                ["currentAvatarImageUrl"] = !string.IsNullOrEmpty(liveAvatarImg) ? liveAvatarImg : cachedEntry.ProfileAvatarImg,
                 ["currentAvatarId"]       = liveAvatarId,
                 ["avatarFileId"]          = liveFileId,
-                ["profilePicOverride"]    = cachedEntry.ProfilePicOverride,
-                ["tags"]                  = TryParseJArray(cachedEntry.ProfileTags) ?? new JArray(),
+                ["profilePicOverride"]    = livePicOverride ?? cachedEntry.ProfilePicOverride,
+                ["tags"]                  = liveTags ?? TryParseJArray(cachedEntry.ProfileTags) ?? new JArray(),
                 ["note"]                  = cachedEntry.ProfileNote,
                 ["friendKey"]             = cachedEntry.ProfileFriendKey,
                 ["travelingToLocation"]   = live?["travelingToLocation"]?.ToString() ?? "",
                 ["state"]                 = (liveStatus != "offline" && !liveInGame) ? "active" : "",
-                ["lastPlatform"]          = cachedEntry.ProfileLastPlatform,
-                ["platform"]              = cachedEntry.ProfilePlatform,
+                ["lastPlatform"]          = !string.IsNullOrEmpty(liveLastPlatform) ? liveLastPlatform : cachedEntry.ProfileLastPlatform,
+                ["platform"]              = !string.IsNullOrEmpty(livePlatform) ? livePlatform : cachedEntry.ProfilePlatform,
                 ["userNote"]              = cachedEntry.ProfileUserNote,
                 ["totalTimeSeconds"]      = totalSecs,
                 ["meets"]                 = _core.Timeline?.GetMeetAgainCount(userId) ?? 0,
                 ["firstMeetDate"]         = _core.Timeline?.GetFirstMeetDate(userId) ?? "",
                 ["inSameInstance"]        = isCoPresent,
                 ["lastSeenTracked"]       = _core.Timeline?.GetLastSeenTimestamp(userId) ?? "",
-                ["pronouns"]              = cachedEntry.ProfilePronouns,
-                ["ageVerificationStatus"] = cachedEntry.ProfileAgeVerification,
-                ["ageVerified"]           = cachedEntry.ProfileAgeVerified != 0,
+                ["pronouns"]              = !string.IsNullOrEmpty(livePronouns) ? livePronouns : cachedEntry.ProfilePronouns,
+                ["ageVerificationStatus"] = !string.IsNullOrEmpty(liveAgeVerifStatus) ? liveAgeVerifStatus : cachedEntry.ProfileAgeVerification,
+                ["ageVerified"]           = liveAgeVerified ?? cachedEntry.ProfileAgeVerified != 0,
                 ["representedGroup"]      = cRepGroup != null ? JToken.FromObject(cRepGroup) : JValue.CreateNull(),
                 ["userGroups"]            = JArray.FromObject(cGroups),
                 ["mutuals"]               = JArray.FromObject(cMutuals),
                 ["mutualGroups"]          = JArray.FromObject(cMutualGroups),
                 ["mutualsOptedOut"]       = cMutualsOptedOut,
                 ["userWorlds"]            = JArray.FromObject(cWorlds),
-                ["bioLinks"]              = TryParseJArray(cachedEntry.ProfileBioLinks) ?? new JArray(),
+                ["bioLinks"]              = liveBioLinks ?? TryParseJArray(cachedEntry.ProfileBioLinks) ?? new JArray(),
                 ["isFavorited"]           = _favoriteFriends.ContainsKey(userId),
                 ["favFriendId"]           = GetFavoriteFriendId(userId),
-                ["badges"]                = TryParseJArray(cachedEntry.ProfileBadges) ?? new JArray(),
+                ["badges"]                = liveBadges ?? TryParseJArray(cachedEntry.ProfileBadges) ?? new JArray(),
             };
             _core.SendToJS("vrcFriendDetail", diskProfile);
+
+            if (ModalCacheHelper.IsCached(userId))
+                return;
+
+            ModalCacheHelper.Mark(userId);
 
             bool startRefresh;
             lock (_profileRefreshInFlight) startRefresh = _profileRefreshInFlight.Add(userId);
@@ -1821,13 +1972,33 @@ public class FriendsController
 
         _friendLastLoc[e.UserId] = newLoc;
 
+        // Close previous GPS event for this friend
+        if (_friendCurrentGpsEventId.TryGetValue(e.UserId, out var prevGpsId))
+            _core.Timeline.SetFriendEventLeftAt(prevGpsId, DateTime.UtcNow.ToString("o"));
+
         var (fname, fimg) = _friendNameImg.GetValueOrDefault(e.UserId, ("", ""));
         var fev = new TimelineService.FriendTimelineEvent
         {
             Type = "friend_gps", FriendId = e.UserId, FriendName = fname,
-            FriendImage = fimg, WorldId = worldId, Location = newLoc,
+            FriendImage = fimg, WorldId = worldId, Location = newLoc, Tracked = 1,
         };
         _core.Timeline.AddFriendEvent(fev);
+        _friendCurrentGpsEventId[e.UserId] = fev.Id;
+
+        // Cross-reference colocated friends in the same instance
+        var newLocBase = newLoc.Contains('~') ? newLoc[..newLoc.IndexOf('~')] : newLoc;
+        var (myName, myImg) = (fname, fimg);
+        foreach (var (coId, coLoc) in _friendLastLoc.ToList())
+        {
+            if (coId == e.UserId || string.IsNullOrEmpty(coLoc) || coLoc == "offline" || coLoc == "traveling") continue;
+            var coBase = coLoc.Contains('~') ? coLoc[..coLoc.IndexOf('~')] : coLoc;
+            if (coBase != newLocBase) continue;
+            var (coName, coImg) = _friendNameImg.GetValueOrDefault(coId, ("", ""));
+            _core.Timeline.AddFriendEventColocated(fev.Id, coId, coName, coImg);
+            if (_friendCurrentGpsEventId.TryGetValue(coId, out var coEvId))
+                _core.Timeline.AddFriendEventColocated(coEvId, e.UserId, myName, myImg);
+        }
+
         _core.SendToJS("friendTimelineEvent", BuildFriendTimelinePayload(fev));
 
         var evId = fev.Id;
@@ -1845,6 +2016,7 @@ public class FriendsController
                     _core.SendToJS("friendTimelineEvent", BuildFriendTimelinePayload(updated));
 #if WINDOWS
                 lock (_core.VrWorldCache) _core.VrWorldCache[worldId] = (wname, wthumb);
+                PushFriendUpdate(e.UserId);
                 PushVroLocations();
 #endif
             }
@@ -1879,6 +2051,11 @@ public class FriendsController
         if (wasInGame && prevLoc != "traveling")
         {
             _friendLastLoc[e.UserId] = "";
+            if (_friendCurrentGpsEventId.TryGetValue(e.UserId, out var gpsId))
+            {
+                _core.Timeline.SetFriendEventLeftAt(gpsId, DateTime.UtcNow.ToString("o"));
+                _friendCurrentGpsEventId.Remove(e.UserId);
+            }
             var fev = new TimelineService.FriendTimelineEvent
             {
                 Type = "friend_offline", FriendId = e.UserId, FriendName = fname, FriendImage = fimg,
@@ -1917,6 +2094,12 @@ public class FriendsController
         // Only log game offline, not web offline
         // Don't log offline if they were "traveling" — that's a world change, not leaving
         if (!wasInGame || prevLoc == "traveling") return;
+
+        if (_friendCurrentGpsEventId.TryGetValue(e.UserId, out var gpsId))
+        {
+            _core.Timeline.SetFriendEventLeftAt(gpsId, DateTime.UtcNow.ToString("o"));
+            _friendCurrentGpsEventId.Remove(e.UserId);
+        }
 
         var fev = new TimelineService.FriendTimelineEvent
         {
@@ -1970,6 +2153,8 @@ public class FriendsController
     {
         if (e.User == null || string.IsNullOrEmpty(e.UserId) || !_friendStateSeeded) return;
 
+        _core.SendToJS("log", new { msg = $"[WS] friend-update: {e.UserId} ({e.User["displayName"]}) @ {DateTime.UtcNow:HH:mm:ss.fff}", color = "info" });
+
         MergeFriendStore(e.UserId, e.User);
         PushFriendUpdate(e.UserId);
 
@@ -1994,6 +2179,14 @@ public class FriendsController
                 };
                 _core.Timeline.AddFriendEvent(fev);
                 _core.SendToJS("friendTimelineEvent", BuildFriendTimelinePayload(fev));
+
+                // "ask me" and "busy" hide location from WS — close the open GPS event
+                if ((newStatus == "ask me" || newStatus == "busy") &&
+                    _friendCurrentGpsEventId.TryGetValue(e.UserId, out var gpsId))
+                {
+                    _core.Timeline.SetFriendEventLeftAt(gpsId, DateTime.UtcNow.ToString("o"));
+                    _friendCurrentGpsEventId.Remove(e.UserId);
+                }
             }
             _friendLastStatus[e.UserId] = newStatus;
         }
@@ -2142,6 +2335,8 @@ public class FriendsController
             worldId = ev.WorldId, worldName = ev.WorldName,
             worldThumb = wThumb,
             location = ev.Location, oldValue = ev.OldValue, newValue = ev.NewValue,
+            leftAt = string.IsNullOrEmpty(ev.LeftAt) ? null : ev.LeftAt,
+            tracked = ev.Tracked,
         };
     }
 

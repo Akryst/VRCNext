@@ -22,6 +22,8 @@ function openTlDetail(id) {
         case 'video_url':     renderTlDetailUrl(ev, el);       break;
     }
 
+    const _mb = document.querySelector('#modalDetail .modal-box');
+    if (_mb) _mb.classList.add('narrow');
     document.getElementById('modalDetail').style.display = 'flex';
 }
 
@@ -49,19 +51,46 @@ function navigateToTlEvent(id) {
     showTab(12);
 }
 
+// Shared helpers for timeline detail modals
+function _tlMr(label, val) {
+    return `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"><span style="color:var(--tx3);">${label}</span><span style="color:var(--tx1);text-align:right;">${val}</span></div>`;
+}
+function _tlInfoCard(title, rowsHtml) {
+    return `<div class="fd-info-card"><div class="fd-group-rep-label">${title}</div><div style="display:grid;gap:6px;">${rowsHtml}</div></div>`;
+}
+function _tlClose() {
+    return `<button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>`;
+}
+function _tlBanner(hasThumb) {
+    return hasThumb ? `<div class="fd-banner" id="tl-banner-slot"><div class="fd-banner-fade"></div></div>` : '';
+}
+function _tlInsertBanner(el, key, src) {
+    if (!src || !key) return;
+    const s = el.querySelector('#tl-banner-slot');
+    const bi = _getWorldBannerImg(key, src);
+    if (s && bi) s.insertBefore(bi, s.firstChild);
+}
+function _tlAvRow(image, name, label, labelColor) {
+    const av = image
+        ? `<div class="tl-detail-av" style="background-image:url('${cssUrl(image)}')"></div>`
+        : `<div class="tl-detail-av tl-detail-av-letter">${esc((name || '?')[0].toUpperCase())}</div>`;
+    return `<div style="display:flex;gap:16px;align-items:center;margin-bottom:16px;">${av}<div>
+        <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(name || t('timeline.unknown', 'Unknown'))}</h2>
+        <div style="font-size:11px;color:${labelColor};font-weight:700;letter-spacing:.05em;">${esc(label)}</div>
+    </div></div>`;
+}
+
 // Detail: instance join
 
 function renderTlDetailJoin(ev, el) {
     const dateStr = tlFormatLongDate(ev.timestamp);
     const timeStr = tlFormatTime(ev.timestamp);
-    const banner  = ev.worldThumb
-        ? `<div class="fd-banner"><img src="${ev.worldThumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>`
-        : '';
+    const banner  = _tlBanner(!!ev.worldThumb);
     const players = ev.players || [];
 
     let playersHtml = '';
     if (players.length > 0) {
-        playersHtml = `<div class="tl-detail-sect">${esc(tf('timeline.detail.players_in_instance', { count: players.length }, `Players in instance (${players.length})`))}</div><div class="photo-players-list">`;
+        playersHtml = `<div class="fd-group-rep-label" style="margin:14px 0 8px;">${esc(tf('timeline.detail.players_in_instance', { count: players.length }, `Players in instance (${players.length})`))}</div><div class="photo-players-list">`;
         players.forEach(p => {
             const onclick = p.userId ? `document.getElementById('modalDetail').style.display='none';openFriendDetail('${jsq(p.userId)}')` : '';
             playersHtml += renderProfileItemSmall({ id: p.userId, displayName: p.displayName, image: p.image }, onclick);
@@ -69,32 +98,33 @@ function renderTlDetailJoin(ev, el) {
         playersHtml += '</div>';
     }
 
-    const worldClick = ev.worldId
-        ? ` style="cursor:pointer;" onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(ev.worldId)}')"` : '';
+    const worldRowClick = ev.worldId ? ` onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(ev.worldId)}')" style="cursor:pointer;"` : '';
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        ev.worldId ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"${worldRowClick}><span style="color:var(--tx3);">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);text-align:right;">${esc(ev.worldName || ev.worldId)}</span></div>` : '',
+    ].filter(Boolean).join('');
 
     el.innerHTML = `${banner}<div class="fd-content${banner ? ' fd-has-banner' : ''}" style="padding:20px 0;">
-        <h2 style="margin:0 0 12px;color:var(--tx0);font-size:16px;">${esc(ev.worldName || ev.worldId || t('timeline.unknown_world', 'Unknown World'))}</h2>
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-            ${ev.worldId ? `<div class="fd-meta-row"${worldClick}><span class="fd-meta-label">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);">${esc(ev.worldName || ev.worldId)}</span></div>` : ''}
-        </div>
+        <h2 style="margin:0 0 12px;color:var(--tx0);font-size:18px;">${esc(ev.worldName || ev.worldId || t('timeline.unknown_world', 'Unknown World'))}</h2>
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
         ${playersHtml}
         <div style="margin-top:14px;display:flex;gap:8px;">
             <button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('modalDetail').style.display='none';sendToCS({action:'vrcJoinFriend',location:'${jsq(ev.location)}'});">${esc(t('instance.actions.force_join', 'Force-Join'))}</button>
             ${_instanceLinkBtn(ev.location, '')}
-            <button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
+            ${_tlClose()}
         </div>
     </div>`;
+    _tlInsertBanner(el, ev.worldId || ev.id, ev.worldThumb);
 }
 
 // Detail: photo
 
 function renderTlDetailPhoto(ev, el) {
-    const dateStr = tlFormatLongDate(ev.timestamp);
-    const timeStr = tlFormatTime(ev.timestamp);
-    const photoJs = ev.photoUrl ? jsq(ev.photoUrl) : '';
-    const banner  = ev.photoUrl
+    const dateStr  = tlFormatLongDate(ev.timestamp);
+    const timeStr  = tlFormatTime(ev.timestamp);
+    const photoJs  = ev.photoUrl ? jsq(ev.photoUrl) : '';
+    const banner   = ev.photoUrl
         ? `<div class="fd-banner" style="cursor:pointer;" onclick="openLightbox('${photoJs}','image')"><img src="${ev.photoUrl}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>`
         : '';
     const fileName = ev.photoPath ? ev.photoPath.split(/[\\/]/).pop() : t('timeline.photo', 'Photo');
@@ -102,7 +132,7 @@ function renderTlDetailPhoto(ev, el) {
 
     let playersHtml = '';
     if (players.length > 0) {
-        playersHtml = `<div class="tl-detail-sect">${esc(tf('timeline.detail.players_in_instance', { count: players.length }, `Players in instance (${players.length})`))}</div><div class="photo-players-list">`;
+        playersHtml = `<div class="fd-group-rep-label" style="margin:14px 0 8px;">${esc(tf('timeline.detail.players_in_instance', { count: players.length }, `Players in instance (${players.length})`))}</div><div class="photo-players-list">`;
         players.forEach(p => {
             const onclick = p.userId ? `document.getElementById('modalDetail').style.display='none';openFriendDetail('${jsq(p.userId)}')` : '';
             playersHtml += renderProfileItemSmall({ id: p.userId, displayName: p.displayName, image: p.image }, onclick);
@@ -110,20 +140,20 @@ function renderTlDetailPhoto(ev, el) {
         playersHtml += '</div>';
     }
 
-    const worldClick = ev.worldId
-        ? ` style="cursor:pointer;" onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(ev.worldId)}')"` : '';
+    const worldRowClick = ev.worldId ? ` onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(ev.worldId)}')" style="cursor:pointer;"` : '';
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        ev.worldId ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"${worldRowClick}><span style="color:var(--tx3);">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);text-align:right;">${esc(ev.worldName || ev.worldId)}</span></div>` : '',
+    ].filter(Boolean).join('');
 
     el.innerHTML = `${banner}<div class="fd-content${banner ? ' fd-has-banner' : ''}" style="padding:20px 0;">
-        <h2 style="margin:0 0 12px;color:var(--tx0);font-size:16px;">${esc(fileName)}</h2>
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-            ${ev.worldId ? `<div class="fd-meta-row"${worldClick}><span class="fd-meta-label">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);">${esc(ev.worldName || ev.worldId)}</span></div>` : ''}
-        </div>
+        <h2 style="margin:0 0 12px;color:var(--tx0);font-size:18px;">${esc(fileName)}</h2>
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
         ${playersHtml}
         <div style="margin-top:14px;display:flex;gap:8px;">
             ${ev.photoUrl ? `<button class="vrcn-button-round vrcn-btn-join" onclick="openLightbox('${photoJs}','image')"><span class="msi" style="font-size:14px;">open_in_full</span> ${esc(t('timeline.actions.full_size', 'Full Size'))}</button>` : ''}
-            <button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
+            ${_tlClose()}
         </div>
     </div>`;
 }
@@ -133,27 +163,18 @@ function renderTlDetailPhoto(ev, el) {
 function renderTlDetailMeet(ev, el) {
     const dateStr = tlFormatLongDate(ev.timestamp);
     const timeStr = tlFormatTime(ev.timestamp);
-    const av      = ev.userImage
-        ? `<div class="tl-detail-av" style="background-image:url('${cssUrl(ev.userImage)}')"></div>`
-        : `<div class="tl-detail-av tl-detail-av-letter">${esc((ev.userName || '?')[0].toUpperCase())}</div>`;
-
-    const worldClickMeet = ev.worldId ? ` style="cursor:pointer;" onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(ev.worldId)}')"` : '';
+    const worldRowClick = ev.worldId ? ` onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(ev.worldId)}')" style="cursor:pointer;"` : '';
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        ev.worldId ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"${worldRowClick}><span style="color:var(--tx3);">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);text-align:right;">${esc(ev.worldName || ev.worldId)}</span></div>` : '',
+    ].filter(Boolean).join('');
     el.innerHTML = `<div class="fd-content" style="padding:20px 0;">
-        <div style="display:flex;gap:16px;align-items:center;margin-bottom:20px;">
-            ${av}
-            <div>
-                <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(ev.userName || t('timeline.unknown', 'Unknown'))}</h2>
-                <div style="font-size:11px;color:var(--cyan);font-weight:700;letter-spacing:.05em;">${esc(t('timeline.detail.first_meet', 'FIRST MEET'))}</div>
-            </div>
-        </div>
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-            ${ev.worldId ? `<div class="fd-meta-row"${worldClickMeet}><span class="fd-meta-label">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);">${esc(ev.worldName || ev.worldId)}</span></div>` : ''}
-        </div>
+        ${_tlAvRow(ev.userImage, ev.userName, t('timeline.detail.first_meet', 'FIRST MEET'), 'var(--cyan)')}
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
         <div style="margin-top:14px;display:flex;gap:8px;">
             ${ev.userId ? `<button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('modalDetail').style.display='none';openFriendDetail('${esc(ev.userId)}')">${esc(t('timeline.actions.view_profile', 'View Profile'))}</button>` : ''}
-            <button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
+            ${_tlClose()}
         </div>
     </div>`;
 }
@@ -163,27 +184,18 @@ function renderTlDetailMeet(ev, el) {
 function renderTlDetailMeetAgain(ev, el) {
     const dateStr = tlFormatLongDate(ev.timestamp);
     const timeStr = tlFormatTime(ev.timestamp);
-    const av      = ev.userImage
-        ? `<div class="tl-detail-av" style="background-image:url('${cssUrl(ev.userImage)}')"></div>`
-        : `<div class="tl-detail-av tl-detail-av-letter">${esc((ev.userName || '?')[0].toUpperCase())}</div>`;
-
-    const worldClickAgain = ev.worldId ? ` style="cursor:pointer;" onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(ev.worldId)}')"` : '';
+    const worldRowClick = ev.worldId ? ` onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(ev.worldId)}')" style="cursor:pointer;"` : '';
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        ev.worldId ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"${worldRowClick}><span style="color:var(--tx3);">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);text-align:right;">${esc(ev.worldName || ev.worldId)}</span></div>` : '',
+    ].filter(Boolean).join('');
     el.innerHTML = `<div class="fd-content" style="padding:20px 0;">
-        <div style="display:flex;gap:16px;align-items:center;margin-bottom:20px;">
-            ${av}
-            <div>
-                <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(ev.userName || t('timeline.unknown', 'Unknown'))}</h2>
-                <div style="font-size:11px;color:#AB47BC;font-weight:700;letter-spacing:.05em;">${esc(t('timeline.detail.met_again', 'MET AGAIN'))}</div>
-            </div>
-        </div>
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-            ${ev.worldId ? `<div class="fd-meta-row"${worldClickAgain}><span class="fd-meta-label">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);">${esc(ev.worldName || ev.worldId)}</span></div>` : ''}
-        </div>
+        ${_tlAvRow(ev.userImage, ev.userName, t('timeline.detail.met_again', 'MET AGAIN'), '#AB47BC')}
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
         <div style="margin-top:14px;display:flex;gap:8px;">
             ${ev.userId ? `<button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('modalDetail').style.display='none';openFriendDetail('${esc(ev.userId)}')">${esc(t('timeline.actions.view_profile', 'View Profile'))}</button>` : ''}
-            <button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
+            ${_tlClose()}
         </div>
     </div>`;
 }
@@ -194,28 +206,19 @@ function renderTlDetailNotif(ev, el) {
     const dateStr   = tlFormatLongDate(ev.timestamp);
     const timeStr   = tlFormatTime(ev.timestamp);
     const typeLabel = tlNotifTypeLabel(ev.notifType);
-    const av        = ev.senderImage
-        ? `<div class="tl-detail-av" style="background-image:url('${cssUrl(ev.senderImage)}')"></div>`
-        : `<div class="tl-detail-av tl-detail-av-letter">${esc((ev.senderName || '?')[0].toUpperCase())}</div>`;
-
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        _tlMr(esc(t('timeline.detail.type', 'Type')), esc(typeLabel)),
+        ev.notifTitle ? _tlMr(esc(t('timeline.detail.context', 'Context')), esc(ev.notifTitle)) : '',
+        ev.message    ? _tlMr(esc(t('timeline.detail.message', 'Message')), esc(ev.message))    : '',
+    ].filter(Boolean).join('');
     el.innerHTML = `<div class="fd-content" style="padding:20px 0;">
-        <div style="display:flex;gap:16px;align-items:center;margin-bottom:20px;">
-            ${av}
-            <div>
-                <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(ev.senderName || typeLabel)}</h2>
-                <div style="font-size:11px;color:var(--warn);font-weight:700;letter-spacing:.05em;">${esc(typeLabel.toUpperCase())}</div>
-            </div>
-        </div>
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.type', 'Type'))}</span><span>${esc(typeLabel)}</span></div>
-            ${ev.notifTitle ? `<div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.context', 'Context'))}</span><span>${esc(ev.notifTitle)}</span></div>` : ''}
-            ${ev.message ? `<div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.message', 'Message'))}</span><span>${esc(ev.message)}</span></div>` : ''}
-        </div>
+        ${_tlAvRow(ev.senderImage, ev.senderName || typeLabel, typeLabel.toUpperCase(), 'var(--warn)')}
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
         <div style="margin-top:14px;display:flex;gap:8px;">
             ${ev.senderId ? `<button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('modalDetail').style.display='none';openFriendDetail('${esc(ev.senderId)}')">${esc(t('timeline.actions.view_profile', 'View Profile'))}</button>` : ''}
-            <button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
+            ${_tlClose()}
         </div>
     </div>`;
 }
@@ -225,25 +228,21 @@ function renderTlDetailNotif(ev, el) {
 function renderTlDetailAvatar(ev, el) {
     const dateStr = tlFormatLongDate(ev.timestamp);
     const timeStr = tlFormatTime(ev.timestamp);
-    const banner  = ev.userImage
-        ? `<div class="fd-banner"><img src="${ev.userImage}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>`
-        : '';
-    const openBtn = ev.userId
-        ? `<button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('modalDetail').style.display='none';openAvatarDetail('${jsq(ev.userId)}')">${esc(t('timeline.actions.view_avatar', 'View Avatar'))}</button>`
-        : '';
+    const banner  = _tlBanner(!!ev.userImage);
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        ev.userId ? _tlMr(esc(t('timeline.detail.avatar_id', 'Avatar ID')), `<span style="font-size:11px;color:var(--tx3);">${esc(ev.userId)}</span>`) : '',
+    ].filter(Boolean).join('');
     el.innerHTML = `${banner}<div class="fd-content${banner ? ' fd-has-banner' : ''}" style="padding:20px 0;">
-        <h2 style="margin:0 0 12px;color:var(--tx0);font-size:16px;">${esc(ev.userName || t('timeline.unknown_avatar', 'Unknown Avatar'))}</h2>
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.avatar', 'Avatar'))}</span><span>${esc(ev.userName || t('timeline.unknown', 'Unknown'))}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-            ${ev.userId ? `<div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.avatar_id', 'Avatar ID'))}</span><span style="font-size:11px;color:var(--tx3);">${esc(ev.userId)}</span></div>` : ''}
-        </div>
+        <h2 style="margin:0 0 12px;color:var(--tx0);font-size:18px;">${esc(ev.userName || t('timeline.unknown_avatar', 'Unknown Avatar'))}</h2>
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
         <div style="margin-top:14px;display:flex;gap:8px;">
-            ${openBtn}
-            <button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
+            ${ev.userId ? `<button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('modalDetail').style.display='none';openAvatarDetail('${jsq(ev.userId)}')">${esc(t('timeline.actions.view_avatar', 'View Avatar'))}</button>` : ''}
+            ${_tlClose()}
         </div>
     </div>`;
+    _tlInsertBanner(el, ev.userId || ev.id, ev.userImage);
 }
 
 // Detail: video URL
@@ -254,27 +253,26 @@ function renderTlDetailUrl(ev, el) {
     const url     = ev.message || '';
     const plat    = _urlPlatform(url);
     const favicon = `<div style="display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:12px;background:var(--bg2);">${_urlFaviconHtml(plat)}</div>`;
-    const worldClick = ev.worldId
-        ? ` style="cursor:pointer;" onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(ev.worldId)}')"` : '';
-
+    const worldRowClick = ev.worldId ? ` onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(ev.worldId)}')" style="cursor:pointer;"` : '';
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        ev.worldName ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"${worldRowClick}><span style="color:var(--tx3);">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);text-align:right;">${esc(ev.worldName)}</span></div>` : '',
+        _tlMr(esc(t('timeline.detail.url', 'URL')), `<span style="word-break:break-all;font-size:11px;color:var(--tx2);">${esc(url)}</span>`),
+    ].filter(Boolean).join('');
     el.innerHTML = `<div class="fd-content" style="padding:20px 0;">
-        <div style="display:flex;gap:16px;align-items:center;margin-bottom:20px;">
+        <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px;">
             ${favicon}
             <div>
                 <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(plat.name)}</h2>
                 <div style="font-size:11px;color:${plat.color};font-weight:700;letter-spacing:.05em;">${esc(t('timeline.detail.video_url', 'VIDEO URL'))}</div>
             </div>
         </div>
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-            ${ev.worldName ? `<div class="fd-meta-row"${worldClick}><span class="fd-meta-label">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);">${esc(ev.worldName)}</span></div>` : ''}
-            <div class="fd-meta-row" style="align-items:flex-start;"><span class="fd-meta-label">${esc(t('timeline.detail.url', 'URL'))}</span><span style="word-break:break-all;font-size:11px;color:var(--tx2);">${esc(url)}</span></div>
-        </div>
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
         <div style="margin-top:14px;display:flex;gap:8px;">
             <button class="vrcn-button-round vrcn-btn-join" onclick="sendToCS({action:'openUrl',url:'${jsq(url)}'})">${esc(t('timeline.actions.open_url', 'Open URL'))}</button>
             <button class="vrcn-button-round" onclick="navigator.clipboard.writeText('${jsq(url)}').then(()=>showToast(true,t('timeline.toast.copied','Copied!')))">${esc(t('timeline.actions.copy', 'Copy'))}</button>
-            <button class="vrcn-button-round" style="margin-left:auto;" onclick="document.getElementById('modalDetail').style.display='none'">${esc(t('common.close', 'Close'))}</button>
+            ${_tlClose()}
         </div>
     </div>`;
 }
@@ -286,6 +284,8 @@ function openFtGpsDetail(evId) {
              || _ftlSearchEvents.find(e => e.id === evId);
     if (!ev) return;
     renderFtGpsDetailModal(ev);
+    const _ftMb = document.getElementById('ftGpsDetailContent');
+    if (_ftMb) _ftMb.classList.add('narrow');
     document.getElementById('modalFtGpsDetail').style.display = 'flex';
 }
 
@@ -309,22 +309,25 @@ function renderFtGpsDetailModal(ev) {
 
     const { dateStr, timeStr } = ftDetailDatetime(ev);
 
-    const banner = ev.worldThumb
-        ? `<div class="fd-banner"><img src="${ev.worldThumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>`
-        : '';
     const worldName = ev.worldName || ev.worldId || t('timeline.unknown_world', 'Unknown World');
 
     // Was Also Here: populated async from server (covers all pages, not just loaded memory)
     const alsoList = [];
 
-    const infoHtml = `<div class="fd-meta">
-        <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-        <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-        <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.instance_type', 'Instance Type'))}</span><span class="vrcn-badge ${instCls}">${instLabel}</span></div>
-        ${instanceId ? `<div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.instance_id', 'Instance ID'))}</span><span style="font-family:monospace;font-size:12px;color:var(--tx2);">#${esc(instanceId)}</span></div>` : ''}
-        <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.event', 'Event'))}</span><span style="color:var(--tx2);">${esc(tf('timeline.detail.friend_joined_world', { name: ev.friendName || t('timeline.unknown', 'Unknown') }, `${ev.friendName || 'Unknown'} joined this world`))}</span></div>
-    </div>`;
+    const fromStr = ev.timestamp ? tlFormatTime(ev.timestamp) : null;
+    const toStr   = ev.leftAt    ? tlFormatTime(ev.leftAt)    : null;
 
+    const infoHtml = _tlInfoCard(esc(t('timeline.detail.info', 'Info')), [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        fromStr ? _tlMr(esc(t('timeline.detail.from', 'From')), esc(fromStr)) : '',
+        fromStr ? _tlMr(esc(t('timeline.detail.to', 'To')), toStr ? esc(toStr) : `<span style="color:var(--ok);">&#9679;&nbsp;${esc(t('timeline.detail.ongoing', 'Ongoing'))}</span>`) : '',
+        _tlMr(esc(t('timeline.detail.instance_type', 'Instance Type')), `<span class="vrcn-badge ${instCls}">${instLabel}</span>`),
+        instanceId ? _tlMr(esc(t('timeline.detail.instance_id', 'Instance ID')), `<span style="font-family:monospace;font-size:12px;color:var(--tx2);">#${esc(instanceId)}</span>`) : '',
+        _tlMr(esc(t('timeline.detail.event', 'Event')), `<span style="color:var(--tx2);">${esc(tf('timeline.detail.friend_joined_world', { name: ev.friendName || t('timeline.unknown', 'Unknown') }, `${ev.friendName || 'Unknown'} joined this world`))}</span>`),
+    ].filter(Boolean).join(''));
+
+    const banner = _tlBanner(!!ev.worldThumb);
     const el = document.getElementById('ftGpsDetailContent');
     el.innerHTML = `${banner}<div class="fd-content${banner ? ' fd-has-banner' : ''}" style="padding:16px 0;">
         <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(worldName)}</h2>
@@ -345,6 +348,7 @@ function renderFtGpsDetailModal(ev) {
     </div>`;
 
     // Async: ask server for all friends at this location (searches full DB, not just loaded page)
+    _tlInsertBanner(el, ev.worldId || ev.id, ev.worldThumb);
     sendToCS({ action: 'getFtAlsoWasHere', location: loc, excludeId: ev.id });
 }
 
@@ -385,6 +389,8 @@ function openFtDetail(id) {
         case 'friend_avatar':     renderFtDetailFriendAvatar(ev, el); break;
     }
 
+    const _mb2 = document.querySelector('#modalDetail .modal-box');
+    if (_mb2) _mb2.classList.add('narrow');
     document.getElementById('modalDetail').style.display = 'flex';
 }
 
@@ -403,6 +409,8 @@ function openFdActivityDetail(id) {
         case 'friend_added':      renderFtDetailAdded(ev, el);      break;
         case 'friend_removed':    renderFtDetailRemoved(ev, el);    break;
     }
+    const _mb3 = document.querySelector('#modalDetail .modal-box');
+    if (_mb3) _mb3.classList.add('narrow');
     document.getElementById('modalDetail').style.display = 'flex';
 }
 
@@ -435,169 +443,147 @@ function ftDetailViewProfile(ev) {
 
 function renderFtDetailGps(ev, el) {
     const { dateStr, timeStr } = ftDetailDatetime(ev);
-    const banner = ev.worldThumb
-        ? `<div class="fd-banner"><img src="${ev.worldThumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>`
-        : '';
-    const wname = ev.worldName || ev.worldId || t('timeline.unknown_world', 'Unknown World');
-    const worldClick = ev.worldId
-        ? ` style="cursor:pointer;" onclick="document.getElementById('modalDetail').style.display='none';openWorldDetail('${esc(ev.worldId)}')"` : '';
-
+    const banner = _tlBanner(!!ev.worldThumb);
+    const wname  = ev.worldName || ev.worldId || t('timeline.unknown_world', 'Unknown World');
+    const worldRowClick = ev.worldId ? ` onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(ev.worldId)}')" style="cursor:pointer;"` : '';
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"${worldRowClick}><span style="color:var(--tx3);">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);text-align:right;">${esc(wname)}</span></div>`,
+    ].join('');
     el.innerHTML = `${banner}<div class="fd-content${banner ? ' fd-has-banner' : ''}" style="padding:20px 0;">
         ${ftDetailAvRow(ev)}
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-            <div class="fd-meta-row"${worldClick}><span class="fd-meta-label">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);">${esc(wname)}</span></div>
-        </div>
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
-            ${ev.worldId ? `<button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('modalDetail').style.display='none';openWorldDetail('${esc(ev.worldId)}')"><span class="msi" style="font-size:14px;">travel_explore</span> ${esc(t('timeline.actions.open_world', 'Open World'))}</button>` : ''}
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
+        <div style="margin-top:14px;display:flex;gap:8px;">
+            ${ev.worldId ? `<button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(ev.worldId)}')"><span class="msi" style="font-size:14px;">travel_explore</span> ${esc(t('timeline.actions.open_world', 'Open World'))}</button>` : ''}
             ${ftDetailViewProfile(ev)}
             ${ftDetailClose()}
         </div>
     </div>`;
+    _tlInsertBanner(el, ev.worldId || ev.id, ev.worldThumb);
 }
 
 function renderFtDetailStatus(ev, el) {
     const { dateStr, timeStr } = ftDetailDatetime(ev);
     const oldCls = statusCssClass(ev.oldValue);
     const newCls = statusCssClass(ev.newValue);
-
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        _tlMr(esc(t('timeline.detail.change', 'Change')), `<span style="display:flex;align-items:center;gap:6px;"><span class="ft-status-chip ${oldCls}">${esc(statusLabel(ev.oldValue) || '?')}</span><span class="msi" style="font-size:12px;color:var(--tx3);">arrow_forward</span><span class="ft-status-chip ${newCls}">${esc(statusLabel(ev.newValue) || '?')}</span></span>`),
+    ].join('');
     el.innerHTML = `<div class="fd-content" style="padding:20px 0;">
         ${ftDetailAvRow(ev)}
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.change', 'Change'))}</span>
-                <span style="display:flex;align-items:center;gap:6px;">
-                    <span class="ft-status-chip ${oldCls}">${esc(statusLabel(ev.oldValue) || '?')}</span>
-                    <span class="msi" style="font-size:12px;color:var(--tx3);">arrow_forward</span>
-                    <span class="ft-status-chip ${newCls}">${esc(statusLabel(ev.newValue) || '?')}</span>
-                </span>
-            </div>
-        </div>
-        <div style="margin-top:14px;display:flex;gap:8px;">
-            ${ftDetailViewProfile(ev)}${ftDetailClose()}
-        </div>
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
+        <div style="margin-top:14px;display:flex;gap:8px;">${ftDetailViewProfile(ev)}${ftDetailClose()}</div>
     </div>`;
 }
 
 function renderFtDetailOnline(ev, el) {
     const { dateStr, timeStr } = ftDetailDatetime(ev);
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        _tlMr(esc(t('timeline.detail.event', 'Event')), `<span style="color:var(--ok);">${esc(t('timeline.friend.online_game', 'Online (Game)'))}</span>`),
+    ].join('');
     el.innerHTML = `<div class="fd-content" style="padding:20px 0;">
         ${ftDetailAvRow(ev)}
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.event', 'Event'))}</span><span style="color:var(--ok);">${esc(t('timeline.friend.online_game', 'Online (Game)'))}</span></div>
-        </div>
-        <div style="margin-top:14px;display:flex;gap:8px;">
-            ${ftDetailViewProfile(ev)}${ftDetailClose()}
-        </div>
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
+        <div style="margin-top:14px;display:flex;gap:8px;">${ftDetailViewProfile(ev)}${ftDetailClose()}</div>
     </div>`;
 }
 
 function renderFtDetailOffline(ev, el) {
     const { dateStr, timeStr } = ftDetailDatetime(ev);
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        _tlMr(esc(t('timeline.detail.event', 'Event')), `<span style="color:var(--tx3);">${esc(t('timeline.friend.went_offline', 'Went Offline'))}</span>`),
+    ].join('');
     el.innerHTML = `<div class="fd-content" style="padding:20px 0;">
         ${ftDetailAvRow(ev)}
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.event', 'Event'))}</span><span style="color:var(--tx3);">${esc(t('timeline.friend.went_offline', 'Went Offline'))}</span></div>
-        </div>
-        <div style="margin-top:14px;display:flex;gap:8px;">
-            ${ftDetailViewProfile(ev)}${ftDetailClose()}
-        </div>
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
+        <div style="margin-top:14px;display:flex;gap:8px;">${ftDetailViewProfile(ev)}${ftDetailClose()}</div>
     </div>`;
 }
 
 function renderFtDetailAdded(ev, el) {
     const { dateStr, timeStr } = ftDetailDatetime(ev);
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        _tlMr(esc(t('timeline.detail.event', 'Event')), `<span style="color:var(--ok);">${esc(t('timeline.friend.added_full', 'Friend Added'))}</span>`),
+    ].join('');
     el.innerHTML = `<div class="fd-content" style="padding:20px 0;">
         ${ftDetailAvRow(ev)}
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.event', 'Event'))}</span><span style="color:var(--ok);">${esc(t('timeline.friend.added_full', 'Friend Added'))}</span></div>
-        </div>
-        <div style="margin-top:14px;display:flex;gap:8px;">
-            ${ftDetailViewProfile(ev)}${ftDetailClose()}
-        </div>
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
+        <div style="margin-top:14px;display:flex;gap:8px;">${ftDetailViewProfile(ev)}${ftDetailClose()}</div>
     </div>`;
 }
 
 function renderFtDetailRemoved(ev, el) {
     const { dateStr, timeStr } = ftDetailDatetime(ev);
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        _tlMr(esc(t('timeline.detail.event', 'Event')), `<span style="color:var(--err);">${esc(t('timeline.friend.unfriended', 'Unfriended'))}</span>`),
+        ev.friendId ? _tlMr(esc(t('timeline.detail.user_id', 'User ID')), `<span style="font-size:11px;opacity:.7;">${esc(ev.friendId)}</span>`) : '',
+    ].filter(Boolean).join('');
     el.innerHTML = `<div class="fd-content" style="padding:20px 0;">
         ${ftDetailAvRow(ev)}
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.event', 'Event'))}</span><span style="color:var(--err);">${esc(t('timeline.friend.unfriended', 'Unfriended'))}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.user_id', 'User ID'))}</span><span style="font-size:11px;opacity:.7;">${esc(ev.friendId || '')}</span></div>
-        </div>
-        <div style="margin-top:14px;display:flex;gap:8px;">
-            ${ftDetailViewProfile(ev)}
-            ${ftDetailClose()}
-        </div>
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
+        <div style="margin-top:14px;display:flex;gap:8px;">${ftDetailViewProfile(ev)}${ftDetailClose()}</div>
     </div>`;
 }
 
 function renderFtDetailStatusDesc(ev, el) {
     const { dateStr, timeStr } = ftDetailDatetime(ev);
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+    ].join('');
     el.innerHTML = `<div class="fd-content" style="padding:20px 0;">
         ${ftDetailAvRow(ev)}
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-        </div>
-        ${ev.oldValue ? `<div style="margin-top:12px;"><div style="font-size:10px;color:var(--tx3);margin-bottom:4px;">${esc(t('timeline.detail.previous_status_text', 'PREVIOUS STATUS TEXT'))}</div>
-            <div style="font-size:12px;color:var(--tx2);background:var(--bg2);padding:8px 10px;border-radius:6px;">${esc(ev.oldValue)}</div></div>` : ''}
-        ${ev.newValue !== undefined ? `<div style="margin-top:10px;"><div style="font-size:10px;color:var(--tx3);margin-bottom:4px;">${esc(t('timeline.detail.new_status_text', 'NEW STATUS TEXT'))}</div>
-            <div style="font-size:12px;color:var(--tx1);background:var(--bg2);padding:8px 10px;border-radius:6px;">${ev.newValue ? esc(ev.newValue) : tlDetailClearedHtml()}</div></div>` : ''}
-        <div style="margin-top:14px;display:flex;gap:8px;">
-            ${ftDetailViewProfile(ev)}${ftDetailClose()}
-        </div>
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
+        ${ev.oldValue ? `<div class="fd-info-card" style="margin-top:10px;"><div class="fd-group-rep-label">${esc(t('timeline.detail.previous_status_text', 'PREVIOUS STATUS TEXT'))}</div><div style="font-size:12px;color:var(--tx2);white-space:pre-wrap;">${esc(ev.oldValue)}</div></div>` : ''}
+        ${ev.newValue !== undefined ? `<div class="fd-info-card" style="margin-top:10px;"><div class="fd-group-rep-label">${esc(t('timeline.detail.new_status_text', 'NEW STATUS TEXT'))}</div><div style="font-size:12px;color:var(--tx1);white-space:pre-wrap;">${ev.newValue ? esc(ev.newValue) : tlDetailClearedHtml()}</div></div>` : ''}
+        <div style="margin-top:14px;display:flex;gap:8px;">${ftDetailViewProfile(ev)}${ftDetailClose()}</div>
     </div>`;
 }
 
 function renderFtDetailBio(ev, el) {
     const { dateStr, timeStr } = ftDetailDatetime(ev);
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+    ].join('');
     el.innerHTML = `<div class="fd-content" style="padding:20px 0;">
         ${ftDetailAvRow(ev)}
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-        </div>
-        ${ev.oldValue ? `<div style="margin-top:12px;"><div style="font-size:10px;color:var(--tx3);margin-bottom:4px;">${esc(t('timeline.detail.previous_bio', 'PREVIOUS BIO'))}</div>
-            <div style="font-size:12px;color:var(--tx2);background:var(--bg2);padding:8px 10px;border-radius:6px;white-space:pre-wrap;">${esc(ev.oldValue)}</div></div>` : ''}
-        ${ev.newValue ? `<div style="margin-top:10px;"><div style="font-size:10px;color:var(--tx3);margin-bottom:4px;">${esc(t('timeline.detail.new_bio', 'NEW BIO'))}</div>
-            <div style="font-size:12px;color:var(--tx1);background:var(--bg2);padding:8px 10px;border-radius:6px;white-space:pre-wrap;">${esc(ev.newValue)}</div></div>` : ''}
-        <div style="margin-top:14px;display:flex;gap:8px;">
-            ${ftDetailViewProfile(ev)}${ftDetailClose()}
-        </div>
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
+        ${ev.oldValue ? `<div class="fd-info-card" style="margin-top:10px;"><div class="fd-group-rep-label">${esc(t('timeline.detail.previous_bio', 'PREVIOUS BIO'))}</div><div style="font-size:12px;color:var(--tx2);white-space:pre-wrap;">${esc(ev.oldValue)}</div></div>` : ''}
+        ${ev.newValue ? `<div class="fd-info-card" style="margin-top:10px;"><div class="fd-group-rep-label">${esc(t('timeline.detail.new_bio', 'NEW BIO'))}</div><div style="font-size:12px;color:var(--tx1);white-space:pre-wrap;">${esc(ev.newValue)}</div></div>` : ''}
+        <div style="margin-top:14px;display:flex;gap:8px;">${ftDetailViewProfile(ev)}${ftDetailClose()}</div>
     </div>`;
 }
 
 function renderFtDetailFriendAvatar(ev, el) {
     const { dateStr, timeStr } = ftDetailDatetime(ev);
-    const banner = ev.worldThumb
-        ? `<div class="fd-banner"><img src="${ev.worldThumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>`
-        : '';
+    const banner = _tlBanner(!!ev.worldThumb);
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        ev.worldName ? _tlMr(esc(t('timeline.detail.avatar', 'Avatar')), `<span style="color:var(--accent-lt);">${esc(ev.worldName)}</span>`) : '',
+        ev.worldId   ? _tlMr(esc(t('timeline.detail.avatar_id', 'Avatar ID')), `<span style="font-size:11px;color:var(--tx3);">${esc(ev.worldId)}</span>`) : '',
+    ].filter(Boolean).join('');
     el.innerHTML = `${banner}<div class="fd-content${banner ? ' fd-has-banner' : ''}" style="padding:20px 0;">
         ${ftDetailAvRow(ev)}
-        <div class="fd-meta">
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.date', 'Date'))}</span><span>${esc(dateStr)}</span></div>
-            <div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.time', 'Time'))}</span><span>${esc(timeStr)}</span></div>
-            ${ev.worldName ? `<div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.avatar', 'Avatar'))}</span><span style="color:var(--accent-lt);">${esc(ev.worldName)}</span></div>` : ''}
-            ${ev.worldId ? `<div class="fd-meta-row"><span class="fd-meta-label">${esc(t('timeline.detail.avatar_id', 'Avatar ID'))}</span><span style="font-size:11px;color:var(--tx3);">${esc(ev.worldId)}</span></div>` : ''}
-        </div>
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
         <div style="margin-top:14px;display:flex;gap:8px;">
             ${ev.worldId ? `<button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('modalDetail').style.display='none';openAvatarDetail('${jsq(ev.worldId)}')">${esc(t('timeline.actions.view_avatar', 'View Avatar'))}</button>` : ''}
-            ${ftDetailViewProfile(ev)}
-            ${ftDetailClose()}
+            ${ftDetailViewProfile(ev)}${ftDetailClose()}
         </div>
     </div>`;
+    _tlInsertBanner(el, ev.worldId || ev.id, ev.worldThumb);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -706,7 +692,7 @@ function buildFriendListHtml(events) {
     let rows = '';
     events.forEach(ev => {
         const meta  = ftTypeMeta(ev.type);
-        const color = FT_TYPE_COLOR[ev.type] ?? 'var(--tx3)';
+        const color = ev.type === 'friend_gps' ? getFtGpsColor(ev) : (FT_TYPE_COLOR[ev.type] ?? 'var(--tx3)');
         const ei    = jsq(ev.id);
         const detail = _ftListDetail(ev);
         const clickAction = ev.type === 'friend_gps'

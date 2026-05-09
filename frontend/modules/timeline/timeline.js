@@ -309,6 +309,13 @@ function renderTimeline(payload) {
     if (typeof renderDashMyRecentTimeline === 'function') renderDashMyRecentTimeline();
 }
 
+function handleTimelineEventDeleted(payload) {
+    if (!payload?.id) return;
+    const before = timelineEvents.length;
+    timelineEvents = timelineEvents.filter(e => e.id !== payload.id);
+    if (timelineEvents.length !== before) filterTimeline();
+}
+
 function handleTimelineEvent(ev) {
     if (!ev || !ev.id) return;
     // If a type filter is active, only inject events that match it to avoid polluting the view
@@ -951,6 +958,13 @@ const FT_TYPE_COLOR = {
     friend_removed:    'var(--err)',
 };
 
+function getFtGpsColor(ev) {
+    if (!ev.timestamp || !ev.location) return 'var(--err)';   // Broken: missing data
+    if (!ev.tracked)                   return '#FF9800';       // Legacy: pre-new-system
+    if (!ev.leftAt)                    return 'var(--ok)';     // Running: still active
+    return 'var(--accent)';                                    // Completed
+}
+
 const FT_TYPE_META = {
     friend_gps:        { icon: 'location_on',         key: 'timeline.friend_types.friend_gps',        fallback: 'Location' },
     friend_status:     { icon: 'circle',              key: 'timeline.friend_types.friend_status',     fallback: 'Status' },
@@ -1247,7 +1261,7 @@ function buildFriendTimelineHtml(events) {
 }
 
 function renderFtRow(ev, side) {
-    const color   = FT_TYPE_COLOR[ev.type] ?? 'var(--tx3)';
+    const color   = ev.type === 'friend_gps' ? getFtGpsColor(ev) : (FT_TYPE_COLOR[ev.type] ?? 'var(--tx3)');
     const cardHtml = renderFtCard(ev);
     const dotHtml  = `<div class="tl-dot" style="background:${color}"></div>`;
 
@@ -1270,7 +1284,7 @@ function renderFtCard(ev) {
     const time  = tlFormatTime(d);
     const date  = tlFormatShortDate(d);
     const meta  = ftTypeMeta(ev.type);
-    const color = FT_TYPE_COLOR[ev.type] ?? 'var(--tx3)';
+    const color = ev.type === 'friend_gps' ? getFtGpsColor(ev) : (FT_TYPE_COLOR[ev.type] ?? 'var(--tx3)');
     const ei    = jsq(ev.id);
 
     const header = `<div class="tl-card-header">

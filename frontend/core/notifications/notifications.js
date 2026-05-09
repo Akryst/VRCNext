@@ -1,12 +1,37 @@
 /* === Notifications === */
 let _notifDismiss = null;
+let _notifTab = 'current';
+let _notifNoDecline = false;
+
+function _updatePillIndicator() {
+    const group     = document.getElementById('notifPillGroup');
+    const indicator = document.getElementById('notifPillIndicator');
+    const active    = group?.querySelector('.vrcn-mini-pill.active');
+    if (!group || !indicator || !active) return;
+    const gRect = group.getBoundingClientRect();
+    const aRect = active.getBoundingClientRect();
+    indicator.style.width     = aRect.width + 'px';
+    indicator.style.transform = `translateX(${aRect.left - gRect.left - 2}px)`;
+}
+
+function setNotifTab(tab) {
+    _notifTab = tab;
+    _notifNoDecline = tab === 'hidden';
+    notifications = [];
+    ['current', 'hidden'].forEach(t => {
+        const el = document.getElementById('notifTab' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (el) el.classList.toggle('active', t === tab);
+    });
+    _updatePillIndicator();
+    refreshNotifications();
+}
 
 function toggleNotifPanel() {
     notifPanelOpen = !notifPanelOpen;
     const panel = document.getElementById('notifPanel');
     if (notifPanelOpen) {
         panel.style.display = '';
-        requestAnimationFrame(() => panel.classList.add('panel-open'));
+        requestAnimationFrame(() => { panel.classList.add('panel-open'); _updatePillIndicator(); });
         refreshNotifications();
         setTimeout(() => {
             _notifDismiss = e => {
@@ -27,7 +52,7 @@ function toggleNotifPanel() {
 }
 
 function refreshNotifications() {
-    sendToCS({ action: 'vrcGetNotifications' });
+    sendToCS({ action: _notifTab === 'hidden' ? 'vrcGetHiddenNotifications' : 'vrcGetNotifications' });
 }
 
 function getNotificationTypeMeta(type) {
@@ -100,7 +125,7 @@ function _resolveNotifImage(n) {
     return '';
 }
 
-function renderNotifications(list) {
+function renderNotifications(list, noDecline = _notifNoDecline) {
     notifications = (list || []).filter(n => n.type !== 'boop'); // boops only in messenger
     const unseen = notifications.filter(n => !n.seen).length;
     const badge = document.getElementById('notifBadge');
@@ -138,8 +163,11 @@ function renderNotifications(list) {
         } else if (n.type === 'invite') {
             const worldName = det.worldName ? esc(det.worldName) : t('notifications.unknown_world', 'unknown world');
             const wid = det.worldId ? det.worldId.split(':')[0] : '';
+            const instanceId = det.instanceId || '';
+            const location = wid && instanceId ? `${wid}:${instanceId}` : (det.worldId || '');
+            const { instanceType } = location ? parseFriendLocation(location) : { instanceType: 'public' };
             const worldLink = wid
-                ? `<strong style="cursor:pointer;" onclick="toggleNotifPanel();openWorldDetail('${esc(wid)}')">${worldName}</strong>`
+                ? `<strong style="cursor:pointer;" onclick="toggleNotifPanel();openInstanceDetailFromData({location:'${jsq(location)}',worldId:'${jsq(wid)}',worldName:'${jsq(det.worldName||'')}',instanceType:'${jsq(instanceType)}'})">${worldName}</strong>`
                 : `<strong>${worldName}</strong>`;
             const msg = det.inviteMessage || '';
             titleHtml = `${senderLink} <span style="color:var(--tx2);font-weight:400;">${t('notifications.title.invited_you_to', 'invited you to')}</span> ${worldLink}`;
@@ -171,7 +199,7 @@ function renderNotifications(list) {
             </div>
             <div class="notif-actions">
                 ${canAccept ? `<button class="vrcn-notify-button primary notif-accept-btn" onclick="acceptNotif('${nid}',this)"><span class="msi">check</span> ${t('notifications.actions.accept', 'Accept')}</button>` : ''}
-                ${(canAccept || !n.seen) ? `<button class="vrcn-notify-button danger notif-decline-btn" onclick="declineNotif('${nid}',this)" title="${t('notifications.actions.decline', 'Decline')}"><span class="msi">close</span></button>` : ''}
+                ${(!noDecline && (canAccept || !n.seen)) ? `<button class="vrcn-notify-button danger notif-decline-btn" onclick="declineNotif('${nid}',this)" title="${t('notifications.actions.decline', 'Decline')}"><span class="msi">close</span></button>` : ''}
             </div>
         </div>`;
     }).join('');

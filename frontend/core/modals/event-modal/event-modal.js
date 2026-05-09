@@ -5,6 +5,8 @@ function openEventDetail(groupId, calendarId) {
     if (typeof navSetCurrent === 'function') navSetCurrent('event', groupId, calendarId);
     const el = document.getElementById('detailModalContent');
     el.innerHTML = sk('detail');
+    const _evMb = document.querySelector('#modalDetail .modal-box');
+    if (_evMb) _evMb.classList.remove('narrow');
     document.getElementById('modalDetail').style.display = 'flex';
     sendToCS({ action: 'vrcGetCalendarEvent', groupId, calendarId });
 }

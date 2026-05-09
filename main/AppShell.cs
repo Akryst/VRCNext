@@ -185,6 +185,10 @@ public partial class AppShell
             _relayCtrl.IsRunning,
             _chatboxCtrl.IsEnabled);
         _fileWatcher.NewFile += _photos.OnNewFile;
+        _ = SQLiteMigrator.PruneOrphanedTimelinePhotosAsync(
+            _timeline,
+            pct => _core.SendToJS("dbMigrationProgress", new { percent = pct }),
+            id  => _core.SendToJS("timelineEventDeleted", new { id }));
 
         // Permini — load persisted list into memory
         LoadPerminiList();
@@ -204,6 +208,12 @@ public partial class AppShell
             WindowController.AllowNextClose();
             try { _window.Close(); } catch { }
         };
+        _trayService.OnLaunchVRChat = vr =>
+        {
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(new { action = "vrcLaunchAndJoin", location = "", vr });
+            _ = OnWebMessage(json);
+        };
+        _trayService.IsVrcRunning = RelayController.IsVrcRunning;
         _trayService.ImageDownloader = async url =>
         {
             return await _vrcApi.GetHttpClient().GetByteArrayAsync(url);
@@ -227,7 +237,7 @@ public partial class AppShell
         VRCNext.Services.Helpers.ImageCacheHelper.Port            = _httpPort;
         VRCNext.Services.Helpers.ImageCacheHelper.LimitGb         = _settings.ImgCacheLimitGb;
         VRCNext.Services.Helpers.ImageCacheHelper.OptimizeEnabled = _settings.ImgCacheOptimizeEnabled;
-        VRCNext.Services.Helpers.ImageCacheHelper.Log             = msg => _core.SendToJS("log", new { msg, color = "sec" });
+        VRCNext.Services.Helpers.ImageCacheHelper.Log             = (msg, color) => _core.SendToJS("log", new { msg, color });
 
         _thumbCacheDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -285,7 +295,27 @@ public partial class AppShell
         ScheduleNextWorldStats();
 
         // Chromeless on Windows requires explicit location (Center() sets a flag, not coordinates)
-        var (startX, startY) = WindowController.GetCenteredLocation(1100, 700);
+        int startW = _settings.RememberWindowSize && _settings.SavedWindowWidth  >= 100
+            ? _settings.SavedWindowWidth  : 1100;
+        int startH = _settings.RememberWindowSize && _settings.SavedWindowHeight >= 100
+            ? _settings.SavedWindowHeight : 700;
+        var (defaultX, defaultY) = WindowController.GetCenteredLocation(startW, startH);
+        int startX = defaultX, startY = defaultY;
+        if (_settings.RememberWindowPosition && _settings.SavedWindowX >= 0)
+        {
+#if WINDOWS
+            if (System.Windows.Forms.Screen.AllScreens.Any(s =>
+                s.WorkingArea.IntersectsWith(
+                    new System.Drawing.Rectangle(_settings.SavedWindowX, _settings.SavedWindowY, startW, startH))))
+            {
+                startX = _settings.SavedWindowX;
+                startY = _settings.SavedWindowY;
+            }
+#else
+            startX = _settings.SavedWindowX;
+            startY = _settings.SavedWindowY;
+#endif
+        }
 
 #if !WINDOWS
         // Auto-install missing GStreamer plugins required by WebKit2GTK (blank window without them)
@@ -314,7 +344,7 @@ public partial class AppShell
         var windowBuilder = new PhotinoWindow()
             .SetTitle("VRCNext")
             .SetUseOsDefaultSize(false)
-            .SetSize(1100, 700)
+            .SetSize(startW, startH)
             .SetMinSize(900, 540)
             .SetChromeless(OperatingSystem.IsWindows() && !_settings.LegacyWindow)
             .SetResizable(true)
@@ -329,6 +359,7 @@ public partial class AppShell
         if (File.Exists(iconPath)) windowBuilder.SetIconFile(iconPath);
         _window = windowBuilder.Load(startPage);
         _core.Window = _window;
+        _ = RunAutoBackupsAsync();
 
         if (_minimized) _window.SetMinimized(true);
         _window.WaitForClose();
@@ -428,10 +459,78 @@ public partial class AppShell
         catch { }
     }
 
+    // Auto-Backups
+
+    private async Task RunAutoBackupsAsync()
+    {
+        await Task.Delay(8000); // let the app finish initializing
+
+        if (_settings.DbAutoBackupEnabled &&
+            (DateTime.Now - _settings.LastDbAutoBackup).TotalDays >= _settings.DbAutoBackupDays)
+        {
+            try
+            {
+                await Task.Run(() => SQLiteOptimizing.CreateBackup());
+                _settings.LastDbAutoBackup = DateTime.Now;
+                _settings.Save();
+            }
+            catch { }
+        }
+
+        if (_settings.RegBackupEnabled &&
+            (DateTime.Now - _settings.LastRegBackup).TotalDays >= _settings.RegBackupDays)
+        {
+            try
+            {
+#if WINDOWS
+                await Task.Run(() => SQLiteOptimizing.CreateRegistryBackup());
+#endif
+                _settings.LastRegBackup = DateTime.Now;
+                _settings.Save();
+            }
+            catch { }
+        }
+    }
+
     // OnClose
 
     private void OnClose()
     {
+        try
+        {
+            bool anySave = false;
+#if WINDOWS
+            var (lastX, lastY, lastW, lastH, wasMax) = WindowController.LastWindowPlacement;
+            if (_settings.RememberWindowSize && !wasMax && lastW >= 100)
+            {
+                _settings.SavedWindowWidth  = lastW;
+                _settings.SavedWindowHeight = lastH;
+                anySave = true;
+            }
+            if (_settings.RememberWindowPosition && !wasMax)
+            {
+                _settings.SavedWindowX = lastX;
+                _settings.SavedWindowY = lastY;
+                anySave = true;
+            }
+#else
+            if (_settings.RememberWindowSize && !_window.Maximized && _window.Width >= 100)
+            {
+                _settings.SavedWindowWidth  = _window.Width;
+                _settings.SavedWindowHeight = _window.Height;
+                anySave = true;
+            }
+            if (_settings.RememberWindowPosition && !_window.Maximized)
+            {
+                _settings.SavedWindowX = _window.Left;
+                _settings.SavedWindowY = _window.Top;
+                anySave = true;
+            }
+#endif
+            if (anySave) _settings.Save();
+        }
+        catch { }
+
         // Add watch dog at first Mark: Watchdog test
         CrashHandler.OnCleanShutdown();
         _relayCtrl?.Dispose();

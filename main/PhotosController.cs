@@ -481,6 +481,7 @@ public class PhotosController
             _libFileCacheTotal = _libFileCache.Count;
 
             var isImg  = FileWatcherService.ImgExt.Contains(fi.Extension);
+            var isGif  = fi.Extension.Equals(".gif", StringComparison.OrdinalIgnoreCase);
             var sizeMB = fi.Length / 1048576.0;
             var rel    = Path.GetRelativePath(folder, filePath).Replace('\\', '/');
             var url    = $"http://localhost:{_core.HttpPort}/media{folderIdx}/{Uri.EscapeDataString(rel).Replace("%2F", "/")}";
@@ -506,7 +507,7 @@ public class PhotosController
                 name     = fi.Name,
                 path     = fi.FullName,
                 folder,
-                type     = isImg ? "image" : "video",
+                type     = isGif ? "gif" : isImg ? "image" : "video",
                 size     = sizeMB < 1 ? $"{fi.Length / 1024.0:F0} KB" : $"{sizeMB:F1} MB",
                 modified = fi.LastWriteTime.ToString("o"),
                 time     = VRCNext.Services.Helpers.DateTimeHelper.FormatTime(fi.LastWriteTime),
@@ -685,6 +686,7 @@ public class PhotosController
         {
             var f      = e.Fi;
             var isImg  = FileWatcherService.ImgExt.Contains(f.Extension);
+            var isGif  = f.Extension.Equals(".gif", StringComparison.OrdinalIgnoreCase);
             var sizeMB = f.Length / 1048576.0;
             var rel    = Path.GetRelativePath(e.Folder, f.FullName).Replace('\\', '/');
             var url    = $"http://localhost:{_core.HttpPort}/media{e.FolderIndex}/{Uri.EscapeDataString(rel).Replace("%2F", "/")}";
@@ -712,7 +714,7 @@ public class PhotosController
                 name     = f.Name,
                 path     = f.FullName,
                 folder   = e.Folder,
-                type     = isImg ? "image" : "video",
+                type     = isGif ? "gif" : isImg ? "image" : "video",
                 size     = sizeMB < 1 ? $"{f.Length / 1024.0:F0} KB" : $"{sizeMB:F1} MB",
                 modified = f.LastWriteTime.ToString("o"),
                 time     = VRCNext.Services.Helpers.DateTimeHelper.FormatTime(f.LastWriteTime),

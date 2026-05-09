@@ -43,14 +43,20 @@ function openFriendInviteModal(userId, displayName, initialTab) {
                 ${hasVrcPlus ? `<button class="fd-tab" id="invTab_photo" onclick="_invModalSetTab('photo')">${t('profiles.invite.tab.photo', 'With Image')}</button>` : ''}
             </div>
             <div class="inv-single-body">
-                <div id="invContent_direct" style="padding:4px 0 6px;font-size:12px;color:var(--tx3);">${t('profiles.invite.direct_description', 'Send a direct invite with no message.')}</div>
+                <div id="invContent_direct">
+                    <div class="fd-info-card" style="font-size:12px;color:var(--tx3);" id="invDirectDesc">${t('profiles.invite.direct_description', 'Send a direct invite with no message.')}</div>
+                </div>
                 <div id="invMsgSection" style="display:none;">
-                    <div id="invMsgOptLabel" style="display:none;font-size:11px;color:var(--tx3);margin-bottom:4px;">${t('profiles.invite.optional_message', 'Optional message')}</div>
-                    <div id="invMsgList"></div>
+                    <div class="fd-info-card">
+                        <div class="fd-group-rep-label" id="invMsgOptLabel"></div>
+                        <div id="invMsgList"></div>
+                    </div>
                 </div>
                 <div id="invPhotoSection" style="display:none;">
-                    <label class="gp-label">${t('profiles.invite.image_label', 'Image')} <span style="color:var(--tx3);font-weight:400;">(${t('common.required', 'required')})</span></label>
-                    <div id="invLibraryGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;max-height:180px;overflow-y:auto;padding:4px 0;"></div>
+                    <div class="fd-info-card">
+                        <div class="fd-group-rep-label" id="invPhotoLabel">${t('profiles.invite.image_label', 'Image')} <span style="font-weight:400;text-transform:none;letter-spacing:normal;">(${t('common.required', 'required')})</span></div>
+                        <div id="invLibraryGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;max-height:180px;overflow-y:auto;padding:4px 0;"></div>
+                    </div>
                 </div>
                 <button id="invSendBtn" class="vrcn-button vrcn-btn-primary inv-action-full" onclick="_invModalSend()">${t('profiles.invite.send', 'Send Invite')}</button>
             </div>
@@ -72,12 +78,14 @@ function refreshFriendInviteModalTranslations() {
     if (messageTab) messageTab.textContent = t('profiles.invite.tab.message', 'With Message');
     const photoTab = document.getElementById('invTab_photo');
     if (photoTab) photoTab.textContent = t('profiles.invite.tab.photo', 'With Image');
-    const directContent = document.getElementById('invContent_direct');
-    if (directContent) directContent.textContent = t('profiles.invite.direct_description', 'Send a direct invite with no message.');
+    const directDesc = document.getElementById('invDirectDesc');
+    if (directDesc) directDesc.textContent = t('profiles.invite.direct_description', 'Send a direct invite with no message.');
     const optionalLabel = document.getElementById('invMsgOptLabel');
-    if (optionalLabel) optionalLabel.textContent = t('profiles.invite.optional_message', 'Optional message');
-    const photoLabel = document.querySelector('#invPhotoSection .gp-label');
-    if (photoLabel) photoLabel.innerHTML = `${t('profiles.invite.image_label', 'Image')} <span style="color:var(--tx3);font-weight:400;">(${t('common.required', 'required')})</span>`;
+    if (optionalLabel) optionalLabel.textContent = _invModalTab === 'photo'
+        ? t('profiles.invite.optional_message', 'Optional message')
+        : t('profiles.invite.tab.message', 'With Message');
+    const photoLabel = document.getElementById('invPhotoLabel');
+    if (photoLabel) photoLabel.innerHTML = `${t('profiles.invite.image_label', 'Image')} <span style="font-weight:400;text-transform:none;letter-spacing:normal;">(${t('common.required', 'required')})</span>`;
     const sendBtn = document.getElementById('invSendBtn');
     if (sendBtn) sendBtn.textContent = t('profiles.invite.send', 'Send Invite');
     _invModalRenderMsgs();
@@ -99,7 +107,9 @@ function _invModalSetTab(tab) {
     const photoSect = document.getElementById('invPhotoSection');
     if (directEl)  directEl.style.display  = tab === 'direct'  ? '' : 'none';
     if (msgSect)   msgSect.style.display   = (tab === 'message' || tab === 'photo') ? '' : 'none';
-    if (optLabel)  optLabel.style.display  = tab === 'photo'   ? '' : 'none';
+    if (optLabel)  optLabel.textContent    = tab === 'photo'
+        ? t('profiles.invite.optional_message', 'Optional message')
+        : t('profiles.invite.tab.message', 'With Message');
     if (photoSect) photoSect.style.display = tab === 'photo'   ? '' : 'none';
     // Load messages on first switch to a tab that needs them
     if ((tab === 'message' || tab === 'photo') && !_invModalApiMsgs.length) {

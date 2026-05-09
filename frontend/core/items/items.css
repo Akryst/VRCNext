@@ -182,6 +182,39 @@
 }
 .inst-item-join { height: 24px !important; padding: 0 10px !important; font-size: 11px !important; }
 
+/* Instance Card (Layout A — world modal, matches instance modal style) */
+.inst-item-card {
+    background: var(--bg-input);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--brd) 60%, transparent);
+    flex-shrink: 0;
+}
+.inst-item-card-hdr {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    padding: 9px 12px;
+}
+.inst-item-card-hdr-sep {
+    border-bottom: 1px solid color-mix(in srgb, var(--brd) 50%, transparent);
+}
+.inst-item-card-title {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--tx2);
+    flex-wrap: wrap;
+}
+.inst-item-card-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 4px;
+}
 
 /* Instance Friend Strip */
 .inst-friends-strip {
@@ -214,4 +247,64 @@
     font-weight: 600;
     margin-left: 4px;
 }
+
+/* Mini Content Item (profile Content tab — Worlds & Avatars) */
+.vrcn-mini-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+}
+.vrcn-mini-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 10px;
+    background: var(--bg-input);
+    cursor: pointer;
+    transition: background .15s;
+    user-select: none;
+    min-width: 0;
+}
+.vrcn-mini-content:hover {
+    background: var(--bg-hover);
+}
+.vrcn-mini-content-thumb {
+    width: 56px;
+    height: 38px;
+    border-radius: 6px;
+    background: var(--bg-base) center/cover no-repeat;
+    flex-shrink: 0;
+}
+.vrcn-mini-content-info {
+    flex: 1;
+    min-width: 0;
+}
+.vrcn-mini-content-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tx0);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.vrcn-mini-content-meta {
+    font-size: 10px;
+    color: var(--tx3);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+.vrcn-mini-content-meta .msi { font-size: 11px; }
+.vrcn-mini-content-badges {
+    display: flex;
+    gap: 3px;
+    margin-top: 3px;
+    flex-wrap: wrap;
+}
+.vrcn-mini-content-badges .vrcn-badge { font-size: 9px; }
 

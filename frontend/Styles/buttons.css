@@ -51,6 +51,44 @@
 .vrcn-button-round.active { background: var(--accent); color: #fff; }
 .vrcn-button-round .msi { font-size: 14px !important; line-height: 1; }
 
+.vrcn-mini-pill-group {
+    position: relative;
+    display: inline-flex;
+    background: var(--bg-input, rgba(255,255,255,.06));
+    border-radius: 99px;
+    padding: 2px;
+    gap: 0;
+}
+.vrcn-mini-pill-indicator {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    height: calc(100% - 4px);
+    border-radius: 99px;
+    background: color-mix(in srgb, var(--accent) 85%, transparent);
+    transition: transform .22s cubic-bezier(.4,0,.2,1), width .22s cubic-bezier(.4,0,.2,1);
+    pointer-events: none;
+    z-index: 0;
+}
+.vrcn-mini-pill {
+    position: relative;
+    z-index: 1;
+    border: none;
+    background: transparent;
+    color: var(--tx3);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 99px;
+    cursor: pointer;
+    transition: color .15s;
+    white-space: nowrap;
+    line-height: 1.5;
+}
+.vrcn-mini-pill:hover { color: var(--tx1); }
+.vrcn-mini-pill.active { color: #fff; }
+
 .vrcn-btn-primary { background: var(--accent) !important; color: #fff !important; }
 .vrcn-btn-primary:hover { background: var(--accent-lt) !important; }
 .vrcn-btn-join { background: var(--accent) !important; color: #fff !important; }

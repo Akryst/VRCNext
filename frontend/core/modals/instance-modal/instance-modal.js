@@ -114,13 +114,12 @@ function openInstanceInfoModal() {
         return `<tr class="iim-user-tr"${rowClick}><td style="width:40px;padding:5px 6px 5px 10px;">${avHtml}</td>${timerTd}${nameTd}${rankTd}${statusTd}${ageTd}${platformTd}${langTd}</tr>`;
     }
 
-    const secLbl  = `font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.05em;`;
     const colSpan = hasTimers ? 8 : 7;
     let bodyRows = '';
     if (friendsEnriched.length > 0)
-        bodyRows += `<tr><td colspan="${colSpan}" style="padding:10px 10px 4px;${secLbl}">${tf('instance.sections.friends_in_instance', { count: friendsEnriched.length }, 'FRIENDS IN INSTANCE ({count})')}</td></tr>` + friendsEnriched.map(makeRow).join('');
+        bodyRows += `<tr><td colspan="${colSpan}" style="padding:10px 14px 4px;"><div class="fd-group-rep-label" style="margin:0;">${tf('instance.sections.friends_in_instance', { count: friendsEnriched.length }, 'FRIENDS IN INSTANCE ({count})')}</div></td></tr>` + friendsEnriched.map(makeRow).join('');
     if (othersEnriched.length > 0)
-        bodyRows += `<tr><td colspan="${colSpan}" style="padding:10px 10px 4px;${secLbl}">${tf('instance.sections.players_in_instance', { count: othersEnriched.length }, 'PLAYERS IN INSTANCE ({count})')}</td></tr>` + othersEnriched.map(makeRow).join('');
+        bodyRows += `<tr><td colspan="${colSpan}" style="padding:10px 14px 4px;"><div class="fd-group-rep-label" style="margin:0;">${tf('instance.sections.players_in_instance', { count: othersEnriched.length }, 'PLAYERS IN INSTANCE ({count})')}</div></td></tr>` + othersEnriched.map(makeRow).join('');
 
     const tableHtml = enriched.length > 0
         ? `<div class="iim-scroll"><table class="iim-table">${thead}<tbody>${bodyRows}</tbody></table></div>`

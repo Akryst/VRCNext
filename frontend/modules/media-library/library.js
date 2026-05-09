@@ -546,7 +546,7 @@ function _buildLibCard(x) {
     const blurClass = iH ? ' lib-blurred' : '';
     const idx       = libraryFiles.indexOf(x);
 
-    if (x.type === 'image') {
+    if (x.type === 'image' || x.type === 'gif') {
         let worldBadge = '';
         if (x.worldId) {
             const wInfo  = worldInfoCache[x.worldId];
@@ -574,7 +574,7 @@ function _buildLibCard(x) {
         const thumbSrc = suAttr ? suAttr + '?thumb=1' : '';
         const resTag   = _resTag(x);
         const resBadge = resTag ? `<span class="vrcn-badge accent" style="margin-left:4px;">${resTag}</span>` : '';
-        return `<div class="lib-card" data-path="${esc(x.path||'')}" data-url="${suAttr}" data-type="image" data-name="${esc(x.name||'')}">${acts}<div class="lib-thumb-wrap${blurClass}" onclick="openLightbox('${suJs}','image')"><img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px;font-weight:700\\'>${jsq(t('library.no_preview', 'No Preview'))}</div>'">${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}${worldBadge}${playersOverlay}</div><div class="lib-info" onclick="event.stopPropagation();openPhotoDetail(${idx})" style="cursor:pointer;"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span style="display:flex;align-items:center;">${x.size}${resBadge}</span><span>${x.time}</span></div></div></div>`;
+        return `<div class="lib-card" data-path="${esc(x.path||'')}" data-url="${suAttr}" data-type="${x.type}" data-name="${esc(x.name||'')}">${acts}<div class="lib-thumb-wrap${blurClass}" onclick="openLightbox('${suJs}','image')"><img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px;font-weight:700\\'>${jsq(t('library.no_preview', 'No Preview'))}</div>'">${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}${worldBadge}${playersOverlay}</div><div class="lib-info" onclick="event.stopPropagation();openPhotoDetail(${idx})" style="cursor:pointer;"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span style="display:flex;align-items:center;">${x.size}${resBadge}</span><span>${x.time}</span></div></div></div>`;
     } else {
         const ck     = x.path || '';
         const cached = thumbCache[ck];
@@ -704,21 +704,20 @@ function openPhotoDetail(idx) {
     const timeStr = fmtTime(date);
 
     // Use thumbnail for banner — avoids loading full-res image (30-100 MB) into RAM for a modal
-    const thumbUrl  = imgUrl ? imgUrl + '?thumb=1' : '';
+    const thumbUrl   = imgUrl ? imgUrl + '?thumb=1' : '';
     const bannerHtml = thumbUrl ? `<div class="fd-banner"><img src="${thumbUrl}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>` : '';
 
-    let metaHtml = `<div class="fd-meta">
-        <div class="fd-meta-row"><span class="fd-meta-label">${t('library.detail.date', 'Date')}</span><span>${esc(dateStr)}</span></div>
-        <div class="fd-meta-row"><span class="fd-meta-label">${t('library.detail.time', 'Time')}</span><span>${esc(timeStr)}</span></div>
-        <div class="fd-meta-row"><span class="fd-meta-label">${t('library.detail.size', 'Size')}</span><span>${esc(x.size)}</span></div>`;
-    if (worldName) {
-        metaHtml += `<div class="fd-meta-row" style="cursor:pointer;" onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(worldId)}')"><span class="fd-meta-label">${t('library.detail.world', 'World')}</span><span style="color:var(--accent-lt);">${esc(worldName)}</span></div>`;
-    }
-    metaHtml += `</div>`;
+    const worldRowClick = worldId ? ` onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(worldId)}')" style="cursor:pointer;"` : '';
+    const infoRows = [
+        _tlMr(esc(t('library.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('library.detail.time', 'Time')), esc(timeStr)),
+        _tlMr(esc(t('library.detail.size', 'Size')), esc(x.size)),
+        worldName ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"${worldRowClick}><span style="color:var(--tx3);">${esc(t('library.detail.world', 'World'))}</span><span style="color:var(--accent-lt);text-align:right;">${esc(worldName)}</span></div>` : '',
+    ].filter(Boolean).join('');
 
     let playersHtml = '';
     if (players.length > 0) {
-        playersHtml = `<div style="font-size:10px;font-weight:700;color:var(--tx3);padding:8px 0 4px;letter-spacing:.05em;">${tf('library.detail.players_title', { count: players.length }, 'PLAYERS IN INSTANCE ({count})')}</div><div class="photo-players-list">`;
+        playersHtml = `<div class="fd-group-rep-label" style="margin:14px 0 8px;">${tf('library.detail.players_title', { count: players.length }, 'PLAYERS IN INSTANCE ({count})')}</div><div class="photo-players-list">`;
         players.forEach(p => {
             const onclick = p.userId ? `document.getElementById('modalDetail').style.display='none';openFriendDetail('${jsq(p.userId)}')` : '';
             const isOwn = currentVrcUser && p.userId === currentVrcUser.id;
@@ -728,11 +727,16 @@ function openPhotoDetail(idx) {
         playersHtml += `</div>`;
     }
 
-    el.innerHTML = `${bannerHtml}<div class="fd-content${imgUrl ? ' fd-has-banner' : ''}" style="padding:20px;">
-        <h2 style="margin:0 0 12px;color:var(--tx0);font-size:16px;">${esc(x.name)}</h2>
-        ${metaHtml}${playersHtml}
-        <div style="margin-top:14px;text-align:right;"><button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${t('common.close', 'Close')}</button></div>
+    el.innerHTML = `${bannerHtml}<div class="fd-content${imgUrl ? ' fd-has-banner' : ''}" style="padding:20px 0;">
+        <h2 style="margin:0 0 12px;color:var(--tx0);font-size:18px;">${esc(x.name)}</h2>
+        ${_tlInfoCard(esc(t('library.detail.info', 'Info')), infoRows)}
+        ${playersHtml}
+        <div style="margin-top:14px;display:flex;gap:8px;">
+            ${_tlClose()}
+        </div>
     </div>`;
+    const _libMb = document.querySelector('#modalDetail .modal-box');
+    if (_libMb) _libMb.classList.add('narrow');
     document.getElementById('modalDetail').style.display = 'flex';
 }
 

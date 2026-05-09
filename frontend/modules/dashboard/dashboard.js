@@ -298,24 +298,28 @@ function renderDashFriendsLocationSmall() {
         const { worldId } = parseFriendLocation(f.location);
         const cached   = worldId ? dashWorldCache[worldId] : null;
         const thumb    = cached?.thumbnailImageUrl || cached?.imageUrl || '';
-        const wname    = cached?.name || t('dashboard.friends.location_world', 'In World');
+        const wname    = esc(cached?.name || t('dashboard.friends.location_world', 'In World'));
         const wid      = (worldId || '').replace(/'/g, "\\'");
         const safeLoc  = (f.location || '').replace(/'/g, "\\'");
         const img      = f.image || '';
-        const imgTag   = img
-            ? `<img class="dash-feed-avatar" src="${img}" onerror="this.style.display='none'">`
-            : `<div class="dash-feed-avatar" style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:rgba(255,255,255,.6)">${esc((f.displayName||'?')[0])}</div>`;
         const dotClass = f.presence === 'web' ? 'vrc-status-ring' : 'vrc-status-dot';
-        const fid      = (f.id || '').replace(/'/g, "\\'");
-        return `<div class="dash-floc-card" onclick="openFriendLocationDetail('${wid}','${safeLoc}')">
-            <div class="dash-floc-bg"${thumb ? ` style="background-image:url('${cssUrl(thumb)}')"` : ''}></div>
-            <div class="dash-floc-scrim"></div>
-            ${imgTag}
-            <div class="dash-feed-info">
-                <div class="dash-feed-name"><span class="${dotClass} ${statusDotClass(f.status)}" style="width:7px;height:7px;"></span>${esc(f.displayName)}</div>
-                <div class="dash-feed-status">${esc(f.statusDescription || statusLabel(f.status))}</div>
-                <div class="dash-feed-loc">${esc(wname)}</div>
+        const avatarEl = img
+            ? `<img class="dash-flocs-avatar" src="${img}" onerror="this.style.display='none'">`
+            : `<div class="dash-flocs-avatar dash-flocs-avatar-letter">${esc((f.displayName||'?')[0])}</div>`;
+        const worldThumb = thumb
+            ? `<img class="dash-flocs-world-thumb" src="${cssUrl(thumb)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+            : '';
+        return `<div class="dash-flocs-card" onclick="openFriendLocationDetail('${wid}','${safeLoc}')">
+            <div class="dash-flocs-avatar-wrap">
+                ${avatarEl}
+                <span class="${dotClass} ${statusDotClass(f.status)} dash-flocs-dot"></span>
             </div>
+            <div class="dash-flocs-info">
+                <div class="dash-flocs-name">${esc(f.displayName)}</div>
+                <div class="dash-flocs-status">${esc(f.statusDescription || statusLabel(f.status))}</div>
+                <div class="dash-flocs-world"><span class="msi">public</span>${wname}</div>
+            </div>
+            ${worldThumb}
         </div>`;
     }).join('');
 }
@@ -389,6 +393,69 @@ function removeMyInstance(location) {
     renderMyInstances(_myInstancesData);
     closeMyInstanceDetail();
     showToast(true, t('dashboard.instances.removed', 'Instance removed.'));
+}
+
+/* === VRChat News Widget === */
+
+const _VRC_NEWS_TTL = 30 * 60 * 1000;
+let _vrcNewsCache   = { items: [], ts: 0 };
+let _vrcNewsLoading = false;
+
+function _fetchVrcNews() {
+    if (_vrcNewsLoading) return;
+    if (Date.now() - _vrcNewsCache.ts < _VRC_NEWS_TTL && _vrcNewsCache.items.length) {
+        renderDashVrcNews();
+        return;
+    }
+    _vrcNewsLoading = true;
+    renderDashVrcNews();
+    sendToCS({ action: 'vrcGetNews' });
+}
+
+function onVrcNews(items) {
+    _vrcNewsLoading = false;
+    _vrcNewsCache   = { items: items || [], ts: Date.now() };
+    renderDashVrcNews();
+}
+
+function _fmtNewsDate(str) {
+    if (!str) return '';
+    try {
+        const d = new Date(str);
+        if (isNaN(d.getTime())) return '';
+        return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch { return ''; }
+}
+
+function renderDashVrcNews() {
+    const el = document.getElementById('dashVrcNewsGrid');
+    if (!el) return;
+    if (_vrcNewsLoading && !_vrcNewsCache.items.length) {
+        el.innerHTML = `<div class="empty-msg">${t('dashboard.news.loading', 'Loading news...')}</div>`;
+        return;
+    }
+    if (!_vrcNewsCache.items.length) {
+        el.innerHTML = `<div class="empty-msg">${t('dashboard.news.empty', 'No news available')}</div>`;
+        return;
+    }
+    el.innerHTML = _vrcNewsCache.items.map(item => `
+        <div class="dash-news-card" onclick="sendToCS({action:'openUrl',url:'${jsq(item.link)}'})">
+            ${item.img ? `<div class="dash-news-img-wrap"><img class="dash-news-img" src="${esc(item.img)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'"></div>` : ''}
+            <div class="dash-news-body">
+                <div class="dash-news-title">${esc(item.title)}</div>
+                ${item.excerpt ? `<div class="dash-news-excerpt">${esc(item.excerpt)}</div>` : ''}
+                <div class="dash-news-meta">${esc(_fmtNewsDate(item.pubDate))}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function refreshDashVrcNews() {
+    const btn = document.getElementById('dashVrcNewsRefreshBtn');
+    if (btn) btn.classList.add('spinning');
+    _vrcNewsCache = { items: [], ts: 0 };
+    _fetchVrcNews();
+    setTimeout(() => { if (btn) btn.classList.remove('spinning'); }, 1500);
 }
 
 /* === Discovery Section === */
@@ -916,26 +983,31 @@ function renderDashGroupActivityInstancesSmall() {
         return;
     }
     el.innerHTML = _dashGroupInstances.slice(0, 24).map(inst => {
-        const thumb    = inst.worldThumb || '';
-        const wname    = inst.worldName || t('dashboard.instances.unknown_world', 'Unknown World');
-        const gname    = inst.groupName || '';
-        const loc      = (inst.location || '').replace(/'/g, "\\'");
-        const users    = inst.capacity > 0 ? `${inst.userCount}/${inst.capacity}` : (inst.userCount ? String(inst.userCount) : '');
+        const thumb  = inst.worldThumb || '';
+        const wname  = esc(inst.worldName || t('dashboard.instances.unknown_world', 'Unknown World'));
+        const gname  = esc(inst.groupName || '');
+        const loc    = (inst.location || '').replace(/'/g, "\\'");
+        const users  = inst.capacity > 0 ? `${inst.userCount}/${inst.capacity}` : (inst.userCount ? String(inst.userCount) : '');
+        const isAgeGated = (inst.location || '').includes('~ageGate');
         const iconHtml = inst.groupIcon
-            ? `<img class="dash-feed-avatar" src="${inst.groupIcon}" onerror="this.style.display='none'">`
-            : `<div class="dash-feed-avatar" style="display:flex;align-items:center;justify-content:center;"><span class="msi" style="font-size:14px;color:rgba(255,255,255,.6)">group</span></div>`;
-        const gaSmAgeGate = (inst.location || '').includes('~ageGate')
-            ? `<span class="vrcn-badge" style="position:absolute;top:6px;right:8px;z-index:2;background:rgba(255,75,85,.15);color:var(--err);">${esc(t('worlds.instances.age_gated', 'Age Gated'))}</span>` : '';
-        return `<div class="dash-floc-card" onclick="openGroupInstanceDetail('${loc}')">
-            <div class="dash-floc-bg"${thumb ? ` style="background-image:url('${cssUrl(thumb)}')"` : ''}></div>
-            <div class="dash-floc-scrim"></div>
-            ${gaSmAgeGate}
-            ${iconHtml}
-            <div class="dash-feed-info">
-                <div class="dash-feed-name">${esc(gname)}</div>
-                <div class="dash-feed-status">${esc(wname)}</div>
-                <div class="dash-feed-loc">${users ? `<span class="msi" style="font-size:10px;vertical-align:middle;">person</span> ${esc(users)}` : ''}</div>
+            ? `<img class="dash-flocs-avatar" src="${inst.groupIcon}" onerror="this.style.display='none'">`
+            : `<div class="dash-flocs-avatar dash-flocs-avatar-letter"><span class="msi" style="font-size:16px;">group</span></div>`;
+        const worldThumb = thumb
+            ? `<img class="dash-flocs-world-thumb" src="${cssUrl(thumb)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+            : '';
+        const ageGateBadge = isAgeGated
+            ? `<span class="vrcn-badge" style="font-size:9px;background:rgba(255,75,85,.12);color:var(--err);border:1px solid rgba(255,75,85,.25);padding:1px 5px;flex-shrink:0;">18+</span>`
+            : '';
+        return `<div class="dash-flocs-card" onclick="openGroupInstanceDetail('${loc}')">
+            <div class="dash-flocs-avatar-wrap">
+                ${iconHtml}
             </div>
+            <div class="dash-flocs-info">
+                <div class="dash-flocs-name">${gname}</div>
+                <div class="dash-flocs-status">${wname}</div>
+                <div class="dash-flocs-world">${users ? `<span class="msi">person</span>${esc(users)}` : ''}${ageGateBadge}</div>
+            </div>
+            ${worldThumb}
         </div>`;
     }).join('');
 }
@@ -1055,28 +1127,29 @@ function renderDashRecentTimeline() {
 /* === Dashboard Layout System === */
 
 const DASH_SECTION_META = [
-    { id: 'quick_controls',          nameKey: 'dashboard.section.quick_controls',          name: 'Quick Controls' },
     { id: 'my_instances',            nameKey: 'dashboard.section.my_instances',            name: 'Your Instances' },
-    { id: 'friend_locations',        nameKey: 'dashboard.section.friend_locations',        name: 'Friends Locations' },
+    { id: 'vrchat_news',             nameKey: 'dashboard.section.vrchat_news',             name: 'VRChat News' },
+    { id: 'upcoming_events',         nameKey: 'dashboard.section.upcoming_events',         name: 'Upcoming Events' },
+    { id: 'group_activity_small',    nameKey: 'dashboard.section.group_activity_small',    name: 'Group Activity (Small)' },
     { id: 'friend_locations_small',  nameKey: 'dashboard.section.friend_locations_small',  name: 'Friends Location (Small)' },
+    { id: 'recently_visited',        nameKey: 'dashboard.section.recently_visited',        name: 'Recently Visited' },
+    { id: 'recent_photos',           nameKey: 'dashboard.section.recent_photos',           name: 'Recent Photos' },
+    { id: 'quick_controls',          nameKey: 'dashboard.section.quick_controls',          name: 'Quick Controls' },
+    { id: 'friend_locations',        nameKey: 'dashboard.section.friend_locations',        name: 'Friends Locations' },
     { id: 'discovery',               nameKey: 'dashboard.section.discovery',               name: 'Discover Worlds' },
     { id: 'friend_activity',         nameKey: 'dashboard.section.friend_activity',         name: 'Friends Activity' },
     { id: 'fav_worlds',              nameKey: 'dashboard.section.fav_worlds',              name: 'Favorite Worlds' },
     { id: 'fav_avatars',             nameKey: 'dashboard.section.fav_avatars',             name: 'Favorite Avatars' },
     { id: 'own_avatars',             nameKey: 'dashboard.section.own_avatars',             name: 'My Avatars' },
-    { id: 'recent_photos',           nameKey: 'dashboard.section.recent_photos',           name: 'Recent Photos' },
     { id: 'groups',                  nameKey: 'dashboard.section.your_groups',             name: 'Your Groups' },
     { id: 'group_activity',          nameKey: 'dashboard.section.group_activity',          name: 'Group Activity' },
-    { id: 'group_activity_small',    nameKey: 'dashboard.section.group_activity_small',    name: 'Group Activity (Small)' },
-    { id: 'upcoming_events',         nameKey: 'dashboard.section.upcoming_events',         name: 'Upcoming Events' },
-    { id: 'recently_visited',        nameKey: 'dashboard.section.recently_visited',        name: 'Recently Visited' },
     { id: 'popular_worlds',          nameKey: 'dashboard.section.popular_worlds',          name: 'Popular Worlds' },
     { id: 'active_worlds',           nameKey: 'dashboard.section.active_worlds',           name: 'Very Active Worlds' },
     { id: 'my_recent_activity',      nameKey: 'dashboard.section.my_recent_activity',      name: 'My Recent Activity' },
     { id: 'friends_recent_activity', nameKey: 'dashboard.section.friends_recent_activity', name: 'Friends Recent Activity' },
 ];
 const DASH_DEFAULT_ORDER   = DASH_SECTION_META.map(s => s.id);
-const DASH_DEFAULT_VISIBLE = new Set(['quick_controls', 'my_instances', 'friend_locations', 'discovery', 'friend_activity']);
+const DASH_DEFAULT_VISIBLE = new Set(['my_instances', 'vrchat_news', 'upcoming_events', 'group_activity_small', 'friend_locations_small', 'recently_visited', 'recent_photos']);
 
 let _dashLayout = {
     order:  [...DASH_DEFAULT_ORDER],
@@ -1125,6 +1198,7 @@ function applyDashLayout() {
         if (!hidden && id === 'my_recent_activity') renderDashMyRecentTimeline();
         if (!hidden && id === 'friends_recent_activity') renderDashFriendsRecentTimeline();
         if (!hidden && id === 'upcoming_events') { renderDashUpcomingEvents(); if (_dashUpcomingEvents === null && !_dashUpcomingLoading) refreshDashUpcomingEvents(); }
+        if (!hidden && id === 'vrchat_news') { renderDashVrcNews(); if (!_vrcNewsCache.items.length && !_vrcNewsLoading) _fetchVrcNews(); }
     });
 }
 
@@ -1398,42 +1472,48 @@ function renderDashUpcomingEvents() {
 
     const myGroupsList = (typeof myGroups !== 'undefined') ? myGroups : [];
 
-    const cards = _dashUpcomingEvents.slice(0, 3).map(evt => {
+    const cards = _dashUpcomingEvents.slice(0, 4).map(evt => {
         const groupId = jsq(evt.ownerId || evt.groupId || '');
         const eventId = jsq(evt.id || '');
         const title   = esc(evt.title || evt.name || t('calendar.untitled_event', 'Untitled Event'));
         const featured = evt.featured === true || (Array.isArray(evt.tags) && evt.tags.some(tag => /featured/i.test(tag)));
 
+        const startDate = new Date(evt.startsAt || evt.startDateTime || evt.startDate || '');
+        const endDate   = new Date(evt.endsAt || '');
+        const hasStart  = !isNaN(startDate.getTime());
+        const hasEnd    = !isNaN(endDate.getTime());
+        const dateStr   = hasStart ? startDate.toLocaleDateString(getLanguageLocale(), { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+        const timeStr   = hasStart ? fmtTime(startDate) + (hasEnd ? ' – ' + fmtTime(endDate) : '') : '';
+        const whenStr   = [dateStr, timeStr].filter(Boolean).join(' · ');
+
+        const imgSrc = evt.imageUrl || '';
+        const imgHtml = imgSrc
+            ? `<img class="dash-evt-img" src="${imgSrc}" alt="" loading="lazy" onerror="this.style.display='none'">`
+            : `<div class="dash-evt-img dash-evt-img-placeholder"><span class="msi">event</span></div>`;
+
+        const desc = esc(evt.description || '');
+        const featuredBadge = featured
+            ? `<span class="dash-evt-featured"><span class="msi">star</span>${esc(t('dashboard.upcoming.featured', 'Featured'))}</span>`
+            : '';
+
         const gid = evt.ownerId || evt.groupId || '';
         const groupData = myGroupsList.find(g => g.id === gid) || {};
-        const groupIconUrl = evt.group?.iconUrl || groupData.iconUrl || '';
-        const groupName = esc(evt.group?.name || groupData.name || '');
-
-        const startDate = new Date(evt.startsAt || evt.startDateTime || evt.startDate || '');
-        const timeTop = !isNaN(startDate)
-            ? `<div class="cc-time-top"><span class="msi">calendar_today</span>${esc(startDate.toLocaleDateString(getLanguageLocale(), { month: 'short', day: 'numeric' }))} · ${esc(fmtTime(startDate))}</div>`
-            : '';
-        const badgesTop = featured
-            ? `<div class="cc-badges-top"><span class="vrcn-badge warn"><span class="msi" style="font-size:9px;">star</span> ${esc(t('dashboard.upcoming.featured', 'Featured'))}</span></div>`
-            : '';
-
-        const bgStyle = `background-image:url('${evt.imageUrl || 'fallback_cover.png'}')`;
+        const groupName = evt.group?.name || groupData.name || '';
         const groupMeta = groupName
-            ? `<div class="cc-meta">${groupIconUrl ? `<img src="${groupIconUrl}" style="width:12px;height:12px;border-radius:2px;object-fit:cover;flex-shrink:0;vertical-align:middle;margin-right:3px;">` : '<span class="msi">group</span>'}${groupName}</div>`
+            ? `<div class="dash-evt-group"><span class="msi">group</span>${esc(groupName)}</div>`
             : '';
 
-        return `<div class="vrcn-content-card" onclick="openEventDetail('${groupId}','${eventId}')">
-            <div class="cc-bg" style="${bgStyle}"></div>
-            <div class="cc-scrim"></div>
-            ${timeTop}
-            ${badgesTop}
-            <div class="cc-content">
-                <div class="cc-name">${title}</div>
-                ${groupMeta ? `<div class="cc-bottom-row">${groupMeta}</div>` : ''}
+        return `<div class="dash-evt-card" onclick="openEventDetail('${groupId}','${eventId}')">
+            ${imgHtml}
+            <div class="dash-evt-body">
+                <div class="dash-evt-title">${title}${featuredBadge}</div>
+                ${whenStr ? `<div class="dash-evt-when"><span class="msi">calendar_today</span>${esc(whenStr)}</div>` : ''}
+                ${desc ? `<div class="dash-evt-desc">${desc}</div>` : ''}
+                ${groupMeta}
             </div>
         </div>`;
     }).join('');
 
-    grid.innerHTML = `<div class="dash-worlds-grid">${cards}</div>`;
+    grid.innerHTML = `<div class="dash-evt-grid">${cards}</div>`;
 }
 

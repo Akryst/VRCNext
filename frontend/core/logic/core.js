@@ -107,6 +107,7 @@ function applyGuiZoom(z) {
     document.body.style.transformOrigin = 'top left';
     document.body.style.width = `${inv}vw`;
     document.body.style.height = `${inv}vh`;
+    document.documentElement.style.setProperty('--gui-zoom', z);
 }
 document.addEventListener('wheel', e => {
     if (!e.ctrlKey) return;
@@ -157,6 +158,9 @@ let peopleFilter = 'favorites';
 let favFriendsData = []; // [{ fvrtId, favoriteId }]
 let blockedData = null; // null = not yet loaded
 let mutedData = null;
+let hiddenAvatarData = [];
+let interactOffData = [];
+let muteChatData = [];
 // People Tab pagination state
 let _allFriendsStatusFilter = 'all';
 let _peopleAllPage = 0;
@@ -1186,6 +1190,27 @@ function _updateHttpBadge(code) {
     el.style.display = '';
 }
 
+let _cdnCount = 0;
+function _updateCdnBadge() {
+    const el = document.getElementById('cdnBadge');
+    if (!el) return;
+    el.querySelector('.mini-badge-label').textContent = `CDN: ${_cdnCount}`;
+    el.style.display = '';
+}
+
+const _sessionStart = Date.now();
+let _totalGetCount = 0;
+
+function _updateAvgBadges() {
+    const hours = Math.max((Date.now() - _sessionStart) / 3_600_000, 1 / 3600);
+    const aget = Math.round(_totalGetCount / hours);
+    const acdn = Math.round(_cdnCount / hours);
+    const agetEl = document.getElementById('agetBadge');
+    const acdnEl = document.getElementById('acdnBadge');
+    if (agetEl) { agetEl.querySelector('.mini-badge-label').textContent = `AGET/H: ${aget}`; agetEl.style.display = ''; }
+    if (acdnEl) { acdnEl.querySelector('.mini-badge-label').textContent = `ACDN/H: ${acdn}`; acdnEl.style.display = ''; }
+}
+
 let _logShowFull = false;
 let _logSearch   = '';
 
@@ -1203,7 +1228,10 @@ function _applyLogFilter() {
 function toggleLogShowFull() {
     _logShowFull = !_logShowFull;
     const btn = document.getElementById('logShowFullBtn');
-    if (btn) btn.textContent = _logShowFull ? 'Show Last 100' : 'Show Full';
+    if (btn) {
+        const ic = btn.querySelector('.logShowFullIcon'); if (ic) ic.textContent = _logShowFull ? 'unfold_less' : 'unfold_more';
+        const tx = btn.querySelector('.logShowFullText'); if (tx) tx.textContent = _logShowFull ? 'Show Last 100' : 'Show Full';
+    }
     _applyLogFilter();
     if (!_logShowFull) { const a = document.getElementById('logArea'); if (a) a.scrollTop = a.scrollHeight; }
 }
@@ -1230,6 +1258,13 @@ function addLog(m, c) {
     // Suppress pending REST requests — only show the response line (with → NNN)
     if (/\[REST\] (GET|POST|PUT|DELETE|PATCH) /.test(m) && !/→/.test(m)) return;
 
+    // Track CDN image downloads
+    if (m.startsWith('CDN ') || m.startsWith('CDN -')) {
+        _cdnCount++;
+        _updateCdnBadge();
+        _updateAvgBadges();
+    }
+
     // Track HTTP status codes
     let httpLevel = null;
     const statusMatch = m.match(/→ (\d{3})/);
@@ -1239,6 +1274,7 @@ function addLog(m, c) {
         if (code === 200) httpLevel = 'ok';
         else if (code === 429) httpLevel = 'warn';
         else if (code >= 400) httpLevel = 'err';
+        if (/\[REST\].*GET /.test(m)) { _totalGetCount++; _updateAvgBadges(); }
     }
 
     // Bracket-prefix → level label + color class
@@ -1353,14 +1389,13 @@ document.documentElement.addEventListener('languagechange', rerenderVcTranslatio
 function clearLog() {
     _logSearch = ''; _logShowFull = false;
     const si = document.getElementById('logSearchInput'); if (si) si.value = '';
-    const btn = document.getElementById('logShowFullBtn'); if (btn) btn.textContent = 'Show Full';
+    const btn = document.getElementById('logShowFullBtn');
+    if (btn) {
+        const ic = btn.querySelector('.logShowFullIcon'); if (ic) ic.textContent = 'unfold_more';
+        const tx = btn.querySelector('.logShowFullText'); if (tx) tx.textContent = 'Show Full';
+    }
     const a = document.getElementById('logArea');
     if (a) a.innerHTML = '';
-    for (const code in _httpCounts) {
-        _httpCounts[code] = 0;
-        const el = document.getElementById(_httpBadgeIds[code]);
-        if (el) el.style.display = 'none';
-    }
 }
 
 function copyLog() {

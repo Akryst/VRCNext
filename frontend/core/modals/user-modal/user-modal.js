@@ -333,7 +333,22 @@ function renderFdAvatarsPage(page) {
         setMiniPaginator('fdAvatarsPageBar', '');
         return;
     }
-    grid.innerHTML = '<div class="avatar-grid">' + slice.map(a => renderAvatarCard(a, 'search')).join('') + '</div>';
+    grid.innerHTML = '<div class="vrcn-mini-content-grid">' + slice.map(a => {
+        const thumb = a.thumbnailImageUrl || a.imageUrl || '';
+        const aid = jsq(a.id || '');
+        const aname = jsq(a.name || '');
+        const isPublic = a.releaseStatus === 'public';
+        const platBadges = _avPlatformBadges(a);
+        const pubBadge = `<span class="vrcn-badge" style="${isPublic ? '' : 'background:rgba(255,100,100,.15);color:var(--err);'}">${isPublic ? t('avatars.labels.public','Public') : t('avatars.labels.private','Private')}</span>`;
+        return `<div class="vrcn-mini-content" data-avatar-id="${esc(a.id || '')}" onclick="navOpenModal('avatar','${aid}','${aname}')">
+            <div class="vrcn-mini-content-thumb" style="background-image:url('${cssUrl(thumb)}')"></div>
+            <div class="vrcn-mini-content-info">
+                <div class="vrcn-mini-content-name">${esc(a.name || t('avatars.labels.unnamed','Unnamed'))}</div>
+                <div class="vrcn-mini-content-meta">${esc(a.authorName || '')}</div>
+                <div class="vrcn-mini-content-badges">${platBadges}${pubBadge}</div>
+            </div>
+        </div>`;
+    }).join('') + '</div>';
     setMiniPaginator('fdAvatarsPageBar', buildMiniPaginator(page, totalPages, 'fdAvatarsGoPage'));
     _checkAvatarsExist(slice.map(a => a.id).filter(Boolean));
 }
@@ -360,21 +375,18 @@ function renderFdWorldsPage(page) {
         setMiniPaginator('fdWorldsPageBar', '');
         return;
     }
-    let h = `<div class="search-grid">`;
+    let h = `<div class="vrcn-mini-content-grid">`;
     slice.forEach(w => {
         const thumb = w.thumbnailImageUrl || w.imageUrl || '';
         const wid = jsq(w.id);
-        const tags = (w.tags || []).filter(tag => tag.startsWith('author_tag_')).map(tag => tag.replace('author_tag_', '')).slice(0, 3);
-        const tagsHtml = tags.length ? `<div class="cc-tags">${tags.map(tag => `<span class="vrcn-badge">${esc(tag)}</span>`).join('')}</div>` : '';
-        h += `<div class="vrcn-content-card" onclick="navOpenModal('worldSearch','${wid}','${jsq(w.name || '')}')">
-            <div class="cc-bg" style="background-image:url('${cssUrl(thumb)}')"></div>
-            <div class="cc-scrim"></div>
-            <div class="cc-content">
-                <div class="cc-name">${esc(w.name)}</div>
-                <div class="cc-bottom-row">
-                    <div class="cc-meta">${esc(w.authorName || '')} · <span class="msi">person</span>${w.occupants} · <span class="msi">star</span>${w.favorites}</div>
-                    ${tagsHtml}
-                </div>
+        const tags = (w.tags || []).filter(tag => tag.startsWith('author_tag_')).map(tag => tag.replace('author_tag_', '')).slice(0, 2);
+        const tagsHtml = tags.map(tag => `<span class="vrcn-badge">${esc(tag)}</span>`).join('');
+        h += `<div class="vrcn-mini-content" data-world-id="${esc(w.id || '')}" onclick="navOpenModal('worldSearch','${wid}','${jsq(w.name || '')}')">
+            <div class="vrcn-mini-content-thumb" style="background-image:url('${cssUrl(thumb)}')"></div>
+            <div class="vrcn-mini-content-info">
+                <div class="vrcn-mini-content-name">${esc(w.name || '')}</div>
+                <div class="vrcn-mini-content-meta">${esc(w.authorName || '')}<span class="msi">person</span>${w.occupants ?? ''}<span class="msi">star</span>${w.favorites ?? ''}</div>
+                ${tagsHtml ? `<div class="vrcn-mini-content-badges">${tagsHtml}</div>` : ''}
             </div>
         </div>`;
     });
@@ -707,11 +719,11 @@ function renderFriendDetail(d) {
         <span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>
         <p style="margin:10px 0 0;font-size:12px;color:var(--tx3);line-height:1.45;">${t('profiles.trust.description', 'This user has a trusted user standing within the community.')}</p>` : '';
 
-    const _currentWorldCard = _worldPartHtml ? `<div class="fd-info-card">
+    const _currentWorldCard = _worldPartHtml ? `<div class="fd-info-card fd-world-card">
         <div class="fd-group-rep-label">${t('profiles.meta.current_world', 'Current World')}</div>
         ${_worldPartHtml}
     </div>` : '';
-    const _ownerCard = _ownerPartHtml ? `<div class="fd-info-card">
+    const _ownerCard = _ownerPartHtml ? `<div class="fd-info-card fd-owner-card">
         <div class="fd-group-rep-label">${t('instance.owner', 'Instance Owner')}</div>
         ${_ownerPartHtml}
     </div>` : '';
@@ -727,6 +739,7 @@ function renderFriendDetail(d) {
     const _tlCard = `<div class="fd-info-card">${miniTlHtml}</div>`;
     const _infosCard = `<div class="fd-info-card">${_aboutRowsHtml}</div>`;
     const _trustCard = trustSideHtml ? `<div class="fd-info-card">${trustSideHtml}</div>` : '';
+    const _modCard = `<div class="fd-info-card" id="fdModerationCard">${_buildModCardInner(d.id)}</div>`;
     const _topSection = (_currentWorldCard && _ownerCard)
         ? `<div class="fd-info-top-row">${_currentWorldCard}${_ownerCard}</div>`
         : (_currentWorldCard || '');
@@ -734,13 +747,12 @@ function renderFriendDetail(d) {
         ${_topSection}
         <div class="fd-info-cols">
             <div class="fd-info-left">
-                ${_badgesCard}${avatarRowHtml}${_bioCard}
+                ${_badgesCard}${avatarRowHtml}${_bioCard}${_noteCard}
             </div>
             <div class="fd-info-right">
-                ${_infosCard}${_trustCard}
+                ${_infosCard}${_trustCard}${_modCard}
             </div>
         </div>
-        ${_noteCard}
         ${_tlCard}
     </div>`;
 
@@ -830,6 +842,189 @@ function renderFriendDetail(d) {
             if (el) el.textContent = formatDuration(liveSecs);
             else { clearInterval(_fdLiveTimer); _fdLiveTimer = null; }
         }, 1000);
+    }
+}
+
+function patchFriendDetailLive(f) {
+    if (!currentFriendDetail || currentFriendDetail.id !== f.id) return;
+    const c = document.getElementById('friendDetailContent');
+    if (!c) return;
+
+    // displayName
+    if (f.displayName) {
+        const nameEl = c.querySelector('.fd-name');
+        if (nameEl) {
+            const plusBadge = nameEl.querySelector('.vrcn-supporter-badge');
+            nameEl.textContent = f.displayName;
+            if (plusBadge) nameEl.appendChild(plusBadge);
+            currentFriendDetail.displayName = f.displayName;
+        }
+    }
+
+    // avatar image
+    if (f.image) {
+        const avatarEl = c.querySelector('.fd-avatar');
+        if (avatarEl?.tagName === 'IMG') avatarEl.src = f.image;
+        currentFriendDetail.image = f.image;
+    }
+
+    // bio
+    if (f.bio !== undefined) {
+        const bioEl = c.querySelector('.fd-bio');
+        if (bioEl) bioEl.textContent = f.bio;
+        currentFriendDetail.bio = f.bio;
+    }
+
+    // pronouns
+    if (f.pronouns !== undefined) {
+        const prEl = c.querySelector('.fd-pronouns');
+        if (prEl) prEl.textContent = f.pronouns;
+        currentFriendDetail.pronouns = f.pronouns;
+    }
+
+    // bio links
+    if (f.bioLinks) {
+        const linksEl = c.querySelector('.fd-bio-links');
+        if (linksEl) linksEl.innerHTML = f.bioLinks.map(u => renderBioLink(u)).join('');
+        currentFriendDetail.bioLinks = f.bioLinks;
+    }
+
+    // tags → trust rank badge + language tags
+    if (f.tags) {
+        const langEl = c.querySelector('.fd-lang-tags');
+        if (langEl) {
+            const langs = getLanguages(f.tags);
+            langEl.innerHTML = langs.map(l => `<span class="vrcn-badge">${esc(l)}</span>`).join('');
+        }
+        const badgesRow = c.querySelector('.fd-badges-row');
+        if (badgesRow) {
+            const rank = getTrustRank(f.tags);
+            const platBadge = getPlatformBadgeHtml(f.platform || f.lastPlatform || currentFriendDetail.lastPlatform || '');
+            const ageVerified = f.ageVerified ?? currentFriendDetail.ageVerified;
+            let html = '';
+            if (platBadge) html += platBadge;
+            if (currentFriendDetail.isFriend) html += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">check_circle</span>${t('profiles.badges.friend', 'Friend')}</span>`;
+            if (ageVerified) html += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">verified</span>18+</span>`;
+            if (rank) html += `<span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>`;
+            if (f.id) html += idBadge(f.id);
+            badgesRow.innerHTML = html;
+        }
+        currentFriendDetail.tags = f.tags;
+    }
+
+    // banner (profilePicOverride / currentAvatarImageUrl)
+    if (f.profilePicOverride !== undefined || f.currentAvatarImageUrl !== undefined) {
+        const newSrc = f.profilePicOverride || f.currentAvatarImageUrl || currentFriendDetail.profilePicOverride || currentFriendDetail.currentAvatarImageUrl || '';
+        if (newSrc) _getFdBannerImg(f.id, newSrc);
+        if (f.profilePicOverride !== undefined) currentFriendDetail.profilePicOverride = f.profilePicOverride;
+        if (f.currentAvatarImageUrl !== undefined) currentFriendDetail.currentAvatarImageUrl = f.currentAvatarImageUrl;
+    }
+
+    // VRC badges
+    if (f.badges && Array.isArray(f.badges) && f.badges.length > 0) {
+        const vrcBadgesRow = c.querySelector('.fd-vrc-badges-row');
+        if (vrcBadgesRow) {
+            vrcBadgesRow.innerHTML = f.badges.map(b => {
+                const imgUrl = b.imageUrl || b.badgeImageUrl || '';
+                const name   = b.name || b.badgeName || '';
+                const desc   = b.description || b.badgeDescription || '';
+                return `<div class="fd-vrc-badge-wrap" data-badge-img="${esc(imgUrl)}" data-badge-name="${encodeURIComponent(name)}" data-badge-desc="${encodeURIComponent(desc)}">
+                    <img class="fd-vrc-badge-icon" src="${esc(imgUrl)}" alt="${esc(name)}" onerror="this.closest('.fd-vrc-badge-wrap').style.display='none'">
+                </div>`;
+            }).join('');
+        }
+        currentFriendDetail.badges = f.badges;
+    }
+
+    // current world + instance owner
+    if (f.location !== undefined) {
+        const loc          = f.location || '';
+        const worldName    = f.worldName || '';
+        const worldThumb   = f.worldThumb || '';
+        const instanceType = f.instanceType || '';
+        const isOfflineOrPrivate = loc === 'offline' || loc === 'private' || loc === '';
+        const isTraveling        = loc === 'traveling';
+
+        if (isTraveling) {
+            // user is switching — wait for the follow-up push with the new world name
+        } else if (isOfflineOrPrivate) {
+            c.querySelector('.fd-world-card')?.remove();
+            c.querySelector('.fd-owner-card')?.remove();
+            currentFriendDetail.location = loc;
+            currentFriendDetail.worldName = '';
+        } else if (worldName) {
+            // world name is known — update both cards
+            const { worldId: wid, ownerId: newOwnerId } = parseFriendLocation(loc);
+            const instId     = loc.includes(':') ? (loc.split(':')[1] || '').split('~')[0] : '';
+            const regionRaw  = (loc.match(/~region\(([^)]+)\)/) || [])[1] || '';
+            const region     = regionRaw ? getWorldRegionLabel(regionRaw) : '';
+            const onclick    = wid ? `navOpenModal('worldSearch','${jsq(wid)}','${jsq(worldName)}')` : '';
+
+            const instanceItemHtml = renderInstanceItem({
+                thumb: worldThumb, worldName, instanceType,
+                instanceId: instId, region, userCount: 0, capacity: 0, onclick,
+            });
+            const worldInner = `<div class="fd-group-rep-label">${t('profiles.meta.current_world', 'Current World')}</div>${instanceItemHtml}`;
+
+            const existingWorldCard = c.querySelector('.fd-world-card');
+            if (existingWorldCard) {
+                existingWorldCard.innerHTML = worldInner;
+            } else {
+                const newCard = document.createElement('div');
+                newCard.className = 'fd-info-card fd-world-card';
+                newCard.innerHTML = worldInner;
+                const topRow  = c.querySelector('.fd-info-top-row');
+                const infoWrap = c.querySelector('.fd-info-wrap');
+                if (topRow) topRow.insertBefore(newCard, topRow.firstChild);
+                else if (infoWrap) infoWrap.insertBefore(newCard, infoWrap.firstChild);
+            }
+
+            // owner card
+            const existingOwnerCard = c.querySelector('.fd-owner-card');
+            if (newOwnerId && newOwnerId.startsWith('usr_')) {
+                const ownerUser = vrcFriendsData.find(fu => fu.id === newOwnerId);
+                const ownerBody = ownerUser
+                    ? renderProfileItem(ownerUser, `navOpenModal('friend','${jsq(ownerUser.id)}','${jsq(ownerUser.displayName || '')}')`)
+                    : `<div id="fdOwnerSlot" data-owner-id="${esc(newOwnerId)}"><div class="sk-block" style="height:44px;border-radius:8px;"></div></div>`;
+                const ownerInner = `<div class="fd-group-rep-label">${t('instance.owner', 'Instance Owner')}</div>${ownerBody}`;
+                if (existingOwnerCard) {
+                    existingOwnerCard.innerHTML = ownerInner;
+                } else {
+                    const newOwnerCard = document.createElement('div');
+                    newOwnerCard.className = 'fd-info-card fd-owner-card';
+                    newOwnerCard.innerHTML = ownerInner;
+                    const worldCard = c.querySelector('.fd-world-card');
+                    const existingTopRow = c.querySelector('.fd-info-top-row');
+                    if (existingTopRow) {
+                        existingTopRow.appendChild(newOwnerCard);
+                    } else if (worldCard) {
+                        // world card is standalone — wrap both into fd-info-top-row
+                        const row = document.createElement('div');
+                        row.className = 'fd-info-top-row';
+                        worldCard.parentNode.insertBefore(row, worldCard);
+                        row.appendChild(worldCard);
+                        row.appendChild(newOwnerCard);
+                    }
+                }
+                if (!ownerUser) sendToCS({ action: 'vrcGetUserBasic', userId: newOwnerId, contextId: f.id });
+            } else if (existingOwnerCard) {
+                const ownerParent = existingOwnerCard.parentNode;
+                existingOwnerCard.remove();
+                // if world card was in a fd-info-top-row, unwrap it so it goes full width
+                const topRow = c.querySelector('.fd-info-top-row');
+                if (topRow) {
+                    const worldCard = topRow.querySelector('.fd-world-card');
+                    if (worldCard) topRow.parentNode.insertBefore(worldCard, topRow);
+                    topRow.remove();
+                }
+            }
+
+            currentFriendDetail.location     = loc;
+            currentFriendDetail.worldName    = worldName;
+            currentFriendDetail.worldThumb   = worldThumb;
+            currentFriendDetail.instanceType = instanceType;
+        }
+        // if worldName is still empty (cache miss on first push) — no-op, wait for second push
     }
 }
 
@@ -1049,6 +1244,32 @@ function toggleMod(userId, type, btn) {
         ? (type === 'block' ? 'vrcUnblock' : 'vrcUnmute')
         : (type === 'block' ? 'vrcBlock'   : 'vrcMute'),
         userId });
+}
+
+function _buildModCardInner(userId) {
+    const isBlocked     = Array.isArray(blockedData)      && blockedData.some(x => x.targetUserId === userId);
+    const isMuted       = Array.isArray(mutedData)        && mutedData.some(x => x.targetUserId === userId);
+    const isChatMuted   = Array.isArray(muteChatData)     && muteChatData.some(x => x.targetUserId === userId);
+    const isAvatarHid   = Array.isArray(hiddenAvatarData) && hiddenAvatarData.some(x => x.targetUserId === userId);
+    const isInteractOff = Array.isArray(interactOffData)  && interactOffData.some(x => x.targetUserId === userId);
+    const _row = (label, active, activeKey, activeFb, inactiveKey, inactiveFb) =>
+        `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;">
+            <span style="color:var(--tx3);">${label}</span>
+            <span style="color:${active ? 'var(--err)' : 'var(--tx1)'};text-align:right;">${active ? t(activeKey, activeFb) : t(inactiveKey, inactiveFb)}</span>
+        </div>`;
+    return `<div class="fd-group-rep-label">${t('profiles.moderation.title', 'Moderation')}</div>
+        <div style="display:grid;gap:6px;">
+            ${_row(t('profiles.moderation.status','Status'),       isBlocked,     'profiles.moderation.blocked',     'Blocked',   'profiles.moderation.not_blocked','Not Blocked')}
+            ${_row(t('profiles.moderation.voice','Voice'),         isMuted,       'profiles.moderation.muted',       'Muted',     'profiles.moderation.not_muted',  'Not Muted')}
+            ${_row(t('profiles.moderation.chat','Chat'),           isChatMuted,   'profiles.moderation.muted',       'Muted',     'profiles.moderation.not_muted',  'Not Muted')}
+            ${_row(t('profiles.moderation.avatar','Avatar'),       isAvatarHid,   'profiles.moderation.hidden',      'Hidden',    'profiles.moderation.shown',      'Shown')}
+            ${_row(t('profiles.moderation.interactions','Interactions'), isInteractOff, 'profiles.moderation.off', 'Off',       'profiles.moderation.on',         'On')}
+        </div>`;
+}
+
+function renderFdModerationCard(userId) {
+    const card = document.getElementById('fdModerationCard');
+    if (card) card.innerHTML = _buildModCardInner(userId);
 }
 
 function handleUserBasic(payload) {

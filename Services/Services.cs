@@ -408,6 +408,22 @@ public class AppSettings
     // Legacy Window Manager (requires restart, disables chromeless + custom chrome)
     public bool LegacyWindow { get; set; } = false;
 
+    // Window Behavior
+    public bool RememberWindowSize     { get; set; } = false;
+    public bool RememberWindowPosition { get; set; } = false;
+    public int  SavedWindowWidth       { get; set; } = 1100;
+    public int  SavedWindowHeight      { get; set; } = 700;
+    public int  SavedWindowX           { get; set; } = -1;
+    public int  SavedWindowY           { get; set; } = -1;
+
+    // Auto-Backups
+    public bool     RegBackupEnabled    { get; set; } = true;
+    public int      RegBackupDays       { get; set; } = 30;
+    public bool     DbAutoBackupEnabled { get; set; } = true;
+    public int      DbAutoBackupDays    { get; set; } = 60;
+    public DateTime LastRegBackup       { get; set; } = DateTime.MinValue;
+    public DateTime LastDbAutoBackup    { get; set; } = DateTime.MinValue;
+
     // Performance — WebView2/Chromium flags (all require restart)
     public bool GpuAcceleration     { get; set; } = false;
     public bool GpuShaderCache      { get; set; } = false;

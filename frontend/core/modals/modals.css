@@ -5,11 +5,11 @@
     inset: 0;
     background: rgba(0,0,0,.65);
     z-index: 10000;
-    animation: fadeIn .12s ease forwards;
+    animation: fadeIn .10s ease forwards;
     backdrop-filter: blur(4px);
     will-change: opacity;
-    overflow-y: hidden;
-    padding: 20px 0;
+    overflow-y: auto;
+    padding: calc(20px / var(--gui-zoom, 1)) 0;
 }
 
 #modalFriendDetail { z-index: 10001; }
@@ -30,17 +30,21 @@
     padding: 28px 32px 22px;
     width: 460px;
     max-width: 90%;
-    max-height: calc(100vh - 40px);
+    max-height: calc((100vh / var(--gui-zoom, 1)) - 40px);
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-gutter: stable;
     box-shadow: 0 20px 60px rgba(0,0,0,.5);
-    animation: modalPop .18s ease forwards;
+    animation: modalPop .10s ease forwards;
     will-change: transform, opacity;
 }
 
 .modal-box.wide {
     width: 800px;
+}
+
+.modal-box.wide.narrow {
+    width: 560px;
 }
 
 .modal-icon {
@@ -86,6 +90,42 @@
     display: flex;
     gap: 10px;
     justify-content: flex-end;
+}
+
+/* === Shared Navigation Backdrop === */
+
+#modalNavBackdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.65);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    pointer-events: none;
+    will-change: opacity;
+    animation: fadeIn .10s ease forwards;
+}
+
+/* Nav-managed overlays become transparent while shared backdrop is active */
+.modal-nav-active #modalFriendDetail,
+.modal-nav-active #modalWorldDetail,
+.modal-nav-active #modalDetail,
+.modal-nav-active #modalAvatarDetail,
+.modal-nav-active #modalMyInstance {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    animation: none !important;
+}
+
+/* Leave animation for modal boxes during navigation */
+@keyframes modalLeave {
+    from { opacity: 1; transform: scale(1) translateY(0); }
+    to   { opacity: 0; transform: scale(.94) translateY(-8px); }
+}
+
+.modal-box.nav-leaving {
+    animation: modalLeave .10s ease forwards !important;
+    pointer-events: none;
 }
 
 /* === Modal Breadcrumb Navigation (shared across all modal nav bars) === */

@@ -1,3 +1,5 @@
+.modal-box.inv-single-modal { padding: 0; overflow: hidden; }
+
 .inst-invite-bar {
     padding: 8px 10px;
     border-top: 1px solid rgba(255,255,255,.06);

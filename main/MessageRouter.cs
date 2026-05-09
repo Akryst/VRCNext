@@ -400,6 +400,7 @@ public partial class AppShell
                 case "dbAnalyze":
                 case "dbOptimize":
                 case "dbBackup":
+                case "regBackup":
                 case "forceFfcAll":
                 case "setupSaveLanguage":
                 case "setupSaveStartWithWindows":
@@ -597,6 +598,10 @@ public partial class AppShell
                     break;
 
                 case "vrcGetInstanceDetail":
+                    await _instance.HandleMessage(action, msg);
+                    break;
+
+                case "vrcGetWorldInstancesDetail":
                     await _instance.HandleMessage(action, msg);
                     break;
 
@@ -989,6 +994,7 @@ public partial class AppShell
                                 instances           = new List<object>(),
                                 worldTimeSeconds    = wdCached.TotalSeconds,
                                 worldVisitCount     = wdCached.VisitCount,
+                                fromCache           = true,
                             }));
                         }
 
@@ -1010,7 +1016,7 @@ public partial class AppShell
                             }
 
                             // Phase 1 — build raw list with ownerIds
-                            var rawInstances = new List<(string instanceId, int users, string type, string region, string location, string ownerId, bool ageGate)>();
+                            var rawInstances = new List<(string instanceId, int users, string type, string region, string location, string ownerId, bool ageGate, Dictionary<string,double> languageRatio)>();
                             var knownLocations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                             var instArr = world["instances"] as JArray;
                             if (instArr != null)
@@ -1021,13 +1027,16 @@ public partial class AppShell
                                     {
                                         var instId = pair[0]?.ToString() ?? "";
                                         var users = pair[1]?.Value<int>() ?? 0;
+                                        var langRatio = pair.Count >= 3 && pair[2] is JObject lr
+                                            ? lr.ToObject<Dictionary<string, double>>() ?? new()
+                                            : new Dictionary<string, double>();
                                         var (_, _, instType) = VRChatApiService.ParseLocation($"{wdId}:{instId}");
                                         // ~canRequestInvite in raw instance IDs (from world's instances array) is the instance type flag
                                         if (instType == "private" && instId.Contains("~canRequestInvite")) instType = "invite_plus";
                                         var regionMatch = System.Text.RegularExpressions.Regex.Match(instId, @"region\(([^)]+)\)");
                                         var region = regionMatch.Success ? regionMatch.Groups[1].Value : "us";
                                         var loc = $"{wdId}:{instId}";
-                                        rawInstances.Add((instId, users, instType, region, loc, ParseOwnerId(instId), instId.Contains("~ageGate")));
+                                        rawInstances.Add((instId, users, instType, region, loc, ParseOwnerId(instId), instId.Contains("~ageGate"), langRatio));
                                         knownLocations.Add(loc);
                                     }
                                 }
@@ -1055,7 +1064,7 @@ public partial class AppShell
                                     var instType2Final = instType2 == "private" && instData?["canRequestInvite"]?.Value<bool>() == true ? "invite_plus" : instType2;
                                     var regionMatch2 = System.Text.RegularExpressions.Regex.Match(instId2, @"region\(([^)]+)\)");
                                     var region2 = regionMatch2.Success ? regionMatch2.Groups[1].Value : "us";
-                                    rawInstances.Add((instId2, nUsers, instType2Final, region2, loc, ParseOwnerId(instId2), instId2.Contains("~ageGate")));
+                                    rawInstances.Add((instId2, nUsers, instType2Final, region2, loc, ParseOwnerId(instId2), instId2.Contains("~ageGate"), new Dictionary<string, double>()));
                                 }
                             }
 
@@ -1067,13 +1076,43 @@ public partial class AppShell
                             var groupInfoMap = new Dictionary<string, (string name, string shortCode)>();
                             if (uniqueGroupIds.Count > 0)
                             {
-                                var gTasks = uniqueGroupIds.ToDictionary(id => id, id => _core.Groups.GetGroupAsync(id));
-                                try { await Task.WhenAll(gTasks.Values); } catch { }
-                                foreach (var kv in gTasks)
-                                    if (!kv.Value.IsFaulted && kv.Value.Result != null)
-                                        groupInfoMap[kv.Key] = (
-                                            kv.Value.Result["name"]?.ToString() ?? "",
-                                            kv.Value.Result["shortCode"]?.ToString() ?? "");
+                                // Check DB cache first — populated when group was opened manually or on first world-modal load
+                                var uncachedGroupIds = new List<string>();
+                                foreach (var gid in uniqueGroupIds)
+                                {
+                                    var cached = _core.TimeEngine.GetGroupDetail(gid);
+                                    if (cached != null && !string.IsNullOrEmpty(cached.Name))
+                                        groupInfoMap[gid] = (cached.Name, cached.ShortCode);
+                                    else
+                                        uncachedGroupIds.Add(gid);
+                                }
+                                // Only fetch from API for groups not yet in DB
+                                if (uncachedGroupIds.Count > 0)
+                                {
+                                    var gTasks = uncachedGroupIds.ToDictionary(id => id, id => _core.Groups.GetGroupAsync(id));
+                                    try { await Task.WhenAll(gTasks.Values); } catch { }
+                                    foreach (var kv in gTasks)
+                                    {
+                                        if (kv.Value.IsFaulted || kv.Value.Result == null) continue;
+                                        var g = kv.Value.Result;
+                                        var gName  = g["name"]?.ToString()      ?? "";
+                                        var gShort = g["shortCode"]?.ToString() ?? "";
+                                        groupInfoMap[kv.Key] = (gName, gShort);
+                                        // Persist to DB so future world-modal opens skip the API call
+                                        _core.TimeEngine.SaveGroupDetail(kv.Key, gName, gShort,
+                                            g["description"]?.ToString()                       ?? "",
+                                            g["iconUrl"]?.ToString()                           ?? "",
+                                            g["bannerUrl"]?.ToString()                         ?? "",
+                                            g["memberCount"]?.Value<int>()                     ?? 0,
+                                            g["privacy"]?.ToString()                           ?? "",
+                                            g["joinState"]?.ToString()                         ?? "",
+                                            g["ownerId"]?.ToString()                           ?? "",
+                                            g["ownerDisplayName"]?.ToString()                  ?? "",
+                                            g["rules"]?.ToString()                             ?? "",
+                                            g["languages"]?.ToObject<List<string>>()           ?? new(),
+                                            g["links"]?.ToObject<List<string>>()               ?? new());
+                                    }
+                                }
                             }
                             var instances = rawInstances.Select(r => {
                                 var ownerName = "";
@@ -1082,7 +1121,7 @@ public partial class AppShell
                                     { var f = _friends.GetStoreValue(r.ownerId); ownerName = f?["displayName"]?.ToString() ?? ""; }
                                 else if (r.ownerId.StartsWith("grp_") && groupInfoMap.TryGetValue(r.ownerId, out var info))
                                     (ownerName, ownerGroup) = info;
-                                return new { instanceId = r.instanceId, users = r.users, type = r.type, region = r.region, location = r.location, ownerName, ownerGroup, ownerId = r.ownerId, ageGate = r.ageGate };
+                                return new { instanceId = r.instanceId, users = r.users, type = r.type, region = r.region, location = r.location, ownerName, ownerGroup, ownerId = r.ownerId, ageGate = r.ageGate, languageRatio = r.languageRatio };
                             }).ToList<object>();
                             var tags = world["tags"]?.ToObject<List<string>>() ?? new();
                             var (wTimeSeconds, wVisitCount, wLastVisited) = _timeEngine.GetWorldStats(world["id"]?.ToString() ?? "");
@@ -1121,18 +1160,30 @@ public partial class AppShell
                             var (pcFileId, pcVer) = ParseAssetUrl(pcAssetUrl);
                             var (andFileId, andVer) = ParseAssetUrl(androidAssetUrl);
 
-                            JObject? pcFileObj = null, andFileObj = null;
-                            var fileTasks = new List<Task>();
-                            if (!string.IsNullOrEmpty(pcFileId))
-                                fileTasks.Add(Task.Run(async () => pcFileObj = await _core.Files.GetFileAsync(pcFileId)));
-                            if (!string.IsNullOrEmpty(andFileId) && andFileId != pcFileId)
-                                fileTasks.Add(Task.Run(async () => andFileObj = await _core.Files.GetFileAsync(andFileId)));
-                            else if (andFileId == pcFileId)
-                                fileTasks.Add(Task.Run(() => { andFileObj = pcFileObj; return Task.CompletedTask; }));
-                            if (fileTasks.Count > 0) await Task.WhenAll(fileTasks);
-
-                            long pcSize = ExtractSizeFromFile(pcFileObj, pcVer);
-                            long androidSize = ExtractSizeFromFile(andFileObj, andVer);
+                            // Use cached sizes when world version hasn't changed — skips 2 file API calls.
+                            var newVersion = world["version"]?.Value<int>() ?? 0;
+                            var sizeCache  = _timeEngine.GetWorldDetail(world["id"]?.ToString() ?? "");
+                            long pcSize, androidSize;
+                            if (sizeCache != null && sizeCache.Version == newVersion
+                                && (sizeCache.PcSize > 0 || sizeCache.AndroidSize > 0))
+                            {
+                                pcSize      = sizeCache.PcSize;
+                                androidSize = sizeCache.AndroidSize;
+                            }
+                            else
+                            {
+                                JObject? pcFileObj = null, andFileObj = null;
+                                var fileTasks = new List<Task>();
+                                if (!string.IsNullOrEmpty(pcFileId))
+                                    fileTasks.Add(Task.Run(async () => pcFileObj = await _core.Files.GetFileAsync(pcFileId)));
+                                if (!string.IsNullOrEmpty(andFileId) && andFileId != pcFileId)
+                                    fileTasks.Add(Task.Run(async () => andFileObj = await _core.Files.GetFileAsync(andFileId)));
+                                else if (andFileId == pcFileId)
+                                    fileTasks.Add(Task.Run(() => { andFileObj = pcFileObj; return Task.CompletedTask; }));
+                                if (fileTasks.Count > 0) await Task.WhenAll(fileTasks);
+                                pcSize      = ExtractSizeFromFile(pcFileObj, pcVer);
+                                androidSize = ExtractSizeFromFile(andFileObj, andVer);
+                            }
                             static string ToIso(JToken? t)
                             {
                                 var s = t?.ToString();
@@ -1211,6 +1262,22 @@ public partial class AppShell
                         _ = Task.Run(async () =>
                         {
                             var (ok, error) = await _core.Avatars.UpdateAvatarAsync(avId, avName, avDesc, avStatus, avTags);
+                            if (ok)
+                            {
+                                var ex = _timeEngine.GetAvatarDetail(avId);
+                                if (ex != null)
+                                {
+                                    _timeEngine.SaveAvatarDetail(
+                                        avId, avName, ex.AuthorName, ex.AuthorId,
+                                        ex.ThumbnailImageUrl, ex.ImageUrl,
+                                        avStatus, ex.Version,
+                                        ex.CreatedAt, ex.UpdatedAt,
+                                        avDesc, avTags,
+                                        ex.HasPC, ex.HasQuest, ex.HasImpostor,
+                                        ex.PcPerf, ex.QuestPerf);
+                                    ModalCacheHelper.Invalidate(avId);
+                                }
+                            }
                             Invoke(() => SendToJS("vrcAvatarUpdateResult", new
                             {
                                 ok,
@@ -1240,6 +1307,8 @@ public partial class AppShell
                                 tags = avdCached.Tags, hasPC = avdCached.HasPC, hasQuest = avdCached.HasQuest,
                                 hasImpostor = avdCached.HasImpostor, pcPerf = avdCached.PcPerf, questPerf = avdCached.QuestPerf,
                             }));
+                        if (ModalCacheHelper.IsCached(avdId)) break;
+                        ModalCacheHelper.Mark(avdId);
                         _ = Task.Run(async () =>
                         {
                             var avatar = await _core.Avatars.GetAvatarAsync(avdId);
@@ -1765,6 +1834,13 @@ public partial class AppShell
                 case "vrcMute":
                 case "vrcUnblock":
                 case "vrcUnmute":
+                case "vrcHideAvatar":
+                case "vrcShowAvatar":
+                case "vrcInteractOff":
+                case "vrcInteractOn":
+                case "vrcMuteChat":
+                case "vrcUnmuteChat":
+                case "vrcGetAllModerations":
                 case "vrcBoop":
                 case "vrcSendChatMessage":
                 case "vrcGetChatHistory":
@@ -1844,6 +1920,8 @@ public partial class AppShell
 
                 // Notifications delegated to NotificationsController
                 case "vrcGetNotifications":
+                case "vrcGetHiddenNotifications":
+                case "vrcGetAllNotifications":
                 case "vrcAcceptNotification":
                 case "vrcMarkNotifRead":
                 case "vrcHideNotification":
@@ -2370,6 +2448,34 @@ public partial class AppShell
                 case "vroRecordScaleKeybind":
                 case "vroCancelScaleRecording":
                     await _vroCtrl.HandleMessage(action, msg);
+                    break;
+
+                case "vrcGetNews":
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            using var http = new System.Net.Http.HttpClient();
+                            http.DefaultRequestHeaders.Add("User-Agent", AppInfo.UserAgent);
+                            http.DefaultRequestHeaders.Add("Accept", "application/json");
+                            var json = await http.GetStringAsync("https://ask.vrchat.com/c/official/31.json");
+                            var data = JObject.Parse(json);
+                            var topics = data["topic_list"]?["topics"] as JArray ?? new JArray();
+                            var items = topics.Take(3).Select(t => new
+                            {
+                                title   = t["title"]?.ToString() ?? "",
+                                link    = $"https://ask.vrchat.com/t/{t["slug"]}/{t["id"]}",
+                                pubDate = t["created_at"]?.ToString() ?? "",
+                                img     = t["image_url"]?.ToString() ?? "",
+                                excerpt = t["excerpt"]?.ToString() ?? "",
+                            }).ToArray();
+                            Invoke(() => SendToJS("vrcNews", new { items }));
+                        }
+                        catch (Exception ex)
+                        {
+                            Invoke(() => SendToJS("log", new { msg = $"[News] fetch failed: {ex.Message}", color = "warn" }));
+                        }
+                    });
                     break;
             }
         }

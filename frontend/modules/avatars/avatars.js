@@ -214,6 +214,22 @@ function _markDeletedAvatars(deletedIds) {
                 thumb.appendChild(badge);
             }
         });
+        document.querySelectorAll(`.vrcn-mini-content[data-avatar-id="${id}"]`).forEach(card => {
+            if (card.dataset.deleted) return;
+            card.dataset.deleted = '1';
+            card.style.pointerEvents = 'none';
+            card.style.opacity = '0.5';
+            const thumb = card.querySelector('.vrcn-mini-content-thumb');
+            if (thumb) thumb.style.filter = 'grayscale(1) brightness(0.4)';
+            const badges = card.querySelector('.vrcn-mini-content-badges');
+            if (badges) {
+                const badge = document.createElement('span');
+                badge.className = 'vrcn-badge';
+                badge.style.cssText = 'background:rgba(0,0,0,.75);color:var(--err);';
+                badge.innerHTML = `<span class="msi" style="font-size:10px;">delete</span> ${t('avatars.labels.deleted', 'Deleted')}`;
+                badges.prepend(badge);
+            }
+        });
     });
 }
 

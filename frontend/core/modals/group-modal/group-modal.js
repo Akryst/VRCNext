@@ -21,6 +21,8 @@ const _groupDetailCache = {};
 
 function openGroupDetail(groupId) {
     if (typeof navSetCurrent === 'function') navSetCurrent('group', groupId);
+    const _gpMb = document.querySelector('#modalDetail .modal-box');
+    if (_gpMb) _gpMb.classList.remove('narrow');
     document.getElementById('modalDetail').style.display = 'flex';
     const cached = _groupDetailCache[groupId];
     if (cached) {
@@ -352,21 +354,23 @@ function renderGroupDetail(g) {
     if (instances.length === 0) {
         instancesTab = `<div style="padding:20px;text-align:center;font-size:12px;color:var(--tx3);">${t('groups.empty.no_active_instances', 'No active instances')}</div>`;
     } else {
-        instances.forEach(inst => {
-            const thumbHtml = inst.worldThumb ? `<img style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;" src="${inst.worldThumb}" onerror="this.style.display='none'">` : '';
-            const users = inst.userCount > 0
-                ? (inst.capacity > 0
-                    ? `${inst.userCount}/${inst.capacity}`
-                    : (inst.userCount === 1
-                        ? tf('groups.instances.user_one', { count: inst.userCount }, '{count} user')
-                        : tf('groups.instances.user_other', { count: inst.userCount }, '{count} users')))
-                : '';
-            const loc = (inst.location || '').replace(/'/g, "\\'");
-            instancesTab += `<div class="fd-group-card" onclick="sendToCS({action:'vrcJoinFriend',location:'${loc}'})">
-                ${thumbHtml}<div class="fd-group-card-info"><div class="fd-group-card-name">${esc(inst.worldName || t('dashboard.instances.unknown_world', 'Unknown World'))}</div><div class="fd-group-card-meta">${users}</div></div>
-                <button class="vrcn-button-round vrcn-btn-join" onclick="event.stopPropagation();sendToCS({action:'vrcJoinFriend',location:'${loc}'})"><span class="msi" style="font-size:14px;">login</span>${t('common.join', 'Join')}</button>
-            </div>`;
+        const cards = instances.map(inst => {
+            const { instanceType, instanceId: parsedInstId } = parseFriendLocation(inst.location || '');
+            const regionMatch = (inst.instanceId || '').match(/region\(([^)]+)\)/);
+            const region = regionMatch ? regionMatch[1] : '';
+            return renderInstanceItem({
+                thumb:        inst.worldThumb || '',
+                worldTitle:   inst.worldName || t('dashboard.instances.unknown_world', 'Unknown World'),
+                instanceType: instanceType || 'group',
+                instanceId:   inst.instanceId || '',
+                region:       getWorldRegionLabel(region),
+                userCount:    inst.userCount || 0,
+                capacity:     inst.capacity  || 0,
+                location:     inst.location  || '',
+                ageGate:      (inst.instanceId || '').includes('~ageGate'),
+            });
         });
+        instancesTab = `<div style="display:flex;flex-direction:column;gap:6px;padding:4px 0;">${cards.join('')}</div>`;
     }
 
     // Tab: Gallery

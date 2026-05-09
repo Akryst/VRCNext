@@ -48,6 +48,7 @@ window.external.receiveMessage(rawMsg => {
             case 'dbOptimizeProgress':handleDbOptimizeProgress(payload); break;
             case 'dbOptimizeDone':    handleDbOptimizeDone(payload); break;
             case 'dbBackupDone':      handleDbBackupDone(payload); break;
+            case 'regBackupDone':     handleRegBackupDone(payload); break;
             case 'log': addLog(payload.msg, payload.color); break;
             case 'consoleOutput': addLog(payload.text, payload.color); break;
             case 'debugImgCacheState':
@@ -136,6 +137,7 @@ window.external.receiveMessage(rawMsg => {
                 refreshNotifications();
                 { const vp = document.getElementById('badgeVrcPlus');
                   if (vp) { const isVrcPlus = Array.isArray(payload.tags) && payload.tags.includes('system_supporter'); vp.style.display = isVrcPlus ? '' : 'none'; } }
+                sendToCS({ action: 'vrcGetAllModerations' });
                 break;
             case 'vrcCredits': {
                 const bc = document.getElementById('badgeVrcCredits');
@@ -166,6 +168,7 @@ window.external.receiveMessage(rawMsg => {
                 else vrcFriendsData.push(payload);
                 renderVrcFriends(vrcFriendsData);
                 if (favFriendsData.length > 0) filterFavFriends();
+                if (typeof patchFriendDetailLive === 'function') patchFriendDetailLive(payload);
                 break;
             }
             case 'vrcFriends':
@@ -393,6 +396,15 @@ window.external.receiveMessage(rawMsg => {
                 mutedData = Array.isArray(payload) ? payload : [];
                 renderModList('mutedList', mutedData, 'mute');
                 break;
+            case 'vrcHideAvatarList':
+                hiddenAvatarData = Array.isArray(payload) ? payload : [];
+                break;
+            case 'vrcInteractOffList':
+                interactOffData = Array.isArray(payload) ? payload : [];
+                break;
+            case 'vrcMuteChatList':
+                muteChatData = Array.isArray(payload) ? payload : [];
+                break;
             case 'vrcModDone': {
                 const { userId: modUid, type: modType, active: modActive } = payload;
                 const modName = (currentFriendDetail && currentFriendDetail.id === modUid)
@@ -400,27 +412,50 @@ window.external.receiveMessage(rawMsg => {
                     : modUid;
                 const modImage = (currentFriendDetail && currentFriendDetail.id === modUid)
                     ? (currentFriendDetail.image || '') : '';
+                const _modEntry = { targetUserId: modUid, targetDisplayName: modName, image: modImage };
                 if (modType === 'block') {
                     if (modActive) {
                         if (!Array.isArray(blockedData)) blockedData = [];
-                        if (!blockedData.some(e => e.targetUserId === modUid))
-                            blockedData.push({ targetUserId: modUid, targetDisplayName: modName, image: modImage });
+                        if (!blockedData.some(e => e.targetUserId === modUid)) blockedData.push(_modEntry);
                     } else {
                         blockedData = (blockedData || []).filter(e => e.targetUserId !== modUid);
                     }
                     renderModList('blockedList', blockedData, 'block');
-                } else {
+                } else if (modType === 'mute') {
                     if (modActive) {
                         if (!Array.isArray(mutedData)) mutedData = [];
-                        if (!mutedData.some(e => e.targetUserId === modUid))
-                            mutedData.push({ targetUserId: modUid, targetDisplayName: modName, image: modImage });
+                        if (!mutedData.some(e => e.targetUserId === modUid)) mutedData.push(_modEntry);
                     } else {
                         mutedData = (mutedData || []).filter(e => e.targetUserId !== modUid);
                     }
                     renderModList('mutedList', mutedData, 'mute');
+                } else if (modType === 'hideAvatar') {
+                    if (modActive) {
+                        if (!hiddenAvatarData.some(e => e.targetUserId === modUid)) hiddenAvatarData.push(_modEntry);
+                        showToast(true, t('context_menu.friend.hide_avatar', 'Hide Avatar'));
+                    } else {
+                        hiddenAvatarData = hiddenAvatarData.filter(e => e.targetUserId !== modUid);
+                        showToast(true, t('context_menu.friend.show_avatar', 'Show Avatar'));
+                    }
+                } else if (modType === 'interactOff') {
+                    if (modActive) {
+                        if (!interactOffData.some(e => e.targetUserId === modUid)) interactOffData.push(_modEntry);
+                        showToast(true, t('context_menu.friend.interact_off', 'Turn Off Interactions'));
+                    } else {
+                        interactOffData = interactOffData.filter(e => e.targetUserId !== modUid);
+                        showToast(true, t('context_menu.friend.interact_on', 'Turn On Interactions'));
+                    }
+                } else if (modType === 'muteChat') {
+                    if (modActive) {
+                        if (!muteChatData.some(e => e.targetUserId === modUid)) muteChatData.push(_modEntry);
+                        showToast(true, t('context_menu.friend.mute_chat', 'Mute Chat'));
+                    } else {
+                        muteChatData = muteChatData.filter(e => e.targetUserId !== modUid);
+                        showToast(true, t('context_menu.friend.unmute_chat', 'Unmute Chat'));
+                    }
                 }
-                // Update buttons in open detail modal
-                const btn = document.getElementById(modType === 'block' ? 'fdBlockBtn' : 'fdMuteBtn');
+                // Update legacy header buttons
+                const btn = document.getElementById(modType === 'block' ? 'fdBlockBtn' : modType === 'mute' ? 'fdMuteBtn' : null);
                 if (btn) {
                     btn.classList.toggle('active', modActive);
                     btn.title = modActive
@@ -429,6 +464,9 @@ window.external.receiveMessage(rawMsg => {
                     const icon = btn.querySelector('.msi');
                     if (icon) icon.textContent = modType === 'block' ? (modActive ? 'block' : 'shield') : (modActive ? 'mic_off' : 'mic');
                 }
+                // Refresh moderation card in open profile modal
+                if (typeof renderFdModerationCard === 'function' && currentFriendDetail && currentFriendDetail.id === modUid)
+                    renderFdModerationCard(modUid);
                 break;
             }
             case 'vrcAvatars':
@@ -655,7 +693,10 @@ window.external.receiveMessage(rawMsg => {
                     renderDashboard();
                 }
                 break;
-case 'popularWorlds':
+case 'vrcNews':
+                if (typeof onVrcNews === 'function') onVrcNews(payload.items);
+                break;
+            case 'popularWorlds':
                 onPopularWorlds(payload.worlds);
                 break;
             case 'activeWorlds':
@@ -687,6 +728,12 @@ case 'popularWorlds':
                     renderNotifications(merged);
                     showNotificationToasts(merged);
                 }
+                break;
+            case 'vrcHiddenNotifications':
+                renderNotifications(payload || [], true);
+                break;
+            case 'vrcAllNotifications':
+                renderNotifications(payload || []);
                 break;
             case 'vrcNotificationPrepend':
                 // Single notification arrived via WebSocket — prepend to existing list
@@ -762,6 +809,9 @@ case 'popularWorlds':
             case 'instanceDetail':
                 if (typeof openInstanceDetailFromData === 'function') openInstanceDetailFromData(payload);
                 break;
+            case 'worldInstancesDetail':
+                if (typeof handleWorldInstancesDetail === 'function') handleWorldInstancesDetail(payload);
+                break;
             case 'refreshMyInstances':
                 if (typeof loadMyInstances === 'function') loadMyInstances();
                 break;
@@ -811,6 +861,7 @@ case 'popularWorlds':
             case 'timelineMonthActivity': handleTimelineMonthActivity(payload); break;
             case 'timelineData': renderTimeline(payload); renderDashRecentPhotos(); break;
             case 'timelineEvent': handleTimelineEvent(payload); renderDashRecentPhotos(); break;
+            case 'timelineEventDeleted': handleTimelineEventDeleted(payload); renderDashRecentPhotos(); break;
             case 'timelineSearchResults': handleTlSearchResults(payload); break;
             case 'friendTimelineData':          renderFriendTimeline(payload); break;
             case 'friendTimelineEvent':         handleFriendTimelineEvent(payload); break;

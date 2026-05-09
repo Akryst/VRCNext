@@ -24,7 +24,7 @@
  * @returns {string} HTML string
  */
 function renderInstanceItem(opts) {
-    const { thumb, worldName, instanceType, instanceId, owner, ownerGroup, ownerId, region, userCount, capacity, friends, location, onclick, ageGate } = opts;
+    const { thumb, worldName, worldTitle, instanceType, instanceId, owner, ownerGroup, ownerId, region, userCount, capacity, friends, location, onclick, ageGate, languageRatio } = opts;
 
     const { cls, label } = getInstanceBadge(instanceType);
     const joinLabel = t('common.join', 'Join');
@@ -32,12 +32,21 @@ function renderInstanceItem(opts) {
     const thumbStyle = thumb ? `background-image:url('${cssUrl(thumb)}')` : '';
 
     const regionHtml = region
-        ? `<span class="inst-item-region">${esc(region)}</span>`
+        ? `<span class="vrcn-badge"><span class="msi" style="font-size:10px;">language</span>${esc(region)}</span>`
         : '';
 
     const countHtml = userCount > 0
-        ? `<span class="inst-item-count"><span class="msi" style="font-size:12px;">person</span>${userCount}${capacity > 0 ? '/' + capacity : ''}</span>`
+        ? `<span class="vrcn-badge"><span class="msi" style="font-size:10px;">person</span>${userCount}${capacity > 0 ? '/' + capacity : ''}</span>`
         : '';
+
+    // Top 2 languages from languageRatio, shown as compact badges
+    let langHtml = '';
+    if (languageRatio && typeof languageRatio === 'object') {
+        const sorted = Object.entries(languageRatio).sort((a, b) => b[1] - a[1]).slice(0, 2);
+        langHtml = sorted.map(([lang, pct]) =>
+            `<span class="vrcn-badge" style="font-size:10px;">${esc(lang.toUpperCase())} ${Math.round(pct * 100)}%</span>`
+        ).join('');
+    }
 
     const ageGateLabel = t('worlds.instances.age_gated', 'Age Gated');
     const badgeHtml = `<span class="vrcn-badge ${cls}">${esc(label)}</span>${ageGate ? `<span class="vrcn-badge" style="background:rgba(255,75,85,.15);color:var(--err);">${esc(ageGateLabel)}</span>` : ''}`;
@@ -51,48 +60,57 @@ function renderInstanceItem(opts) {
         return `<div class="inst-item"${clickAttr}>${thumbEl}<div class="inst-item-body"><div class="inst-item-name" style="display:flex;align-items:center;gap:2px;">${esc(worldName)}${instNum}</div><div class="inst-item-meta">${badgeHtml}${countHtml}${regionMeta}</div></div></div>`;
     }
 
-    // Layout A — world modal: two rows
+    // Layout A — world modal: instance modal card style
+    const instNum = instanceId ? instanceId.split('~')[0] : '';
+
+    let ownerBadge = '';
+    if (owner && ownerGroup && ownerId) {
+        const safeId    = ownerId.replace(/'/g, "\\'");
+        const safeOwner = owner.replace(/'/g, "\\'");
+        ownerBadge = `<span class="inst-owner-group-badge" onclick="event.stopPropagation();navOpenModal('group','${safeId}','${safeOwner}')">${esc(owner)}<span class="inst-owner-group-sep">·</span>${esc(ownerGroup)}</span>`;
+    } else if (owner && ownerGroup) {
+        ownerBadge = `<span class="vrcn-badge">${esc(owner)}<span style="opacity:.5;margin:0 3px;">·</span>${esc(ownerGroup)}</span>`;
+    } else if (owner) {
+        ownerBadge = `<span class="vrcn-badge">${esc(owner)}</span>`;
+    }
+
     let friendsHtml = '';
     if (friends && friends.length > 0) {
-        const MAX_AV = 3;
-        const avatars = friends.slice(0, MAX_AV).map(f => {
-            const img = f.image || '';
-            return img
-                ? `<img class="inst-av-sm" src="${esc(img)}" title="${esc(f.displayName)}" onerror="this.style.display='none'">`
-                : `<div class="inst-av-sm inst-av-sm-letter" title="${esc(f.displayName)}">${esc((f.displayName || '?')[0])}</div>`;
-        }).join('');
-        const extra = friends.length > MAX_AV ? `<span class="inst-av-extra">+${friends.length - MAX_AV}</span>` : '';
-        friendsHtml = `<div class="inst-friends-strip">${avatars}${extra}</div>`;
+        const items = friends.map(f =>
+            renderProfileItem(f, `navOpenModal('friend','${jsq(f.id || '')}','${jsq(f.displayName || '')}')`)
+        ).join('');
+        friendsHtml = `<div class="mi-friends-list">${items}</div>`;
     }
 
     let joinHtml = '';
     if (location && instanceType !== 'private') {
         const loc = location.replace(/'/g, "\\'");
-        joinHtml = `<button class="vrcn-button inst-item-join" onclick="sendToCS({action:'vrcJoinFriend',location:'${loc}'});this.disabled=true;this.textContent='${jsq(joiningLabel)}';" ><span class="msi" style="font-size:14px;">login</span> ${esc(joinLabel)}</button>`;
+        joinHtml = `<button class="vrcn-button-round vrcn-btn-join" title="${esc(joinLabel)}" onclick="sendToCS({action:'vrcJoinFriend',location:'${loc}'});this.disabled=true;"><span class="msi" style="font-size:14px;">login</span></button>`;
     }
 
-    const rightHtml = (friendsHtml || joinHtml)
-        ? `<div class="inst-item-right">${friendsHtml}${joinHtml}</div>`
-        : '';
+    const hasSep = friendsHtml ? ' inst-item-card-hdr-sep' : '';
+    const thumbHtml = thumbStyle ? `<div class="inst-item-thumb" style="${thumbStyle}"></div>` : '';
 
-    // Row 1: group badge (clickable, themed) or player name or "#12345" (public fallback)
-    const instNum = instanceId ? '#' + instanceId.split('~')[0] : '';
-    let ownerRow = '';
-    if (owner && ownerGroup && ownerId) {
-        // Group instance: themed clickable badge showing "Full Name · ShortCode"
-        const safeId    = ownerId.replace(/'/g, "\\'");
-        const safeOwner = owner.replace(/'/g, "\\'");
-        ownerRow = `<div class="inst-item-owner"><span class="inst-owner-group-badge" onclick="event.stopPropagation();navOpenModal('group','${safeId}','${safeOwner}')">${esc(owner)}<span class="inst-owner-group-sep">·</span>${esc(ownerGroup)}</span></div>`;
-    } else if (owner && ownerGroup) {
-        // Fallback: no ownerId, plain text
-        ownerRow = `<div class="inst-item-owner">${esc(owner)}<span class="inst-item-owner-sep">·</span><span class="inst-item-owner-tag">${esc(ownerGroup)}</span></div>`;
-    } else if (owner) {
-        // Player-owned instance
-        ownerRow = `<div class="inst-item-owner">${esc(owner)}</div>`;
-    } else if (instNum) {
-        // Public: no resolved owner, show instance number
-        ownerRow = `<div class="inst-item-owner"><span class="inst-item-owner-num">${instNum}</span></div>`;
-    }
+    // Title row: "23/80 · World Name · Instance Type · #ID (GroupShortCode)"
+    const titleParts = [];
+    if (userCount > 0) titleParts.push(`<span class="vrcn-badge"><span class="msi" style="font-size:10px;">person</span>${userCount}${capacity > 0 ? '/' + capacity : ''}</span>`);
+    if (worldTitle) titleParts.push(`<span style="color:var(--tx1);font-weight:700;">${esc(worldTitle)}</span>`);
+    titleParts.push(`<span style="color:var(--tx3);">·</span><span>${esc(label)}</span>`);
+    if (instNum) titleParts.push(`<span style="color:var(--tx3);">·</span><span style="color:var(--tx2);">#${esc(instNum)}</span>`);
+    if (ownerGroup) titleParts.push(`<span style="color:var(--tx3);">(${esc(ownerGroup)})</span>`);
+    const titleHtml = `<div class="inst-item-card-title">${titleParts.join(' ')}</div>`;
 
-    return `<div class="inst-item"${clickAttr}>${thumbEl}<div class="inst-item-body">${ownerRow}<div class="inst-item-row">${badgeHtml}${regionHtml}${countHtml}${rightHtml}</div></div></div>`;
+    return `<div class="inst-item-card" data-iid="${esc(instanceId || '')}"${clickAttr}>
+        <div class="inst-item-card-hdr${hasSep}">
+            ${thumbHtml}
+            <div class="inst-item-card-body">
+                ${titleHtml}
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                    ${badgeHtml}${instNum && location ? `<span class="vrcn-badge" style="cursor:pointer;" onclick="event.stopPropagation();copyInstanceLink('${location.replace(/'/g, "\\'")}')"><span class="msi" style="font-size:10px;">content_copy</span>#${esc(instNum)}</span>` : ''}${ownerBadge}${regionHtml}${langHtml}
+                    <div class="inst-item-right">${joinHtml}</div>
+                </div>
+            </div>
+        </div>
+        ${friendsHtml}
+    </div>`;
 }

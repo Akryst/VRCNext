@@ -47,6 +47,7 @@
     <link rel="stylesheet" href="core/modals/world-modal/world-modal.css">
     <link rel="stylesheet" href="core/modals/create-instance-modal/create-instance-modal.css">
     <link rel="stylesheet" href="core/modals/group-modal/group-modal.css">
+    <link rel="stylesheet" href="core/modals/my-instance-modal/my-instance-modal.css">
     <link rel="stylesheet" href="core/modals/timeline-modal/timeline-modal.css">
     <link rel="stylesheet" href="core/context-menu/context-menu.css">
     <link rel="stylesheet" href="core/messenger/messenger.css">
@@ -166,7 +167,7 @@
 
         <!-- Notification panel -->
         <div class="notif-panel" id="notifPanel" style="display:none;">
-            <div class="notif-panel-header"><span style="font-weight:700;font-size:13px;" data-i18n="common.notifications">Notifications</span><button class="vrcn-button" onclick="refreshNotifications()" style="padding:2px 8px;font-size:10px;" data-i18n-title="common.refresh"><span class="msi" style="font-size:14px;">refresh</span></button></div>
+            <div class="notif-panel-header"><span style="font-weight:700;font-size:13px;" data-i18n="common.notifications">Notifications</span><div style="display:flex;gap:6px;align-items:center;"><div class="vrcn-mini-pill-group" id="notifPillGroup"><div class="vrcn-mini-pill-indicator" id="notifPillIndicator"></div><button class="vrcn-mini-pill active" id="notifTabCurrent" onclick="setNotifTab('current')" data-i18n="notifications.tab.current">Current</button><button class="vrcn-mini-pill" id="notifTabHidden" onclick="setNotifTab('hidden')" data-i18n="notifications.tab.hidden">Hidden</button></div><button class="vrcn-button" onclick="refreshNotifications()" style="padding:2px 8px;font-size:10px;" data-i18n-title="common.refresh"><span class="msi" style="font-size:14px;">refresh</span></button></div></div>
             <div class="notif-panel-list" id="notifList"><div class="empty-msg" data-i18n="notifications.empty">No notifications</div></div>
         </div>
         <div class="content">
@@ -197,6 +198,13 @@
                     </div>
                 </div>
                 <div id="dashSectionsContainer">
+                    <div class="dash-section-wrap" data-section="vrchat_news">
+                        <div class="dash-section-label">
+                            <span data-i18n="dashboard.section.vrchat_news">VRCHAT NEWS</span>
+                            <button class="mi-refresh-btn" id="dashVrcNewsRefreshBtn" onclick="refreshDashVrcNews()" title="Refresh">&#8635;</button>
+                        </div>
+                        <div class="dash-news-grid" id="dashVrcNewsGrid"></div>
+                    </div>
                     <div class="dash-section-wrap" data-section="my_instances">
                         <div class="dash-section-label" id="dashMyInstancesLabel" style="display:none;"><span data-i18n="dashboard.section.my_instances">YOUR INSTANCES</span><button class="mi-refresh-btn" id="miRefreshBtn" onclick="refreshMyInstances()" title="Refresh instances" data-i18n-title="dashboard.section.refresh_instances">&#8635;</button></div>
                         <div class="dash-worlds-grid" id="dashMyInstances" style="display:none;"></div>
@@ -702,7 +710,7 @@
                         <div id="libFriendFilterWrap"></div>
                         <div id="libWorldFilterWrap"></div>
                         <select id="libFolderFilter" class="vrcn-dropdown" onchange="filterLibrary()"><option value="__all__" data-i18n="library.filters.all_folders">All Folders</option></select>
-                        <select id="libTypeFilter" class="vrcn-dropdown" onchange="filterLibrary()"><option value="all" data-i18n="library.filters.all_media">All Media</option><option value="image" data-i18n="library.filters.images">Images</option><option value="video" data-i18n="library.filters.videos">Videos</option></select>
+                        <select id="libTypeFilter" class="vrcn-dropdown" onchange="filterLibrary()"><option value="all" data-i18n="library.filters.all_media">All Media</option><option value="image" data-i18n="library.filters.images">Images</option><option value="video" data-i18n="library.filters.videos">Videos</option><option value="gif" data-i18n="library.filters.gifs">GIFs</option></select>
                     </div>
                     <div style="display:flex;gap:8px;align-items:center;">
                         <button class="vrcn-button" id="libResetFiltersBtn" onclick="resetLibFilters()" style="display:none;" data-i18n="library.filters.reset">Reset</button>
@@ -725,8 +733,10 @@
             <div class="tab" id="tab8">
                 <div class="log-header" style="margin-top:0;display:flex;align-items:center;gap:5px;flex-shrink:0;">
                     <div class="search-bar-row" style="margin-bottom:0;flex:1;min-width:120px;max-width:200px;"><span class="msi search-ico">search</span><input id="logSearchInput" type="text" class="vrcn-input" placeholder="Search..." data-i18n-placeholder="logs.search.placeholder" oninput="onLogSearch(this.value)"></div>
-                    <button id="logShowFullBtn" class="vrcn-button" onclick="toggleLogShowFull()">Show Full</button>
                     <div style="flex:1;"></div>
+                    <div class="mini-badge" id="agetBadge" style="display:none;background:var(--bg-hover);border-color:var(--brd);"><span class="mini-badge-label" style="color:var(--tx2);font-variant-numeric:tabular-nums;">AGET/H: 0</span></div>
+                    <div class="mini-badge" id="acdnBadge" style="display:none;background:var(--bg-hover);border-color:var(--brd);"><span class="mini-badge-label" style="color:var(--tx2);font-variant-numeric:tabular-nums;">ACDN/H: 0</span></div>
+                    <div class="mini-badge" id="cdnBadge" style="display:none;background:rgba(100,170,255,.12);border-color:rgba(100,170,255,.4);"><span class="mini-badge-label" style="color:#64aaff;font-variant-numeric:tabular-nums;">CDN: 0</span></div>
                     <div class="mini-badge" id="httpBadge200" style="display:none;background:rgba(59,165,93,.12);border-color:rgba(59,165,93,.4);"><span class="mini-badge-label" style="color:#3ba55d;font-variant-numeric:tabular-nums;">200: 0</span></div>
                     <div class="mini-badge" id="httpBadge429" style="display:none;background:rgba(240,165,0,.12);border-color:rgba(240,165,0,.4);"><span class="mini-badge-label" style="color:#f0a500;font-variant-numeric:tabular-nums;">429: 0</span></div>
                     <div class="mini-badge" id="httpBadge404" style="display:none;background:rgba(237,66,69,.12);border-color:rgba(237,66,69,.4);"><span class="mini-badge-label" style="color:#ed4245;font-variant-numeric:tabular-nums;">404: 0</span></div>
@@ -745,6 +755,7 @@
                     </div>
                 </div>
                 <div style="display:flex;gap:6px;margin-top:8px;flex-shrink:0;">
+                    <button id="logShowFullBtn" class="vrcn-button" onclick="toggleLogShowFull()" style="flex:1;justify-content:center;" title="Toggle full log view" data-i18n-title="activity.actions.show_full_title"><span class="msi logShowFullIcon" style="font-size:16px;">unfold_more</span> <span class="logShowFullText" data-i18n="activity.actions.show_full">Show Full</span></button>
                     <button class="vrcn-button" onclick="copyLog()" style="flex:1;justify-content:center;" title="Copy to Clipboard" data-i18n-title="activity.actions.copy_title"><span class="msi" style="font-size:16px;">content_copy</span> <span data-i18n="common.copy">Copy</span></button>
                     <button class="vrcn-button" onclick="sendToCS({action:'openLogFile'})" style="flex:1;justify-content:center;" title="Open current log file" data-i18n-title="activity.actions.open_log_title"><span class="msi" style="font-size:16px;">description</span> <span data-i18n="activity.actions.open_log">Open Log</span></button>
                     <button class="vrcn-button" onclick="sendToCS({action:'openLogFolder'})" style="flex:1;justify-content:center;" title="Open logs folder" data-i18n-title="activity.actions.open_folder_title"><span class="msi" style="font-size:16px;">folder_open</span> <span data-i18n="activity.actions.open_folder">Open Folder</span></button>
@@ -912,6 +923,35 @@
                         </div>
                     </div>
 
+                    <!-- WINDOW BEHAVIOR -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">open_in_full</span> <span data-i18n="settings.window.title">Window Behavior</span></div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.window.remember_size">Remember Window Size</span>
+                            <label class="toggle"><input type="checkbox" id="setRememberWindowSize" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.window.remember_size_desc">Restores the window to its last used size when VRCNext starts.</div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.window.remember_position">Remember Window Position</span>
+                            <label class="toggle"><input type="checkbox" id="setRememberWindowPosition" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.window.remember_position_desc">Restores the window to its last screen position when VRCNext starts. Resets to the default monitor if the previous monitor is no longer connected.</div>
+                        <div class="sf-toggle-row" style="margin-top:6px;">
+                            <span data-i18n="settings.debug.text_tools.label">Enable Text Tools</span>
+                            <label class="toggle"><input type="checkbox" id="setTextToolsEnabled" onchange="toggleTextTools(this.checked)"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" data-i18n="settings.debug.text_tools.desc">When enabled, all text in VRCNext becomes selectable. You can copy it via the right-click context menu or with Ctrl&nbsp;+&nbsp;C.</div>
+                        <div class="sf-toggle-row" style="margin-top:14px;" data-windows-only>
+                            <span data-i18n="settings.debug.legacy_window.label">Enable Legacy Window</span>
+                            <label class="toggle"><input type="checkbox" id="setLegacyWindow" onchange="onLegacyWindowChange()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" data-windows-only data-i18n="settings.debug.legacy_window.desc">When enabled, VRCNext uses the Legacy Window Manager with native title bar controls. The sidebar color is applied to the title bar.</div>
+                        <div id="legacyRestartHint" style="display:none;margin-top:10px;" data-windows-only>
+                            <span class="set-desc" data-i18n="settings.debug.legacy_window.restart_hint">A restart is required to apply the window mode change.</span>
+                            <button class="vrcn-button" style="margin-top:8px;" onclick="sendToCS({action:'restartApp'})"><span class="msi" style="font-size:16px;">refresh</span> <span data-i18n="settings.language.restart_btn">Restart VRCNext</span></button>
+                        </div>
+                    </div>
+
                     <!-- SYSTEM TRAY -->
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi" style="font-size:16px;">notifications_active</span> <span data-i18n="settings.system.tray.title">System Tray</span></div>
@@ -976,6 +1016,40 @@
                         </div>
                     </div>
 
+                    <!-- AUTO-BACKUPS -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">backup</span> <span data-i18n="settings.backup.title">Auto-Backups</span></div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.backup.registry_enabled">Enable VRChat Registry Backups</span>
+                            <label class="toggle"><input type="checkbox" id="setRegBackupEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.backup.registry_enabled_desc">Automatically backs up your VRChat registry settings at the selected interval. Backups are saved to your VRCNext data folder.</div>
+                        <div class="sf-section-label" data-i18n="settings.backup.registry_cycle">Registry Backup Cycle</div>
+                        <select id="setRegBackupCycle" class="vrcn-dropdown" onchange="autoSave()" style="margin-bottom:14px;">
+                            <option value="14" data-i18n="settings.backup.days_14">14 Days</option>
+                            <option value="30" data-i18n="settings.backup.days_30">30 Days</option>
+                            <option value="60" data-i18n="settings.backup.days_60">60 Days</option>
+                            <option value="120" data-i18n="settings.backup.days_120">120 Days</option>
+                        </select>
+                        <div class="sf-toggle-row" style="margin-top:4px;">
+                            <span data-i18n="settings.backup.db_enabled">Enable VRCN Database Backups</span>
+                            <label class="toggle"><input type="checkbox" id="setDbAutoBackupEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.backup.db_enabled_desc">Automatically backs up your VRCNext database at the selected interval. Backups are saved to your VRCNext data folder.</div>
+                        <div class="sf-section-label" data-i18n="settings.backup.db_cycle">Database Backup Cycle</div>
+                        <select id="setDbAutoBackupCycle" class="vrcn-dropdown" onchange="autoSave()" style="margin-bottom:14px;">
+                            <option value="60" data-i18n="settings.backup.days_60">60 Days</option>
+                            <option value="120" data-i18n="settings.backup.days_120">120 Days</option>
+                            <option value="240" data-i18n="settings.backup.days_240">240 Days</option>
+                            <option value="356" data-i18n="settings.backup.days_356">356 Days</option>
+                        </select>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button class="vrcn-button" id="btnManualDbBackup" onclick="manualDbBackup()"><span class="msi" style="font-size:16px;">backup</span> <span data-i18n="settings.backup.btn_db">Create Database Backup</span></button>
+                            <button class="vrcn-button" id="btnManualRegBackup" onclick="manualRegBackup()"><span class="msi" style="font-size:16px;">app_registration</span> <span data-i18n="settings.backup.btn_registry">Create VRChat Registry Backup</span></button>
+                        </div>
+                        <div id="manualBackupResult" style="display:none;margin-top:10px;"></div>
+                    </div>
+
                     <!-- WATCH FOLDERS -->
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">folder_open</span> <span data-i18n="settings.watch_folders.title">Watch Folders</span></div>
@@ -1001,20 +1075,6 @@
                         </div>
                         <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.debug.memory_trim_desc">Memory Trim periodically frees unused memory from VRCNext. While the app already cleans up automatically during normal use, enabling this triggers a more frequent garbage collection pass every 10 minutes.</div>
                         <button class="vrcn-button" onclick="sendToCS({action:'forceTrim'})"><span class="msi" style="font-size:16px;">memory</span> <span data-i18n="settings.debug.force_memory_trim">Force Memory Trim</span></button>
-                        <div class="sf-toggle-row" style="margin-top:14px;">
-                            <span data-i18n="settings.debug.text_tools.label">Enable Text Tools</span>
-                            <label class="toggle"><input type="checkbox" id="setTextToolsEnabled" onchange="toggleTextTools(this.checked)"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
-                        </div>
-                        <div class="set-desc" data-i18n="settings.debug.text_tools.desc">When enabled, all text in VRCNext becomes selectable. You can copy it via the right-click context menu or with Ctrl&nbsp;+&nbsp;C.</div>
-                        <div class="sf-toggle-row" style="margin-top:14px;" data-windows-only>
-                            <span data-i18n="settings.debug.legacy_window.label">Enable Legacy Window</span>
-                            <label class="toggle"><input type="checkbox" id="setLegacyWindow" onchange="onLegacyWindowChange()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
-                        </div>
-                        <div class="set-desc" data-windows-only data-i18n="settings.debug.legacy_window.desc">When enabled, VRCNext uses the Legacy Window Manager with native title bar controls. The sidebar color is applied to the title bar.</div>
-                        <div id="legacyRestartHint" style="display:none;margin-top:10px;" data-windows-only>
-                            <span class="set-desc" data-i18n="settings.debug.legacy_window.restart_hint">A restart is required to apply the window mode change.</span>
-                            <button class="vrcn-button" style="margin-top:8px;" onclick="sendToCS({action:'restartApp'})"><span class="msi" style="font-size:16px;">refresh</span> <span data-i18n="settings.language.restart_btn">Restart VRCNext</span></button>
-                        </div>
                         <div id="ffcProgressWrap" style="display:none;margin-top:12px;">
                             <div style="font-size:12px;color:var(--tx2);margin-bottom:6px;" id="ffcProgressLabel" data-i18n="settings.debug.ffc_progress.caching">Caching...</div>
                             <div style="background:var(--brd);border-radius:4px;height:6px;overflow:hidden;">
@@ -2399,7 +2459,7 @@
 
     <!-- My Instance Detail Modal -->
     <div class="modal-overlay" id="modalMyInstance" style="display:none;" onclick="if(event.target===this)closeMyInstanceDetail()">
-        <div class="modal-box wide" style="position:relative;padding:0;">
+        <div class="modal-box wide" style="position:relative;padding:0;overflow:hidden;">
             <div class="myp-breadcrumb-bar" id="mi_navBar" style="display:none;">
                 <div class="myp-breadcrumbs">
                     <button class="myp-crumb" id="mi_ov" hidden onclick="navGoTo(0)">···</button>

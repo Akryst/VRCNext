@@ -476,7 +476,7 @@
             if (loc) return buildMyInstanceItems(loc);
         }
 
-        const dashWorld = el.closest('#dashFavWorlds .vrcn-content-card, #dashDiscoveryGrid .vrcn-content-card, #dashFavWorldsShelf .vrcn-content-card, #dashRecentlyVisitedShelf .vrcn-content-card, #dashPopularWorldsShelf .vrcn-content-card, #dashActiveWorldsShelf .vrcn-content-card, #dashFriendLocSmallShelf .dash-floc-card');
+        const dashWorld = el.closest('#dashFavWorlds .vrcn-content-card, #dashDiscoveryGrid .vrcn-content-card, #dashFavWorldsShelf .vrcn-content-card, #dashRecentlyVisitedShelf .vrcn-content-card, #dashPopularWorldsShelf .vrcn-content-card, #dashActiveWorldsShelf .vrcn-content-card, #dashFriendLocSmallShelf .dash-flocs-card');
         if (dashWorld) {
             const id = extractWorldId(dashWorld)
                 || extractId(dashWorld, /openFriendLocationDetail\('([^']+)'/);
@@ -489,9 +489,21 @@
             if (id) return buildWorldItems(id);
         }
 
+        const miniWorld = el.closest('#fdContentWorlds .vrcn-mini-content');
+        if (miniWorld) {
+            const id = miniWorld.dataset.worldId;
+            if (id) return buildWorldItems(id);
+        }
+
         const avatarCard = el.closest('.av-card');
         if (avatarCard) {
             const id = (avatarCard.getAttribute('onclick') || '').match(/selectAvatar\('([^']+)'\)/)?.[1] || avatarCard.dataset.avid;
+            if (id) return buildAvatarItems(id);
+        }
+
+        const miniAvatar = el.closest('#fdContentAvatars .vrcn-mini-content');
+        if (miniAvatar) {
+            const id = miniAvatar.dataset.avatarId;
             if (id) return buildAvatarItems(id);
         }
 
@@ -643,6 +655,70 @@
                 showToast(true, cm('friend.invite_group_sent', 'Invite sent!'));
                 hideMenu();
             });
+            btn.addEventListener('mouseenter', () => clearTimeout(submenuTimer));
+        });
+        positionSubmenu(parentBtn);
+    }
+
+    function showModerateSubmenu(userId, parentBtn) {
+        const isBlocked    = Array.isArray(blockedData)      && blockedData.some(x => x.targetUserId === userId);
+        const isMuted      = Array.isArray(mutedData)        && mutedData.some(x => x.targetUserId === userId);
+        const isChatMuted  = Array.isArray(muteChatData)     && muteChatData.some(x => x.targetUserId === userId);
+        const isAvatarHid  = Array.isArray(hiddenAvatarData) && hiddenAvatarData.some(x => x.targetUserId === userId);
+        const isInteractOff= Array.isArray(interactOffData)  && interactOffData.some(x => x.targetUserId === userId);
+        const opts = [
+            {
+                icon: isBlocked ? 'lock_open' : 'block',
+                label: isBlocked ? cm('friend.unblock', 'Unblock') : cm('friend.block', 'Block'),
+                danger: !isBlocked,
+                action: () => sendToCS({ action: isBlocked ? 'vrcUnblock' : 'vrcBlock', userId }),
+            },
+            {
+                icon: isMuted ? 'mic' : 'mic_off',
+                label: isMuted ? cm('friend.unmute', 'Unmute') : cm('friend.mute', 'Mute'),
+                action: () => sendToCS({ action: isMuted ? 'vrcUnmute' : 'vrcMute', userId }),
+            },
+            {
+                icon: isChatMuted ? 'chat' : 'comments_disabled',
+                label: isChatMuted ? cm('friend.unmute_chat', 'Unmute Chat') : cm('friend.mute_chat', 'Mute Chat'),
+                action: () => sendToCS({ action: isChatMuted ? 'vrcUnmuteChat' : 'vrcMuteChat', userId }),
+            },
+            {
+                icon: isAvatarHid ? 'visibility' : 'visibility_off',
+                label: isAvatarHid ? cm('friend.show_avatar', 'Show Avatar') : cm('friend.hide_avatar', 'Hide Avatar'),
+                action: () => sendToCS({ action: isAvatarHid ? 'vrcShowAvatar' : 'vrcHideAvatar', userId }),
+            },
+            {
+                icon: isInteractOff ? 'touch_app' : 'do_not_touch',
+                label: isInteractOff ? cm('friend.interact_on', 'Turn On Interactions') : cm('friend.interact_off', 'Turn Off Interactions'),
+                action: () => sendToCS({ action: isInteractOff ? 'vrcInteractOn' : 'vrcInteractOff', userId }),
+            },
+        ];
+        submenu.innerHTML = opts.map((o, i) => `
+            <button class="vn-ctx-item${o.danger ? ' danger' : ''}" data-midx="${i}">
+                <span class="msi" style="font-size:14px;">${o.icon}</span>
+                <span class="vn-ctx-label">${esc(o.label)}</span>
+            </button>`).join('');
+        submenu.querySelectorAll('[data-midx]').forEach((btn, i) => {
+            btn.addEventListener('click', e => { e.stopPropagation(); opts[i].action(); hideMenu(); });
+            btn.addEventListener('mouseenter', () => clearTimeout(submenuTimer));
+        });
+        positionSubmenu(parentBtn);
+    }
+
+    function showFriendInviteSubmenu(userId, displayName, hasVrcPlus, parentBtn) {
+        const opts = [
+            { icon: 'send',              key: 'friend.invite',         fb: 'Invite',              action: () => sendToCS({ action: 'vrcInviteFriend', userId }) },
+            { icon: 'forward_to_inbox',  key: 'friend.invite_message', fb: 'Invite with Message', action: () => openFriendInviteModal(userId, displayName, 'message') },
+        ];
+        if (hasVrcPlus) opts.push({ icon: 'add_photo_alternate', key: 'friend.invite_image', fb: 'Invite with Image', action: () => openFriendInviteModal(userId, displayName, 'photo') });
+        submenu.innerHTML = opts.map(o => `
+            <button class="vn-ctx-item" data-opt="${esc(o.key)}">
+                <span class="msi" style="font-size:14px;">${o.icon}</span>
+                <span class="vn-ctx-label">${esc(cm(o.key, o.fb))}</span>
+            </button>`).join('');
+        submenu.querySelectorAll('[data-opt]').forEach((btn, i) => {
+            btn.addEventListener('click', e => { e.stopPropagation(); opts[i].action(); hideMenu(); });
             btn.addEventListener('mouseenter', () => clearTimeout(submenuTimer));
         });
         positionSubmenu(parentBtn);
@@ -940,7 +1016,7 @@
             const isInWorld = loc && loc !== 'offline' && loc !== 'private' && loc !== 'traveling';
             const joinable = ['public', 'friends', 'friends+', 'hidden', 'group-public', 'group-plus', 'group-members', 'group'];
             const canJoin = isInWorld && joinable.includes(instanceType);
-            const canRequestInvite = instanceType === 'invite_plus';
+            const canRequestInvite = instanceType === 'private' || instanceType === 'invite_plus';
             const myInInstance = (typeof currentInstanceData !== 'undefined')
                 && currentInstanceData && currentInstanceData.location
                 && !currentInstanceData.empty && !currentInstanceData.error;
@@ -950,9 +1026,7 @@
             if (canRequestInvite) actionItems.push({ icon: 'mail', label: cm('friend.request_invite', 'Request Invite'), action: () => friendAction('requestInvite', loc, id) });
             if (myInInstance) {
                 const hasVrcPlus = Array.isArray(currentVrcUser?.tags) && currentVrcUser.tags.includes('system_supporter');
-                actionItems.push({ icon: 'send', label: cm('friend.invite', 'Invite'), action: () => sendToCS({ action: 'vrcInviteFriend', userId: id }) });
-                actionItems.push({ icon: 'forward_to_inbox', label: cm('friend.invite_message', 'Invite with Message'), action: () => openFriendInviteModal(id, f.displayName || id, 'message') });
-                if (hasVrcPlus) actionItems.push({ icon: 'add_photo_alternate', label: cm('friend.invite_image', 'Invite with Image'), action: () => openFriendInviteModal(id, f.displayName || id, 'photo') });
+                actionItems.push({ icon: 'send', label: cm('friend.invite', 'Invite'), submenuFn: btn => showFriendInviteSubmenu(id, f.displayName || id, hasVrcPlus, btn) });
             }
             const invitableGroups = (typeof myGroups !== 'undefined') ? myGroups.filter(g => g.canInvite === true) : [];
             if (invitableGroups.length > 0) {
@@ -983,21 +1057,14 @@
                 items.push({ icon: 'star', label: cm('friend.favorite', 'Add to Favorites'), submenuFn: btn => showFavFriendGroupSubmenu(id, btn) });
             }
 
-            const isMuted = Array.isArray(mutedData) && mutedData.some(x => x.targetUserId === id);
-            const isBlocked = Array.isArray(blockedData) && blockedData.some(x => x.targetUserId === id);
             items.push('sep');
-            items.push(isMuted
-                ? { icon: 'mic', label: cm('friend.unmute', 'Unmute'), action: () => sendToCS({ action: 'vrcUnmute', userId: id }) }
-                : { icon: 'mic_off', label: cm('friend.mute', 'Mute'), action: () => sendToCS({ action: 'vrcMute', userId: id }) }
-            );
-            items.push(isBlocked
-                ? { icon: 'lock_open', label: cm('friend.unblock', 'Unblock'), action: () => sendToCS({ action: 'vrcUnblock', userId: id }) }
-                : { icon: 'block', label: cm('friend.block', 'Block'), action: () => sendToCS({ action: 'vrcBlock', userId: id }), danger: true, confirm: true }
-            );
+            items.push({ icon: 'shield_person', label: cm('friend.moderate', 'Moderate'), submenuFn: btn => showModerateSubmenu(id, btn) });
             items.push({ icon: 'person_remove', label: cm('friend.unfriend', 'Unfriend'), action: () => sendToCS({ action: 'vrcUnfriend', userId: id }), danger: true, confirm: true });
         } else {
             items.push('sep');
             items.push({ icon: 'person_add', label: cm('friend.send_request', 'Send Friend Request'), action: () => sendToCS({ action: 'vrcSendFriendRequest', userId: id }) });
+            items.push('sep');
+            items.push({ icon: 'shield_person', label: cm('friend.moderate', 'Moderate'), submenuFn: btn => showModerateSubmenu(id, btn) });
         }
         return items;
     }
@@ -1008,10 +1075,10 @@
         const items = [
             { icon: 'content_copy', label: cm('library.copy', 'Copy to Clipboard'), action: () => copyToClipboard(url, path, type) },
         ];
-        if (type === 'image' || type === 'video') {
+        if (type === 'image' || type === 'gif' || type === 'video') {
             items.push({ icon: 'wallpaper',  label: cm('library.set_background',  'Set as Background'),        action: () => setLibItemAsDashBg(path, url) });
         }
-        if (type === 'image') {
+        if (type === 'image' || type === 'gif') {
             items.push({ icon: 'desktop_windows', label: cm('library.set_wallpaper', 'Set as Desktop Background'), action: () => sendToCS({ action: 'setDesktopBackground', path }) });
         }
         items.push({ icon: 'folder_open', label: cm('library.reveal_in_explorer', 'Reveal in Explorer'), action: () => sendToCS({ action: 'revealInExplorer', path }) });
