@@ -208,6 +208,12 @@ public partial class AppShell
             WindowController.AllowNextClose();
             try { _window.Close(); } catch { }
         };
+        _trayService.OnLaunchVRChat = vr =>
+        {
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(new { action = "vrcLaunchAndJoin", location = "", vr });
+            _ = OnWebMessage(json);
+        };
+        _trayService.IsVrcRunning = RelayController.IsVrcRunning;
         _trayService.ImageDownloader = async url =>
         {
             return await _vrcApi.GetHttpClient().GetByteArrayAsync(url);

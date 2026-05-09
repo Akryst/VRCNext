@@ -44,6 +44,10 @@ public class SystemTrayService : IDisposable
     public Action? OnShowWindow;
     public Action<string>? OnStatusChange;   // VRC status key
     public Action? OnClose;
+    public Action<bool>? OnLaunchVRChat;     // bool = vr
+
+    /// <summary>Called at popup open time to decide whether to show the launch buttons.</summary>
+    public Func<bool>? IsVrcRunning;
 
     /// <summary>
     /// Optional authenticated image downloader. When set, used instead of plain HttpClient.
@@ -261,7 +265,8 @@ public class SystemTrayService : IDisposable
                 theme = _theme;
             }
 
-            _popup = new TrayPopupForm(name, status, statusDesc, avatar, theme, this);
+            bool showPlayBtns = !(IsVrcRunning?.Invoke() ?? false);
+            _popup = new TrayPopupForm(name, status, statusDesc, avatar, theme, this, showPlayBtns);
 
             // Position above the system tray (bottom-right of the working area)
             var screen = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1920, 1080);
@@ -289,6 +294,12 @@ public class SystemTrayService : IDisposable
     {
         _syncCtx?.Post(_ => _popup?.Close(), null);
         OnClose?.Invoke();
+    }
+
+    internal void RequestLaunchVRChat(bool vr)
+    {
+        _syncCtx?.Post(_ => _popup?.Close(), null);
+        OnLaunchVRChat?.Invoke(vr);
     }
 
     internal void RequestShowWindow()
@@ -467,11 +478,13 @@ public class SystemTrayService : IDisposable
         private const int Corner = 12;
 
         private readonly (string key, string label, Color color)[] _statusOpts;
-        private readonly Rectangle[] _btnRects; // 0-3 = status, 4 = close
+        // _btnRects: 0-3 = status, 4 = Desktop btn, 5 = VR btn, 6 = close
+        private readonly Rectangle[] _btnRects;
+        private readonly bool _showPlayBtns;
         private int _hoverIdx = -1;
         private int _profileSectionBottom;
 
-        public TrayPopupForm(string name, string status, string statusDesc, Image? avatar, TrayTheme theme, SystemTrayService owner)
+        public TrayPopupForm(string name, string status, string statusDesc, Image? avatar, TrayTheme theme, SystemTrayService owner, bool showPlayBtns)
         {
             _name = name;
             _status = status;
@@ -479,6 +492,7 @@ public class SystemTrayService : IDisposable
             _avatar = avatar;
             _owner = owner;
             _theme = theme;
+            _showPlayBtns = showPlayBtns;
 
             _statusOpts = new[]
             {
@@ -487,7 +501,7 @@ public class SystemTrayService : IDisposable
                 ("ask me",   owner.T("tray.status.ask_me",         "Ask Me"),          TrayTheme.StatusAsk),
                 ("busy",     owner.T("tray.status.do_not_disturb", "Do Not Disturb"),  TrayTheme.StatusBusy),
             };
-            _btnRects = new Rectangle[5];
+            _btnRects = new Rectangle[7];
 
             // Form setup
             FormBorderStyle = FormBorderStyle.None;
@@ -500,8 +514,10 @@ public class SystemTrayService : IDisposable
             // Calc height
             int profileH = Pad + Math.Max(AvatarSize, 38) + Pad;
             int btnsH = SepGap + _statusOpts.Length * (BtnHeight + BtnGap) + SepGap;
+            // play row: sep + SepGap + BtnHeight + SepGap + 1(sep before close)
+            int playH = _showPlayBtns ? (1 + SepGap + BtnHeight + SepGap + 1) : 0;
             int closeH = SepGap + BtnHeight + Pad;
-            int totalH = profileH + 1 + btnsH + 1 + closeH;
+            int totalH = profileH + 1 + btnsH + playH + closeH;
 
             Size = new Size(FormWidth, totalH);
             Region = RoundedRegion(Width, Height, Corner);
@@ -696,24 +712,60 @@ public class SystemTrayService : IDisposable
             }
             y += SepGap;
 
-            // Separator.
+            // Separator (after status buttons).
             y -= BtnGap;
             using (var sp = new Pen(_theme.Brd))
                 g.DrawLine(sp, Pad, y, FormWidth - Pad, y);
-            y += 1 + SepGap;
+            y += 1;
+
+            // Play Desktop / Play in VR buttons (only when VRChat is not running).
+            if (_showPlayBtns)
+            {
+                y += SepGap;
+                const int PlayGap = 4;
+                int halfW = (FormWidth - Pad - PlayGap) / 2;
+                var dr = new Rectangle(Pad / 2, y, halfW, BtnHeight);
+                var vr = new Rectangle(Pad / 2 + halfW + PlayGap, y, halfW, BtnHeight);
+                _btnRects[4] = dr;
+                _btnRects[5] = vr;
+
+                var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                foreach (var (rect, idx, key, fallback) in new[]
+                {
+                    (dr, 4, "notifications.launch.play_desktop", "Desktop"),
+                    (vr, 5, "notifications.launch.play_vr",      "VR Mode"),
+                })
+                {
+                    bool hov = _hoverIdx == idx;
+                    using var hb = new SolidBrush(hov ? _theme.BgHover : _theme.BgCard);
+                    using var hp = RoundedRect(rect, 6);
+                    g.FillPath(hb, hp);
+                    using var pf = new Font("Segoe UI", 9, hov ? FontStyle.Bold : FontStyle.Regular);
+                    using var pb = new SolidBrush(hov ? _theme.Tx1 : _theme.Tx2);
+                    g.DrawString(_owner.T(key, fallback), pf, pb, rect, sf);
+                }
+                sf.Dispose();
+
+                y += BtnHeight + SepGap;
+                using (var sp2 = new Pen(_theme.Brd))
+                    g.DrawLine(sp2, Pad, y, FormWidth - Pad, y);
+                y += 1;
+            }
+
+            y += SepGap;
 
             // Close button.
             var cr = new Rectangle(Pad / 2, y, FormWidth - Pad, BtnHeight);
-            _btnRects[4] = cr;
+            _btnRects[6] = cr;
 
-            if (_hoverIdx == 4)
+            if (_hoverIdx == 6)
             {
                 using var hb = new SolidBrush(_theme.CloseHover);
                 using var hp = RoundedRect(cr, 6);
                 g.FillPath(hb, hp);
             }
 
-            var closeCol = _hoverIdx == 4 ? _theme.Err : _theme.Tx1;
+            var closeCol = _hoverIdx == 6 ? _theme.Err : _theme.Tx1;
             // X icon
             using (var cp = new Pen(closeCol, 1.8f))
             {
@@ -760,13 +812,20 @@ public class SystemTrayService : IDisposable
             if (idx >= 0 && idx <= 3)
                 _owner.RequestStatusChange(_statusOpts[idx].key);
             else if (idx == 4)
+                _owner.RequestLaunchVRChat(false); // Desktop
+            else if (idx == 5)
+                _owner.RequestLaunchVRChat(true);  // VR
+            else if (idx == 6)
                 _owner.RequestClose();
         }
 
         private int HitTest(Point p)
         {
             for (int i = 0; i < _btnRects.Length; i++)
+            {
+                if ((i == 4 || i == 5) && !_showPlayBtns) continue;
                 if (_btnRects[i].Contains(p)) return i;
+            }
             // Profile section click → show window
             if (p.Y < _profileSectionBottom)
                 return -2; // special: profile area

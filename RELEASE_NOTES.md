@@ -1,5 +1,13 @@
 **2026.23.0**
 
+## Community feature requests
+* "Add Start VRChat button to right click context menu in System Tray"
+Requested by @octomiku01
+* "Add status icons to instances + ability to close instances if permitted"
+- Closing Instance works if it is your own instance
+- Shows Age Gated instances across all modals and lists
+Requested by @octomiku01
+
 ## Instance List
 * Redesigned the instance list design to match the new V2 design.
 
