@@ -1,5 +1,8 @@
 **2026.23.0**
 
+## Instance List
+* Redesigned the instance list design to match the new V2 design.
+
 ### World Modal
 
 * The Instances tab now refreshes in-place when pressing the Refresh button.

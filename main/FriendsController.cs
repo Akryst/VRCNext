@@ -14,6 +14,7 @@ public class FriendsController
     // Friend State
     private readonly Dictionary<string, JObject> _friendStore = new();
     private readonly Dictionary<string, string> _friendLastLoc = new();
+    private readonly Dictionary<string, string> _friendCurrentGpsEventId = new();
     private readonly Dictionary<string, string> _friendLastStatus = new();
     private readonly Dictionary<string, string> _friendLastStatusDesc = new();
     private readonly Dictionary<string, string> _friendLastBio = new();
@@ -1005,6 +1006,20 @@ public class FriendsController
                     if (!string.IsNullOrEmpty(fid0)) _friendLastAvatarFileId[uid] = fid0;
                 }
                 _friendStateSeeded = true;
+
+                // Startup recovery: resume or close open tracked GPS events
+                var openGpsEvents = _core.Timeline.GetOpenTrackedGpsEvents();
+                var now = DateTime.UtcNow.ToString("o");
+                foreach (var ev in openGpsEvents)
+                {
+                    var curLoc    = _friendLastLoc.GetValueOrDefault(ev.FriendId, "");
+                    var storedBase = ev.Location.Contains('~') ? ev.Location[..ev.Location.IndexOf('~')] : ev.Location;
+                    var curBase    = curLoc.Contains('~')      ? curLoc[..curLoc.IndexOf('~')]           : curLoc;
+                    if (!string.IsNullOrEmpty(curBase) && curBase == storedBase && curBase != "offline" && curBase != "traveling")
+                        _friendCurrentGpsEventId[ev.FriendId] = ev.Id;  // still in same instance — resume
+                    else
+                        _core.Timeline.SetFriendEventLeftAt(ev.Id, now); // left — close
+                }
             }
             else
             {
@@ -1821,13 +1836,33 @@ public class FriendsController
 
         _friendLastLoc[e.UserId] = newLoc;
 
+        // Close previous GPS event for this friend
+        if (_friendCurrentGpsEventId.TryGetValue(e.UserId, out var prevGpsId))
+            _core.Timeline.SetFriendEventLeftAt(prevGpsId, DateTime.UtcNow.ToString("o"));
+
         var (fname, fimg) = _friendNameImg.GetValueOrDefault(e.UserId, ("", ""));
         var fev = new TimelineService.FriendTimelineEvent
         {
             Type = "friend_gps", FriendId = e.UserId, FriendName = fname,
-            FriendImage = fimg, WorldId = worldId, Location = newLoc,
+            FriendImage = fimg, WorldId = worldId, Location = newLoc, Tracked = 1,
         };
         _core.Timeline.AddFriendEvent(fev);
+        _friendCurrentGpsEventId[e.UserId] = fev.Id;
+
+        // Cross-reference colocated friends in the same instance
+        var newLocBase = newLoc.Contains('~') ? newLoc[..newLoc.IndexOf('~')] : newLoc;
+        var (myName, myImg) = (fname, fimg);
+        foreach (var (coId, coLoc) in _friendLastLoc.ToList())
+        {
+            if (coId == e.UserId || string.IsNullOrEmpty(coLoc) || coLoc == "offline" || coLoc == "traveling") continue;
+            var coBase = coLoc.Contains('~') ? coLoc[..coLoc.IndexOf('~')] : coLoc;
+            if (coBase != newLocBase) continue;
+            var (coName, coImg) = _friendNameImg.GetValueOrDefault(coId, ("", ""));
+            _core.Timeline.AddFriendEventColocated(fev.Id, coId, coName, coImg);
+            if (_friendCurrentGpsEventId.TryGetValue(coId, out var coEvId))
+                _core.Timeline.AddFriendEventColocated(coEvId, e.UserId, myName, myImg);
+        }
+
         _core.SendToJS("friendTimelineEvent", BuildFriendTimelinePayload(fev));
 
         var evId = fev.Id;
@@ -1879,6 +1914,11 @@ public class FriendsController
         if (wasInGame && prevLoc != "traveling")
         {
             _friendLastLoc[e.UserId] = "";
+            if (_friendCurrentGpsEventId.TryGetValue(e.UserId, out var gpsId))
+            {
+                _core.Timeline.SetFriendEventLeftAt(gpsId, DateTime.UtcNow.ToString("o"));
+                _friendCurrentGpsEventId.Remove(e.UserId);
+            }
             var fev = new TimelineService.FriendTimelineEvent
             {
                 Type = "friend_offline", FriendId = e.UserId, FriendName = fname, FriendImage = fimg,
@@ -1917,6 +1957,12 @@ public class FriendsController
         // Only log game offline, not web offline
         // Don't log offline if they were "traveling" — that's a world change, not leaving
         if (!wasInGame || prevLoc == "traveling") return;
+
+        if (_friendCurrentGpsEventId.TryGetValue(e.UserId, out var gpsId))
+        {
+            _core.Timeline.SetFriendEventLeftAt(gpsId, DateTime.UtcNow.ToString("o"));
+            _friendCurrentGpsEventId.Remove(e.UserId);
+        }
 
         var fev = new TimelineService.FriendTimelineEvent
         {
@@ -1994,6 +2040,14 @@ public class FriendsController
                 };
                 _core.Timeline.AddFriendEvent(fev);
                 _core.SendToJS("friendTimelineEvent", BuildFriendTimelinePayload(fev));
+
+                // "ask me" and "busy" hide location from WS — close the open GPS event
+                if ((newStatus == "ask me" || newStatus == "busy") &&
+                    _friendCurrentGpsEventId.TryGetValue(e.UserId, out var gpsId))
+                {
+                    _core.Timeline.SetFriendEventLeftAt(gpsId, DateTime.UtcNow.ToString("o"));
+                    _friendCurrentGpsEventId.Remove(e.UserId);
+                }
             }
             _friendLastStatus[e.UserId] = newStatus;
         }
@@ -2142,6 +2196,8 @@ public class FriendsController
             worldId = ev.WorldId, worldName = ev.WorldName,
             worldThumb = wThumb,
             location = ev.Location, oldValue = ev.OldValue, newValue = ev.NewValue,
+            leftAt = string.IsNullOrEmpty(ev.LeftAt) ? null : ev.LeftAt,
+            tracked = ev.Tracked,
         };
     }
 

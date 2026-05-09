@@ -314,9 +314,14 @@ function renderFtGpsDetailModal(ev) {
     // Was Also Here: populated async from server (covers all pages, not just loaded memory)
     const alsoList = [];
 
+    const fromStr = ev.timestamp ? tlFormatTime(ev.timestamp) : null;
+    const toStr   = ev.leftAt    ? tlFormatTime(ev.leftAt)    : null;
+
     const infoHtml = _tlInfoCard(esc(t('timeline.detail.info', 'Info')), [
         _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
         _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        fromStr ? _tlMr(esc(t('timeline.detail.from', 'From')), esc(fromStr)) : '',
+        fromStr ? _tlMr(esc(t('timeline.detail.to', 'To')), toStr ? esc(toStr) : `<span style="color:var(--ok);">&#9679;&nbsp;${esc(t('timeline.detail.ongoing', 'Ongoing'))}</span>`) : '',
         _tlMr(esc(t('timeline.detail.instance_type', 'Instance Type')), `<span class="vrcn-badge ${instCls}">${instLabel}</span>`),
         instanceId ? _tlMr(esc(t('timeline.detail.instance_id', 'Instance ID')), `<span style="font-family:monospace;font-size:12px;color:var(--tx2);">#${esc(instanceId)}</span>`) : '',
         _tlMr(esc(t('timeline.detail.event', 'Event')), `<span style="color:var(--tx2);">${esc(tf('timeline.detail.friend_joined_world', { name: ev.friendName || t('timeline.unknown', 'Unknown') }, `${ev.friendName || 'Unknown'} joined this world`))}</span>`),
@@ -687,7 +692,7 @@ function buildFriendListHtml(events) {
     let rows = '';
     events.forEach(ev => {
         const meta  = ftTypeMeta(ev.type);
-        const color = FT_TYPE_COLOR[ev.type] ?? 'var(--tx3)';
+        const color = ev.type === 'friend_gps' ? getFtGpsColor(ev) : (FT_TYPE_COLOR[ev.type] ?? 'var(--tx3)');
         const ei    = jsq(ev.id);
         const detail = _ftListDetail(ev);
         const clickAction = ev.type === 'friend_gps'
