@@ -958,7 +958,7 @@
             const isInWorld = loc && loc !== 'offline' && loc !== 'private' && loc !== 'traveling';
             const joinable = ['public', 'friends', 'friends+', 'hidden', 'group-public', 'group-plus', 'group-members', 'group'];
             const canJoin = isInWorld && joinable.includes(instanceType);
-            const canRequestInvite = instanceType === 'invite_plus';
+            const canRequestInvite = instanceType === 'private' || instanceType === 'invite_plus';
             const myInInstance = (typeof currentInstanceData !== 'undefined')
                 && currentInstanceData && currentInstanceData.location
                 && !currentInstanceData.empty && !currentInstanceData.error;
