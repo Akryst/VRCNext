@@ -606,6 +606,33 @@ public class FriendsController
                 });
                 break;
 
+            case "vrcGetAllModerations":
+                _ = Task.Run(async () =>
+                {
+                    var tasks = new[]
+                    {
+                        _core.PlayerModeration.GetPlayerModerationsAsync("block"),
+                        _core.PlayerModeration.GetPlayerModerationsAsync("mute"),
+                        _core.PlayerModeration.GetPlayerModerationsAsync("hideAvatar"),
+                        _core.PlayerModeration.GetPlayerModerationsAsync("interactOff"),
+                        _core.PlayerModeration.GetPlayerModerationsAsync("muteChat"),
+                    };
+                    await Task.WhenAll(tasks);
+                    var blockArr   = tasks[0].Result;
+                    var muteArr    = tasks[1].Result;
+                    var hideArr    = tasks[2].Result;
+                    var interactArr= tasks[3].Result;
+                    var chatArr    = tasks[4].Result;
+                    await EnrichModerationsWithImagesAsync(blockArr);
+                    await EnrichModerationsWithImagesAsync(muteArr);
+                    _core.SendToJS("vrcBlockedList",    blockArr);
+                    _core.SendToJS("vrcMutedList",      muteArr);
+                    _core.SendToJS("vrcHideAvatarList", hideArr);
+                    _core.SendToJS("vrcInteractOffList",interactArr);
+                    _core.SendToJS("vrcMuteChatList",   chatArr);
+                });
+                break;
+
             case "vrcBlock":
             {
                 var uid = msg["userId"]?.ToString();
@@ -688,7 +715,7 @@ public class FriendsController
                 if (!string.IsNullOrEmpty(uid))
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "showAvatar");
+                        var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "hideAvatar");
                         if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "hideAvatar", active = false });
                     });
                 break;
@@ -712,7 +739,7 @@ public class FriendsController
                 if (!string.IsNullOrEmpty(uid))
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "interactOn");
+                        var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "interactOff");
                         if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "interactOff", active = false });
                     });
                 break;
@@ -736,7 +763,7 @@ public class FriendsController
                 if (!string.IsNullOrEmpty(uid))
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "unmuteChat");
+                        var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "muteChat");
                         if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "muteChat", active = false });
                     });
                 break;
@@ -900,7 +927,7 @@ public class FriendsController
         "vrcUpdateInviteMessage", "vrcRequestInvite", "vrcUpdateNote", "vrcBatchInvite",
         "vrcGetFavoriteFriends", "vrcAddFavoriteFriend", "vrcRemoveFavoriteFriend",
         "vrcAddFavoriteFriendToGroup",
-        "vrcSendFriendRequest", "vrcUnfriend", "vrcGetBlocked", "vrcGetMuted",
+        "vrcSendFriendRequest", "vrcUnfriend", "vrcGetBlocked", "vrcGetMuted", "vrcGetAllModerations",
         "vrcBlock", "vrcMute", "vrcUnblock", "vrcUnmute",
         "vrcHideAvatar", "vrcShowAvatar", "vrcInteractOff", "vrcInteractOn", "vrcMuteChat", "vrcUnmuteChat",
         "vrcBoop",

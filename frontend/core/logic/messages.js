@@ -137,6 +137,7 @@ window.external.receiveMessage(rawMsg => {
                 refreshNotifications();
                 { const vp = document.getElementById('badgeVrcPlus');
                   if (vp) { const isVrcPlus = Array.isArray(payload.tags) && payload.tags.includes('system_supporter'); vp.style.display = isVrcPlus ? '' : 'none'; } }
+                sendToCS({ action: 'vrcGetAllModerations' });
                 break;
             case 'vrcCredits': {
                 const bc = document.getElementById('badgeVrcCredits');
@@ -394,6 +395,15 @@ window.external.receiveMessage(rawMsg => {
                 mutedData = Array.isArray(payload) ? payload : [];
                 renderModList('mutedList', mutedData, 'mute');
                 break;
+            case 'vrcHideAvatarList':
+                hiddenAvatarData = Array.isArray(payload) ? payload : [];
+                break;
+            case 'vrcInteractOffList':
+                interactOffData = Array.isArray(payload) ? payload : [];
+                break;
+            case 'vrcMuteChatList':
+                muteChatData = Array.isArray(payload) ? payload : [];
+                break;
             case 'vrcModDone': {
                 const { userId: modUid, type: modType, active: modActive } = payload;
                 const modName = (currentFriendDetail && currentFriendDetail.id === modUid)
@@ -421,20 +431,26 @@ window.external.receiveMessage(rawMsg => {
                 } else if (modType === 'hideAvatar') {
                     if (modActive) {
                         if (!hiddenAvatarData.some(e => e.targetUserId === modUid)) hiddenAvatarData.push(_modEntry);
+                        showToast(true, t('context_menu.friend.hide_avatar', 'Hide Avatar'));
                     } else {
                         hiddenAvatarData = hiddenAvatarData.filter(e => e.targetUserId !== modUid);
+                        showToast(true, t('context_menu.friend.show_avatar', 'Show Avatar'));
                     }
                 } else if (modType === 'interactOff') {
                     if (modActive) {
                         if (!interactOffData.some(e => e.targetUserId === modUid)) interactOffData.push(_modEntry);
+                        showToast(true, t('context_menu.friend.interact_off', 'Turn Off Interactions'));
                     } else {
                         interactOffData = interactOffData.filter(e => e.targetUserId !== modUid);
+                        showToast(true, t('context_menu.friend.interact_on', 'Turn On Interactions'));
                     }
                 } else if (modType === 'muteChat') {
                     if (modActive) {
                         if (!muteChatData.some(e => e.targetUserId === modUid)) muteChatData.push(_modEntry);
+                        showToast(true, t('context_menu.friend.mute_chat', 'Mute Chat'));
                     } else {
                         muteChatData = muteChatData.filter(e => e.targetUserId !== modUid);
+                        showToast(true, t('context_menu.friend.unmute_chat', 'Unmute Chat'));
                     }
                 }
                 // Update legacy header buttons

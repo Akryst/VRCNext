@@ -1822,6 +1822,7 @@ public partial class AppShell
                 case "vrcInteractOn":
                 case "vrcMuteChat":
                 case "vrcUnmuteChat":
+                case "vrcGetAllModerations":
                 case "vrcBoop":
                 case "vrcSendChatMessage":
                 case "vrcGetChatHistory":
