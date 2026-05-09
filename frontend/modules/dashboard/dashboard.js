@@ -420,8 +420,11 @@ function onVrcNews(items) {
 
 function _fmtNewsDate(str) {
     if (!str) return '';
-    try { return new Date(str).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
-    catch { return ''; }
+    try {
+        const d = new Date(str);
+        if (isNaN(d.getTime())) return '';
+        return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch { return ''; }
 }
 
 function renderDashVrcNews() {
