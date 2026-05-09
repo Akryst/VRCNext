@@ -476,7 +476,7 @@
             if (loc) return buildMyInstanceItems(loc);
         }
 
-        const dashWorld = el.closest('#dashFavWorlds .vrcn-content-card, #dashDiscoveryGrid .vrcn-content-card, #dashFavWorldsShelf .vrcn-content-card, #dashRecentlyVisitedShelf .vrcn-content-card, #dashPopularWorldsShelf .vrcn-content-card, #dashActiveWorldsShelf .vrcn-content-card, #dashFriendLocSmallShelf .dash-floc-card');
+        const dashWorld = el.closest('#dashFavWorlds .vrcn-content-card, #dashDiscoveryGrid .vrcn-content-card, #dashFavWorldsShelf .vrcn-content-card, #dashRecentlyVisitedShelf .vrcn-content-card, #dashPopularWorldsShelf .vrcn-content-card, #dashActiveWorldsShelf .vrcn-content-card, #dashFriendLocSmallShelf .dash-flocs-card');
         if (dashWorld) {
             const id = extractWorldId(dashWorld)
                 || extractId(dashWorld, /openFriendLocationDetail\('([^']+)'/);
