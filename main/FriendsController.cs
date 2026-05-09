@@ -251,8 +251,6 @@ public class FriendsController
                 var avtrId = msg["avatarId"]?.ToString() ?? "";
                 if (!string.IsNullOrEmpty(avtrId))
                 {
-                    if (ModalCacheHelper.IsCached(avtrId)) break;
-                    ModalCacheHelper.Mark(avtrId);
                     var avtrObj = await _core.Avatars.GetAvatarAsync(avtrId);
                     var avatarName = avtrObj?["name"]?.ToString() ?? "";
                     var avatarImage = ImageCacheHelper.GetAvatarUrl(avtrId, avtrObj?["imageUrl"]?.ToString());
