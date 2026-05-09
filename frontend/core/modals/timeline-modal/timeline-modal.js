@@ -284,6 +284,8 @@ function openFtGpsDetail(evId) {
              || _ftlSearchEvents.find(e => e.id === evId);
     if (!ev) return;
     renderFtGpsDetailModal(ev);
+    const _ftMb = document.getElementById('ftGpsDetailContent');
+    if (_ftMb) _ftMb.classList.add('narrow');
     document.getElementById('modalFtGpsDetail').style.display = 'flex';
 }
 
