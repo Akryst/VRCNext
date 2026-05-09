@@ -1166,6 +1166,8 @@
   "instance.badge.group": "群组",
   "instance.badge.group_public": "群组公开",
   "instance.badge.group_plus": "群组+",
+  "notifications.tab.current": "当前",
+  "notifications.tab.hidden": "已隐藏",
   "notifications.empty": "暂无通知",
   "notifications.unknown_world": "未知世界",
   "notifications.actions.accept": "接受",

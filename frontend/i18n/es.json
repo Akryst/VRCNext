@@ -1166,6 +1166,8 @@
   "instance.badge.group": "Grupo",
   "instance.badge.group_public": "Grupo público",
   "instance.badge.group_plus": "Grupo+",
+  "notifications.tab.current": "Actual",
+  "notifications.tab.hidden": "Oculto",
   "notifications.empty": "Sin notificaciones",
   "notifications.unknown_world": "mundo desconocido",
   "notifications.actions.accept": "Aceptar",

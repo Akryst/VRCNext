@@ -1166,6 +1166,8 @@
   "instance.badge.group": "グループ",
   "instance.badge.group_public": "グループパブリック",
   "instance.badge.group_plus": "グループ+",
+  "notifications.tab.current": "現在",
+  "notifications.tab.hidden": "非表示",
   "notifications.empty": "通知はありません",
   "notifications.unknown_world": "不明なワールド",
   "notifications.actions.accept": "承認",

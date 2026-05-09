@@ -1168,6 +1168,8 @@
   "instance.badge.group": "Gruppe",
   "instance.badge.group_public": "Gruppe Oeffentlich",
   "instance.badge.group_plus": "Gruppe+",
+  "notifications.tab.current": "Aktuell",
+  "notifications.tab.hidden": "Versteckt",
   "notifications.empty": "Keine Benachrichtigungen",
   "notifications.unknown_world": "unbekannte Welt",
   "notifications.actions.accept": "Annehmen",
