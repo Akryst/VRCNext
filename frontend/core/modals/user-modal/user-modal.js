@@ -845,6 +845,98 @@ function renderFriendDetail(d) {
     }
 }
 
+function patchFriendDetailLive(f) {
+    if (!currentFriendDetail || currentFriendDetail.id !== f.id) return;
+    const c = document.getElementById('friendDetailContent');
+    if (!c) return;
+
+    // displayName
+    if (f.displayName) {
+        const nameEl = c.querySelector('.fd-name');
+        if (nameEl) {
+            const plusBadge = nameEl.querySelector('.vrcn-supporter-badge');
+            nameEl.textContent = f.displayName;
+            if (plusBadge) nameEl.appendChild(plusBadge);
+            currentFriendDetail.displayName = f.displayName;
+        }
+    }
+
+    // avatar image
+    if (f.image) {
+        const avatarEl = c.querySelector('.fd-avatar');
+        if (avatarEl?.tagName === 'IMG') avatarEl.src = f.image;
+        currentFriendDetail.image = f.image;
+    }
+
+    // bio
+    if (f.bio !== undefined) {
+        const bioEl = c.querySelector('.fd-bio');
+        if (bioEl) bioEl.textContent = f.bio;
+        currentFriendDetail.bio = f.bio;
+    }
+
+    // pronouns
+    if (f.pronouns !== undefined) {
+        const prEl = c.querySelector('.fd-pronouns');
+        if (prEl) prEl.textContent = f.pronouns;
+        currentFriendDetail.pronouns = f.pronouns;
+    }
+
+    // bio links
+    if (f.bioLinks) {
+        const linksEl = c.querySelector('.fd-bio-links');
+        if (linksEl) linksEl.innerHTML = f.bioLinks.map(u => renderBioLink(u)).join('');
+        currentFriendDetail.bioLinks = f.bioLinks;
+    }
+
+    // tags → trust rank badge + language tags
+    if (f.tags) {
+        const langEl = c.querySelector('.fd-lang-tags');
+        if (langEl) {
+            const langs = getLanguages(f.tags);
+            langEl.innerHTML = langs.map(l => `<span class="vrcn-badge">${esc(l)}</span>`).join('');
+        }
+        const badgesRow = c.querySelector('.fd-badges-row');
+        if (badgesRow) {
+            const rank = getTrustRank(f.tags);
+            const platBadge = getPlatformBadgeHtml(f.platform || f.lastPlatform || currentFriendDetail.lastPlatform || '');
+            const ageVerified = f.ageVerified ?? currentFriendDetail.ageVerified;
+            let html = '';
+            if (platBadge) html += platBadge;
+            if (currentFriendDetail.isFriend) html += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">check_circle</span>${t('profiles.badges.friend', 'Friend')}</span>`;
+            if (ageVerified) html += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">verified</span>18+</span>`;
+            if (rank) html += `<span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>`;
+            if (f.id) html += idBadge(f.id);
+            badgesRow.innerHTML = html;
+        }
+        currentFriendDetail.tags = f.tags;
+    }
+
+    // banner (profilePicOverride / currentAvatarImageUrl)
+    if (f.profilePicOverride !== undefined || f.currentAvatarImageUrl !== undefined) {
+        const newSrc = f.profilePicOverride || f.currentAvatarImageUrl || currentFriendDetail.profilePicOverride || currentFriendDetail.currentAvatarImageUrl || '';
+        if (newSrc) _getFdBannerImg(f.id, newSrc);
+        if (f.profilePicOverride !== undefined) currentFriendDetail.profilePicOverride = f.profilePicOverride;
+        if (f.currentAvatarImageUrl !== undefined) currentFriendDetail.currentAvatarImageUrl = f.currentAvatarImageUrl;
+    }
+
+    // VRC badges
+    if (f.badges && Array.isArray(f.badges) && f.badges.length > 0) {
+        const vrcBadgesRow = c.querySelector('.fd-vrc-badges-row');
+        if (vrcBadgesRow) {
+            vrcBadgesRow.innerHTML = f.badges.map(b => {
+                const imgUrl = b.imageUrl || b.badgeImageUrl || '';
+                const name   = b.name || b.badgeName || '';
+                const desc   = b.description || b.badgeDescription || '';
+                return `<div class="fd-vrc-badge-wrap" data-badge-img="${esc(imgUrl)}" data-badge-name="${encodeURIComponent(name)}" data-badge-desc="${encodeURIComponent(desc)}">
+                    <img class="fd-vrc-badge-icon" src="${esc(imgUrl)}" alt="${esc(name)}" onerror="this.closest('.fd-vrc-badge-wrap').style.display='none'">
+                </div>`;
+            }).join('');
+        }
+        currentFriendDetail.badges = f.badges;
+    }
+}
+
 function renderFdTimeline(userId, events) {
     if (!currentFriendDetail || currentFriendDetail.id !== userId) return;
     const el = document.getElementById('fdMiniTl');

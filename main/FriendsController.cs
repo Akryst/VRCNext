@@ -251,6 +251,8 @@ public class FriendsController
                 var avtrId = msg["avatarId"]?.ToString() ?? "";
                 if (!string.IsNullOrEmpty(avtrId))
                 {
+                    if (ModalCacheHelper.IsCached(avtrId)) break;
+                    ModalCacheHelper.Mark(avtrId);
                     var avtrObj = await _core.Avatars.GetAvatarAsync(avtrId);
                     var avatarName = avtrObj?["name"]?.ToString() ?? "";
                     var avatarImage = ImageCacheHelper.GetAvatarUrl(avtrId, avtrObj?["imageUrl"]?.ToString());
@@ -1310,6 +1312,12 @@ public class FriendsController
             tags = f["tags"]?.ToObject<List<string>>() ?? new List<string>(),
             ageVerified = f["ageVerified"]?.Value<bool>() ?? false,
             avatarFileId = ExtractAvatarFileId(f),
+            bio = f["bio"]?.ToString() ?? "",
+            pronouns = f["pronouns"]?.ToString() ?? "",
+            bioLinks = f["bioLinks"]?.ToObject<List<string>>() ?? new List<string>(),
+            profilePicOverride = f["profilePicOverride"]?.ToString() ?? "",
+            currentAvatarImageUrl = f["currentAvatarThumbnailImageUrl"]?.ToString() ?? f["currentAvatarImageUrl"]?.ToString() ?? "",
+            badges = f["badges"] ?? new JArray(),
         });
     }
 
@@ -1317,6 +1325,8 @@ public class FriendsController
     {
         List<JObject> snapshot;
         lock (_friendStore) snapshot = _friendStore.Values.ToList();
+
+        _core.SendToJS("log", new { msg = $"[WS] DoPushFriendsFromStore: {snapshot.Count} friends @ {DateTime.UtcNow:HH:mm:ss.fff}", color = "info" });
 
         var list = snapshot.Select(f =>
         {
@@ -1458,9 +1468,22 @@ public class FriendsController
 
             JObject? live;
             lock (_friendStore) _friendStore.TryGetValue(userId, out live);
-            var liveStatus     = live?["status"]?.ToString()            ?? cachedEntry.ProfileStatus;
-            var liveStatusDesc = live?["statusDescription"]?.ToString() ?? cachedEntry.ProfileStatusDesc;
-            var liveLoc        = live?["location"]?.ToString()           ?? cachedEntry.ProfileLocation;
+            var liveStatus          = live?["status"]?.ToString()                                            ?? cachedEntry.ProfileStatus;
+            var liveStatusDesc      = live?["statusDescription"]?.ToString()                                 ?? cachedEntry.ProfileStatusDesc;
+            var liveLoc             = live?["location"]?.ToString()                                          ?? cachedEntry.ProfileLocation;
+            var liveDisplayName     = live?["displayName"]?.ToString();
+            var liveRawImage        = live != null ? VRChatApiService.GetUserImage(live) : "";
+            var liveBio             = live?["bio"]?.ToString();
+            var livePronouns        = live?["pronouns"]?.ToString();
+            var liveAvatarImg       = live?["currentAvatarThumbnailImageUrl"]?.ToString() ?? live?["currentAvatarImageUrl"]?.ToString();
+            var livePicOverride     = live?["profilePicOverride"]?.ToString();
+            var liveTags            = live?["tags"] as JArray;
+            var liveBioLinks        = live?["bioLinks"] as JArray;
+            var liveBadges          = live?["badges"] as JArray;
+            var liveAgeVerified     = live?["ageVerified"]?.Value<bool>();
+            var liveAgeVerifStatus  = live?["ageVerificationStatus"]?.ToString();
+            var livePlatform        = live?["platform"]?.ToString();
+            var liveLastPlatform    = live?["last_platform"]?.ToString() ?? live?["lastMobile"]?.ToString();
             var (_, _, liveInstType) = VRChatApiService.ParseLocation(liveLoc);
             var liveWid = liveLoc.Contains(':') ? liveLoc.Split(':')[0] : "";
             (string name, string thumb) liveWorld = ("", "");
@@ -1477,11 +1500,11 @@ public class FriendsController
             var diskProfile = new JObject
             {
                 ["id"]                    = userId,
-                ["displayName"]           = cachedEntry.DisplayName,
-                ["image"]                 = cachedEntry.Image,
+                ["displayName"]           = !string.IsNullOrEmpty(liveDisplayName) ? liveDisplayName : cachedEntry.DisplayName,
+                ["image"]                 = !string.IsNullOrEmpty(liveRawImage) ? ImageCacheHelper.GetUserUrl(userId, liveRawImage) : cachedEntry.Image,
                 ["status"]                = liveStatus,
                 ["statusDescription"]     = liveStatusDesc,
-                ["bio"]                   = cachedEntry.ProfileBio,
+                ["bio"]                   = liveBio ?? cachedEntry.ProfileBio,
                 ["lastLogin"]             = cachedEntry.ProfileLastLogin,
                 ["lastActivity"]          = cachedEntry.ProfileLastActivity,
                 ["dateJoined"]            = cachedEntry.ProfileDateJoined,
@@ -1495,38 +1518,43 @@ public class FriendsController
                 ["canJoin"]               = liveIsInWorld && liveInstType is "public" or "friends" or "friends+" or "hidden" or "group-public" or "group-plus" or "group-members" or "group",
                 ["canRequestInvite"]      = liveInstType is "private" or "invite_plus",
                 ["canInvite"]             = true,
-                ["currentAvatarImageUrl"] = cachedEntry.ProfileAvatarImg,
+                ["currentAvatarImageUrl"] = !string.IsNullOrEmpty(liveAvatarImg) ? liveAvatarImg : cachedEntry.ProfileAvatarImg,
                 ["currentAvatarId"]       = liveAvatarId,
                 ["avatarFileId"]          = liveFileId,
-                ["profilePicOverride"]    = cachedEntry.ProfilePicOverride,
-                ["tags"]                  = TryParseJArray(cachedEntry.ProfileTags) ?? new JArray(),
+                ["profilePicOverride"]    = livePicOverride ?? cachedEntry.ProfilePicOverride,
+                ["tags"]                  = liveTags ?? TryParseJArray(cachedEntry.ProfileTags) ?? new JArray(),
                 ["note"]                  = cachedEntry.ProfileNote,
                 ["friendKey"]             = cachedEntry.ProfileFriendKey,
                 ["travelingToLocation"]   = live?["travelingToLocation"]?.ToString() ?? "",
                 ["state"]                 = (liveStatus != "offline" && !liveInGame) ? "active" : "",
-                ["lastPlatform"]          = cachedEntry.ProfileLastPlatform,
-                ["platform"]              = cachedEntry.ProfilePlatform,
+                ["lastPlatform"]          = !string.IsNullOrEmpty(liveLastPlatform) ? liveLastPlatform : cachedEntry.ProfileLastPlatform,
+                ["platform"]              = !string.IsNullOrEmpty(livePlatform) ? livePlatform : cachedEntry.ProfilePlatform,
                 ["userNote"]              = cachedEntry.ProfileUserNote,
                 ["totalTimeSeconds"]      = totalSecs,
                 ["meets"]                 = _core.Timeline?.GetMeetAgainCount(userId) ?? 0,
                 ["firstMeetDate"]         = _core.Timeline?.GetFirstMeetDate(userId) ?? "",
                 ["inSameInstance"]        = isCoPresent,
                 ["lastSeenTracked"]       = _core.Timeline?.GetLastSeenTimestamp(userId) ?? "",
-                ["pronouns"]              = cachedEntry.ProfilePronouns,
-                ["ageVerificationStatus"] = cachedEntry.ProfileAgeVerification,
-                ["ageVerified"]           = cachedEntry.ProfileAgeVerified != 0,
+                ["pronouns"]              = !string.IsNullOrEmpty(livePronouns) ? livePronouns : cachedEntry.ProfilePronouns,
+                ["ageVerificationStatus"] = !string.IsNullOrEmpty(liveAgeVerifStatus) ? liveAgeVerifStatus : cachedEntry.ProfileAgeVerification,
+                ["ageVerified"]           = liveAgeVerified ?? cachedEntry.ProfileAgeVerified != 0,
                 ["representedGroup"]      = cRepGroup != null ? JToken.FromObject(cRepGroup) : JValue.CreateNull(),
                 ["userGroups"]            = JArray.FromObject(cGroups),
                 ["mutuals"]               = JArray.FromObject(cMutuals),
                 ["mutualGroups"]          = JArray.FromObject(cMutualGroups),
                 ["mutualsOptedOut"]       = cMutualsOptedOut,
                 ["userWorlds"]            = JArray.FromObject(cWorlds),
-                ["bioLinks"]              = TryParseJArray(cachedEntry.ProfileBioLinks) ?? new JArray(),
+                ["bioLinks"]              = liveBioLinks ?? TryParseJArray(cachedEntry.ProfileBioLinks) ?? new JArray(),
                 ["isFavorited"]           = _favoriteFriends.ContainsKey(userId),
                 ["favFriendId"]           = GetFavoriteFriendId(userId),
-                ["badges"]                = TryParseJArray(cachedEntry.ProfileBadges) ?? new JArray(),
+                ["badges"]                = liveBadges ?? TryParseJArray(cachedEntry.ProfileBadges) ?? new JArray(),
             };
             _core.SendToJS("vrcFriendDetail", diskProfile);
+
+            if (ModalCacheHelper.IsCached(userId))
+                return;
+
+            ModalCacheHelper.Mark(userId);
 
             bool startRefresh;
             lock (_profileRefreshInFlight) startRefresh = _profileRefreshInFlight.Add(userId);
@@ -2116,6 +2144,8 @@ public class FriendsController
     private void OnWsFriendUpdated(object? sender, FriendEventArgs e)
     {
         if (e.User == null || string.IsNullOrEmpty(e.UserId) || !_friendStateSeeded) return;
+
+        _core.SendToJS("log", new { msg = $"[WS] friend-update: {e.UserId} ({e.User["displayName"]}) @ {DateTime.UtcNow:HH:mm:ss.fff}", color = "info" });
 
         MergeFriendStore(e.UserId, e.User);
         PushFriendUpdate(e.UserId);

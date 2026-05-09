@@ -22,6 +22,9 @@
   VRCNext can now create backups of the VRChat registry data through **Settings > Auto-Backups**. This helps preserve important VRChat-related settings before changes or issues happen.
   Requested by @octomiku01
 
+### Performance
+* Profiles are updated now live even if the modal ist open. Bios, Status, Status text, pronouns - everything is updated live without killing VRChats API.
+
 ### Context Menu
 * Instead of showing "Invite" "Invite with Image" "Invite with text" we now just show "Invite" and it has an sub menu of all three options.
 * Added "Request Invite" button to the Context Menu.

@@ -230,6 +230,8 @@ public class GroupsController
                             galleryImages = Array.Empty<object>(), groupMembers = Array.Empty<object>(),
                         });
                     }
+                    if (ModalCacheHelper.IsCached(ggId)) break;
+                    ModalCacheHelper.Mark(ggId);
                     _ = Task.Run(async () =>
                     {
                         var g = await _core.Groups.GetGroupAsync(ggId);
@@ -727,6 +729,27 @@ public class GroupsController
                     _ = Task.Run(async () =>
                     {
                         var ok = await _core.Groups.UpdateGroupAsync(ugGroupId, ugDesc, ugRules, ugLanguages, ugLinks, ugIconId, ugBannerId, ugJoinState);
+                        if (ok)
+                        {
+                            var ex = _core.TimeEngine.GetGroupDetail(ugGroupId);
+                            if (ex != null)
+                            {
+                                _core.TimeEngine.SaveGroupDetail(
+                                    ugGroupId,
+                                    ex.Name, ex.ShortCode,
+                                    ugDesc      ?? ex.Description,
+                                    ex.IconUrl, ex.BannerUrl, ex.MemberCount,
+                                    ex.Privacy,
+                                    ugJoinState ?? ex.JoinState,
+                                    ex.OwnerId, ex.OwnerName,
+                                    ugRules     ?? ex.Rules,
+                                    ugLanguages ?? ex.Languages,
+                                    ugLinks     ?? ex.Links,
+                                    createdAt: ex.CreatedAt, isVerified: ex.IsVerified,
+                                    joinedAt: ex.JoinedAt, isRepresenting: ex.IsRepresenting);
+                                ModalCacheHelper.Invalidate(ugGroupId);
+                            }
+                        }
                         _core.SendToJS("vrcGroupUpdated", new {
                             success = ok, groupId = ugGroupId,
                             description = ugDesc, rules = ugRules,

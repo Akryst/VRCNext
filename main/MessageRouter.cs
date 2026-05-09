@@ -998,6 +998,8 @@ public partial class AppShell
                             }));
                         }
 
+                        if (ModalCacheHelper.IsCached(wdId)) break;
+                        ModalCacheHelper.Mark(wdId);
                         _ = Task.Run(async () =>
                         {
                             static string StripNonce(string l) =>
@@ -1262,6 +1264,22 @@ public partial class AppShell
                         _ = Task.Run(async () =>
                         {
                             var (ok, error) = await _core.Avatars.UpdateAvatarAsync(avId, avName, avDesc, avStatus, avTags);
+                            if (ok)
+                            {
+                                var ex = _timeEngine.GetAvatarDetail(avId);
+                                if (ex != null)
+                                {
+                                    _timeEngine.SaveAvatarDetail(
+                                        avId, avName, ex.AuthorName, ex.AuthorId,
+                                        ex.ThumbnailImageUrl, ex.ImageUrl,
+                                        avStatus, ex.Version,
+                                        ex.CreatedAt, ex.UpdatedAt,
+                                        avDesc, avTags,
+                                        ex.HasPC, ex.HasQuest, ex.HasImpostor,
+                                        ex.PcPerf, ex.QuestPerf);
+                                    ModalCacheHelper.Invalidate(avId);
+                                }
+                            }
                             Invoke(() => SendToJS("vrcAvatarUpdateResult", new
                             {
                                 ok,
@@ -1291,6 +1309,8 @@ public partial class AppShell
                                 tags = avdCached.Tags, hasPC = avdCached.HasPC, hasQuest = avdCached.HasQuest,
                                 hasImpostor = avdCached.HasImpostor, pcPerf = avdCached.PcPerf, questPerf = avdCached.QuestPerf,
                             }));
+                        if (ModalCacheHelper.IsCached(avdId)) break;
+                        ModalCacheHelper.Mark(avdId);
                         _ = Task.Run(async () =>
                         {
                             var avatar = await _core.Avatars.GetAvatarAsync(avdId);
