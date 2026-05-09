@@ -106,7 +106,7 @@ function renderInstanceItem(opts) {
             <div class="inst-item-card-body">
                 ${titleHtml}
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                    ${badgeHtml}${ownerBadge}${regionHtml}${langHtml}
+                    ${badgeHtml}${instNum && location ? `<span class="vrcn-badge" style="cursor:pointer;" onclick="event.stopPropagation();copyInstanceLink('${location.replace(/'/g, "\\'")}')"><span class="msi" style="font-size:10px;">content_copy</span>#${esc(instNum)}</span>` : ''}${ownerBadge}${regionHtml}${langHtml}
                     <div class="inst-item-right">${joinHtml}</div>
                 </div>
             </div>

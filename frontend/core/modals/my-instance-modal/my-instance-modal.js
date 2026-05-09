@@ -241,11 +241,12 @@ function _buildInstanceCard(locBase, g, isMyInstance) {
     return `<div class="mi-instance-card" data-miloc="${esc(locBase)}">
         <div class="mi-instance-header">
             <span class="vrcn-badge ${cls}">${typeLabel}</span>
+            ${copyBadge}
             ${ageGateBadge}${ownerBadge}
             <span class="mi-inst-display-name vrcn-badge" style="display:none;"></span>
             ${regionHtml}${platformsHtml}
             ${occHtml}
-            <div class="mi-header-actions">${copyBadge}${actionsHtml}</div>
+            <div class="mi-header-actions">${actionsHtml}</div>
         </div>
         <div class="mi-inst-stats"${!statsHtml ? ' style="display:none"' : ''}>${statsHtml}</div>
         <div class="mi-friends-list">${friendsHtml}</div>
