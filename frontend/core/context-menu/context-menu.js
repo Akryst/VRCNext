@@ -648,6 +648,52 @@
         positionSubmenu(parentBtn);
     }
 
+    function showModerateSubmenu(userId, parentBtn) {
+        const isBlocked    = Array.isArray(blockedData)      && blockedData.some(x => x.targetUserId === userId);
+        const isMuted      = Array.isArray(mutedData)        && mutedData.some(x => x.targetUserId === userId);
+        const isChatMuted  = Array.isArray(muteChatData)     && muteChatData.some(x => x.targetUserId === userId);
+        const isAvatarHid  = Array.isArray(hiddenAvatarData) && hiddenAvatarData.some(x => x.targetUserId === userId);
+        const isInteractOff= Array.isArray(interactOffData)  && interactOffData.some(x => x.targetUserId === userId);
+        const opts = [
+            {
+                icon: isBlocked ? 'lock_open' : 'block',
+                label: isBlocked ? cm('friend.unblock', 'Unblock') : cm('friend.block', 'Block'),
+                danger: !isBlocked,
+                action: () => sendToCS({ action: isBlocked ? 'vrcUnblock' : 'vrcBlock', userId }),
+            },
+            {
+                icon: isMuted ? 'mic' : 'mic_off',
+                label: isMuted ? cm('friend.unmute', 'Unmute') : cm('friend.mute', 'Mute'),
+                action: () => sendToCS({ action: isMuted ? 'vrcUnmute' : 'vrcMute', userId }),
+            },
+            {
+                icon: isChatMuted ? 'chat' : 'comments_disabled',
+                label: isChatMuted ? cm('friend.unmute_chat', 'Unmute Chat') : cm('friend.mute_chat', 'Mute Chat'),
+                action: () => sendToCS({ action: isChatMuted ? 'vrcUnmuteChat' : 'vrcMuteChat', userId }),
+            },
+            {
+                icon: isAvatarHid ? 'visibility' : 'visibility_off',
+                label: isAvatarHid ? cm('friend.show_avatar', 'Show Avatar') : cm('friend.hide_avatar', 'Hide Avatar'),
+                action: () => sendToCS({ action: isAvatarHid ? 'vrcShowAvatar' : 'vrcHideAvatar', userId }),
+            },
+            {
+                icon: isInteractOff ? 'touch_app' : 'do_not_touch',
+                label: isInteractOff ? cm('friend.interact_on', 'Turn On Interactions') : cm('friend.interact_off', 'Turn Off Interactions'),
+                action: () => sendToCS({ action: isInteractOff ? 'vrcInteractOn' : 'vrcInteractOff', userId }),
+            },
+        ];
+        submenu.innerHTML = opts.map((o, i) => `
+            <button class="vn-ctx-item${o.danger ? ' danger' : ''}" data-midx="${i}">
+                <span class="msi" style="font-size:14px;">${o.icon}</span>
+                <span class="vn-ctx-label">${esc(o.label)}</span>
+            </button>`).join('');
+        submenu.querySelectorAll('[data-midx]').forEach((btn, i) => {
+            btn.addEventListener('click', e => { e.stopPropagation(); opts[i].action(); hideMenu(); });
+            btn.addEventListener('mouseenter', () => clearTimeout(submenuTimer));
+        });
+        positionSubmenu(parentBtn);
+    }
+
     function showFriendInviteSubmenu(userId, displayName, hasVrcPlus, parentBtn) {
         const opts = [
             { icon: 'send',              key: 'friend.invite',         fb: 'Invite',              action: () => sendToCS({ action: 'vrcInviteFriend', userId }) },
@@ -999,32 +1045,14 @@
                 items.push({ icon: 'star', label: cm('friend.favorite', 'Add to Favorites'), submenuFn: btn => showFavFriendGroupSubmenu(id, btn) });
             }
 
-            const isMuted = Array.isArray(mutedData) && mutedData.some(x => x.targetUserId === id);
-            const isBlocked = Array.isArray(blockedData) && blockedData.some(x => x.targetUserId === id);
             items.push('sep');
-            items.push(isMuted
-                ? { icon: 'mic', label: cm('friend.unmute', 'Unmute'), action: () => sendToCS({ action: 'vrcUnmute', userId: id }) }
-                : { icon: 'mic_off', label: cm('friend.mute', 'Mute'), action: () => sendToCS({ action: 'vrcMute', userId: id }) }
-            );
-            items.push(isBlocked
-                ? { icon: 'lock_open', label: cm('friend.unblock', 'Unblock'), action: () => sendToCS({ action: 'vrcUnblock', userId: id }) }
-                : { icon: 'block', label: cm('friend.block', 'Block'), action: () => sendToCS({ action: 'vrcBlock', userId: id }), danger: true, confirm: true }
-            );
+            items.push({ icon: 'shield_person', label: cm('friend.moderate', 'Moderate'), submenuFn: btn => showModerateSubmenu(id, btn) });
             items.push({ icon: 'person_remove', label: cm('friend.unfriend', 'Unfriend'), action: () => sendToCS({ action: 'vrcUnfriend', userId: id }), danger: true, confirm: true });
         } else {
             items.push('sep');
             items.push({ icon: 'person_add', label: cm('friend.send_request', 'Send Friend Request'), action: () => sendToCS({ action: 'vrcSendFriendRequest', userId: id }) });
-            const isMutedNf = Array.isArray(mutedData) && mutedData.some(x => x.targetUserId === id);
-            const isBlockedNf = Array.isArray(blockedData) && blockedData.some(x => x.targetUserId === id);
             items.push('sep');
-            items.push(isMutedNf
-                ? { icon: 'mic', label: cm('friend.unmute', 'Unmute'), action: () => sendToCS({ action: 'vrcUnmute', userId: id }) }
-                : { icon: 'mic_off', label: cm('friend.mute', 'Mute'), action: () => sendToCS({ action: 'vrcMute', userId: id }) }
-            );
-            items.push(isBlockedNf
-                ? { icon: 'lock_open', label: cm('friend.unblock', 'Unblock'), action: () => sendToCS({ action: 'vrcUnblock', userId: id }) }
-                : { icon: 'block', label: cm('friend.block', 'Block'), action: () => sendToCS({ action: 'vrcBlock', userId: id }), danger: true, confirm: true }
-            );
+            items.push({ icon: 'shield_person', label: cm('friend.moderate', 'Moderate'), submenuFn: btn => showModerateSubmenu(id, btn) });
         }
         return items;
     }

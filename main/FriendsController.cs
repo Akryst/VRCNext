@@ -670,6 +670,78 @@ public class FriendsController
                 break;
             }
 
+            case "vrcHideAvatar":
+            {
+                var uid = msg["userId"]?.ToString();
+                if (!string.IsNullOrEmpty(uid))
+                    _ = Task.Run(async () =>
+                    {
+                        var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "hideAvatar");
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "hideAvatar", active = true });
+                    });
+                break;
+            }
+
+            case "vrcShowAvatar":
+            {
+                var uid = msg["userId"]?.ToString();
+                if (!string.IsNullOrEmpty(uid))
+                    _ = Task.Run(async () =>
+                    {
+                        var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "showAvatar");
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "hideAvatar", active = false });
+                    });
+                break;
+            }
+
+            case "vrcInteractOff":
+            {
+                var uid = msg["userId"]?.ToString();
+                if (!string.IsNullOrEmpty(uid))
+                    _ = Task.Run(async () =>
+                    {
+                        var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "interactOff");
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "interactOff", active = true });
+                    });
+                break;
+            }
+
+            case "vrcInteractOn":
+            {
+                var uid = msg["userId"]?.ToString();
+                if (!string.IsNullOrEmpty(uid))
+                    _ = Task.Run(async () =>
+                    {
+                        var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "interactOn");
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "interactOff", active = false });
+                    });
+                break;
+            }
+
+            case "vrcMuteChat":
+            {
+                var uid = msg["userId"]?.ToString();
+                if (!string.IsNullOrEmpty(uid))
+                    _ = Task.Run(async () =>
+                    {
+                        var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "muteChat");
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "muteChat", active = true });
+                    });
+                break;
+            }
+
+            case "vrcUnmuteChat":
+            {
+                var uid = msg["userId"]?.ToString();
+                if (!string.IsNullOrEmpty(uid))
+                    _ = Task.Run(async () =>
+                    {
+                        var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "unmuteChat");
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "muteChat", active = false });
+                    });
+                break;
+            }
+
             case "vrcBoop":
             {
                 var uid = msg["userId"]?.ToString();
@@ -829,7 +901,9 @@ public class FriendsController
         "vrcGetFavoriteFriends", "vrcAddFavoriteFriend", "vrcRemoveFavoriteFriend",
         "vrcAddFavoriteFriendToGroup",
         "vrcSendFriendRequest", "vrcUnfriend", "vrcGetBlocked", "vrcGetMuted",
-        "vrcBlock", "vrcMute", "vrcUnblock", "vrcUnmute", "vrcBoop",
+        "vrcBlock", "vrcMute", "vrcUnblock", "vrcUnmute",
+        "vrcHideAvatar", "vrcShowAvatar", "vrcInteractOff", "vrcInteractOn", "vrcMuteChat", "vrcUnmuteChat",
+        "vrcBoop",
         "vrcSendChatMessage", "vrcGetChatHistory", "vrcGetUser",
         "vrcGetUserAvatars", "vrcGetUserFavWorlds",
     };

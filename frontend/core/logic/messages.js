@@ -401,27 +401,44 @@ window.external.receiveMessage(rawMsg => {
                     : modUid;
                 const modImage = (currentFriendDetail && currentFriendDetail.id === modUid)
                     ? (currentFriendDetail.image || '') : '';
+                const _modEntry = { targetUserId: modUid, targetDisplayName: modName, image: modImage };
                 if (modType === 'block') {
                     if (modActive) {
                         if (!Array.isArray(blockedData)) blockedData = [];
-                        if (!blockedData.some(e => e.targetUserId === modUid))
-                            blockedData.push({ targetUserId: modUid, targetDisplayName: modName, image: modImage });
+                        if (!blockedData.some(e => e.targetUserId === modUid)) blockedData.push(_modEntry);
                     } else {
                         blockedData = (blockedData || []).filter(e => e.targetUserId !== modUid);
                     }
                     renderModList('blockedList', blockedData, 'block');
-                } else {
+                } else if (modType === 'mute') {
                     if (modActive) {
                         if (!Array.isArray(mutedData)) mutedData = [];
-                        if (!mutedData.some(e => e.targetUserId === modUid))
-                            mutedData.push({ targetUserId: modUid, targetDisplayName: modName, image: modImage });
+                        if (!mutedData.some(e => e.targetUserId === modUid)) mutedData.push(_modEntry);
                     } else {
                         mutedData = (mutedData || []).filter(e => e.targetUserId !== modUid);
                     }
                     renderModList('mutedList', mutedData, 'mute');
+                } else if (modType === 'hideAvatar') {
+                    if (modActive) {
+                        if (!hiddenAvatarData.some(e => e.targetUserId === modUid)) hiddenAvatarData.push(_modEntry);
+                    } else {
+                        hiddenAvatarData = hiddenAvatarData.filter(e => e.targetUserId !== modUid);
+                    }
+                } else if (modType === 'interactOff') {
+                    if (modActive) {
+                        if (!interactOffData.some(e => e.targetUserId === modUid)) interactOffData.push(_modEntry);
+                    } else {
+                        interactOffData = interactOffData.filter(e => e.targetUserId !== modUid);
+                    }
+                } else if (modType === 'muteChat') {
+                    if (modActive) {
+                        if (!muteChatData.some(e => e.targetUserId === modUid)) muteChatData.push(_modEntry);
+                    } else {
+                        muteChatData = muteChatData.filter(e => e.targetUserId !== modUid);
+                    }
                 }
-                // Update buttons in open detail modal
-                const btn = document.getElementById(modType === 'block' ? 'fdBlockBtn' : 'fdMuteBtn');
+                // Update legacy header buttons
+                const btn = document.getElementById(modType === 'block' ? 'fdBlockBtn' : modType === 'mute' ? 'fdMuteBtn' : null);
                 if (btn) {
                     btn.classList.toggle('active', modActive);
                     btn.title = modActive
@@ -430,6 +447,9 @@ window.external.receiveMessage(rawMsg => {
                     const icon = btn.querySelector('.msi');
                     if (icon) icon.textContent = modType === 'block' ? (modActive ? 'block' : 'shield') : (modActive ? 'mic_off' : 'mic');
                 }
+                // Refresh moderation card in open profile modal
+                if (typeof renderFdModerationCard === 'function' && currentFriendDetail && currentFriendDetail.id === modUid)
+                    renderFdModerationCard(modUid);
                 break;
             }
             case 'vrcAvatars':

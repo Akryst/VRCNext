@@ -1816,6 +1816,12 @@ public partial class AppShell
                 case "vrcMute":
                 case "vrcUnblock":
                 case "vrcUnmute":
+                case "vrcHideAvatar":
+                case "vrcShowAvatar":
+                case "vrcInteractOff":
+                case "vrcInteractOn":
+                case "vrcMuteChat":
+                case "vrcUnmuteChat":
                 case "vrcBoop":
                 case "vrcSendChatMessage":
                 case "vrcGetChatHistory":

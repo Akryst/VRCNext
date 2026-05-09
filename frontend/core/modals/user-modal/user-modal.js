@@ -727,6 +727,7 @@ function renderFriendDetail(d) {
     const _tlCard = `<div class="fd-info-card">${miniTlHtml}</div>`;
     const _infosCard = `<div class="fd-info-card">${_aboutRowsHtml}</div>`;
     const _trustCard = trustSideHtml ? `<div class="fd-info-card">${trustSideHtml}</div>` : '';
+    const _modCard = `<div class="fd-info-card" id="fdModerationCard">${_buildModCardInner(d.id)}</div>`;
     const _topSection = (_currentWorldCard && _ownerCard)
         ? `<div class="fd-info-top-row">${_currentWorldCard}${_ownerCard}</div>`
         : (_currentWorldCard || '');
@@ -737,7 +738,7 @@ function renderFriendDetail(d) {
                 ${_badgesCard}${avatarRowHtml}${_bioCard}
             </div>
             <div class="fd-info-right">
-                ${_infosCard}${_trustCard}
+                ${_infosCard}${_trustCard}${_modCard}
             </div>
         </div>
         ${_noteCard}
@@ -1049,6 +1050,32 @@ function toggleMod(userId, type, btn) {
         ? (type === 'block' ? 'vrcUnblock' : 'vrcUnmute')
         : (type === 'block' ? 'vrcBlock'   : 'vrcMute'),
         userId });
+}
+
+function _buildModCardInner(userId) {
+    const isBlocked     = Array.isArray(blockedData)      && blockedData.some(x => x.targetUserId === userId);
+    const isMuted       = Array.isArray(mutedData)        && mutedData.some(x => x.targetUserId === userId);
+    const isChatMuted   = Array.isArray(muteChatData)     && muteChatData.some(x => x.targetUserId === userId);
+    const isAvatarHid   = Array.isArray(hiddenAvatarData) && hiddenAvatarData.some(x => x.targetUserId === userId);
+    const isInteractOff = Array.isArray(interactOffData)  && interactOffData.some(x => x.targetUserId === userId);
+    const _row = (label, active, activeKey, activeFb, inactiveKey, inactiveFb) =>
+        `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;">
+            <span style="color:var(--tx3);">${label}</span>
+            <span style="color:${active ? 'var(--err)' : 'var(--tx1)'};text-align:right;">${active ? t(activeKey, activeFb) : t(inactiveKey, inactiveFb)}</span>
+        </div>`;
+    return `<div class="fd-group-rep-label">${t('profiles.moderation.title', 'Moderation')}</div>
+        <div style="display:grid;gap:6px;">
+            ${_row(t('profiles.moderation.status','Status'),       isBlocked,     'profiles.moderation.blocked',     'Blocked',   'profiles.moderation.not_blocked','Not Blocked')}
+            ${_row(t('profiles.moderation.voice','Voice'),         isMuted,       'profiles.moderation.muted',       'Muted',     'profiles.moderation.not_muted',  'Not Muted')}
+            ${_row(t('profiles.moderation.chat','Chat'),           isChatMuted,   'profiles.moderation.muted',       'Muted',     'profiles.moderation.not_muted',  'Not Muted')}
+            ${_row(t('profiles.moderation.avatar','Avatar'),       isAvatarHid,   'profiles.moderation.hidden',      'Hidden',    'profiles.moderation.shown',      'Shown')}
+            ${_row(t('profiles.moderation.interactions','Interactions'), isInteractOff, 'profiles.moderation.off', 'Off',       'profiles.moderation.on',         'On')}
+        </div>`;
+}
+
+function renderFdModerationCard(userId) {
+    const card = document.getElementById('fdModerationCard');
+    if (card) card.innerHTML = _buildModCardInner(userId);
 }
 
 function handleUserBasic(payload) {

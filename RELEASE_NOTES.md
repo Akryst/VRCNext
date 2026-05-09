@@ -25,6 +25,7 @@
 ### Context Menu
 * Instead of showing "Invite" "Invite with Image" "Invite with text" we now just show "Invite" and it has an sub menu of all three options.
 * Added "Request Invite" button to the Context Menu.
+* Added user Moderation menu to the context menu. Block, Mute, Mute Chat, Hide Avatar, Interactions.
 
 ### Instance List
 * Redesigned the instance list design to match the new V2 design.
