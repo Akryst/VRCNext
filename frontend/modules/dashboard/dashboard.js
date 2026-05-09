@@ -298,24 +298,28 @@ function renderDashFriendsLocationSmall() {
         const { worldId } = parseFriendLocation(f.location);
         const cached   = worldId ? dashWorldCache[worldId] : null;
         const thumb    = cached?.thumbnailImageUrl || cached?.imageUrl || '';
-        const wname    = cached?.name || t('dashboard.friends.location_world', 'In World');
+        const wname    = esc(cached?.name || t('dashboard.friends.location_world', 'In World'));
         const wid      = (worldId || '').replace(/'/g, "\\'");
         const safeLoc  = (f.location || '').replace(/'/g, "\\'");
         const img      = f.image || '';
-        const imgTag   = img
-            ? `<img class="dash-feed-avatar" src="${img}" onerror="this.style.display='none'">`
-            : `<div class="dash-feed-avatar" style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:rgba(255,255,255,.6)">${esc((f.displayName||'?')[0])}</div>`;
         const dotClass = f.presence === 'web' ? 'vrc-status-ring' : 'vrc-status-dot';
-        const fid      = (f.id || '').replace(/'/g, "\\'");
-        return `<div class="dash-floc-card" onclick="openFriendLocationDetail('${wid}','${safeLoc}')">
-            <div class="dash-floc-bg"${thumb ? ` style="background-image:url('${cssUrl(thumb)}')"` : ''}></div>
-            <div class="dash-floc-scrim"></div>
-            ${imgTag}
-            <div class="dash-feed-info">
-                <div class="dash-feed-name"><span class="${dotClass} ${statusDotClass(f.status)}" style="width:7px;height:7px;"></span>${esc(f.displayName)}</div>
-                <div class="dash-feed-status">${esc(f.statusDescription || statusLabel(f.status))}</div>
-                <div class="dash-feed-loc">${esc(wname)}</div>
+        const avatarEl = img
+            ? `<img class="dash-flocs-avatar" src="${img}" onerror="this.style.display='none'">`
+            : `<div class="dash-flocs-avatar dash-flocs-avatar-letter">${esc((f.displayName||'?')[0])}</div>`;
+        const worldThumb = thumb
+            ? `<img class="dash-flocs-world-thumb" src="${cssUrl(thumb)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+            : '';
+        return `<div class="dash-flocs-card" onclick="openFriendLocationDetail('${wid}','${safeLoc}')">
+            <div class="dash-flocs-avatar-wrap">
+                ${avatarEl}
+                <span class="${dotClass} ${statusDotClass(f.status)} dash-flocs-dot"></span>
             </div>
+            <div class="dash-flocs-info">
+                <div class="dash-flocs-name">${esc(f.displayName)}</div>
+                <div class="dash-flocs-status">${esc(f.statusDescription || statusLabel(f.status))}</div>
+                <div class="dash-flocs-world"><span class="msi">public</span>${wname}</div>
+            </div>
+            ${worldThumb}
         </div>`;
     }).join('');
 }
@@ -976,26 +980,31 @@ function renderDashGroupActivityInstancesSmall() {
         return;
     }
     el.innerHTML = _dashGroupInstances.slice(0, 24).map(inst => {
-        const thumb    = inst.worldThumb || '';
-        const wname    = inst.worldName || t('dashboard.instances.unknown_world', 'Unknown World');
-        const gname    = inst.groupName || '';
-        const loc      = (inst.location || '').replace(/'/g, "\\'");
-        const users    = inst.capacity > 0 ? `${inst.userCount}/${inst.capacity}` : (inst.userCount ? String(inst.userCount) : '');
+        const thumb  = inst.worldThumb || '';
+        const wname  = esc(inst.worldName || t('dashboard.instances.unknown_world', 'Unknown World'));
+        const gname  = esc(inst.groupName || '');
+        const loc    = (inst.location || '').replace(/'/g, "\\'");
+        const users  = inst.capacity > 0 ? `${inst.userCount}/${inst.capacity}` : (inst.userCount ? String(inst.userCount) : '');
+        const isAgeGated = (inst.location || '').includes('~ageGate');
         const iconHtml = inst.groupIcon
-            ? `<img class="dash-feed-avatar" src="${inst.groupIcon}" onerror="this.style.display='none'">`
-            : `<div class="dash-feed-avatar" style="display:flex;align-items:center;justify-content:center;"><span class="msi" style="font-size:14px;color:rgba(255,255,255,.6)">group</span></div>`;
-        const gaSmAgeGate = (inst.location || '').includes('~ageGate')
-            ? `<span class="vrcn-badge" style="position:absolute;top:6px;right:8px;z-index:2;background:rgba(255,75,85,.15);color:var(--err);">${esc(t('worlds.instances.age_gated', 'Age Gated'))}</span>` : '';
-        return `<div class="dash-floc-card" onclick="openGroupInstanceDetail('${loc}')">
-            <div class="dash-floc-bg"${thumb ? ` style="background-image:url('${cssUrl(thumb)}')"` : ''}></div>
-            <div class="dash-floc-scrim"></div>
-            ${gaSmAgeGate}
-            ${iconHtml}
-            <div class="dash-feed-info">
-                <div class="dash-feed-name">${esc(gname)}</div>
-                <div class="dash-feed-status">${esc(wname)}</div>
-                <div class="dash-feed-loc">${users ? `<span class="msi" style="font-size:10px;vertical-align:middle;">person</span> ${esc(users)}` : ''}</div>
+            ? `<img class="dash-flocs-avatar" src="${inst.groupIcon}" onerror="this.style.display='none'">`
+            : `<div class="dash-flocs-avatar dash-flocs-avatar-letter"><span class="msi" style="font-size:16px;">group</span></div>`;
+        const worldThumb = thumb
+            ? `<img class="dash-flocs-world-thumb" src="${cssUrl(thumb)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+            : '';
+        const ageGateBadge = isAgeGated
+            ? `<span class="vrcn-badge" style="font-size:9px;background:rgba(255,75,85,.12);color:var(--err);border:1px solid rgba(255,75,85,.25);padding:1px 5px;flex-shrink:0;">18+</span>`
+            : '';
+        return `<div class="dash-flocs-card" onclick="openGroupInstanceDetail('${loc}')">
+            <div class="dash-flocs-avatar-wrap">
+                ${iconHtml}
             </div>
+            <div class="dash-flocs-info">
+                <div class="dash-flocs-name">${gname}</div>
+                <div class="dash-flocs-status">${wname}</div>
+                <div class="dash-flocs-world">${users ? `<span class="msi">person</span>${esc(users)}` : ''}${ageGateBadge}</div>
+            </div>
+            ${worldThumb}
         </div>`;
     }).join('');
 }

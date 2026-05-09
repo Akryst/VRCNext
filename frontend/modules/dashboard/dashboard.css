@@ -286,37 +286,101 @@
 
 /* === Friends Location (Small) === */
 
-.dash-floc-card {
-    position: relative;
-    overflow: hidden;
+.dash-flocs-card {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 12px;
+    padding: 9px 12px;
+    background: var(--bg-input);
     border-radius: 10px;
     cursor: pointer;
-    transition: transform .15s;
+    transition: background .15s;
+    min-width: 0;
 }
-.dash-floc-card:hover { transform: translateY(-2px); }
-.dash-floc-bg {
+.dash-flocs-card:hover { background: var(--bg-hover); }
+
+.dash-flocs-avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.dash-flocs-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    object-fit: cover;
+    display: block;
+    background: var(--bg-hover);
+}
+
+.dash-flocs-avatar-letter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--tx2);
+}
+
+.dash-flocs-dot {
     position: absolute;
-    inset: 0;
-    background-size: cover;
-    background-position: center;
-    background-color: var(--bg-card);
-    transition: transform .3s ease;
+    bottom: -2px;
+    right: -2px;
+    width: 9px !important;
+    height: 9px !important;
+    box-shadow: 0 0 0 2px var(--bg-input);
 }
-.dash-floc-card:hover .dash-floc-bg { transform: scale(1.06); }
-.dash-floc-scrim {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(0,0,0,.72) 0%, rgba(0,0,0,.45) 100%);
+.dash-flocs-card:hover .dash-flocs-dot {
+    box-shadow: 0 0 0 2px var(--bg-hover);
 }
-.dash-floc-card .dash-feed-avatar,
-.dash-floc-card .dash-feed-info { position: relative; z-index: 1; }
-.dash-floc-card .dash-feed-name  { color: rgba(255,255,255,.95); }
-.dash-floc-card .dash-feed-status { color: rgba(255,255,255,.65); }
-.dash-floc-card .dash-feed-loc   { color: rgba(255,255,255,.45); }
+
+.dash-flocs-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.dash-flocs-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--tx1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dash-flocs-status {
+    font-size: 10px;
+    color: var(--tx2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dash-flocs-world {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    color: var(--tx3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dash-flocs-world .msi { font-size: 11px; flex-shrink: 0; }
+
+.dash-flocs-world-thumb {
+    width: 38px;
+    height: 38px;
+    border-radius: 7px;
+    object-fit: cover;
+    flex-shrink: 0;
+    opacity: 0.55;
+    transition: opacity .15s;
+}
+.dash-flocs-card:hover .dash-flocs-world-thumb { opacity: 0.8; }
 
 /* === Favorite Shelf === */
 
