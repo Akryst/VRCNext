@@ -1033,6 +1033,10 @@ public class AuthController
             // Legacy Window (requires restart)
             _core.Settings.LegacyWindow = data["legacyWindow"]?.Value<bool>() ?? false;
 
+            // Window Behavior
+            _core.Settings.RememberWindowSize     = data["rememberWindowSize"]?.Value<bool>()     ?? false;
+            _core.Settings.RememberWindowPosition = data["rememberWindowPosition"]?.Value<bool>() ?? false;
+
             // Performance flags (require restart)
             _core.Settings.GpuAcceleration    = data["gpuAcceleration"]?.Value<bool>()    ?? false;
             _core.Settings.GpuShaderCache     = data["gpuShaderCache"]?.Value<bool>()     ?? false;

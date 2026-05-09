@@ -295,7 +295,27 @@ public partial class AppShell
         ScheduleNextWorldStats();
 
         // Chromeless on Windows requires explicit location (Center() sets a flag, not coordinates)
-        var (startX, startY) = WindowController.GetCenteredLocation(1100, 700);
+        int startW = _settings.RememberWindowSize && _settings.SavedWindowWidth  >= 100
+            ? _settings.SavedWindowWidth  : 1100;
+        int startH = _settings.RememberWindowSize && _settings.SavedWindowHeight >= 100
+            ? _settings.SavedWindowHeight : 700;
+        var (defaultX, defaultY) = WindowController.GetCenteredLocation(startW, startH);
+        int startX = defaultX, startY = defaultY;
+        if (_settings.RememberWindowPosition && _settings.SavedWindowX >= 0)
+        {
+#if WINDOWS
+            if (System.Windows.Forms.Screen.AllScreens.Any(s =>
+                s.WorkingArea.IntersectsWith(
+                    new System.Drawing.Rectangle(_settings.SavedWindowX, _settings.SavedWindowY, startW, startH))))
+            {
+                startX = _settings.SavedWindowX;
+                startY = _settings.SavedWindowY;
+            }
+#else
+            startX = _settings.SavedWindowX;
+            startY = _settings.SavedWindowY;
+#endif
+        }
 
 #if !WINDOWS
         // Auto-install missing GStreamer plugins required by WebKit2GTK (blank window without them)
@@ -324,7 +344,7 @@ public partial class AppShell
         var windowBuilder = new PhotinoWindow()
             .SetTitle("VRCNext")
             .SetUseOsDefaultSize(false)
-            .SetSize(1100, 700)
+            .SetSize(startW, startH)
             .SetMinSize(900, 540)
             .SetChromeless(OperatingSystem.IsWindows() && !_settings.LegacyWindow)
             .SetResizable(true)
@@ -442,6 +462,41 @@ public partial class AppShell
 
     private void OnClose()
     {
+        try
+        {
+            bool anySave = false;
+#if WINDOWS
+            var (lastX, lastY, lastW, lastH, wasMax) = WindowController.LastWindowPlacement;
+            if (_settings.RememberWindowSize && !wasMax && lastW >= 100)
+            {
+                _settings.SavedWindowWidth  = lastW;
+                _settings.SavedWindowHeight = lastH;
+                anySave = true;
+            }
+            if (_settings.RememberWindowPosition && !wasMax)
+            {
+                _settings.SavedWindowX = lastX;
+                _settings.SavedWindowY = lastY;
+                anySave = true;
+            }
+#else
+            if (_settings.RememberWindowSize && !_window.Maximized && _window.Width >= 100)
+            {
+                _settings.SavedWindowWidth  = _window.Width;
+                _settings.SavedWindowHeight = _window.Height;
+                anySave = true;
+            }
+            if (_settings.RememberWindowPosition && !_window.Maximized)
+            {
+                _settings.SavedWindowX = _window.Left;
+                _settings.SavedWindowY = _window.Top;
+                anySave = true;
+            }
+#endif
+            if (anySave) _settings.Save();
+        }
+        catch { }
+
         // Add watch dog at first Mark: Watchdog test
         CrashHandler.OnCleanShutdown();
         _relayCtrl?.Dispose();

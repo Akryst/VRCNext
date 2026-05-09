@@ -34,10 +34,12 @@ public class WindowController
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(nint hWnd);
     [DllImport("user32.dll")] private static extern bool IsIconic(nint hWnd);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(nint hWnd);
+    [DllImport("user32.dll")] private static extern bool GetWindowPlacement(nint hWnd, ref WINDOWPLACEMENT lpwndpl);
 
-    private const int SW_HIDE    = 0;
-    private const int SW_SHOW    = 5;
-    private const int SW_RESTORE = 9;
+    private const int SW_HIDE           = 0;
+    private const int SW_SHOW           = 5;
+    private const int SW_RESTORE        = 9;
+    private const int SW_SHOWMAXIMIZED  = 3;
 
     /// <summary>
     /// When true, minimize actions hide the window to the system tray instead.
@@ -52,6 +54,22 @@ public class WindowController
     private struct MARGINS { public int leftWidth, rightWidth, topHeight, bottomHeight; }
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT { public int Left, Top, Right, Bottom; }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int X, Y; }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WINDOWPLACEMENT
+    {
+        public int   length;
+        public int   flags;
+        public int   showCmd;
+        public POINT ptMinPosition;
+        public POINT ptMaxPosition;
+        public RECT  rcNormalPosition;
+    }
+
+    // Set by SubclassWndProc at WM_CLOSE (before the native window is destroyed).
+    // AppShell.OnClose() reads this instead of _window.Width/Height/Left/Top which return 0 after WaitForClose().
+    internal static (int Left, int Top, int Width, int Height, bool WasMaximized) LastWindowPlacement;
 
     private delegate nint SUBCLASSPROC(nint hWnd, uint uMsg, nint wParam, nint lParam, nuint uIdSubclass, nuint dwRefData);
     private static SUBCLASSPROC? _subclassProc; // must stay rooted — prevents GC collection of the delegate
@@ -88,6 +106,19 @@ public class WindowController
                 ShowWindow(hWnd, SW_HIDE);
                 OnMinimized?.Invoke();
                 return 0;
+            }
+            // Window will actually close — capture geometry now while the HWND is still valid.
+            // _window.Width/Height/Left/Top return 0 after WaitForClose() because the native window is gone.
+            var wp = new WINDOWPLACEMENT { length = Marshal.SizeOf<WINDOWPLACEMENT>() };
+            if (GetWindowPlacement(hWnd, ref wp))
+            {
+                LastWindowPlacement = (
+                    wp.rcNormalPosition.Left,
+                    wp.rcNormalPosition.Top,
+                    wp.rcNormalPosition.Right  - wp.rcNormalPosition.Left,
+                    wp.rcNormalPosition.Bottom - wp.rcNormalPosition.Top,
+                    wp.showCmd == SW_SHOWMAXIMIZED
+                );
             }
         }
 

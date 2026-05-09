@@ -209,6 +209,8 @@ function saveSettings() {
             autoUpdate: document.getElementById('setAutoUpdate').checked,
             sendCrashData: document.getElementById('setSendCrashData').checked,
             restartAfterCrash: document.getElementById('setRestartAfterCrash').checked,
+            rememberWindowSize:     document.getElementById('setRememberWindowSize')?.checked     ?? false,
+            rememberWindowPosition: document.getElementById('setRememberWindowPosition')?.checked ?? false,
             textToolsEnabled: document.getElementById('setTextToolsEnabled')?.checked ?? false,
             legacyWindow: document.getElementById('setLegacyWindow')?.checked ?? false,
             gpuAcceleration:    document.getElementById('setPerfGpuAccel')?.checked    ?? false,
@@ -514,6 +516,12 @@ function loadSettingsToUI(s) {
     document.getElementById('setAutoUpdate').checked          = s.AutoUpdate          ?? s.autoUpdate          ?? true;
     document.getElementById('setSendCrashData').checked      = s.SendCrashData      ?? s.sendCrashData      ?? false;
     document.getElementById('setRestartAfterCrash').checked  = s.RestartAfterCrash  ?? s.restartAfterCrash  ?? true;
+
+    // Window Behavior
+    const rwsEl = document.getElementById('setRememberWindowSize');
+    if (rwsEl) rwsEl.checked = s.RememberWindowSize ?? s.rememberWindowSize ?? false;
+    const rwpEl = document.getElementById('setRememberWindowPosition');
+    if (rwpEl) rwpEl.checked = s.RememberWindowPosition ?? s.rememberWindowPosition ?? false;
 
     // Text Tools
     const textToolsEnabled = s.TextToolsEnabled ?? s.textToolsEnabled ?? false;

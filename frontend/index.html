@@ -916,6 +916,35 @@
                         </div>
                     </div>
 
+                    <!-- WINDOW BEHAVIOR -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">open_in_full</span> <span data-i18n="settings.window.title">Window Behavior</span></div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.window.remember_size">Remember Window Size</span>
+                            <label class="toggle"><input type="checkbox" id="setRememberWindowSize" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.window.remember_size_desc">Restores the window to its last used size when VRCNext starts.</div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.window.remember_position">Remember Window Position</span>
+                            <label class="toggle"><input type="checkbox" id="setRememberWindowPosition" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.window.remember_position_desc">Restores the window to its last screen position when VRCNext starts. Resets to the default monitor if the previous monitor is no longer connected.</div>
+                        <div class="sf-toggle-row" style="margin-top:6px;">
+                            <span data-i18n="settings.debug.text_tools.label">Enable Text Tools</span>
+                            <label class="toggle"><input type="checkbox" id="setTextToolsEnabled" onchange="toggleTextTools(this.checked)"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" data-i18n="settings.debug.text_tools.desc">When enabled, all text in VRCNext becomes selectable. You can copy it via the right-click context menu or with Ctrl&nbsp;+&nbsp;C.</div>
+                        <div class="sf-toggle-row" style="margin-top:14px;" data-windows-only>
+                            <span data-i18n="settings.debug.legacy_window.label">Enable Legacy Window</span>
+                            <label class="toggle"><input type="checkbox" id="setLegacyWindow" onchange="onLegacyWindowChange()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" data-windows-only data-i18n="settings.debug.legacy_window.desc">When enabled, VRCNext uses the Legacy Window Manager with native title bar controls. The sidebar color is applied to the title bar.</div>
+                        <div id="legacyRestartHint" style="display:none;margin-top:10px;" data-windows-only>
+                            <span class="set-desc" data-i18n="settings.debug.legacy_window.restart_hint">A restart is required to apply the window mode change.</span>
+                            <button class="vrcn-button" style="margin-top:8px;" onclick="sendToCS({action:'restartApp'})"><span class="msi" style="font-size:16px;">refresh</span> <span data-i18n="settings.language.restart_btn">Restart VRCNext</span></button>
+                        </div>
+                    </div>
+
                     <!-- SYSTEM TRAY -->
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi" style="font-size:16px;">notifications_active</span> <span data-i18n="settings.system.tray.title">System Tray</span></div>
@@ -1005,20 +1034,6 @@
                         </div>
                         <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.debug.memory_trim_desc">Memory Trim periodically frees unused memory from VRCNext. While the app already cleans up automatically during normal use, enabling this triggers a more frequent garbage collection pass every 10 minutes.</div>
                         <button class="vrcn-button" onclick="sendToCS({action:'forceTrim'})"><span class="msi" style="font-size:16px;">memory</span> <span data-i18n="settings.debug.force_memory_trim">Force Memory Trim</span></button>
-                        <div class="sf-toggle-row" style="margin-top:14px;">
-                            <span data-i18n="settings.debug.text_tools.label">Enable Text Tools</span>
-                            <label class="toggle"><input type="checkbox" id="setTextToolsEnabled" onchange="toggleTextTools(this.checked)"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
-                        </div>
-                        <div class="set-desc" data-i18n="settings.debug.text_tools.desc">When enabled, all text in VRCNext becomes selectable. You can copy it via the right-click context menu or with Ctrl&nbsp;+&nbsp;C.</div>
-                        <div class="sf-toggle-row" style="margin-top:14px;" data-windows-only>
-                            <span data-i18n="settings.debug.legacy_window.label">Enable Legacy Window</span>
-                            <label class="toggle"><input type="checkbox" id="setLegacyWindow" onchange="onLegacyWindowChange()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
-                        </div>
-                        <div class="set-desc" data-windows-only data-i18n="settings.debug.legacy_window.desc">When enabled, VRCNext uses the Legacy Window Manager with native title bar controls. The sidebar color is applied to the title bar.</div>
-                        <div id="legacyRestartHint" style="display:none;margin-top:10px;" data-windows-only>
-                            <span class="set-desc" data-i18n="settings.debug.legacy_window.restart_hint">A restart is required to apply the window mode change.</span>
-                            <button class="vrcn-button" style="margin-top:8px;" onclick="sendToCS({action:'restartApp'})"><span class="msi" style="font-size:16px;">refresh</span> <span data-i18n="settings.language.restart_btn">Restart VRCNext</span></button>
-                        </div>
                         <div id="ffcProgressWrap" style="display:none;margin-top:12px;">
                             <div style="font-size:12px;color:var(--tx2);margin-bottom:6px;" id="ffcProgressLabel" data-i18n="settings.debug.ffc_progress.caching">Caching...</div>
                             <div style="background:var(--brd);border-radius:4px;height:6px;overflow:hidden;">
