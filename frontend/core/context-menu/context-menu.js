@@ -648,6 +648,24 @@
         positionSubmenu(parentBtn);
     }
 
+    function showFriendInviteSubmenu(userId, displayName, hasVrcPlus, parentBtn) {
+        const opts = [
+            { icon: 'send',              key: 'friend.invite',         fb: 'Invite',              action: () => sendToCS({ action: 'vrcInviteFriend', userId }) },
+            { icon: 'forward_to_inbox',  key: 'friend.invite_message', fb: 'Invite with Message', action: () => openFriendInviteModal(userId, displayName, 'message') },
+        ];
+        if (hasVrcPlus) opts.push({ icon: 'add_photo_alternate', key: 'friend.invite_image', fb: 'Invite with Image', action: () => openFriendInviteModal(userId, displayName, 'photo') });
+        submenu.innerHTML = opts.map(o => `
+            <button class="vn-ctx-item" data-opt="${esc(o.key)}">
+                <span class="msi" style="font-size:14px;">${o.icon}</span>
+                <span class="vn-ctx-label">${esc(cm(o.key, o.fb))}</span>
+            </button>`).join('');
+        submenu.querySelectorAll('[data-opt]').forEach((btn, i) => {
+            btn.addEventListener('click', e => { e.stopPropagation(); opts[i].action(); hideMenu(); });
+            btn.addEventListener('mouseenter', () => clearTimeout(submenuTimer));
+        });
+        positionSubmenu(parentBtn);
+    }
+
     function buildGroupMemberItems(userId, grpCtx, memberRoleIds = []) {
         const modItems = [];
         if (grpCtx.canKick) {
@@ -950,9 +968,7 @@
             if (canRequestInvite) actionItems.push({ icon: 'mail', label: cm('friend.request_invite', 'Request Invite'), action: () => friendAction('requestInvite', loc, id) });
             if (myInInstance) {
                 const hasVrcPlus = Array.isArray(currentVrcUser?.tags) && currentVrcUser.tags.includes('system_supporter');
-                actionItems.push({ icon: 'send', label: cm('friend.invite', 'Invite'), action: () => sendToCS({ action: 'vrcInviteFriend', userId: id }) });
-                actionItems.push({ icon: 'forward_to_inbox', label: cm('friend.invite_message', 'Invite with Message'), action: () => openFriendInviteModal(id, f.displayName || id, 'message') });
-                if (hasVrcPlus) actionItems.push({ icon: 'add_photo_alternate', label: cm('friend.invite_image', 'Invite with Image'), action: () => openFriendInviteModal(id, f.displayName || id, 'photo') });
+                actionItems.push({ icon: 'send', label: cm('friend.invite', 'Invite'), submenuFn: btn => showFriendInviteSubmenu(id, f.displayName || id, hasVrcPlus, btn) });
             }
             const invitableGroups = (typeof myGroups !== 'undefined') ? myGroups.filter(g => g.canInvite === true) : [];
             if (invitableGroups.length > 0) {

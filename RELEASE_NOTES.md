@@ -22,6 +22,8 @@
   VRCNext can now create backups of the VRChat registry data through **Settings > Auto-Backups**. This helps preserve important VRChat-related settings before changes or issues happen.
   Requested by @octomiku01
 
+### Context Menu
+* Instead of showing "Invite" "Invite with Image" "Invite with text" we now just show "Invite" and it has an sub menu of all three options.
 
 ### Instance List
 * Redesigned the instance list design to match the new V2 design.
