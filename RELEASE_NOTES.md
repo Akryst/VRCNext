@@ -41,6 +41,10 @@
 * On every subsequent open, group info loads instantly from the database with no API calls.
 * Manually opening a group profile still updates its cached data as before.
 
+### Profile Modal
+* Redesigned the content cards to be small compact onse for the sake of UX!
+* When clicking an avatar on a content item it will now open the modal instead of switching to that avatar.
+
 ### Instance Modal
 * The Instance Modal now loads world information much faster by using locally cached data when available, including world name, author, description, and banner.
 * Reopening previously visited worlds should no longer cause visible pop-in. If no cache exists yet, the API response automatically fills it for next time.
