@@ -1302,6 +1302,10 @@ public class FriendsController
         bool isInGame = !string.IsNullOrEmpty(location) && location != "offline" && location != "" && !isWebPlatform;
         var status = f["status"]?.ToString() ?? "offline";
         var presence = (location == "offline" && status == "offline") ? "offline" : isInGame ? "game" : "web";
+        var (locWorldId, _, locInstType) = VRChatApiService.ParseLocation(location);
+        (string name, string thumb) locWorld = ("", "");
+        if (locWorldId.StartsWith("wrld_"))
+            lock (_core.VrWorldCache) _core.VrWorldCache.TryGetValue(locWorldId, out locWorld);
         _core.SendToJS("vrcFriendUpdate", new
         {
             id = f["id"]?.ToString() ?? "",
@@ -1309,6 +1313,9 @@ public class FriendsController
             image = ImageCacheHelper.GetUserUrl(f["id"]?.ToString(), VRChatApiService.GetUserImage(f)),
             status, statusDescription = f["statusDescription"]?.ToString() ?? "",
             location, platform, presence,
+            worldName = locWorld.name,
+            worldThumb = locWorld.thumb,
+            instanceType = locInstType,
             tags = f["tags"]?.ToObject<List<string>>() ?? new List<string>(),
             ageVerified = f["ageVerified"]?.Value<bool>() ?? false,
             avatarFileId = ExtractAvatarFileId(f),
@@ -2009,6 +2016,7 @@ public class FriendsController
                     _core.SendToJS("friendTimelineEvent", BuildFriendTimelinePayload(updated));
 #if WINDOWS
                 lock (_core.VrWorldCache) _core.VrWorldCache[worldId] = (wname, wthumb);
+                PushFriendUpdate(e.UserId);
                 PushVroLocations();
 #endif
             }

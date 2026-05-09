@@ -719,11 +719,11 @@ function renderFriendDetail(d) {
         <span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>
         <p style="margin:10px 0 0;font-size:12px;color:var(--tx3);line-height:1.45;">${t('profiles.trust.description', 'This user has a trusted user standing within the community.')}</p>` : '';
 
-    const _currentWorldCard = _worldPartHtml ? `<div class="fd-info-card">
+    const _currentWorldCard = _worldPartHtml ? `<div class="fd-info-card fd-world-card">
         <div class="fd-group-rep-label">${t('profiles.meta.current_world', 'Current World')}</div>
         ${_worldPartHtml}
     </div>` : '';
-    const _ownerCard = _ownerPartHtml ? `<div class="fd-info-card">
+    const _ownerCard = _ownerPartHtml ? `<div class="fd-info-card fd-owner-card">
         <div class="fd-group-rep-label">${t('instance.owner', 'Instance Owner')}</div>
         ${_ownerPartHtml}
     </div>` : '';
@@ -934,6 +934,97 @@ function patchFriendDetailLive(f) {
             }).join('');
         }
         currentFriendDetail.badges = f.badges;
+    }
+
+    // current world + instance owner
+    if (f.location !== undefined) {
+        const loc          = f.location || '';
+        const worldName    = f.worldName || '';
+        const worldThumb   = f.worldThumb || '';
+        const instanceType = f.instanceType || '';
+        const isOfflineOrPrivate = loc === 'offline' || loc === 'private' || loc === '';
+        const isTraveling        = loc === 'traveling';
+
+        if (isTraveling) {
+            // user is switching — wait for the follow-up push with the new world name
+        } else if (isOfflineOrPrivate) {
+            c.querySelector('.fd-world-card')?.remove();
+            c.querySelector('.fd-owner-card')?.remove();
+            currentFriendDetail.location = loc;
+            currentFriendDetail.worldName = '';
+        } else if (worldName) {
+            // world name is known — update both cards
+            const { worldId: wid, ownerId: newOwnerId } = parseFriendLocation(loc);
+            const instId     = loc.includes(':') ? (loc.split(':')[1] || '').split('~')[0] : '';
+            const regionRaw  = (loc.match(/~region\(([^)]+)\)/) || [])[1] || '';
+            const region     = regionRaw ? getWorldRegionLabel(regionRaw) : '';
+            const onclick    = wid ? `navOpenModal('worldSearch','${jsq(wid)}','${jsq(worldName)}')` : '';
+
+            const instanceItemHtml = renderInstanceItem({
+                thumb: worldThumb, worldName, instanceType,
+                instanceId: instId, region, userCount: 0, capacity: 0, onclick,
+            });
+            const worldInner = `<div class="fd-group-rep-label">${t('profiles.meta.current_world', 'Current World')}</div>${instanceItemHtml}`;
+
+            const existingWorldCard = c.querySelector('.fd-world-card');
+            if (existingWorldCard) {
+                existingWorldCard.innerHTML = worldInner;
+            } else {
+                const newCard = document.createElement('div');
+                newCard.className = 'fd-info-card fd-world-card';
+                newCard.innerHTML = worldInner;
+                const topRow  = c.querySelector('.fd-info-top-row');
+                const infoWrap = c.querySelector('.fd-info-wrap');
+                if (topRow) topRow.insertBefore(newCard, topRow.firstChild);
+                else if (infoWrap) infoWrap.insertBefore(newCard, infoWrap.firstChild);
+            }
+
+            // owner card
+            const existingOwnerCard = c.querySelector('.fd-owner-card');
+            if (newOwnerId && newOwnerId.startsWith('usr_')) {
+                const ownerUser = vrcFriendsData.find(fu => fu.id === newOwnerId);
+                const ownerBody = ownerUser
+                    ? renderProfileItem(ownerUser, `navOpenModal('friend','${jsq(ownerUser.id)}','${jsq(ownerUser.displayName || '')}')`)
+                    : `<div id="fdOwnerSlot" data-owner-id="${esc(newOwnerId)}"><div class="sk-block" style="height:44px;border-radius:8px;"></div></div>`;
+                const ownerInner = `<div class="fd-group-rep-label">${t('instance.owner', 'Instance Owner')}</div>${ownerBody}`;
+                if (existingOwnerCard) {
+                    existingOwnerCard.innerHTML = ownerInner;
+                } else {
+                    const newOwnerCard = document.createElement('div');
+                    newOwnerCard.className = 'fd-info-card fd-owner-card';
+                    newOwnerCard.innerHTML = ownerInner;
+                    const worldCard = c.querySelector('.fd-world-card');
+                    const existingTopRow = c.querySelector('.fd-info-top-row');
+                    if (existingTopRow) {
+                        existingTopRow.appendChild(newOwnerCard);
+                    } else if (worldCard) {
+                        // world card is standalone — wrap both into fd-info-top-row
+                        const row = document.createElement('div');
+                        row.className = 'fd-info-top-row';
+                        worldCard.parentNode.insertBefore(row, worldCard);
+                        row.appendChild(worldCard);
+                        row.appendChild(newOwnerCard);
+                    }
+                }
+                if (!ownerUser) sendToCS({ action: 'vrcGetUserBasic', userId: newOwnerId, contextId: f.id });
+            } else if (existingOwnerCard) {
+                const ownerParent = existingOwnerCard.parentNode;
+                existingOwnerCard.remove();
+                // if world card was in a fd-info-top-row, unwrap it so it goes full width
+                const topRow = c.querySelector('.fd-info-top-row');
+                if (topRow) {
+                    const worldCard = topRow.querySelector('.fd-world-card');
+                    if (worldCard) topRow.parentNode.insertBefore(worldCard, topRow);
+                    topRow.remove();
+                }
+            }
+
+            currentFriendDetail.location     = loc;
+            currentFriendDetail.worldName    = worldName;
+            currentFriendDetail.worldThumb   = worldThumb;
+            currentFriendDetail.instanceType = instanceType;
+        }
+        // if worldName is still empty (cache miss on first push) — no-op, wait for second push
     }
 }
 
