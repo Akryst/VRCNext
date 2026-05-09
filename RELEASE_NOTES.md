@@ -30,6 +30,9 @@
 ### Instance List
 * Redesigned the instance list design to match the new V2 design.
 
+### Media Library
+* Sort for GIFs added to "All Media" Filter
+
 ### World Modal
 * The Instances tab now refreshes in-place when pressing the Refresh button.
 * Existing instance cards stay visible while the refresh runs in the background.
@@ -57,7 +60,6 @@
 ### Notification Center
 * Added **Current / All / Hidden** tabs to the notification panel.
   * **Current** shows only active, non-hidden notifications (previous behavior).
-  * **All** shows everything — active and hidden notifications combined.
   * **Hidden** shows ignored friend requests
 * Tab switching uses an animated sliding pill selector.
 

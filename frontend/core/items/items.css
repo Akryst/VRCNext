@@ -248,3 +248,63 @@
     margin-left: 4px;
 }
 
+/* Mini Content Item (profile Content tab — Worlds & Avatars) */
+.vrcn-mini-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+}
+.vrcn-mini-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 10px;
+    background: var(--bg-input);
+    cursor: pointer;
+    transition: background .15s;
+    user-select: none;
+    min-width: 0;
+}
+.vrcn-mini-content:hover {
+    background: var(--bg-hover);
+}
+.vrcn-mini-content-thumb {
+    width: 56px;
+    height: 38px;
+    border-radius: 6px;
+    background: var(--bg-base) center/cover no-repeat;
+    flex-shrink: 0;
+}
+.vrcn-mini-content-info {
+    flex: 1;
+    min-width: 0;
+}
+.vrcn-mini-content-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tx0);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.vrcn-mini-content-meta {
+    font-size: 10px;
+    color: var(--tx3);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+.vrcn-mini-content-meta .msi { font-size: 11px; }
+.vrcn-mini-content-badges {
+    display: flex;
+    gap: 3px;
+    margin-top: 3px;
+    flex-wrap: wrap;
+}
+.vrcn-mini-content-badges .vrcn-badge { font-size: 9px; }
+

@@ -1162,6 +1162,7 @@
   "library.filters.all_media": "All Media",
   "library.filters.images": "Images",
   "library.filters.videos": "Videos",
+  "library.filters.gifs": "GIFs",
   "library.background_updated": "Background updated",
   "library.bg_video_too_large": "Video must be under 60 MB",
   "library.detail.date": "Date",

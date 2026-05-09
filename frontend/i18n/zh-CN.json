@@ -1138,6 +1138,7 @@
   "library.filters.all_media": "所有媒体",
   "library.filters.images": "图片",
   "library.filters.videos": "视频",
+  "library.filters.gifs": "GIF",
   "library.background_updated": "背景已更新",
   "library.bg_video_too_large": "视频必须小于 60 MB",
   "library.detail.date": "日期",

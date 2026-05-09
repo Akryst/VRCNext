@@ -1138,6 +1138,7 @@
   "library.filters.all_media": "すべてのメディア",
   "library.filters.images": "画像",
   "library.filters.videos": "動画",
+  "library.filters.gifs": "GIF",
   "library.background_updated": "背景を更新しました",
   "library.bg_video_too_large": "動画は60MB未満である必要があります",
   "library.detail.date": "日付",

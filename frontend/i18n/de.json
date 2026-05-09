@@ -1140,6 +1140,7 @@
   "library.filters.all_media": "Alle Medien",
   "library.filters.images": "Bilder",
   "library.filters.videos": "Videos",
+  "library.filters.gifs": "GIFs",
   "library.background_updated": "Hintergrund aktualisiert",
   "library.bg_video_too_large": "Video muss kleiner als 60 MB sein",
   "library.detail.date": "Datum",

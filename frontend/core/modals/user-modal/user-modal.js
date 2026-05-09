@@ -333,7 +333,21 @@ function renderFdAvatarsPage(page) {
         setMiniPaginator('fdAvatarsPageBar', '');
         return;
     }
-    grid.innerHTML = '<div class="avatar-grid">' + slice.map(a => renderAvatarCard(a, 'search')).join('') + '</div>';
+    grid.innerHTML = '<div class="vrcn-mini-content-grid">' + slice.map(a => {
+        const thumb = a.thumbnailImageUrl || a.imageUrl || '';
+        const aid = jsq(a.id || '');
+        const isPublic = a.releaseStatus === 'public';
+        const platBadges = _avPlatformBadges(a);
+        const pubBadge = `<span class="vrcn-badge" style="${isPublic ? '' : 'background:rgba(255,100,100,.15);color:var(--err);'}">${isPublic ? t('avatars.labels.public','Public') : t('avatars.labels.private','Private')}</span>`;
+        return `<div class="vrcn-mini-content" onclick="selectAvatar('${aid}')">
+            <div class="vrcn-mini-content-thumb" style="background-image:url('${cssUrl(thumb)}')"></div>
+            <div class="vrcn-mini-content-info">
+                <div class="vrcn-mini-content-name">${esc(a.name || t('avatars.labels.unnamed','Unnamed'))}</div>
+                <div class="vrcn-mini-content-meta">${esc(a.authorName || '')}</div>
+                <div class="vrcn-mini-content-badges">${platBadges}${pubBadge}</div>
+            </div>
+        </div>`;
+    }).join('') + '</div>';
     setMiniPaginator('fdAvatarsPageBar', buildMiniPaginator(page, totalPages, 'fdAvatarsGoPage'));
     _checkAvatarsExist(slice.map(a => a.id).filter(Boolean));
 }
@@ -360,21 +374,18 @@ function renderFdWorldsPage(page) {
         setMiniPaginator('fdWorldsPageBar', '');
         return;
     }
-    let h = `<div class="search-grid">`;
+    let h = `<div class="vrcn-mini-content-grid">`;
     slice.forEach(w => {
         const thumb = w.thumbnailImageUrl || w.imageUrl || '';
         const wid = jsq(w.id);
-        const tags = (w.tags || []).filter(tag => tag.startsWith('author_tag_')).map(tag => tag.replace('author_tag_', '')).slice(0, 3);
-        const tagsHtml = tags.length ? `<div class="cc-tags">${tags.map(tag => `<span class="vrcn-badge">${esc(tag)}</span>`).join('')}</div>` : '';
-        h += `<div class="vrcn-content-card" onclick="navOpenModal('worldSearch','${wid}','${jsq(w.name || '')}')">
-            <div class="cc-bg" style="background-image:url('${cssUrl(thumb)}')"></div>
-            <div class="cc-scrim"></div>
-            <div class="cc-content">
-                <div class="cc-name">${esc(w.name)}</div>
-                <div class="cc-bottom-row">
-                    <div class="cc-meta">${esc(w.authorName || '')} · <span class="msi">person</span>${w.occupants} · <span class="msi">star</span>${w.favorites}</div>
-                    ${tagsHtml}
-                </div>
+        const tags = (w.tags || []).filter(tag => tag.startsWith('author_tag_')).map(tag => tag.replace('author_tag_', '')).slice(0, 2);
+        const tagsHtml = tags.map(tag => `<span class="vrcn-badge">${esc(tag)}</span>`).join('');
+        h += `<div class="vrcn-mini-content" onclick="navOpenModal('worldSearch','${wid}','${jsq(w.name || '')}')">
+            <div class="vrcn-mini-content-thumb" style="background-image:url('${cssUrl(thumb)}')"></div>
+            <div class="vrcn-mini-content-info">
+                <div class="vrcn-mini-content-name">${esc(w.name || '')}</div>
+                <div class="vrcn-mini-content-meta">${esc(w.authorName || '')}<span class="msi">person</span>${w.occupants ?? ''}<span class="msi">star</span>${w.favorites ?? ''}</div>
+                ${tagsHtml ? `<div class="vrcn-mini-content-badges">${tagsHtml}</div>` : ''}
             </div>
         </div>`;
     });
@@ -735,13 +746,12 @@ function renderFriendDetail(d) {
         ${_topSection}
         <div class="fd-info-cols">
             <div class="fd-info-left">
-                ${_badgesCard}${avatarRowHtml}${_bioCard}
+                ${_badgesCard}${avatarRowHtml}${_bioCard}${_noteCard}
             </div>
             <div class="fd-info-right">
                 ${_infosCard}${_trustCard}${_modCard}
             </div>
         </div>
-        ${_noteCard}
         ${_tlCard}
     </div>`;
 

@@ -546,7 +546,7 @@ function _buildLibCard(x) {
     const blurClass = iH ? ' lib-blurred' : '';
     const idx       = libraryFiles.indexOf(x);
 
-    if (x.type === 'image') {
+    if (x.type === 'image' || x.type === 'gif') {
         let worldBadge = '';
         if (x.worldId) {
             const wInfo  = worldInfoCache[x.worldId];
@@ -574,7 +574,7 @@ function _buildLibCard(x) {
         const thumbSrc = suAttr ? suAttr + '?thumb=1' : '';
         const resTag   = _resTag(x);
         const resBadge = resTag ? `<span class="vrcn-badge accent" style="margin-left:4px;">${resTag}</span>` : '';
-        return `<div class="lib-card" data-path="${esc(x.path||'')}" data-url="${suAttr}" data-type="image" data-name="${esc(x.name||'')}">${acts}<div class="lib-thumb-wrap${blurClass}" onclick="openLightbox('${suJs}','image')"><img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px;font-weight:700\\'>${jsq(t('library.no_preview', 'No Preview'))}</div>'">${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}${worldBadge}${playersOverlay}</div><div class="lib-info" onclick="event.stopPropagation();openPhotoDetail(${idx})" style="cursor:pointer;"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span style="display:flex;align-items:center;">${x.size}${resBadge}</span><span>${x.time}</span></div></div></div>`;
+        return `<div class="lib-card" data-path="${esc(x.path||'')}" data-url="${suAttr}" data-type="${x.type}" data-name="${esc(x.name||'')}">${acts}<div class="lib-thumb-wrap${blurClass}" onclick="openLightbox('${suJs}','image')"><img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px;font-weight:700\\'>${jsq(t('library.no_preview', 'No Preview'))}</div>'">${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}${worldBadge}${playersOverlay}</div><div class="lib-info" onclick="event.stopPropagation();openPhotoDetail(${idx})" style="cursor:pointer;"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span style="display:flex;align-items:center;">${x.size}${resBadge}</span><span>${x.time}</span></div></div></div>`;
     } else {
         const ck     = x.path || '';
         const cached = thumbCache[ck];
