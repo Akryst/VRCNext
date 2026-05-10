@@ -1017,15 +1017,6 @@
                             <label class="toggle"><input type="checkbox" id="setTextToolsEnabled" onchange="toggleTextTools(this.checked)"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
                         </div>
                         <div class="set-desc" data-i18n="settings.debug.text_tools.desc">When enabled, all text in VRCNext becomes selectable. You can copy it via the right-click context menu or with Ctrl&nbsp;+&nbsp;C.</div>
-                        <div class="sf-toggle-row" style="margin-top:14px;" data-windows-only>
-                            <span data-i18n="settings.debug.legacy_window.label">Enable Legacy Window</span>
-                            <label class="toggle"><input type="checkbox" id="setLegacyWindow" onchange="onLegacyWindowChange()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
-                        </div>
-                        <div class="set-desc" data-windows-only data-i18n="settings.debug.legacy_window.desc">When enabled, VRCNext uses the Legacy Window Manager with native title bar controls. The sidebar color is applied to the title bar.</div>
-                        <div id="legacyRestartHint" style="display:none;margin-top:10px;" data-windows-only>
-                            <span class="set-desc" data-i18n="settings.debug.legacy_window.restart_hint">A restart is required to apply the window mode change.</span>
-                            <button class="vrcn-button" style="margin-top:8px;" onclick="sendToCS({action:'restartApp'})"><span class="msi" style="font-size:16px;">refresh</span> <span data-i18n="settings.language.restart_btn">Restart VRCNext</span></button>
-                        </div>
                     </div>
 
                     <!-- SYSTEM TRAY -->

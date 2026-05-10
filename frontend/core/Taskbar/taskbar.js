@@ -55,6 +55,7 @@ function tbToggleTools() {
         bar.addEventListener('mousedown', function (e) {
             if (e.button !== 0 || e.detail !== 1) return;
             if (e.target.closest('.tb-menu-item,.tb-sidebar-btn,.tb-win-btn,.mini-badge,.ss-wrap,button,input')) return;
+            if (e.clientY < 6) return; // top resize zone — let resize handler take over
             sendToCS({ action: 'windowDragStart' });
         });
         bar.addEventListener('dblclick', function (e) {

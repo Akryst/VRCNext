@@ -1045,9 +1045,6 @@ public class AuthController
             // Text Tools
             _core.Settings.TextToolsEnabled = data["textToolsEnabled"]?.Value<bool>() ?? false;
 
-            // Legacy Window (requires restart)
-            _core.Settings.LegacyWindow = data["legacyWindow"]?.Value<bool>() ?? false;
-
             // Window Behavior
             _core.Settings.RememberWindowSize     = data["rememberWindowSize"]?.Value<bool>()     ?? false;
             _core.Settings.RememberWindowPosition = data["rememberWindowPosition"]?.Value<bool>() ?? false;

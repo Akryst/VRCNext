@@ -372,8 +372,7 @@ public partial class AppShell
                 case "ready":
                     // Signal platform to JS (hides Windows-only tabs on Linux)
                     SendToJS("setPlatform", new { isLinux = !OperatingSystem.IsWindows() });
-                    if (!_settings.LegacyWindow) _windowCtrl.InstallChrome();
-                    else _windowCtrl.InstallMinimalSubclass();
+                    _windowCtrl.InstallChrome();
                     // Debug: show what Load() did
                     if (AppSettings.LastLoadError != null)
                         SendToJS("log", new { msg = $"[LOAD ERROR] {AppSettings.LastLoadError}", color = "err" });
@@ -2399,14 +2398,7 @@ public partial class AppShell
                     break;
                 }
 
-                // Theme color broadcast — also updates DWM title bar in legacy window mode
                 case "overlayThemeColors":
-#if WINDOWS
-                    if (_settings.LegacyWindow &&
-                        msg["colors"] is JObject themeColors &&
-                        themeColors["bg-side"]?.ToString() is string bgSideHex)
-                        _windowCtrl.ApplyDwmCaptionColor(bgSideHex);
-#endif
                     await _vroCtrl.HandleMessage(action, msg);
                     break;
 

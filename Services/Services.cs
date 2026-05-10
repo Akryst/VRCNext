@@ -405,9 +405,6 @@ public class AppSettings
     // Text Tools (debug — makes all text selectable)
     public bool TextToolsEnabled { get; set; } = false;
 
-    // Legacy Window Manager (requires restart, disables chromeless + custom chrome)
-    public bool LegacyWindow { get; set; } = false;
-
     // Window Behavior
     public bool RememberWindowSize     { get; set; } = false;
     public bool RememberWindowPosition { get; set; } = false;

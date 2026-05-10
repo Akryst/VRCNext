@@ -216,7 +216,6 @@ function saveSettings() {
             dbAutoBackupEnabled: document.getElementById('setDbAutoBackupEnabled')?.checked  ?? true,
             dbAutoBackupDays:    parseInt(document.getElementById('setDbAutoBackupCycle')?.value ?? '60'),
             textToolsEnabled: document.getElementById('setTextToolsEnabled')?.checked ?? false,
-            legacyWindow: document.getElementById('setLegacyWindow')?.checked ?? false,
             gpuAcceleration:    document.getElementById('setPerfGpuAccel')?.checked    ?? false,
             gpuShaderCache:     document.getElementById('setPerfShaderCache')?.checked  ?? false,
             v8Heap128:          document.getElementById('setPerfV8Heap')?.checked       ?? false,
@@ -269,7 +268,7 @@ function initAutoSave() {
         'setYtAutoStartVR','setYtAutoStartDesktop',
         'setVfAutoStartVR','setVfAutoStartDesktop',
         'setDpAutoStartVR','setDpAutoStartDesktop',
-        'setImgCacheEnabled','setImgCacheLimit','setImgCacheOptimizeEnabled','setMemoryTrimEnabled','setSendCrashData','setRestartAfterCrash','setLegacyWindow',
+        'setImgCacheEnabled','setImgCacheLimit','setImgCacheOptimizeEnabled','setMemoryTrimEnabled','setSendCrashData','setRestartAfterCrash',
         'setPerfGpuAccel','setPerfShaderCache','setPerfV8Heap','setPerfRenderProc'];
     ids.forEach(id => {
         const el = document.getElementById(id);
@@ -543,15 +542,6 @@ function loadSettingsToUI(s) {
     if (ttEl) ttEl.checked = textToolsEnabled;
     toggleTextTools(textToolsEnabled, false);
 
-    // Legacy Window
-    const legacyWindow = s.LegacyWindow ?? s.legacyWindow ?? false;
-    const lwEl = document.getElementById('setLegacyWindow');
-    if (lwEl) lwEl.checked = legacyWindow;
-    const winDotsEl = document.querySelector('.win-dots');
-    if (winDotsEl) winDotsEl.style.display = legacyWindow ? 'none' : '';
-    const legacyHint = document.getElementById('legacyRestartHint');
-    if (legacyHint) legacyHint.style.display = 'none';
-    window._legacyWindow = legacyWindow;
 
     // Performance
     const _perfSet = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
@@ -619,12 +609,6 @@ function handleImgCacheOptimizeProgress(data) {
     }
 }
 
-// Legacy Window (Debugging).
-function onLegacyWindowChange() {
-    autoSave();
-    const hint = document.getElementById('legacyRestartHint');
-    if (hint) hint.style.display = '';
-}
 
 function onPerfSettingChange() {
     autoSave();
