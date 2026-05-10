@@ -8,8 +8,8 @@
 .dash-hero {
     position: relative;
     overflow: hidden;
-    min-height: 630px;
-    margin: calc(-54px - var(--tb-h)) calc(-1 * (var(--rsidebar-w) + 28px)) -245px calc(-1 * (var(--sidebar-w) + 28px));
+    min-height: 780px;
+    margin: calc(-54px - var(--tb-h)) calc(-1 * (var(--rsidebar-w) + 28px)) -395px calc(-1 * (var(--sidebar-w) + 28px));
     transition: margin-left .22s ease, margin-right .22s ease;
 }
 
@@ -29,7 +29,7 @@ body:has(.rsidebar.collapsed) .dash-hero { margin-right: calc(-1 * (var(--rsideb
 .dash-hero-fade {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 45%, transparent 65%, var(--bg-base) 100%);
+    background: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 30%, transparent 48%, var(--bg-base) 100%);
 }
 
 .dash-hero-content {

@@ -1924,5 +1924,19 @@
   "search.section.modules": "Navigation",
   "relay.folders.title": "Watch-Ordner",
   "relay.folders.desc": "Wähle, welche Watch-Ordner der Relay auf neue Bilder und Videos überwacht.",
-  "relay.folders.empty": "Keine Watch-Ordner konfiguriert. Ordner in den Einstellungen hinzufügen."
+  "relay.folders.empty": "Keine Watch-Ordner konfiguriert. Ordner in den Einstellungen hinzufügen.",
+  "tb.app": "App",
+  "tb.app.view": "Ansicht",
+  "tb.app.view.toggle_left": "Linke Leiste ein/aus",
+  "tb.app.view.toggle_right": "Rechte Leiste ein/aus",
+  "tb.app.restart": "Neu starten",
+  "tb.app.exit": "Beenden",
+  "tb.help": "Hilfe",
+  "tb.help.join_discord": "Discord beitreten",
+  "tb.title.smart_search": "Intelligente Suche",
+  "tb.title.vrc_credits": "VRC Credits",
+  "tb.title.vrc_plus": "VRC+",
+  "tb.win.minimize": "Minimieren",
+  "tb.win.maximize_restore": "Maximieren / Wiederherstellen",
+  "tb.win.close": "Schließen"
 }

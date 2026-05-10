@@ -1922,5 +1922,19 @@
   "search.section.modules": "Navigation",
   "relay.folders.title": "Dossiers surveillés",
   "relay.folders.desc": "Choisissez quels dossiers le relay surveille pour les nouvelles images et vidéos.",
-  "relay.folders.empty": "Aucun dossier configuré. Ajoutez des dossiers dans les Paramètres."
+  "relay.folders.empty": "Aucun dossier configuré. Ajoutez des dossiers dans les Paramètres.",
+  "tb.app": "App",
+  "tb.app.view": "Affichage",
+  "tb.app.view.toggle_left": "Panneau latéral gauche",
+  "tb.app.view.toggle_right": "Panneau latéral droit",
+  "tb.app.restart": "Redémarrer",
+  "tb.app.exit": "Quitter",
+  "tb.help": "Aide",
+  "tb.help.join_discord": "Rejoindre Discord",
+  "tb.title.smart_search": "Recherche intelligente",
+  "tb.title.vrc_credits": "VRC Credits",
+  "tb.title.vrc_plus": "VRC+",
+  "tb.win.minimize": "Réduire",
+  "tb.win.maximize_restore": "Agrandir / Restaurer",
+  "tb.win.close": "Fermer"
 }

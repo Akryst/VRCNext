@@ -1921,5 +1921,19 @@
   "search.section.modules": "ナビゲーション",
   "relay.folders.title": "監視フォルダ",
   "relay.folders.desc": "リレーが新しい画像・動画を監視するフォルダを選択してください。",
-  "relay.folders.empty": "監視フォルダが設定されていません。設定から追加してください。"
+  "relay.folders.empty": "監視フォルダが設定されていません。設定から追加してください。",
+  "tb.app": "アプリ",
+  "tb.app.view": "表示",
+  "tb.app.view.toggle_left": "左サイドバー切り替え",
+  "tb.app.view.toggle_right": "右サイドバー切り替え",
+  "tb.app.restart": "再起動",
+  "tb.app.exit": "終了",
+  "tb.help": "ヘルプ",
+  "tb.help.join_discord": "Discordに参加",
+  "tb.title.smart_search": "スマート検索",
+  "tb.title.vrc_credits": "VRCクレジット",
+  "tb.title.vrc_plus": "VRC+",
+  "tb.win.minimize": "最小化",
+  "tb.win.maximize_restore": "最大化 / 元に戻す",
+  "tb.win.close": "閉じる"
 }

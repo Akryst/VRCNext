@@ -1941,5 +1941,19 @@
   "search.section.modules": "Navigation",
   "relay.folders.title": "Watch Folders",
   "relay.folders.desc": "Choose which watch folders the relay monitors for new images and videos.",
-  "relay.folders.empty": "No watch folders configured. Add folders in Settings."
+  "relay.folders.empty": "No watch folders configured. Add folders in Settings.",
+  "tb.app": "App",
+  "tb.app.view": "View",
+  "tb.app.view.toggle_left": "Toggle Left Sidebar",
+  "tb.app.view.toggle_right": "Toggle Right Sidebar",
+  "tb.app.restart": "Restart",
+  "tb.app.exit": "Exit",
+  "tb.help": "Help",
+  "tb.help.join_discord": "Join Discord",
+  "tb.title.smart_search": "Smart Search",
+  "tb.title.vrc_credits": "VRC Credits",
+  "tb.title.vrc_plus": "VRC+",
+  "tb.win.minimize": "Minimize",
+  "tb.win.maximize_restore": "Maximize / Restore",
+  "tb.win.close": "Close"
 }

@@ -1922,5 +1922,19 @@
   "search.section.modules": "Navegación",
   "relay.folders.title": "Carpetas vigiladas",
   "relay.folders.desc": "Elige qué carpetas vigiladas monitorea el relay para nuevas imágenes y vídeos.",
-  "relay.folders.empty": "Sin carpetas configuradas. Añade carpetas en Ajustes."
+  "relay.folders.empty": "Sin carpetas configuradas. Añade carpetas en Ajustes.",
+  "tb.app": "App",
+  "tb.app.view": "Vista",
+  "tb.app.view.toggle_left": "Barra lateral izquierda",
+  "tb.app.view.toggle_right": "Barra lateral derecha",
+  "tb.app.restart": "Reiniciar",
+  "tb.app.exit": "Salir",
+  "tb.help": "Ayuda",
+  "tb.help.join_discord": "Unirse a Discord",
+  "tb.title.smart_search": "Búsqueda inteligente",
+  "tb.title.vrc_credits": "VRC Credits",
+  "tb.title.vrc_plus": "VRC+",
+  "tb.win.minimize": "Minimizar",
+  "tb.win.maximize_restore": "Maximizar / Restaurar",
+  "tb.win.close": "Cerrar"
 }

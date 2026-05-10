@@ -110,45 +110,45 @@
                 <div class="tb-brand">VRCNext</div>
                 <span class="topbar-title" id="pageTitle" data-i18n="page.dashboard">Dashboard</span>
                 <div id="tbMenuItems">
-                    <div class="tb-menu-item" id="tbMenuApp">App
+                    <div class="tb-menu-item" id="tbMenuApp"><span data-i18n="tb.app">App</span>
                         <div class="tb-dropdown">
-                            <div class="tb-dd-item" onclick="showTab(9)"><span class="msi">settings</span>Settings</div>
+                            <div class="tb-dd-item" onclick="showTab(9)"><span class="msi">settings</span><span data-i18n="nav.settings">Settings</span></div>
                             <div class="tb-dd-submenu">
-                                <div class="tb-dd-item"><span class="msi">visibility</span>View<span class="msi tb-dd-arrow">chevron_right</span></div>
+                                <div class="tb-dd-item"><span class="msi">visibility</span><span data-i18n="tb.app.view">View</span><span class="msi tb-dd-arrow">chevron_right</span></div>
                                 <div class="tb-dd-sub-drop">
-                                    <div class="tb-dd-item" onclick="toggleSidebar()"><span class="msi">dock_to_left</span>Toggle Left Sidebar</div>
-                                    <div class="tb-dd-item" onclick="toggleRsidebar()"><span class="msi">dock_to_right</span>Toggle Right Sidebar</div>
+                                    <div class="tb-dd-item" onclick="toggleSidebar()"><span class="msi">dock_to_left</span><span data-i18n="tb.app.view.toggle_left">Toggle Left Sidebar</span></div>
+                                    <div class="tb-dd-item" onclick="toggleRsidebar()"><span class="msi">dock_to_right</span><span data-i18n="tb.app.view.toggle_right">Toggle Right Sidebar</span></div>
                                 </div>
                             </div>
                             <div class="tb-dd-sep"></div>
-                            <div class="tb-dd-item" onclick="sendToCS({action:'restartApp'})"><span class="msi">refresh</span>Restart</div>
-                            <div class="tb-dd-item" onclick="sendToCS({action:'windowClose'})"><span class="msi">power_settings_new</span>Exit</div>
+                            <div class="tb-dd-item" onclick="sendToCS({action:'restartApp'})"><span class="msi">refresh</span><span data-i18n="tb.app.restart">Restart</span></div>
+                            <div class="tb-dd-item" onclick="sendToCS({action:'windowClose'})"><span class="msi">power_settings_new</span><span data-i18n="tb.app.exit">Exit</span></div>
                         </div>
                     </div>
-                    <div class="tb-menu-item" id="tbMenuTools">Tools
+                    <div class="tb-menu-item" id="tbMenuTools"><span data-i18n="nav.tools">Tools</span>
                         <div class="tb-dropdown">
-                            <div class="tb-dd-item" onclick="showTab(5)"><span class="msi">chat</span>Custom Chatbox</div>
-                            <div class="tb-dd-item" onclick="showTab(6)"><span class="msi">cell_tower</span>Media Relay</div>
-                            <div class="tb-dd-item" onclick="showTab(10)"><span class="msi">rocket_launch</span>Space Flight</div>
-                            <div class="tb-dd-item" onclick="showTab(11)"><span class="msi">tune</span>OSC Tool</div>
-                            <div class="tb-dd-item" onclick="showTab(14)"><span class="msi">smart_display</span>YouTube Fix</div>
+                            <div class="tb-dd-item" onclick="showTab(5)"><span class="msi">chat</span><span data-i18n="nav.custom_chatbox">Custom Chatbox</span></div>
+                            <div class="tb-dd-item" onclick="showTab(6)"><span class="msi">cell_tower</span><span data-i18n="nav.media_relay">Media Relay</span></div>
+                            <div class="tb-dd-item" onclick="showTab(10)"><span class="msi">rocket_launch</span><span data-i18n="nav.space_flight">Space Flight</span></div>
+                            <div class="tb-dd-item" onclick="showTab(11)"><span class="msi">tune</span><span data-i18n="nav.osc_tool">OSC Tool</span></div>
+                            <div class="tb-dd-item" onclick="showTab(14)"><span class="msi">smart_display</span><span data-i18n="nav.youtube_fix">YouTube Fix</span></div>
                             <div class="tb-dd-sep"></div>
-                            <div class="tb-dd-item" onclick="showTab(8)"><span class="msi">article</span>Activity Log</div>
-                            <div class="tb-dd-item" onclick="showTab(15)"><span class="msi">hub</span>Mutual Network</div>
-                            <div class="tb-dd-item" onclick="showTab(16)"><span class="msi">schedule</span>Time Spent</div>
-                            <div class="tb-dd-item" onclick="showTab(23)"><span class="msi">gps_fixed</span>Event Snipe</div>
+                            <div class="tb-dd-item" onclick="showTab(8)"><span class="msi">article</span><span data-i18n="nav.activity_log">Activity Log</span></div>
+                            <div class="tb-dd-item" onclick="showTab(15)"><span class="msi">hub</span><span data-i18n="nav.mutual_network">Mutual Network</span></div>
+                            <div class="tb-dd-item" onclick="showTab(16)"><span class="msi">schedule</span><span data-i18n="nav.time_spent">Time Spent</span></div>
+                            <div class="tb-dd-item" onclick="showTab(23)"><span class="msi">gps_fixed</span><span data-i18n="nav.event_snipe">Event Snipe</span></div>
                             <div class="tb-dd-sep"></div>
-                            <div class="tb-dd-item" onclick="showTab(18)"><span class="msi">mic</span>Voice Fight</div>
-                            <div class="tb-dd-item" onclick="showTab(19)"><span class="msi">sensors</span>Discord Presence</div>
-                            <div class="tb-dd-item" onclick="showTab(20)"><span class="msi">watch</span>VR Overlay</div>
-                            <div class="tb-dd-item" onclick="showTab(21)"><span class="msi">lock</span>Permini</div>
-                            <div class="tb-dd-item" onclick="showTab(22)"><span class="msi">translate</span>Kikitan XD</div>
-                            <div class="tb-dd-item" onclick="showTab(24)"><span class="msi">height</span>Avatar Scaling</div>
+                            <div class="tb-dd-item" onclick="showTab(18)"><span class="msi">mic</span><span data-i18n="nav.voice_fight">Voice Fight</span></div>
+                            <div class="tb-dd-item" onclick="showTab(19)"><span class="msi">sensors</span><span data-i18n="nav.discord_presence">Discord Presence</span></div>
+                            <div class="tb-dd-item" onclick="showTab(20)"><span class="msi">watch</span><span data-i18n="nav.vr_overlay">VR Overlay</span></div>
+                            <div class="tb-dd-item" onclick="showTab(21)"><span class="msi">lock</span><span data-i18n="nav.permini">Permini</span></div>
+                            <div class="tb-dd-item" onclick="showTab(22)"><span class="msi">translate</span><span data-i18n="nav.kikitan_xd">Kikitan XD</span></div>
+                            <div class="tb-dd-item" onclick="showTab(24)"><span class="msi">height</span><span data-i18n="nav.avatar_scaling">Avatar Scaling</span></div>
                         </div>
                     </div>
-                    <div class="tb-menu-item" id="tbMenuHelp">Help
+                    <div class="tb-menu-item" id="tbMenuHelp"><span data-i18n="tb.help">Help</span>
                         <div class="tb-dropdown">
-                            <div class="tb-dd-item" onclick="sendToCS({action:'openUrl',url:'https://discord.gg/dHsrWJzNS9'})"><span class="msi">forum</span>Join Discord</div>
+                            <div class="tb-dd-item" onclick="sendToCS({action:'openUrl',url:'https://discord.gg/dHsrWJzNS9'})"><span class="msi">forum</span><span data-i18n="tb.help.join_discord">Join Discord</span></div>
                         </div>
                     </div>
                 </div>
@@ -165,54 +165,54 @@
                 </div>
             </div>
             <div id="tb-right">
-                <button class="tb-sidebar-btn" id="badgeVrcCredits" style="display:none;width:auto;padding:0 9px;gap:5px;" title="VRC Credits"><img src="assets/credits.png" width="16" height="16" style="flex-shrink:0;opacity:0.48;transition:opacity 0.1s;"><span id="badgeVrcCreditsLabel" style="font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;"></span></button>
-                <button class="tb-sidebar-btn" id="badgeVrcPlus" style="display:none;" title="VRC+"><img src="assets/vrcplus.png" width="16" height="16" style="flex-shrink:0;opacity:0.48;transition:opacity 0.1s;"></button>
+                <button class="tb-sidebar-btn" id="badgeVrcCredits" style="display:none;width:auto;padding:0 9px;gap:5px;" title="VRC Credits" data-i18n-title="tb.title.vrc_credits"><img src="assets/credits.png" width="16" height="16" style="flex-shrink:0;opacity:0.48;transition:opacity 0.1s;"><span id="badgeVrcCreditsLabel" style="font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;"></span></button>
+                <button class="tb-sidebar-btn" id="badgeVrcPlus" style="display:none;" title="VRC+" data-i18n-title="tb.title.vrc_plus"><img src="assets/vrcplus.png" width="16" height="16" style="flex-shrink:0;opacity:0.48;transition:opacity 0.1s;"></button>
                 <div class="tb-sep"></div>
                 <div id="ssWrap" class="ss-wrap">
-                    <div class="ss-badge" id="ssBadge" title="Smart Search">
+                    <div class="ss-badge" id="ssBadge" title="Smart Search" data-i18n-title="tb.title.smart_search">
                         <span class="msi ss-icon">search</span>
                     </div>
                 </div>
                 <div id="tbToolsGroup">
-                    <button class="tb-sidebar-btn" id="badgeRelay" title="Media Relay" onclick="toggleRelay()"><span class="msi">cell_tower</span></button>
-                    <button class="tb-sidebar-btn" id="badgeChatbox" title="Custom Chatbox" onclick="toggleChatbox()"><span class="msi">chat</span></button>
-                    <button class="tb-sidebar-btn" id="badgeSpace" title="Space Flight" onclick="sfConnect()"><span class="msi">rocket_launch</span></button>
-                    <button class="tb-sidebar-btn" id="badgeVoice" title="Voice Fight" onclick="if(!vfRunning)vfOnTabOpen();vfConnect()"><span class="msi">mic</span></button>
-                    <button class="tb-sidebar-btn" id="badgeDp" title="Discord Presence" onclick="dpToggle()"><span class="msi">sensors</span></button>
-                    <button class="tb-sidebar-btn" id="badgeYt" title="YouTube Fix" onclick="toggleVc()"><span class="msi">smart_display</span></button>
-                    <button class="tb-sidebar-btn" id="badgeKxd" title="Kikitan XD" onclick="kxdConnect()"><span class="msi">translate</span></button>
-                    <button class="tb-sidebar-btn" id="badgeVroTop" title="VR Overlay" onclick="vroConnect()"><span class="msi">watch</span></button>
+                    <button class="tb-sidebar-btn" id="badgeRelay" title="Media Relay" data-i18n-title="nav.media_relay" onclick="toggleRelay()"><span class="msi">cell_tower</span></button>
+                    <button class="tb-sidebar-btn" id="badgeChatbox" title="Custom Chatbox" data-i18n-title="nav.custom_chatbox" onclick="toggleChatbox()"><span class="msi">chat</span></button>
+                    <button class="tb-sidebar-btn" id="badgeSpace" title="Space Flight" data-i18n-title="nav.space_flight" onclick="sfConnect()"><span class="msi">rocket_launch</span></button>
+                    <button class="tb-sidebar-btn" id="badgeVoice" title="Voice Fight" data-i18n-title="nav.voice_fight" onclick="if(!vfRunning)vfOnTabOpen();vfConnect()"><span class="msi">mic</span></button>
+                    <button class="tb-sidebar-btn" id="badgeDp" title="Discord Presence" data-i18n-title="nav.discord_presence" onclick="dpToggle()"><span class="msi">sensors</span></button>
+                    <button class="tb-sidebar-btn" id="badgeYt" title="YouTube Fix" data-i18n-title="nav.youtube_fix" onclick="toggleVc()"><span class="msi">smart_display</span></button>
+                    <button class="tb-sidebar-btn" id="badgeKxd" title="Kikitan XD" data-i18n-title="nav.kikitan_xd" onclick="kxdConnect()"><span class="msi">translate</span></button>
+                    <button class="tb-sidebar-btn" id="badgeVroTop" title="VR Overlay" data-i18n-title="nav.vr_overlay" onclick="vroConnect()"><span class="msi">watch</span></button>
                     <div class="tb-sep"></div>
                 </div>
                 <button class="tb-sidebar-btn" id="btnUpdate" onclick="toggleUpdatePanel()" title="Update available" data-i18n-title="update.available" style="display:none;"><span class="msi">system_update_alt</span><span class="notif-count" id="updateBadge">1</span></button>
-                <button class="tb-sidebar-btn" id="tbToolsToggle" onclick="tbToggleTools()" title="Tools"><span class="msi">construction</span></button>
+                <button class="tb-sidebar-btn" id="tbToolsToggle" onclick="tbToggleTools()" title="Tools" data-i18n-title="nav.tools"><span class="msi">construction</span></button>
                 <button class="tb-sidebar-btn" id="btnChat" onclick="toggleChatPanel()" title="Messages" data-i18n-title="common.messages"><span class="msi">forum</span><span class="notif-count" id="chatBadge" style="display:none;">0</span></button>
                 <button class="tb-sidebar-btn" id="btnNotif" onclick="toggleNotifPanel()" title="Notifications" data-i18n-title="common.notifications"><span class="msi">notifications</span><span class="notif-count" id="notifBadge" style="display:none;">0</span></button>
                 <div class="tb-sep"></div>
-                <button class="tb-sidebar-btn" onclick="toggleSidebar()" title="Toggle Left Sidebar">
+                <button class="tb-sidebar-btn" onclick="toggleSidebar()" title="Toggle Left Sidebar" data-i18n-title="tb.app.view.toggle_left">
                     <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <rect x="0.5" y="0.5" width="15" height="11" rx="1.5" stroke="currentColor" stroke-width="1"/>
                         <rect x="1.5" y="1.5" width="4" height="9" rx="0.5" fill="currentColor" opacity="0.7"/>
                     </svg>
                 </button>
-                <button class="tb-sidebar-btn" onclick="toggleRsidebar()" title="Toggle Right Sidebar">
+                <button class="tb-sidebar-btn" onclick="toggleRsidebar()" title="Toggle Right Sidebar" data-i18n-title="tb.app.view.toggle_right">
                     <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <rect x="0.5" y="0.5" width="15" height="11" rx="1.5" stroke="currentColor" stroke-width="1"/>
                         <rect x="10.5" y="1.5" width="4" height="9" rx="0.5" fill="currentColor" opacity="0.7"/>
                     </svg>
                 </button>
                 <div class="tb-sep"></div>
-                <button class="tb-win-btn" title="Minimize" onclick="sendToCS({action:'windowMinimize'})">
+                <button class="tb-win-btn" title="Minimize" data-i18n-title="tb.win.minimize" onclick="sendToCS({action:'windowMinimize'})">
                     <svg width="12" height="2" viewBox="0 0 12 2"><rect width="12" height="1.5" y="0.25" fill="currentColor"/></svg>
                 </button>
-                <button class="tb-win-btn" id="tbMaximize" title="Maximize / Restore" onclick="sendToCS({action:'windowMaximize'})">
+                <button class="tb-win-btn" id="tbMaximize" title="Maximize / Restore" data-i18n-title="tb.win.maximize_restore" onclick="sendToCS({action:'windowMaximize'})">
                     <span id="winMaxIcon" style="display:none;"></span>
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                         <rect class="tb-icon-max" x="0.5" y="0.5" width="9" height="9" stroke="currentColor" stroke-width="1.1"/>
                         <path class="tb-icon-restore" d="M3.5 0.5h6v6M0.5 3.5v6h6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </button>
-                <button class="tb-win-btn tb-close" title="Close" onclick="sendToCS({action:'windowClose'})">
+                <button class="tb-win-btn tb-close" title="Close" data-i18n-title="tb.win.close" onclick="sendToCS({action:'windowClose'})">
                     <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
                 </button>
             </div>
