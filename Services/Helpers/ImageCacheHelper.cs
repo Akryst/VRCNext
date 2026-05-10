@@ -240,7 +240,11 @@ public static class ImageCacheHelper
             {
                 var normalized = NormalizeTo512(bannerUrl);
                 var storedUrl  = GetStoredUrl("Users", bannerId);
-                if (storedUrl == normalized) return ToLocalUrl(cached);
+                if (storedUrl == normalized)
+                {
+                    Log?.Invoke($"[BANNER] → Cache Hit {userId}", "ok");
+                    return ToLocalUrl(cached);
+                }
                 _ = CacheAsync("Users", bannerId, bannerUrl, forceRefresh: true);
                 return normalized;
             }
@@ -585,7 +589,7 @@ public static class ImageCacheHelper
         {
             var rest  = url[(fi + filePrefix.Length)..];
             var parts = rest.Split('/');
-            if (parts.Length >= 3 && parts[0].StartsWith("file_", StringComparison.OrdinalIgnoreCase))
+            if (parts.Length >= 2 && parts[0].StartsWith("file_", StringComparison.OrdinalIgnoreCase))
                 return $"https://api.vrchat.cloud/api/1/image/{parts[0]}/{parts[1]}/512";
         }
         if (url.Contains("/api/1/image/", StringComparison.Ordinal) && url.EndsWith("/256", StringComparison.Ordinal))

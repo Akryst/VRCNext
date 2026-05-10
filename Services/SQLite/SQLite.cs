@@ -740,6 +740,7 @@ public class UnifiedTimeEngine : IDisposable
         public string MutualsCachedAt         { get; set; } = "";
         public string MutualGroupsJson        { get; set; } = "[]";
         public string MutualGroupsCachedAt    { get; set; } = "";
+        public string ProfileCurrentAvatar    { get; set; } = "";
     }
 
     public UserProfileCache? GetUserProfileCache(string userId)
@@ -762,7 +763,8 @@ public class UnifiedTimeEngine : IDisposable
                     profile_pronouns, profile_age_verification, profile_age_verified,
                     profile_bio_links, profile_is_favorited, profile_fav_friend_id, profile_badges,
                     groups, groups_cached_at, content, content_cached_at,
-                    mutuals, mutuals_cached_at, mutual_groups, mutual_groups_cached_at
+                    mutuals, mutuals_cached_at, mutual_groups, mutual_groups_cached_at,
+                    profile_current_avatar
                     FROM user_tracking WHERE user_id=$id";
                 cmd.Parameters.AddWithValue("$id", userId);
                 using var r = cmd.ExecuteReader();
@@ -819,6 +821,7 @@ public class UnifiedTimeEngine : IDisposable
                     MutualsCachedAt        = S("mutuals_cached_at"),
                     MutualGroupsJson       = SA("mutual_groups", "[]"),
                     MutualGroupsCachedAt   = S("mutual_groups_cached_at"),
+                    ProfileCurrentAvatar   = S("profile_current_avatar"),
                 };
                 return string.IsNullOrEmpty(c.ProfileCachedAt) ? null : c;
             }
@@ -917,6 +920,24 @@ public class UnifiedTimeEngine : IDisposable
                 using var cmd = _db.CreateCommand();
                 cmd.CommandText = "UPDATE user_tracking SET groups=$gj, groups_cached_at=$cat WHERE user_id=$id";
                 cmd.Parameters.AddWithValue("$id", userId); cmd.Parameters.AddWithValue("$gj", groupsJson); cmd.Parameters.AddWithValue("$cat", now);
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    public void SetAvatarInfoCache(string userId, string fileId, string avatarId, string name, string authorName)
+    {
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(avatarId)) return;
+        var json = JsonConvert.SerializeObject(new { fileId, avatarId, name, authorName });
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "UPDATE user_tracking SET profile_current_avatar=$ca WHERE user_id=$id";
+                cmd.Parameters.AddWithValue("$id", userId);
+                cmd.Parameters.AddWithValue("$ca", json);
                 cmd.ExecuteNonQuery();
             }
             catch { }
@@ -1607,6 +1628,7 @@ public class UnifiedTimeEngine : IDisposable
             "mutuals_cached_at           TEXT    NOT NULL DEFAULT ''",
             "mutual_groups               TEXT    NOT NULL DEFAULT ''",
             "mutual_groups_cached_at     TEXT    NOT NULL DEFAULT ''",
+            "profile_current_avatar      TEXT    NOT NULL DEFAULT ''",
         })
         {
             try
