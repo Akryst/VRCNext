@@ -43,7 +43,7 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
     display: flex;
     align-items: center;
     padding: 0 14px;
-    font-size: 11.5px;
+    font-size: 12.5px;
     font-weight: 700;
     color: var(--accent);
     letter-spacing: 0.4px;
@@ -56,7 +56,7 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
     display: flex;
     align-items: center;
     padding: 0 11px;
-    font-size: 12px;
+    font-size: 13px;
     color: rgba(255, 255, 255, 0.7);
     cursor: default;
     transition: background 0.1s, color 0.1s;
@@ -102,6 +102,7 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
     color: var(--tx1);
     font-size: 12.5px;
     font-weight: 500;
+    font-family: inherit;
 }
 
 .tb-dd-scale-row .msi {
@@ -149,37 +150,24 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
 }
 
 .tb-dd-item {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    width: 100%;
-    padding: 7px 10px;
-    border: none;
-    background: transparent;
-    color: var(--tx1);
-    font-size: 12.5px;
-    font-weight: 500;
-    cursor: pointer;
-    border-radius: 6px;
-    text-align: left;
-    transition: background .1s, color .1s;
+    display: flex; align-items: center; gap: 9px;
+    width: 100%; padding: 7px 10px;
+    border: none; background: transparent;
+    color: var(--tx1); font-size: 12.5px; font-weight: 500;
+    font-family: inherit;
+    cursor: pointer; border-radius: 6px;
+    text-align: left; transition: background .1s, color .1s;
 }
 
 .tb-dd-item:hover {
-    background: var(--bg-hover);
-    color: var(--tx0);
+    background: var(--bg-hover); color: var(--tx0);
 }
 
 .tb-dd-item .msi {
-    font-size: 16px;
-    color: var(--tx3);
-    width: 18px;
-    flex-shrink: 0;
+    font-size: 16px; color: var(--tx3); width: 18px; flex-shrink: 0;
 }
 
-.tb-dd-item:hover .msi {
-    color: var(--tx2);
-}
+.tb-dd-item:hover .msi { color: var(--tx2); }
 
 .tb-dd-sep {
     height: 1px;
@@ -296,7 +284,7 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 38px;
+    width: 42px;
     background: none;
     border: none;
     cursor: pointer;
@@ -316,7 +304,7 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
 }
 
 .tb-sidebar-btn .msi {
-    font-size: 16px;
+    font-size: 18px;
     line-height: 1;
 }
 
@@ -332,7 +320,7 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 38px;
+    width: 42px;
     height: 100%;
     background: none;
     border: none;
