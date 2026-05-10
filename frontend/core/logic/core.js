@@ -1266,10 +1266,11 @@ function addLog(m, c) {
     }
 
     // Track HTTP status codes
-    let httpLevel = null;
+    let httpLevel = null, statusCode = null;
     const statusMatch = m.match(/→ (\d{3})/);
     if (statusMatch) {
-        const code = +statusMatch[1];
+        statusCode = statusMatch[1];
+        const code = +statusCode;
         if (code in _httpCounts) { _httpCounts[code]++; _updateHttpBadge(code); }
         if (code === 200) httpLevel = 'ok';
         else if (code === 429) httpLevel = 'warn';
@@ -1299,10 +1300,11 @@ function addLog(m, c) {
       else if (_colorParamMap[c])         { [level, levelCls] = _colorParamMap[c]; }
 
     if (httpLevel) levelCls = httpLevel;
+    if (statusCode) msgBody = msgBody.replace(/ → \d{3}.*$/, '');
 
     const l = document.createElement('div');
     l.className = 'li-f';
-    l.innerHTML = `<span class="li-ts">${ts}</span><span class="li-level ${levelCls}">${esc(level)}</span><span class="li-msg">${esc(msgBody)}</span>`;
+    l.innerHTML = `<span class="li-ts">${ts}</span><span class="li-level ${levelCls}">${esc(level)}</span><span class="li-msg">${esc(msgBody)}</span>${statusCode ? `<span class="li-status ${levelCls}">${statusCode}</span>` : ''}`;
     const atBottom = a.scrollHeight - a.scrollTop - a.clientHeight < 40;
     a.appendChild(l);
     while (a.childElementCount > 500) a.removeChild(a.firstChild);
@@ -1387,8 +1389,9 @@ function rerenderVcTranslations() {
 document.documentElement.addEventListener('languagechange', rerenderVcTranslations);
 
 function clearLog() {
-    _logSearch = ''; _logShowFull = false;
-    const si = document.getElementById('logSearchInput'); if (si) si.value = '';
+    const si = document.getElementById('logSearchInput');
+    if (!si || !si.value) { _logSearch = ''; if (si) si.value = ''; }
+    _logShowFull = false;
     const btn = document.getElementById('logShowFullBtn');
     if (btn) {
         const ic = btn.querySelector('.logShowFullIcon'); if (ic) ic.textContent = 'unfold_more';
