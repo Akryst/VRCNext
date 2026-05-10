@@ -1,29 +1,13 @@
-.topbar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 54px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 28px;
-    gap: 8px;
-    cursor: default;
-    background: transparent;
-    z-index: 20;
-    overflow: visible;
-}
-
 .topbar-title {
-    font-size: 17px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--tx0);
-    min-width: 0;
-    flex-shrink: 1;
-    overflow: hidden;
+    padding: 0 11px;
     white-space: nowrap;
-    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .win-controls {
@@ -105,3 +89,4 @@
     color: var(--tx2);
     font-variant-numeric: tabular-nums;
 }
+

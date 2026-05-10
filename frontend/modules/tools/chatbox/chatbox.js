@@ -46,7 +46,7 @@ document.documentElement.addEventListener('languagechange', rerenderChatboxTrans
 function toggleChatbox() {
     chatboxEnabled = !chatboxEnabled;
     syncChatboxToggleUi();
-    document.getElementById('badgeChatbox').className = chatboxEnabled ? 'mini-badge online' : 'mini-badge offline';
+    document.getElementById('badgeChatbox').classList.toggle('tb-active', chatboxEnabled);
     updateChatboxConfig();
 }
 
@@ -109,7 +109,7 @@ function handleChatboxUpdate(data) {
     if (data.enabled !== undefined) {
         const wasEnabled = chatboxEnabled;
         chatboxEnabled = !!data.enabled;
-        document.getElementById('badgeChatbox').className = chatboxEnabled ? 'mini-badge online' : 'mini-badge offline';
+        document.getElementById('badgeChatbox').classList.toggle('tb-active', chatboxEnabled);
         syncChatboxToggleUi();
         if (chatboxEnabled !== wasEnabled) renderDashboard();
     }

@@ -82,7 +82,7 @@
 /* Notification Panel */
 .notif-panel {
     position: absolute;
-    top: 50px;
+    top: calc(var(--tb-h) + 4px);
     right: 16px;
     width: 420px;
     max-width: calc(100vw - 32px);

@@ -7,33 +7,30 @@
     flex-shrink: 0;
 }
 
-/* Badge trigger — matches .mini-badge style */
+/* Badge trigger — styled as tb-sidebar-btn */
 .ss-badge {
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 3px 8px;
-    border-radius: 14px;
-    border: 1px solid color-mix(in srgb, var(--tx2) 35%, transparent);
-    background: rgba(65,80,110,.1);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .3px;
+    justify-content: center;
+    width: 38px;
+    height: 100%;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: none;
     cursor: pointer;
     user-select: none;
-    white-space: nowrap;
     outline: none;
-    color: var(--tx2);
+    color: rgba(255, 255, 255, 0.48);
     /* animation out */
     opacity: 1;
     transform: scale(1);
-    transition: opacity .18s ease, transform .18s ease, background .15s, border-color .15s, color .15s;
+    transition: opacity .18s ease, transform .18s ease, background .1s, color .1s;
 }
 
 .ss-badge:hover {
-    background: rgba(65,80,110,.2);
-    border-color: color-mix(in srgb, var(--tx1) 40%, transparent);
-    color: var(--tx1);
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .ss-badge.ss-badge-hidden {
@@ -43,8 +40,8 @@
 }
 
 .ss-badge .ss-icon {
-    font-size: 13px;
-    line-height: normal;
+    font-size: 16px;
+    line-height: 1;
 }
 
 /* Expanded input row — animates via max-width + opacity */
@@ -256,6 +253,84 @@
 .ss-hint .msi {
     font-size: 22px;
     color: var(--tx2);
+}
+
+/* === SmartSearch Modal === */
+.ss-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    background: rgba(0, 0, 0, 0.55);
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 72px;
+    animation: fadeIn .1s ease;
+}
+
+.ss-modal-overlay.ss-modal-open {
+    display: flex;
+}
+
+.ss-modal-box {
+    width: 520px;
+    max-width: calc(100vw - 48px);
+    background: var(--bg-card);
+    border: 1px solid var(--brd-lt);
+    border-radius: 14px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, .6);
+    overflow: hidden;
+    animation: tbDropIn .12s ease;
+}
+
+.ss-modal-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--brd);
+}
+
+.ss-modal-input-wrap > .msi {
+    font-size: 18px;
+    color: var(--accent);
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.ss-modal-input-wrap input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--tx0);
+    font-family: inherit;
+    min-width: 0;
+}
+
+.ss-modal-input-wrap input::placeholder {
+    color: var(--tx3);
+}
+
+/* Dropdown inside modal: static flow, not absolute */
+.ss-modal-box .ss-dropdown {
+    position: static;
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+    border: none;
+    border-radius: 0 0 14px 14px;
+    box-shadow: none;
+    background: transparent;
+    padding: 4px 0 6px;
+}
+
+.ss-modal-box .ss-dropdown.ss-visible {
+    transform: none;
+    opacity: 1;
+    pointer-events: all;
 }
 
 /* Settings row highlight when navigated to from search */

@@ -2,7 +2,7 @@ function toggleSidebar() {
     sidebarCollapsed = !sidebarCollapsed;
     localStorage.setItem('vrcnext_sidebar', sidebarCollapsed ? '1' : '0');
     const sidebar = document.getElementById('sidebarEl');
-    document.getElementById('sbIcon').textContent = sidebarCollapsed ? 'chevron_right' : 'chevron_left';
+    const sbEl = document.getElementById('sbIcon'); if (sbEl) sbEl.textContent = sidebarCollapsed ? 'chevron_right' : 'chevron_left';
     if (sidebarCollapsed) {
         sidebar.classList.add('collapsing');
         setTimeout(() => {

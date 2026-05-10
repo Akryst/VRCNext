@@ -1168,13 +1168,13 @@ function setRelayState(r, s) {
         if (b) { b.className = 'vrcn-button'; b.innerHTML = relayToggleBtnHtml(true); }
         if (dot) dot.className = 'sf-dot online';
         if (txt) txt.textContent = relayStatusLabel(true);
-        bd.className = 'mini-badge online';
+        if (bd) bd.classList.add('tb-active');
         document.getElementById('statStreams').textContent = s || '0';
     } else {
         if (b) { b.className = 'vrcn-button'; b.innerHTML = relayToggleBtnHtml(false); }
         if (dot) dot.className = 'sf-dot offline';
         if (txt) txt.textContent = relayStatusLabel(false);
-        bd.className = 'mini-badge offline';
+        if (bd) bd.classList.remove('tb-active');
         document.getElementById('statStreams').textContent = '0';
     }
 }
@@ -1327,7 +1327,7 @@ function handleVcState(d) {
     _vcLastState = d;
     if (typeof updateDashQuickControls === 'function') updateDashQuickControls();
     const bdYt = document.getElementById('badgeYt');
-    if (bdYt) bdYt.className = d.running ? 'mini-badge online' : 'mini-badge offline';
+    if (bdYt) bdYt.classList.toggle('tb-active', !!d.running);
     const running    = !!d.running;
     const installed  = !!d.installed;
     const dot        = document.getElementById('vcDot');

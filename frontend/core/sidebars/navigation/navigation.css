@@ -1,19 +1,42 @@
 .sidebar {
     width: var(--sidebar-w);
     min-width: var(--sidebar-w);
-    background: var(--bg-side);
+    background: transparent;
     display: flex;
     flex-direction: column;
-    transition: width .22s ease,min-width .22s ease;
-    overflow: hidden;
-    position: relative;
+    transition: width .22s ease, min-width .22s ease, padding-top .22s ease;
+    overflow: clip;
+    position: fixed;
+    left: 0;
+    top: var(--tb-h);
+    height: calc(100% - var(--tb-h));
+    z-index: 50;
     padding-top: 54px;
+}
+
+.sidebar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--bg-side);
+    pointer-events: none;
+    z-index: -1;
 }
 
 .sidebar.collapsed,
 .sidebar.collapsing {
     width: var(--sidebar-c);
     min-width: var(--sidebar-c);
+}
+
+.sidebar.collapsed {
+    padding-top: 0;
+}
+
+.sidebar.collapsed .logo,
+.sidebar.collapsing .logo {
+    opacity: 0;
+    pointer-events: none;
 }
 
 .logo {
@@ -23,7 +46,7 @@
     right: 0;
     height: 54px;
     z-index: 5;
-    background: var(--bg-side);
+    background: transparent;
     display: flex;
     align-items: center;
     padding: 0 4px 0 14px;
@@ -378,4 +401,18 @@
 
 .sidebar.collapsed .btn-play .play-icon {
     font-size: 22px !important;
+}
+
+body:has(#tab0.active) .sidebar.collapsed::before {
+    background: transparent;
+}
+
+body:has(#tab0.active) .sidebar.collapsed::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--bg-side);
+    opacity: var(--sidebar-glass-t, 0);
+    pointer-events: none;
+    z-index: -1;
 }

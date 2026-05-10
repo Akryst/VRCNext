@@ -34,8 +34,7 @@ function vfSyncStateUi() {
     if (typeof updateDashQuickControls === 'function') updateDashQuickControls();
     const vfBadge = document.getElementById('badgeVoice');
     if (vfBadge) {
-        vfBadge.classList.remove(vfRunning ? 'offline' : 'online');
-        vfBadge.classList.add(vfRunning ? 'online' : 'offline');
+        vfBadge.classList.toggle('tb-active', vfRunning);
     }
 }
 

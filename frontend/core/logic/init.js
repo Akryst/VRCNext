@@ -121,6 +121,7 @@ sendToCS({ action: 'getTimeline' });
     if (!winDrag || !content) return;
     const FADE_PX = 140;
     const tab0 = document.getElementById('tab0');
+    const taskbar = document.getElementById('taskbar');
     function applyTopbarBg() {
         const hex = getComputedStyle(document.documentElement).getPropertyValue('--bg-base').trim();
         const r = parseInt(hex.slice(1, 3), 16);
@@ -128,12 +129,12 @@ sendToCS({ action: 'getTimeline' });
         const b = parseInt(hex.slice(5, 7), 16);
         if (!tab0 || !tab0.classList.contains('active')) {
             winDrag.style.background = `rgb(${r},${g},${b})`;
+            if (taskbar) taskbar.style.background = `rgb(${r},${g},${b})`;
             return;
         }
         const t = Math.min(content.scrollTop / FADE_PX, 1);
-        const a1 = (0.78 + 0.22 * t).toFixed(2);
-        const a2 = t.toFixed(2);
-        winDrag.style.background = `linear-gradient(to bottom, rgba(${r},${g},${b},${a1}), rgba(${r},${g},${b},${a2}))`;
+        winDrag.style.background = `rgba(${r},${g},${b},${t.toFixed(2)})`;
+        if (taskbar) taskbar.style.background = `rgba(${r},${g},${b},${t.toFixed(2)})`;
     }
     applyTopbarBg();
     content.addEventListener('scroll', applyTopbarBg, { passive: true });

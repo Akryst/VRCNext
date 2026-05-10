@@ -2,6 +2,7 @@ using Photino.NET;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
+using System.Threading.Channels;
 using VRCNext.Services;
 using VRCNext.Services.Helpers;
 
@@ -54,6 +55,7 @@ public partial class AppShell
     private readonly TimelineService _timeline;
     private readonly UpdateService _updateService = new();
     private readonly MemoryTrimService _memTrim = new();
+    private readonly Channel<string> _jsQueue = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true, AllowSynchronousContinuations = false });
 #if WINDOWS
     private SystemTrayService? _trayService;
 #endif
@@ -359,6 +361,7 @@ public partial class AppShell
         if (File.Exists(iconPath)) windowBuilder.SetIconFile(iconPath);
         _window = windowBuilder.Load(startPage);
         _core.Window = _window;
+        _ = RunJsDispatcherAsync();
         _ = RunAutoBackupsAsync();
 
         if (_minimized) _window.SetMinimized(true);
@@ -654,6 +657,14 @@ public partial class AppShell
 
     // SendToJS
 
+    private async Task RunJsDispatcherAsync()
+    {
+        await foreach (var msg in _jsQueue.Reader.ReadAllAsync())
+        {
+            try { _window.Invoke(() => _window.SendWebMessage(msg)); } catch { }
+        }
+    }
+
     private void SendToJS(string type, object? payload = null)
     {
         if (type == "log" && payload != null && _activityLogWriter != null)
@@ -667,7 +678,7 @@ public partial class AppShell
             catch { }
         }
         var msg = JsonConvert.SerializeObject(new { type, payload });
-        try { _window.Invoke(() => _window.SendWebMessage(msg)); } catch { }
+        _jsQueue.Writer.TryWrite(msg);
 
 #if WINDOWS
         // Forward friend timeline events to the VR wrist overlay
