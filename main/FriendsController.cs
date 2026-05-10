@@ -1690,7 +1690,7 @@ public class FriendsController
             list.Add(new
             {
                 id = wObj["id"]?.ToString() ?? "", name = wObj["name"]?.ToString() ?? "",
-                thumbnailImageUrl = wObj["thumbnailImageUrl"]?.ToString() ?? "",
+                thumbnailImageUrl = ImageCacheHelper.GetWorldUrl(wObj["id"]?.ToString(), wObj["imageUrl"]?.ToString() ?? wObj["thumbnailImageUrl"]?.ToString()),
                 occupants = wObj["occupants"]?.Value<int>() ?? 0,
                 favorites = wObj["favorites"]?.Value<int>() ?? 0,
                 visits = wObj["visits"]?.Value<int>() ?? 0,
