@@ -66,10 +66,7 @@ function handleSfUpdate(data) {
         txt.textContent = sfStatusText(data);
         txt.style.color = data.dragging ? 'var(--warn)' : 'var(--ok)';
         btn.innerHTML = sfDisconnectBtnHtml();
-        if (badge) {
-            badge.classList.remove('offline');
-            badge.classList.add('online');
-        }
+        if (badge) badge.classList.add('tb-active');
     } else {
         dot.classList.remove('online');
         dot.classList.add('offline');
@@ -77,8 +74,7 @@ function handleSfUpdate(data) {
         txt.style.color = data.error ? 'var(--err)' : 'var(--tx3)';
         btn.innerHTML = sfConnectBtnHtml();
         if (badge) {
-            badge.classList.remove('online');
-            badge.classList.add('offline');
+            badge.classList.remove('tb-active');
         }
     }
 

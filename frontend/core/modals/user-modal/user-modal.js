@@ -35,6 +35,7 @@ function openFriendDetail(userId) {
 }
 
 let _fdLoadedAvatarKey = '';
+let _fdLastAvatarPayload = null;
 
 function closeFriendDetail(fromNav = false) {
     if (_fdLiveTimer) { clearInterval(_fdLiveTimer); _fdLiveTimer = null; }
@@ -42,6 +43,7 @@ function closeFriendDetail(fromNav = false) {
     currentFriendDetail = null;
     window._fdAllMutuals = null;
     _fdLoadedAvatarKey = '';
+    _fdLastAvatarPayload = null;
     if (!fromNav && typeof navClear === 'function') navClear();
 }
 
@@ -51,24 +53,27 @@ function lookupAndOpenAvatar(fileId, iconEl) {
     sendToCS({ action: 'vrcLookupAvatarByFileId', fileId, openModal: true });
 }
 
+function _applyAvatarSection(payload) {
+    const section = document.getElementById('fdAvatarSection');
+    if (!section || !payload?.avatarId) return;
+    const avImg = currentFriendDetail?.currentAvatarImageUrl || '';
+    const avIcon = avImg
+        ? `<img class="fd-group-icon" src="${esc(avImg)}" onerror="this.style.display='none'">`
+        : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">checkroom</span></div>`;
+    const authorHtml = payload.avatarAuthor
+        ? `<div class="fd-group-card-meta">${esc(payload.avatarAuthor)}</div>` : '';
+    section.style.display = '';
+    section.innerHTML = `<div class="fd-group-rep-label">${t('profiles.badges.current_avatar', 'Current Avatar')}</div>
+        <div class="fd-group-card fd-group-rep" onclick="navOpenModal('avatar','${jsq(payload.avatarId)}','${jsq(payload.avatarName || '')}')">
+            ${avIcon}<div class="fd-group-card-info"><div class="fd-group-card-name">${esc(payload.avatarName || payload.avatarId)}</div>${authorHtml}</div>
+        </div>`;
+}
+
 function handleAvatarByFileId(payload) {
-    if (payload.avatarId) {
-        const section = document.getElementById('fdAvatarSection');
-        if (section) {
-            const avImg = currentFriendDetail?.currentAvatarImageUrl || '';
-            const avIcon = avImg
-                ? `<img class="fd-group-icon" src="${esc(avImg)}" onerror="this.style.display='none'">`
-                : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">checkroom</span></div>`;
-            const authorHtml = payload.avatarAuthor
-                ? `<div class="fd-group-card-meta">${esc(payload.avatarAuthor)}</div>` : '';
-            section.style.display = '';
-            section.innerHTML = `<div class="fd-group-rep-label">${t('profiles.badges.current_avatar', 'Current Avatar')}</div>
-                <div class="fd-group-card fd-group-rep" onclick="navOpenModal('avatar','${jsq(payload.avatarId)}','${jsq(payload.avatarName || '')}')">
-                    ${avIcon}<div class="fd-group-card-info"><div class="fd-group-card-name">${esc(payload.avatarName || payload.avatarId)}</div>${authorHtml}</div>
-                </div>`;
-        }
-        if (payload.openModal) navOpenModal('avatar', payload.avatarId, payload.avatarName || '');
-    }
+    if (!payload.avatarId) return;
+    _fdLastAvatarPayload = payload;
+    _applyAvatarSection(payload);
+    if (payload.openModal) navOpenModal('avatar', payload.avatarId, payload.avatarName || '');
 }
 
 function filterFdGroups() {
@@ -807,9 +812,17 @@ function renderFriendDetail(d) {
     renderFdWorldsPage(0);
 
     const _avatarKey = avatarFileId || avatarId;
+    const ca = d.cachedAvatar;
+    if (ca?.avatarId && ca.fileId === avatarFileId) {
+        _fdLastAvatarPayload = { avatarId: ca.avatarId, avatarName: ca.name, avatarAuthor: ca.authorName };
+        _applyAvatarSection(_fdLastAvatarPayload);
+        _fdLoadedAvatarKey = _avatarKey;
+    } else if (_fdLastAvatarPayload) {
+        _applyAvatarSection(_fdLastAvatarPayload);
+    }
     if (_avatarKey && _avatarKey !== _fdLoadedAvatarKey) {
         _fdLoadedAvatarKey = _avatarKey;
-        if (avatarFileId) sendToCS({ action: 'vrcLookupAvatarByFileId', fileId: avatarFileId, openModal: false });
+        if (avatarFileId) sendToCS({ action: 'vrcLookupAvatarByFileId', fileId: avatarFileId, openModal: false, userId: d.id });
         else if (avatarId && avatarId.startsWith('avtr_')) sendToCS({ action: 'vrcGetAvatarInfo', avatarId });
     }
 

@@ -67,7 +67,7 @@ function dpOnState(p) {
     dpSyncUi();
     if (typeof updateDashQuickControls === 'function') updateDashQuickControls();
     const bdDp = document.getElementById('badgeDp');
-    if (bdDp) bdDp.className = _dpRunning ? 'mini-badge online' : 'mini-badge offline';
+    if (bdDp) bdDp.classList.toggle('tb-active', _dpRunning);
     if (_dpRunning) {
         if (!_dpJoinedAt) _dpJoinedAt = Date.now();
         dpUpdateStatusDot();

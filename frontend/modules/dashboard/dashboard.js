@@ -75,8 +75,6 @@ function renderDashboard() {
             bgEl.style.backgroundImage = `url('fallback_bg.png')`;
         }
     }
-    const fadeEl = document.querySelector('.dash-hero-fade');
-    if (fadeEl) fadeEl.style.background = `linear-gradient(to bottom, rgba(0,0,0,0.20) 0%, var(--bg-base) 100%)`;
     if (currentSpecialTheme === 'auto') applyAutoColor();
 
     renderDashWorlds();
@@ -1410,6 +1408,50 @@ function rerenderDashTranslations() {
     if (_dashModalLayout) _renderDashLayoutList();
 }
 document.documentElement.addEventListener('languagechange', rerenderDashTranslations);
+
+/* === Dashboard Overlay — Glass Vignette === */
+(function () {
+    const THEME_ID = 'Dashboard Theme';
+    const content = document.querySelector('.content');
+    const tab0 = document.getElementById('tab0');
+    const FADE_PX = 140;
+
+    const vignette = document.createElement('div');
+    vignette.id = 'dash-vignette';
+    Object.assign(vignette.style, {
+        position: 'fixed',
+        inset: '0',
+        pointerEvents: 'none',
+        background: [
+            'linear-gradient(to right,  rgba(0,0,0,0.80), transparent 280px)',
+            'linear-gradient(to left,   rgba(0,0,0,0.80), transparent 280px)',
+            'linear-gradient(to bottom, rgba(0,0,0,0.75), transparent 200px)',
+        ].join(','),
+    });
+    document.body.appendChild(vignette);
+
+    function applyGlass() {
+        const onDash = tab0 && tab0.classList.contains('active');
+        const t = onDash ? Math.min((content?.scrollTop || 0) / FADE_PX, 1) : 1;
+        vignette.style.opacity = (1 - t).toFixed(3);
+        document.body.style.setProperty('--sidebar-glass-t', t.toFixed(3));
+    }
+
+    function cleanup() {
+        content?.removeEventListener('scroll', applyGlass);
+        document.documentElement.removeEventListener('themechange', applyGlass);
+        document.documentElement.removeEventListener('tabchange', applyGlass);
+        document.documentElement.removeEventListener('vrcnext:theme:unload:' + THEME_ID, cleanup);
+        document.body.style.removeProperty('--sidebar-glass-t');
+        vignette.remove();
+    }
+
+    applyGlass();
+    content?.addEventListener('scroll', applyGlass, { passive: true });
+    document.documentElement.addEventListener('themechange', applyGlass);
+    document.documentElement.addEventListener('tabchange', applyGlass);
+    document.documentElement.addEventListener('vrcnext:theme:unload:' + THEME_ID, cleanup);
+}());
 
 /* === Upcoming Events Widget === */
 

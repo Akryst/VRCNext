@@ -54,14 +54,12 @@ renderChatboxLines();
 const winDrag = document.getElementById('winDrag');
 if (winDrag) {
     winDrag.addEventListener('mousedown', e => {
-        if (window._legacyWindow) return;
         // Only drag from the topbar background, not buttons/badges/search
         if (e.target.closest('.win-controls, .btn-notif, .mini-badge, .ss-wrap, button, input')) return;
         // Skip SC_MOVE on the 2nd click of a double-click so dblclick event can fire
         if (e.button === 0 && e.detail === 1) sendToCS({ action: 'windowDragStart' });
     });
     winDrag.addEventListener('dblclick', e => {
-        if (window._legacyWindow) return;
         if (e.target.closest('.win-controls, .btn-notif, .mini-badge, .ss-wrap, button, input')) return;
         sendToCS({ action: 'windowMaximize' });
     });
@@ -72,12 +70,10 @@ if (winDrag) {
     const el = document.querySelector(sel);
     if (!el) return;
     el.addEventListener('mousedown', e => {
-        if (window._legacyWindow) return;
         if (e.target.closest('button')) return;
         if (e.button === 0 && e.detail === 1) sendToCS({ action: 'windowDragStart' });
     });
     el.addEventListener('dblclick', e => {
-        if (window._legacyWindow) return;
         if (e.target.closest('button')) return;
         sendToCS({ action: 'windowMaximize' });
     });
@@ -96,13 +92,24 @@ if (winDrag) {
         if (t) return 'n'; if (b) return 's';
         return null;
     }
+    // Transparent overlays for top resize zones so the cursor shows correctly
+    // even over taskbar elements that have cursor:default in CSS.
+    // They sit above the taskbar (z-index > 100) but still bubble mousedown to document.
+    [
+        { style: `top:0;left:${B}px;right:${B}px;height:${B}px;cursor:n-resize` },
+        { style: `top:0;left:0;width:${B}px;height:${B}px;cursor:nw-resize` },
+        { style: `top:0;right:0;width:${B}px;height:${B}px;cursor:ne-resize` },
+    ].forEach(({ style }) => {
+        const el = document.createElement('div');
+        el.style.cssText = `position:fixed;${style};z-index:99999;background:transparent;`;
+        document.body.appendChild(el);
+    });
+
     document.addEventListener('mousemove', e => {
-        if (window._legacyWindow) return;
         const dir = getDir(e.clientX, e.clientY);
         document.documentElement.style.cursor = dir ? cursorMap[dir] : '';
     });
     document.addEventListener('mousedown', e => {
-        if (window._legacyWindow) return;
         if (e.button !== 0) return;
         const dir = getDir(e.clientX, e.clientY);
         if (dir) { e.preventDefault(); sendToCS({ action: 'windowResizeStart', direction: dir }); }
@@ -121,6 +128,7 @@ sendToCS({ action: 'getTimeline' });
     if (!winDrag || !content) return;
     const FADE_PX = 140;
     const tab0 = document.getElementById('tab0');
+    const taskbar = document.getElementById('taskbar');
     function applyTopbarBg() {
         const hex = getComputedStyle(document.documentElement).getPropertyValue('--bg-base').trim();
         const r = parseInt(hex.slice(1, 3), 16);
@@ -128,12 +136,12 @@ sendToCS({ action: 'getTimeline' });
         const b = parseInt(hex.slice(5, 7), 16);
         if (!tab0 || !tab0.classList.contains('active')) {
             winDrag.style.background = `rgb(${r},${g},${b})`;
+            if (taskbar) taskbar.style.background = `rgb(${r},${g},${b})`;
             return;
         }
         const t = Math.min(content.scrollTop / FADE_PX, 1);
-        const a1 = (0.78 + 0.22 * t).toFixed(2);
-        const a2 = t.toFixed(2);
-        winDrag.style.background = `linear-gradient(to bottom, rgba(${r},${g},${b},${a1}), rgba(${r},${g},${b},${a2}))`;
+        winDrag.style.background = `rgba(${r},${g},${b},${t.toFixed(2)})`;
+        if (taskbar) taskbar.style.background = `rgba(${r},${g},${b},${t.toFixed(2)})`;
     }
     applyTopbarBg();
     content.addEventListener('scroll', applyTopbarBg, { passive: true });

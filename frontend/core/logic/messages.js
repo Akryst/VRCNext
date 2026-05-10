@@ -142,7 +142,7 @@ window.external.receiveMessage(rawMsg => {
             case 'vrcCredits': {
                 const bc = document.getElementById('badgeVrcCredits');
                 const bl = document.getElementById('badgeVrcCreditsLabel');
-                if (bc && bl) { bl.textContent = 'V ' + payload.balance.toLocaleString(); bc.style.display = ''; }
+                if (bc && bl) { bl.textContent = payload.balance.toLocaleString(); bc.style.display = ''; }
                 break;
             }
             case 'vrcMyBadges':

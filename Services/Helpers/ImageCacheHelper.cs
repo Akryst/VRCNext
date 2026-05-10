@@ -240,7 +240,11 @@ public static class ImageCacheHelper
             {
                 var normalized = NormalizeTo512(bannerUrl);
                 var storedUrl  = GetStoredUrl("Users", bannerId);
-                if (storedUrl == normalized) return ToLocalUrl(cached);
+                if (storedUrl == normalized)
+                {
+                    Log?.Invoke($"[BANNER] → Cache Hit {userId}", "ok");
+                    return ToLocalUrl(cached);
+                }
                 _ = CacheAsync("Users", bannerId, bannerUrl, forceRefresh: true);
                 return normalized;
             }
@@ -576,7 +580,7 @@ public static class ImageCacheHelper
         }
     }
 
-    // Converts VRC Url to CDN 512 Endpoints
+    // Converts VRC Url to CDN 800 Endpoints
     public static string NormalizeTo512(string url)
     {
         const string filePrefix = "/api/1/file/";
@@ -585,11 +589,14 @@ public static class ImageCacheHelper
         {
             var rest  = url[(fi + filePrefix.Length)..];
             var parts = rest.Split('/');
-            if (parts.Length >= 3 && parts[0].StartsWith("file_", StringComparison.OrdinalIgnoreCase))
-                return $"https://api.vrchat.cloud/api/1/image/{parts[0]}/{parts[1]}/512";
+            if (parts.Length >= 2 && parts[0].StartsWith("file_", StringComparison.OrdinalIgnoreCase))
+                return $"https://api.vrchat.cloud/api/1/image/{parts[0]}/{parts[1]}/800";
         }
-        if (url.Contains("/api/1/image/", StringComparison.Ordinal) && url.EndsWith("/256", StringComparison.Ordinal))
-            return url[..^3] + "512";
+        if (url.Contains("/api/1/image/", StringComparison.Ordinal))
+        {
+            if (url.EndsWith("/256", StringComparison.Ordinal)) return url[..^3] + "800";
+            if (url.EndsWith("/512", StringComparison.Ordinal)) return url[..^3] + "800";
+        }
         return url;
     }
 

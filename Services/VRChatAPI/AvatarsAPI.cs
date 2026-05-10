@@ -241,7 +241,7 @@ public class AvatarsAPI(VRChatApiService ctx)
         return new JArray();
     }
 
-    public async Task<string?> GetAvatarIdByFileIdAsync(string fileId)
+    public async Task<(string? id, JObject? data)> GetAvatarIdByFileIdAsync(string fileId)
     {
         var url = $"https://api.avtrdb.com/v3/avatar/search/vrcx?fileId={Uri.EscapeDataString(fileId)}";
         using var client = new HttpClient();
@@ -255,17 +255,18 @@ public class AvatarsAPI(VRChatApiService ctx)
             var resp = await client.GetAsync(url);
             var body = await resp.Content.ReadAsStringAsync();
             ctx.Log($"GetAvatarIdByFileId [{(int)resp.StatusCode}]: {body[..Math.Min(400, body.Length)]}");
-            if (!resp.IsSuccessStatusCode || string.IsNullOrWhiteSpace(body)) return null;
+            if (!resp.IsSuccessStatusCode || string.IsNullOrWhiteSpace(body)) return (null, null);
             var parsed = JToken.Parse(body);
             const string robotId = "avtr_c38a1615-5bf5-42b4-84eb-a8b6c37cbd11";
-            string? id = null;
-            if (parsed is JObject single) id = single["id"]?.ToString();
-            else if (parsed is JArray arr && arr.Count > 0) id = arr[0]?["id"]?.ToString();
-            if (id == robotId) return null;
-            return id;
+            JObject? data = null;
+            if (parsed is JObject single) data = single;
+            else if (parsed is JArray arr && arr.Count > 0) data = arr[0] as JObject;
+            var id = data?["id"]?.ToString();
+            if (id == robotId) return (null, null);
+            return (id, data);
         }
         catch (Exception ex) { ctx.Log($"GetAvatarIdByFileId exception: {ex.Message}"); }
-        return null;
+        return (null, null);
     }
 
     public async Task<bool> CheckAvatarExistsAvtrIcuAsync(string avatarId)

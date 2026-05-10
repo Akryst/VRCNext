@@ -108,6 +108,8 @@ function applyGuiZoom(z) {
     document.body.style.width = `${inv}vw`;
     document.body.style.height = `${inv}vh`;
     document.documentElement.style.setProperty('--gui-zoom', z);
+    const _lbl = document.getElementById('tbZoomLabel');
+    if (_lbl) _lbl.textContent = Math.round(z * 100) + '%';
 }
 document.addEventListener('wheel', e => {
     if (!e.ctrlKey) return;
@@ -621,6 +623,7 @@ function getPageTitle(i) {
         t('page.permini', 'Permini'),
         t('page.kikitan_xd', 'Kikitan XD'),
         t('page.event_snipe', 'Event Snipe'),
+        t('page.avatar_scaling', 'Avatar Scaling'),
     ][i] ?? '';
 }
 
@@ -1168,13 +1171,13 @@ function setRelayState(r, s) {
         if (b) { b.className = 'vrcn-button'; b.innerHTML = relayToggleBtnHtml(true); }
         if (dot) dot.className = 'sf-dot online';
         if (txt) txt.textContent = relayStatusLabel(true);
-        bd.className = 'mini-badge online';
+        if (bd) bd.classList.add('tb-active');
         document.getElementById('statStreams').textContent = s || '0';
     } else {
         if (b) { b.className = 'vrcn-button'; b.innerHTML = relayToggleBtnHtml(false); }
         if (dot) dot.className = 'sf-dot offline';
         if (txt) txt.textContent = relayStatusLabel(false);
-        bd.className = 'mini-badge offline';
+        if (bd) bd.classList.remove('tb-active');
         document.getElementById('statStreams').textContent = '0';
     }
 }
@@ -1266,10 +1269,11 @@ function addLog(m, c) {
     }
 
     // Track HTTP status codes
-    let httpLevel = null;
+    let httpLevel = null, statusCode = null;
     const statusMatch = m.match(/→ (\d{3})/);
     if (statusMatch) {
-        const code = +statusMatch[1];
+        statusCode = statusMatch[1];
+        const code = +statusCode;
         if (code in _httpCounts) { _httpCounts[code]++; _updateHttpBadge(code); }
         if (code === 200) httpLevel = 'ok';
         else if (code === 429) httpLevel = 'warn';
@@ -1299,10 +1303,11 @@ function addLog(m, c) {
       else if (_colorParamMap[c])         { [level, levelCls] = _colorParamMap[c]; }
 
     if (httpLevel) levelCls = httpLevel;
+    if (statusCode) msgBody = msgBody.replace(/ → \d{3}.*$/, '');
 
     const l = document.createElement('div');
     l.className = 'li-f';
-    l.innerHTML = `<span class="li-ts">${ts}</span><span class="li-level ${levelCls}">${esc(level)}</span><span class="li-msg">${esc(msgBody)}</span>`;
+    l.innerHTML = `<span class="li-ts">${ts}</span><span class="li-level ${levelCls}">${esc(level)}</span><span class="li-msg">${esc(msgBody)}</span>${statusCode ? `<span class="li-status ${levelCls}">${statusCode}</span>` : ''}`;
     const atBottom = a.scrollHeight - a.scrollTop - a.clientHeight < 40;
     a.appendChild(l);
     while (a.childElementCount > 500) a.removeChild(a.firstChild);
@@ -1325,7 +1330,7 @@ function handleVcState(d) {
     _vcLastState = d;
     if (typeof updateDashQuickControls === 'function') updateDashQuickControls();
     const bdYt = document.getElementById('badgeYt');
-    if (bdYt) bdYt.className = d.running ? 'mini-badge online' : 'mini-badge offline';
+    if (bdYt) bdYt.classList.toggle('tb-active', !!d.running);
     const running    = !!d.running;
     const installed  = !!d.installed;
     const dot        = document.getElementById('vcDot');
@@ -1387,8 +1392,9 @@ function rerenderVcTranslations() {
 document.documentElement.addEventListener('languagechange', rerenderVcTranslations);
 
 function clearLog() {
-    _logSearch = ''; _logShowFull = false;
-    const si = document.getElementById('logSearchInput'); if (si) si.value = '';
+    const si = document.getElementById('logSearchInput');
+    if (!si || !si.value) { _logSearch = ''; if (si) si.value = ''; }
+    _logShowFull = false;
     const btn = document.getElementById('logShowFullBtn');
     if (btn) {
         const ic = btn.querySelector('.logShowFullIcon'); if (ic) ic.textContent = 'unfold_more';

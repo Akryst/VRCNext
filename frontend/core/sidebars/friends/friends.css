@@ -1,42 +1,31 @@
 .rsidebar {
-    width: 260px;
-    min-width: 260px;
-    background: var(--bg-side);
+    width: var(--rsidebar-w);
+    min-width: var(--rsidebar-w);
+    background: transparent;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: clip;
     transition: width .22s ease, min-width .22s ease;
-    position: relative;
-    padding-top: 54px;
+    position: fixed;
+    right: 0;
+    top: var(--tb-h);
+    height: calc(100% - var(--tb-h));
+    z-index: 50;
+}
+
+.rsidebar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--bg-side);
+    pointer-events: none;
+    z-index: -1;
 }
 
 .rsidebar.collapsed {
     width: var(--rsidebar-c);
     min-width: var(--rsidebar-c);
 }
-
-.rsidebar-header {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 54px;
-    z-index: 5;
-    background: var(--bg-side);
-    display: flex;
-    align-items: center;
-    padding: 0 8px 0 4px;
-    gap: 6px;
-}
-
-.rsidebar.collapsed .rsidebar-header {
-    justify-content: center;
-    padding: 0 4px;
-}
-
-.rsidebar.collapsed .rsidebar-title,
-.rsidebar.collapsed .mi-refresh-btn,
-.rsidebar.collapsed .win-dots { display: none; }
 .rsidebar.collapsed .rsidebar-content {
     padding: 4px;
     overflow-x: hidden;
@@ -387,4 +376,18 @@
     outline: none;
     margin-top: 12px;
     resize: none;
+}
+
+body:has(#tab0.active) .rsidebar.collapsed::before {
+    background: transparent;
+}
+
+body:has(#tab0.active) .rsidebar.collapsed::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--bg-side);
+    opacity: var(--sidebar-glass-t, 0);
+    pointer-events: none;
+    z-index: -1;
 }

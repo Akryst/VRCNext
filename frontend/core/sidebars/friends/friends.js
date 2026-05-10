@@ -4,7 +4,7 @@ function toggleRsidebar() {
     rsidebarCollapsed = !rsidebarCollapsed;
     localStorage.setItem('vrcnext_rsidebar', rsidebarCollapsed ? '1' : '0');
     const rs = document.getElementById('rsidebar');
-    document.getElementById('rsIcon').textContent = rsidebarCollapsed ? 'chevron_left' : 'chevron_right';
+    const rsEl = document.getElementById('rsIcon'); if (rsEl) rsEl.textContent = rsidebarCollapsed ? 'chevron_left' : 'chevron_right';
     rs.classList.toggle('collapsed', rsidebarCollapsed);
     if (typeof renderVrcFriends === 'function' && vrcFriendsData?.length) renderVrcFriends(vrcFriendsData);
 }

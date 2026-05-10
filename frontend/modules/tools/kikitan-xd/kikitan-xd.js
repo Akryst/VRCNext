@@ -83,7 +83,7 @@ function handleKxdState(p) {
     kxdSyncStateUi();
     if (!kxdRunning) updateKxdMeter(0);
     const bdKxd = document.getElementById('badgeKxd');
-    if (bdKxd) bdKxd.className = kxdRunning ? 'mini-badge online' : 'mini-badge offline';
+    if (bdKxd) bdKxd.classList.toggle('tb-active', kxdRunning);
 }
 
 function kxdConnect() {

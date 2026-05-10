@@ -7,7 +7,7 @@ namespace VRCNext.Services.Helpers;
 public static class ModalCacheHelper
 {
     // Cache Timer
-    private const int CacheDurationSeconds = 120;
+    private const int CacheDurationSeconds = 300;
 
     private static readonly ConcurrentDictionary<string, DateTime> _timestamps = new();
 

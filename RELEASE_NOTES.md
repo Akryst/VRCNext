@@ -1,77 +1,50 @@
-**2026.23.0**
+**2026.24.0**
 
-## Community feature requests
+### The New Taskbar
 
-* **Added “Start VRChat” to the System Tray right-click menu**
-  You can now start VRChat directly from the tray icon without opening the main VRCNext window.
-  Requested by @octomiku01
+* Removed the old Dashboard Bar and added a new, better working Taskbar.
+* Added an "App" tab with scaling options, restart, and close app buttons.
+* Added a "Tools" tab, which shows all tools for faster navigation.
+* Added a "Help" tab with a Discord join button.
+* Added a "View" tab with App Scaling, Sidebar Collapse
+* Minimized the tool toggles into a single tool icon that can be opened and closed.
+* Reworked Smart Search for better search results and a cleaner UI.
+* Added Left/Right Sidebar Collapse buttons
+* Used Legacy Windows + VRCN Styled taskbar buttons.
 
-* **Added instance status icons and close-instance support**
-  Instances now show clearer status icons, including Age Gated information across modals and lists. You can also close an instance directly from VRCNext if it is your own instance and you have permission to close it.
-  Requested by @octomiku01
+### Tooltip System
+* Added a new tooltip system that explains every feature with short, easy to understand descriptions.
+* To view a tooltip, open any module, for example Dashboard, VR Overlay, or Permini.
+* Click the module title shown in the Taskbar.
+* A "What is this?" option will appear.
+* Click it to open an info box with a description of the feature you are currently viewing.
 
-* **Added “Remember Window Size” setting**
-  VRCNext can now remember your last window size and restore it the next time you open the app. This can be enabled in **Settings > Window Behavior**.
-  Requested by @aghostofthepast
+### Changes
 
-* **Added “Remember Monitor” setting**
-  VRCNext can now remember which monitor it was last opened on and restore the window there on the next launch. This can be enabled in **Settings > Window Behavior**.
-  Requested by @kivvio
+* Changed the Dashboard Topbar to the new Taskbar style, which is very similar to the old Legacy Window Mode.
+* Changed the Dashboard fade effect when scrolling down.
+* Increased the size of the Dashboard background.
+* Reduced the darkness of the Dashboard background.
 
-* **Added VRChat Registry Backup**
-  VRCNext can now create backups of the VRChat registry data through **Settings > Auto-Backups**. This helps preserve important VRChat-related settings before changes or issues happen.
-  Requested by @octomiku01
+### Removed
 
-### Performance
-* Profiles are updated now live even if the modal ist open. Bios, Status, Status text, pronouns - everything is updated live without killing VRChats API.
+* Removed Legacy Window Mode because it is no longer needed or maintained.
+* Removed the old Dashboard Topbar because it was replaced by the new Taskbar.
+* Removed the "Friends" text from the Friends sidebar.
+* Removed the Refresh button from the Friends sidebar.
+* Removed the left and right sidebar collapse buttons because they are now part of the new Taskbar system.
 
-### Context Menu
-* Instead of showing "Invite" "Invite with Image" "Invite with text" we now just show "Invite" and it has an sub menu of all three options.
-* Added "Request Invite" button to the Context Menu.
-* Added user Moderation menu to the context menu. Block, Mute, Mute Chat, Hide Avatar, Interactions.
+### Improvements
 
-### Instance List
-* Redesigned the instance list design to match the new V2 design.
+* Changed image endpoints to use 800+ px images.
+* Group, Avatar, User Profile, Own Profile, Event, and other images now load in higher resolution.
+* Higher resolution images may slightly increase cache size.
+* Enable "Cache Optimizing" if you disabled it before. It is highly recommended.
+* Slightly improved VRCNext loading times.
 
-### Media Library
-* Sort for GIFs added to "All Media" Filter
+### Fixes
 
-### World Modal
-* The Instances tab now refreshes in-place when pressing the Refresh button.
-* Existing instance cards stay visible while the refresh runs in the background.
-* New instances are added, removed instances are removed, and changed data is updated without clearing the list.
-* Group names and short codes are now cached in the local database the first time a world with group instances is opened.
-* On every subsequent open, group info loads instantly from the database with no API calls.
-* Manually opening a group profile still updates its cached data as before.
-
-### Profile Modal
-* Redesigned the content cards to be small compact onse for the sake of UX!
-* When clicking an avatar on a content item it will now open the modal instead of switching to that avatar.
-
-### Instance Modal
-* The Instance Modal now loads world information much faster by using locally cached data when available, including world name, author, description, and banner.
-* Reopening previously visited worlds should no longer cause visible pop-in. If no cache exists yet, the API response automatically fills it for next time.
-* The world description is now shown in the left panel.
-* Removed the `X instances` and `X friends` stat lines from the left panel for a cleaner layout.
-* Instance card header info now uses proper badge styling for region, PC percentage, Quest percentage, player count, and display name.
-* The Instance ID copy badge has been moved to the far right of the header row.
-* The old `Join World` button was replaced with a compact round icon button to match the Invite and Delete buttons.
-* Internal cleanup: Instance Modal logic is now split into `setInstanceModal` for Dashboard, Groups, and Sidebar, and `setOwnInstanceModal` for My Instances.
-
-### Image Cache
-* The Instance Modal no longer loads images directly from the VRChat CDN and only displays locally cached images now.
-* This helps reduce unnecessary load on VRChat servers.
-* If an image is not cached yet, the banner stays hidden until it has been downloaded and will appear the next time the modal is opened.
-* This now works for all cached image types: Worlds, Users, Groups, Avatars, Badges, and Events.
-
-### Notification Center
-* Added **Current / All / Hidden** tabs to the notification panel.
-  * **Current** shows only active, non-hidden notifications (previous behavior).
-  * **Hidden** shows ignored friend requests
-* Tab switching uses an animated sliding pill selector.
-
-### Activity Log
-* CDN image downloads are now tracked in the Activity Log, including request type, URL, and status codes like `CDN 200`, `CDN 404`, and `CDN 429`.
-* CDN status entries now use matching colors to make successful, failed, and rate-limited requests easier to identify.
-* Added new Activity Log badges for total CDN downloads, average VRChat API GET requests per hour, and average CDN downloads per hour.
-* Pressing `Clear` now only clears the visible log text. Counter badges such as `200`, `429`, `404`, `403`, `400`, `CDN`, `AGET/H`, and `ACDN/H` are no longer reset.
+* Fixed several cache-related issues in the ImageCacher.
+* Fixed several backend API request systems to improve stability.
+* Fixed a bug that could cause the app to freeze.
+* Fixed a bug that caused window resizing to not work correctly from the top bar or the top left and top right corners.

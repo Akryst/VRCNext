@@ -415,7 +415,7 @@ public class GroupsController
                                     id = m["userId"]?.ToString() ?? "",
                                     displayName = m["user"]?["displayName"]?.ToString() ?? m["displayName"]?.ToString() ?? "",
                                     image = m["user"] is JObject gmu
-                                        ? (VRChatApiService.GetUserImage(gmu) is var gi && gi.Length > 0 ? gi : gmu["thumbnailUrl"]?.ToString() ?? "")
+                                        ? ImageCacheHelper.GetUserUrl(m["userId"]?.ToString(), VRChatApiService.GetUserImage(gmu))
                                         : "",
                                     status = m["user"]?["status"]?.ToString() ?? "",
                                     statusDescription = m["user"]?["statusDescription"]?.ToString() ?? "",
@@ -459,7 +459,7 @@ public class GroupsController
                             id = m["userId"]?.ToString() ?? "",
                             displayName = m["user"]?["displayName"]?.ToString() ?? m["displayName"]?.ToString() ?? "",
                             image = m["user"] is JObject gmu2
-                                ? (VRChatApiService.GetUserImage(gmu2) is var gi2 && gi2.Length > 0 ? gi2 : gmu2["thumbnailUrl"]?.ToString() ?? "")
+                                ? ImageCacheHelper.GetUserUrl(m["userId"]?.ToString(), VRChatApiService.GetUserImage(gmu2))
                                 : "",
                             status = m["user"]?["status"]?.ToString() ?? "",
                             statusDescription = m["user"]?["statusDescription"]?.ToString() ?? "",
@@ -487,7 +487,7 @@ public class GroupsController
                             id = m["userId"]?.ToString() ?? "",
                             displayName = m["user"]?["displayName"]?.ToString() ?? m["displayName"]?.ToString() ?? "",
                             image = m["user"] is JObject sgmu
-                                ? (VRChatApiService.GetUserImage(sgmu) is var sgi && sgi.Length > 0 ? sgi : sgmu["thumbnailUrl"]?.ToString() ?? "")
+                                ? ImageCacheHelper.GetUserUrl(m["userId"]?.ToString(), VRChatApiService.GetUserImage(sgmu))
                                 : "",
                             status = m["user"]?["status"]?.ToString() ?? "",
                             statusDescription = m["user"]?["statusDescription"]?.ToString() ?? "",
@@ -513,7 +513,7 @@ public class GroupsController
                             id = m["userId"]?.ToString() ?? "",
                             displayName = m["user"]?["displayName"]?.ToString() ?? m["displayName"]?.ToString() ?? "",
                             image = m["user"] is JObject ru
-                                ? (VRChatApiService.GetUserImage(ru) is var ri && ri.Length > 0 ? ri : ru["thumbnailUrl"]?.ToString() ?? "")
+                                ? ImageCacheHelper.GetUserUrl(m["userId"]?.ToString(), VRChatApiService.GetUserImage(ru))
                                 : "",
                             status = m["user"]?["status"]?.ToString() ?? "",
                             statusDescription = m["user"]?["statusDescription"]?.ToString() ?? "",

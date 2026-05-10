@@ -284,7 +284,7 @@ const SmartSearch = (() => {
     }
 
     // ---- DOM ----
-    let _wrap, _badge, _inputWrap, _input, _dropdown;
+    let _wrap, _badge, _modal, _input, _dropdown;
     let _open = false;
     let _debouncedRender = null;
 
@@ -385,19 +385,18 @@ const SmartSearch = (() => {
     function _open_ui() {
         if (_open) return;
         _open = true;
-        _badge.classList.add('ss-badge-hidden');
-        _inputWrap.classList.add('ss-visible');
+        _badge.classList.add('tb-active');
+        _modal.classList.add('ss-modal-open');
         if (!myGroupsLoaded && typeof loadMyGroups === 'function') loadMyGroups();
-        // Focus after the expand transition starts
-        setTimeout(() => _input.focus(), 60);
         _input.value = '';
+        setTimeout(() => _input.focus(), 40);
     }
 
     function _close() {
         if (!_open) return;
         _open = false;
-        _inputWrap.classList.remove('ss-visible');
-        _badge.classList.remove('ss-badge-hidden');
+        _badge.classList.remove('tb-active');
+        _modal.classList.remove('ss-modal-open');
         _hideDropdown();
         _input.value = '';
         _hideDebAnim('ssInput');
@@ -412,11 +411,11 @@ const SmartSearch = (() => {
     function init() {
         _wrap     = document.getElementById('ssWrap');
         _badge    = document.getElementById('ssBadge');
-        _inputWrap = document.getElementById('ssInputWrap');
+        _modal    = document.getElementById('ssModal');
         _input    = document.getElementById('ssInput');
         _dropdown = document.getElementById('ssDropdown');
 
-        if (!_wrap || !_badge || !_inputWrap || !_input || !_dropdown) return;
+        if (!_wrap || !_badge || !_modal || !_input || !_dropdown) return;
 
         _debouncedRender = debounceAnim(
             () => _renderResults(_query(_input.value.trim())),
@@ -444,7 +443,7 @@ const SmartSearch = (() => {
         });
 
         document.addEventListener('mousedown', (e) => {
-            if (_open && !_wrap.contains(e.target)) _close();
+            if (_open && !e.target.closest('.ss-modal-box')) _close();
         });
     }
 
