@@ -1924,6 +1924,7 @@
   "tb.app.view": "Affichage",
   "tb.app.view.toggle_left": "Panneau latéral gauche",
   "tb.app.view.toggle_right": "Panneau latéral droit",
+  "tb.app.view.scale": "Échelle",
   "tb.app.restart": "Redémarrer",
   "tb.app.exit": "Quitter",
   "tb.help": "Aide",

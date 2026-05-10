@@ -1924,6 +1924,7 @@
   "tb.app.view": "视图",
   "tb.app.view.toggle_left": "切换左侧边栏",
   "tb.app.view.toggle_right": "切换右侧边栏",
+  "tb.app.view.scale": "缩放",
   "tb.app.restart": "重启",
   "tb.app.exit": "退出",
   "tb.help": "帮助",

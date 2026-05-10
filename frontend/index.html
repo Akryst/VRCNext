@@ -113,16 +113,25 @@
                     <div class="tb-menu-item" id="tbMenuApp"><span data-i18n="tb.app">App</span>
                         <div class="tb-dropdown">
                             <div class="tb-dd-item" onclick="showTab(9)"><span class="msi">settings</span><span data-i18n="nav.settings">Settings</span></div>
-                            <div class="tb-dd-submenu">
-                                <div class="tb-dd-item"><span class="msi">visibility</span><span data-i18n="tb.app.view">View</span><span class="msi tb-dd-arrow">chevron_right</span></div>
-                                <div class="tb-dd-sub-drop">
-                                    <div class="tb-dd-item" onclick="toggleSidebar()"><span class="msi">dock_to_left</span><span data-i18n="tb.app.view.toggle_left">Toggle Left Sidebar</span></div>
-                                    <div class="tb-dd-item" onclick="toggleRsidebar()"><span class="msi">dock_to_right</span><span data-i18n="tb.app.view.toggle_right">Toggle Right Sidebar</span></div>
-                                </div>
-                            </div>
                             <div class="tb-dd-sep"></div>
                             <div class="tb-dd-item" onclick="sendToCS({action:'restartApp'})"><span class="msi">refresh</span><span data-i18n="tb.app.restart">Restart</span></div>
                             <div class="tb-dd-item" onclick="sendToCS({action:'windowClose'})"><span class="msi">power_settings_new</span><span data-i18n="tb.app.exit">Exit</span></div>
+                        </div>
+                    </div>
+                    <div class="tb-menu-item" id="tbMenuView"><span data-i18n="tb.app.view">View</span>
+                        <div class="tb-dropdown">
+                            <div class="tb-dd-item" onclick="toggleSidebar()"><span class="msi">dock_to_left</span><span data-i18n="tb.app.view.toggle_left">Toggle Left Sidebar</span></div>
+                            <div class="tb-dd-item" onclick="toggleRsidebar()"><span class="msi">dock_to_right</span><span data-i18n="tb.app.view.toggle_right">Toggle Right Sidebar</span></div>
+                            <div class="tb-dd-sep"></div>
+                            <div class="tb-dd-scale-row">
+                                <span class="msi">aspect_ratio</span>
+                                <span data-i18n="tb.app.view.scale">Scale</span>
+                                <div class="tb-scale-ctrl">
+                                    <button class="tb-scale-btn" onclick="tbZoomStep(-1)">−</button>
+                                    <span id="tbZoomLabel">100%</span>
+                                    <button class="tb-scale-btn" onclick="tbZoomStep(1)">+</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="tb-menu-item" id="tbMenuTools"><span data-i18n="nav.tools">Tools</span>

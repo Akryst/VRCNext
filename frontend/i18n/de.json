@@ -1926,6 +1926,7 @@
   "tb.app.view": "Ansicht",
   "tb.app.view.toggle_left": "Linke Leiste ein/aus",
   "tb.app.view.toggle_right": "Rechte Leiste ein/aus",
+  "tb.app.view.scale": "Skalierung",
   "tb.app.restart": "Neu starten",
   "tb.app.exit": "Beenden",
   "tb.help": "Hilfe",

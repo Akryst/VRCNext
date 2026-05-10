@@ -1923,6 +1923,7 @@
   "tb.app.view": "表示",
   "tb.app.view.toggle_left": "左サイドバー切り替え",
   "tb.app.view.toggle_right": "右サイドバー切り替え",
+  "tb.app.view.scale": "拡大縮小",
   "tb.app.restart": "再起動",
   "tb.app.exit": "終了",
   "tb.help": "ヘルプ",

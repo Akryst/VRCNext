@@ -1943,6 +1943,7 @@
   "tb.app.view": "View",
   "tb.app.view.toggle_left": "Toggle Left Sidebar",
   "tb.app.view.toggle_right": "Toggle Right Sidebar",
+  "tb.app.view.scale": "Scale",
   "tb.app.restart": "Restart",
   "tb.app.exit": "Exit",
   "tb.help": "Help",

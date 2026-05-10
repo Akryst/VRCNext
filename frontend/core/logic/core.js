@@ -108,6 +108,8 @@ function applyGuiZoom(z) {
     document.body.style.width = `${inv}vw`;
     document.body.style.height = `${inv}vh`;
     document.documentElement.style.setProperty('--gui-zoom', z);
+    const _lbl = document.getElementById('tbZoomLabel');
+    if (_lbl) _lbl.textContent = Math.round(z * 100) + '%';
 }
 document.addEventListener('wheel', e => {
     if (!e.ctrlKey) return;

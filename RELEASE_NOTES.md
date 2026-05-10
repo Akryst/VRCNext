@@ -1,5 +1,17 @@
 **2026.23.5**
 
+### The New Taskbar
+
+* Removed the old Dashboard Bar and added a new, better working Taskbar.
+* Added an "App" tab with scaling options, restart, and close app buttons.
+* Added a "Tools" tab, which shows all tools for faster navigation.
+* Added a "Help" tab with a Discord join button.
+* Added a "View" tab with App Scaling, Sidebar Collapse
+* Minimized the tool toggles into a single tool icon that can be opened and closed.
+* Reworked Smart Search for better search results and a cleaner UI.
+* Added Left/Right Sidebar Collapse buttons
+* Used Legacy Windows + VRCN Styled taskbar buttons.
+
 ### Changes
 
 * Changed the Dashboard Topbar to the new Taskbar style, which is very similar to the old Legacy Window Mode.
@@ -28,4 +40,4 @@
 * Fixed several cache-related issues in the ImageCacher.
 * Fixed several backend API request systems to improve stability.
 * Fixed a bug that could cause the app to freeze.
-* Fixed an bug that caused window resizing not to work when trying to resoze on the top bar or the top left and right corners.
+* Fixed a bug that caused window resizing to not work correctly from the top bar or the top left and top right corners.

@@ -1,3 +1,10 @@
+function tbZoomStep(dir) {
+    var z = Math.round((_guiZoom + dir * 0.1) * 10) / 10;
+    z = Math.min(2, Math.max(0.5, z));
+    applyGuiZoom(z);
+    try { autoSave(); } catch {}
+}
+
 function tbToggleTools() {
     var group  = document.getElementById('tbToolsGroup');
     var menu   = document.getElementById('tbMenuItems');
