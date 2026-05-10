@@ -102,14 +102,18 @@ public class VRChatApiService
     {
         var url = user["userIcon"]?.ToString() is string s1 && !string.IsNullOrEmpty(s1) ? s1 :
                   user["profilePicOverride"]?.ToString() is string s2 && !string.IsNullOrEmpty(s2) ? s2 :
-                  user["currentAvatarThumbnailImageUrl"]?.ToString() is string s3 && !string.IsNullOrEmpty(s3) ? s3 : "";
+                  user["currentAvatarImageUrl"]?.ToString() is string s3 && !string.IsNullOrEmpty(s3) ? s3 :
+                  user["currentAvatarThumbnailImageUrl"]?.ToString() is string s4 && !string.IsNullOrEmpty(s4) ? s4 : "";
         return UpgradeImageResolution(url);
     }
 
     public static string UpgradeImageResolution(string url)
     {
-        if (url.Contains("/api/1/image/") && url.EndsWith("/256"))
-            return url[..^3] + "512";
+        if (url.Contains("/api/1/image/"))
+        {
+            if (url.EndsWith("/256")) return url[..^3] + "800";
+            if (url.EndsWith("/512")) return url[..^3] + "800";
+        }
         return url;
     }
 

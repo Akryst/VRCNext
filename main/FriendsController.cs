@@ -1325,7 +1325,7 @@ public class FriendsController
             pronouns = f["pronouns"]?.ToString() ?? "",
             bioLinks = f["bioLinks"]?.ToObject<List<string>>() ?? new List<string>(),
             profilePicOverride = f["profilePicOverride"]?.ToString() ?? "",
-            currentAvatarImageUrl = f["currentAvatarThumbnailImageUrl"]?.ToString() ?? f["currentAvatarImageUrl"]?.ToString() ?? "",
+            currentAvatarImageUrl = f["currentAvatarImageUrl"]?.ToString() ?? f["currentAvatarThumbnailImageUrl"]?.ToString() ?? "",
             badges = f["badges"] ?? new JArray(),
         });
     }
@@ -1484,7 +1484,7 @@ public class FriendsController
             var liveRawImage        = live != null ? VRChatApiService.GetUserImage(live) : "";
             var liveBio             = live?["bio"]?.ToString();
             var livePronouns        = live?["pronouns"]?.ToString();
-            var liveAvatarImg       = live?["currentAvatarThumbnailImageUrl"]?.ToString() ?? live?["currentAvatarImageUrl"]?.ToString();
+            var liveAvatarImg       = live?["currentAvatarImageUrl"]?.ToString() ?? live?["currentAvatarThumbnailImageUrl"]?.ToString();
             var livePicOverride     = live?["profilePicOverride"]?.ToString();
             var liveTags            = live?["tags"] as JArray;
             var liveBioLinks        = live?["bioLinks"] as JArray;
@@ -1638,7 +1638,7 @@ public class FriendsController
 
     private static string ExtractAvatarFileId(JObject user)
     {
-        foreach (var field in new[] { "currentAvatarThumbnailImageUrl", "currentAvatarImageUrl" })
+        foreach (var field in new[] { "currentAvatarImageUrl", "currentAvatarThumbnailImageUrl" })
         {
             var url = user[field]?.ToString() ?? "";
             var m = _fileIdRx.Match(url);
