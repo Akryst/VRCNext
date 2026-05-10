@@ -623,6 +623,7 @@ function getPageTitle(i) {
         t('page.permini', 'Permini'),
         t('page.kikitan_xd', 'Kikitan XD'),
         t('page.event_snipe', 'Event Snipe'),
+        t('page.avatar_scaling', 'Avatar Scaling'),
     ][i] ?? '';
 }
 

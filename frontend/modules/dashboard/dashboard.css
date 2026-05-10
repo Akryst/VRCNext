@@ -39,7 +39,7 @@ body:has(.rsidebar.collapsed) .dash-hero { margin-right: calc(-1 * (var(--rsideb
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    min-height: 280px;
+    min-height: 320px;
     box-sizing: border-box;
     transition: padding-left .22s ease, padding-right .22s ease;
 }
