@@ -12,6 +12,13 @@
 * Added Left/Right Sidebar Collapse buttons
 * Used Legacy Windows + VRCN Styled taskbar buttons.
 
+### Tooltip System
+* Added a new tooltip system that explains every feature with short, easy to understand descriptions.
+* To view a tooltip, open any module, for example Dashboard, VR Overlay, or Permini.
+* Click the module title shown in the Taskbar.
+* A "What is this?" option will appear.
+* Click it to open an info box with a description of the feature you are currently viewing.
+
 ### Changes
 
 * Changed the Dashboard Topbar to the new Taskbar style, which is very similar to the old Legacy Window Mode.

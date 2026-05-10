@@ -1,3 +1,36 @@
+var _helpPanelOpen = false;
+var _helpDismiss = null;
+
+function toggleHelpPanel() {
+    _helpPanelOpen = !_helpPanelOpen;
+    var panel = document.getElementById('helpPanel');
+    if (_helpPanelOpen) {
+        var titleEl = document.getElementById('pageTitle');
+        if (titleEl) {
+            var r = titleEl.getBoundingClientRect();
+            panel.style.left = Math.max(8, r.left) + 'px';
+        }
+        var activeTab = document.querySelector('.tab.active');
+        var tabIndex = activeTab ? (parseInt(activeTab.id.replace('tab', '')) || 0) : 0;
+        document.getElementById('helpPanelTitle').textContent = titleEl ? titleEl.textContent : '';
+        document.getElementById('helpPanelText').textContent = t('page.help.' + tabIndex, '');
+        panel.style.display = '';
+        requestAnimationFrame(function() { panel.classList.add('panel-open'); });
+        setTimeout(function() {
+            _helpDismiss = function(ev) {
+                var p = document.getElementById('helpPanel');
+                var tl = document.getElementById('pageTitle');
+                if (!p.contains(ev.target) && ev.target !== tl) toggleHelpPanel();
+            };
+            document.addEventListener('click', _helpDismiss);
+        }, 0);
+    } else {
+        if (_helpDismiss) { document.removeEventListener('click', _helpDismiss); _helpDismiss = null; }
+        panel.classList.remove('panel-open');
+        setTimeout(function() { if (!_helpPanelOpen) panel.style.display = 'none'; }, 90);
+    }
+}
+
 function tbZoomStep(dir) {
     var z = Math.round((_guiZoom + dir * 0.1) * 10) / 10;
     z = Math.min(2, Math.max(0.5, z));
@@ -61,12 +94,12 @@ function tbToggleTools() {
     if (bar) {
         bar.addEventListener('mousedown', function (e) {
             if (e.button !== 0 || e.detail !== 1) return;
-            if (e.target.closest('.tb-menu-item,.tb-sidebar-btn,.tb-win-btn,.mini-badge,.ss-wrap,button,input')) return;
+            if (e.target.closest('.tb-menu-item,.tb-sidebar-btn,.tb-win-btn,.mini-badge,.ss-wrap,.topbar-title,button,input')) return;
             if (e.clientY < 6) return; // top resize zone — let resize handler take over
             sendToCS({ action: 'windowDragStart' });
         });
         bar.addEventListener('dblclick', function (e) {
-            if (e.target.closest('.tb-menu-item,.tb-sidebar-btn,.tb-win-btn,.mini-badge,.ss-wrap,button,input')) return;
+            if (e.target.closest('.tb-menu-item,.tb-sidebar-btn,.tb-win-btn,.mini-badge,.ss-wrap,.topbar-title,button,input')) return;
             sendToCS({ action: 'windowMaximize' });
         });
     }

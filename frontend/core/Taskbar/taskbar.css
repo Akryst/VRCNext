@@ -354,6 +354,14 @@ body.maximized .tb-icon-restore {
     display: block;
 }
 
+/* Help panel — anchored left, positioned via JS */
+.help-panel {
+    right: auto;
+    left: 8px;
+    width: 480px;
+    max-height: 480px;
+}
+
 /* App-body wrapper (replaces body as flex-row context) */
 .app-body {
     flex: 1;

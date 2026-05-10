@@ -108,7 +108,7 @@
         <div id="taskbar">
             <div id="tb-left">
                 <div class="tb-brand">VRCNext</div>
-                <span class="topbar-title" id="pageTitle" data-i18n="page.dashboard">Dashboard</span>
+                <span class="topbar-title" id="pageTitle" data-i18n="page.dashboard" onclick="toggleHelpPanel()" style="cursor:pointer;" data-i18n-title="page.help.tooltip">Dashboard</span>
                 <div id="tbMenuItems">
                     <div class="tb-menu-item" id="tbMenuApp"><span data-i18n="tb.app">App</span>
                         <div class="tb-dropdown">
@@ -255,6 +255,17 @@
             <div class="notif-panel-header"><span style="font-weight:700;font-size:13px;" data-i18n="common.notifications">Notifications</span><div style="display:flex;gap:6px;align-items:center;"><div class="vrcn-mini-pill-group" id="notifPillGroup"><div class="vrcn-mini-pill-indicator" id="notifPillIndicator"></div><button class="vrcn-mini-pill active" id="notifTabCurrent" onclick="setNotifTab('current')" data-i18n="notifications.tab.current">Current</button><button class="vrcn-mini-pill" id="notifTabHidden" onclick="setNotifTab('hidden')" data-i18n="notifications.tab.hidden">Hidden</button></div><button class="vrcn-button" onclick="refreshNotifications()" style="padding:2px 8px;font-size:10px;" data-i18n-title="common.refresh"><span class="msi" style="font-size:14px;">refresh</span></button></div></div>
             <div class="notif-panel-list" id="notifList"><div class="empty-msg" data-i18n="notifications.empty">No notifications</div></div>
         </div>
+        <!-- Help panel -->
+        <div class="notif-panel help-panel" id="helpPanel" style="display:none;">
+            <div class="notif-panel-header">
+                <span id="helpPanelTitle" style="font-weight:700;font-size:13px;"></span>
+                <button class="vrcn-button" onclick="toggleHelpPanel()" style="padding:2px 8px;font-size:10px;"><span class="msi" style="font-size:14px;">close</span></button>
+            </div>
+            <div style="padding:14px 16px;overflow-y:auto;flex:1;">
+                <p id="helpPanelText" style="font-size:13px;line-height:1.65;color:var(--tx2);margin:0;white-space:pre-wrap;"></p>
+            </div>
+        </div>
+
         <div class="content">
             <!-- Tab 0: Dashboard -->
             <div class="tab active" id="tab0">
