@@ -488,6 +488,22 @@ public class AuthController
         };
         _core.LogWatcher.WorldChanged += (wId, loc) =>
         {
+            try
+            {
+                var prevLoc = _instance.CachedInstLocation;
+                if (!string.IsNullOrEmpty(prevLoc) && prevLoc != loc)
+                {
+                    var prevPlayers = _instance.CumulativeInstancePlayers.Keys.ToList();
+                    var (prevWorldId, prevInstId, _) = VRChatApiService.ParseLocation(prevLoc);
+                    _core.TimeEngine.UpdateInstanceLeave(prevInstId, DateTime.UtcNow.ToString("o"), prevPlayers);
+                }
+                var worldName = _core.LogWatcher.PendingWorldName is { Length: > 0 } n ? n : wId;
+                var (_, instId, _) = VRChatApiService.ParseLocation(loc);
+                var thumb = "";
+                lock (_core.VrWorldCache) _core.VrWorldCache.TryGetValue(wId, out var wc);
+                _core.TimeEngine.AddInstanceHistory(wId, worldName, thumb, instId, DateTime.UtcNow.ToString("o"));
+            }
+            catch { }
             try { _instance.HandleWorldChangedOnUiThread(wId, loc); } catch { }
             try { GlSend("gl_world_join", _core.LogWatcher.PendingWorldName is { Length: > 0 } n ? n : wId, wId); } catch { }
         };
@@ -553,6 +569,15 @@ public class AuthController
                         };
                         _core.Timeline.AddEvent(ev);
                         _core.SendToJS("timelineEvent", _instance.BuildTimelinePayload(ev));
+
+                        if (!string.IsNullOrEmpty(avatarId))
+                        {
+                            var avName = av?["name"]?.ToString() ?? avatarName;
+                            var worldId = _core.LogWatcher.CurrentWorldId ?? "";
+                            string worldName = "";
+                            lock (_core.VrWorldCache) { if (_core.VrWorldCache.TryGetValue(worldId, out var wc2)) worldName = wc2.name; }
+                            _core.TimeEngine.AddAvatarWorn(avatarId, avName, worldId, worldName);
+                        }
 
                         // Submit public avatar to avtrdb if enabled
                         if (!string.IsNullOrEmpty(avatarId) && av?["releaseStatus"]?.ToString() == "public")
@@ -896,6 +921,7 @@ public class AuthController
             _core.Settings.SteamOverlaySoundEnabled = data["steamOverlaySoundEnabled"]?.Value<bool>() ?? true;
             _core.Settings.MinimizeToTray = data["minimizeToTray"]?.Value<bool>() ?? false;
             _core.Settings.TrayNotificationsEnabled = data["trayNotificationsEnabled"]?.Value<bool>() ?? false;
+            _core.Settings.FriendOnlineToast = data["friendOnlineToast"]?.Value<bool>() ?? false;
 #if WINDOWS
             _core.OnTraySettingChanged?.Invoke(_core.Settings.MinimizeToTray, false);
 #endif

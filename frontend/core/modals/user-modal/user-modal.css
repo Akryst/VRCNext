@@ -60,13 +60,13 @@
 .fd-info-card .fd-group-rep-label {
     padding-bottom: 8px;
     margin-bottom: 10px;
-    border-bottom: 1px solid var(--brd);
+    border-bottom: 1px solid rgba(255,255,255,.07);
 }
 
 .fd-info-card .myp-section-header {
     padding-bottom: 8px;
     margin-bottom: 10px;
-    border-bottom: 1px solid var(--brd);
+    border-bottom: 1px solid rgba(255,255,255,.07);
 }
 
 .fd-owner-col .fd-profile-item-avatar {

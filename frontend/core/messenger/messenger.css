@@ -123,7 +123,7 @@
     border-radius: 16px;
     overflow: hidden;
     background: var(--bg-card);
-    border: 1px solid var(--brd);
+    border: 1px solid rgba(255,255,255,.07);
     transition: box-shadow .15s, border-color .15s;
 }
 .vrcn-shared-content-message:hover {

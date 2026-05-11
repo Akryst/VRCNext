@@ -48,6 +48,7 @@ public partial class AppShell
     private AvatarScalingController _asCtrl = null!;
     private RelayController _relayCtrl = null!;
     private SnipeController _snipeCtrl = null!;
+    private VRChatConfigController _vrchatConfigCtrl = null!;
     private WindowController _windowCtrl = null!;
     private readonly CacheHandler _cache = new();
     private readonly UnifiedTimeEngine _timeEngine;
@@ -169,6 +170,7 @@ public partial class AppShell
         _kxdCtrl = new KikitanXDController(_core);
         _asCtrl = new AvatarScalingController(_core);
         _snipeCtrl = new SnipeController(_core);
+        _vrchatConfigCtrl = new VRChatConfigController(_core);
         _relayCtrl = new RelayController(_core, _friends, _instance, _notifications, _vroCtrl);
         _windowCtrl = new WindowController(_core);
 #if WINDOWS

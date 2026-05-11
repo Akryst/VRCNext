@@ -139,13 +139,13 @@
     border-radius: 4px;
     font-size: 10px;
     font-weight: 600;
-    background: rgba(56, 132, 255, 0.12);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
     color: var(--accent);
     cursor: pointer;
     transition: background .15s;
 }
 .inst-owner-group-badge:hover {
-    background: rgba(56, 132, 255, 0.22);
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .inst-owner-group-sep {
     opacity: .5;

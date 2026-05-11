@@ -1,9 +1,3 @@
-/* === Settings Module === */
-
-.settings-inner {
-    width: 100%;
-}
-
 .settings-layout {
     display: flex;
     height: 100%;
@@ -27,8 +21,8 @@
     gap: 9px;
     padding: 7px 10px;
     border-radius: 7px;
-    background: transparent;
     border: none;
+    background: transparent;
     color: var(--tx2);
     font-family: inherit;
     font-size: 12px;
@@ -40,25 +34,41 @@
     white-space: nowrap;
 }
 
+.settings-nav-item .msi {
+    font-size: 15px;
+    flex-shrink: 0;
+    color: var(--tx3);
+    transition: color .12s;
+}
+
 .settings-nav-item:hover {
     background: var(--bg-hover);
     color: var(--tx1);
 }
+
+.settings-nav-item:hover .msi { color: var(--tx2); }
 
 .settings-nav-item.active {
     background: color-mix(in srgb, var(--accent) 12%, transparent);
     color: var(--accent);
 }
 
+.settings-nav-item.active .msi { color: var(--accent); }
+
 .settings-content {
     flex: 1;
     overflow-y: auto;
     padding: 16px;
     min-width: 0;
+}
+
+.settings-section {
     display: flex;
     flex-direction: column;
     gap: 16px;
 }
+
+.settings-inner { width: 100%; }
 
 .set-desc {
     font-size: 11px;

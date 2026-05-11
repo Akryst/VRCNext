@@ -1855,10 +1855,423 @@ public class UnifiedTimeEngine : IDisposable
             "mutuals_cached_at TEXT NOT NULL DEFAULT ''",
             "mutual_groups           TEXT NOT NULL DEFAULT '[]'",
             "mutual_groups_cached_at TEXT NOT NULL DEFAULT ''",
+            "friend_alert            INTEGER NOT NULL DEFAULT 0",
         })
         {
             try { using var mc = _db.CreateCommand(); mc.CommandText = $"ALTER TABLE user_tracking ADD COLUMN {col}"; mc.ExecuteNonQuery(); } catch { }
         }
+
+        try
+        {
+            using var ih = _db.CreateCommand();
+            ih.CommandText = @"CREATE TABLE IF NOT EXISTS instance_history (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                world_id     TEXT    NOT NULL DEFAULT '',
+                world_name   TEXT    NOT NULL DEFAULT '',
+                world_thumb  TEXT    NOT NULL DEFAULT '',
+                instance_id  TEXT    NOT NULL DEFAULT '',
+                join_time    TEXT    NOT NULL DEFAULT '',
+                leave_time   TEXT    NOT NULL DEFAULT '',
+                players_seen TEXT    NOT NULL DEFAULT '[]'
+            )";
+            ih.ExecuteNonQuery();
+            using var ihIdx = _db.CreateCommand();
+            ihIdx.CommandText = "CREATE INDEX IF NOT EXISTS idx_ih_jointime ON instance_history(join_time DESC)";
+            try { ihIdx.ExecuteNonQuery(); } catch { }
+        }
+        catch { }
+
+        try
+        {
+            using var cmc = _db.CreateCommand();
+            cmc.CommandText = @"CREATE TABLE IF NOT EXISTS chatbox_messages (
+                id       INTEGER PRIMARY KEY AUTOINCREMENT,
+                message  TEXT    NOT NULL DEFAULT '',
+                sent_at  TEXT    NOT NULL DEFAULT ''
+            )";
+            cmc.ExecuteNonQuery();
+        }
+        catch { }
+
+        try
+        {
+            using var shs = _db.CreateCommand();
+            shs.CommandText = @"CREATE TABLE IF NOT EXISTS search_history (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                query       TEXT    NOT NULL DEFAULT '',
+                search_type TEXT    NOT NULL DEFAULT '',
+                searched_at TEXT    NOT NULL DEFAULT ''
+            )";
+            shs.ExecuteNonQuery();
+        }
+        catch { }
+
+        try
+        {
+            using var mls = _db.CreateCommand();
+            mls.CommandText = @"CREATE TABLE IF NOT EXISTS moderation_log (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id      TEXT    NOT NULL DEFAULT '',
+                display_name TEXT    NOT NULL DEFAULT '',
+                action       TEXT    NOT NULL DEFAULT '',
+                note         TEXT    NOT NULL DEFAULT '',
+                logged_at    TEXT    NOT NULL DEFAULT ''
+            )";
+            mls.ExecuteNonQuery();
+        }
+        catch { }
+
+        try
+        {
+            using var awh = _db.CreateCommand();
+            awh.CommandText = @"CREATE TABLE IF NOT EXISTS avatar_worn_history (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                avatar_id   TEXT    NOT NULL DEFAULT '',
+                avatar_name TEXT    NOT NULL DEFAULT '',
+                worn_at     TEXT    NOT NULL DEFAULT '',
+                world_id    TEXT    NOT NULL DEFAULT '',
+                world_name  TEXT    NOT NULL DEFAULT ''
+            )";
+            awh.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
+    // Instance history
+
+    public void AddInstanceHistory(string worldId, string worldName, string worldThumb, string instanceId, string joinTime)
+    {
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"INSERT INTO instance_history(world_id,world_name,world_thumb,instance_id,join_time,players_seen)
+                    VALUES($wid,$wn,$wt,$iid,$jt,'[]')";
+                cmd.Parameters.AddWithValue("$wid", worldId);
+                cmd.Parameters.AddWithValue("$wn", worldName);
+                cmd.Parameters.AddWithValue("$wt", worldThumb);
+                cmd.Parameters.AddWithValue("$iid", instanceId);
+                cmd.Parameters.AddWithValue("$jt", joinTime);
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    public void UpdateInstanceLeave(string instanceId, string leaveTime, List<string> playersSeen)
+    {
+        if (string.IsNullOrEmpty(instanceId)) return;
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"UPDATE instance_history SET leave_time=$lt, players_seen=$ps
+                    WHERE instance_id=$iid AND leave_time=''";
+                cmd.Parameters.AddWithValue("$lt", leaveTime);
+                cmd.Parameters.AddWithValue("$ps", JsonConvert.SerializeObject(playersSeen));
+                cmd.Parameters.AddWithValue("$iid", instanceId);
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    public List<object> GetInstanceHistory(int limit = 100)
+    {
+        var result = new List<object>();
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"SELECT id,world_id,world_name,world_thumb,instance_id,join_time,leave_time,players_seen
+                    FROM instance_history ORDER BY id DESC LIMIT $lim";
+                cmd.Parameters.AddWithValue("$lim", limit);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    var players = new List<string>();
+                    try { players = JsonConvert.DeserializeObject<List<string>>(r.GetString(7)) ?? new(); } catch { }
+                    result.Add(new {
+                        id = r.GetInt64(0),
+                        worldId = r.GetString(1),
+                        worldName = r.GetString(2),
+                        worldThumb = r.GetString(3),
+                        instanceId = r.GetString(4),
+                        joinTime = r.GetString(5),
+                        leaveTime = r.GetString(6),
+                        playersSeen = players,
+                    });
+                }
+            }
+            catch { }
+        }
+        return result;
+    }
+
+    // Chatbox message history
+
+    public void AddChatboxMessage(string message)
+    {
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "INSERT INTO chatbox_messages(message,sent_at) VALUES($msg,$at)";
+                cmd.Parameters.AddWithValue("$msg", message);
+                cmd.Parameters.AddWithValue("$at", DateTime.UtcNow.ToString("o"));
+                cmd.ExecuteNonQuery();
+                using var trim = _db.CreateCommand();
+                trim.CommandText = "DELETE FROM chatbox_messages WHERE id NOT IN (SELECT id FROM chatbox_messages ORDER BY id DESC LIMIT 200)";
+                trim.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    public List<object> GetChatboxMessages(int limit = 50)
+    {
+        var result = new List<object>();
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "SELECT message,sent_at FROM chatbox_messages ORDER BY id DESC LIMIT $lim";
+                cmd.Parameters.AddWithValue("$lim", limit);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    result.Add(new { message = r.GetString(0), sentAt = r.GetString(1) });
+            }
+            catch { }
+        }
+        result.Reverse();
+        return result;
+    }
+
+    public void ClearChatboxMessages()
+    {
+        lock (_lock)
+        {
+            try { using var cmd = _db.CreateCommand(); cmd.CommandText = "DELETE FROM chatbox_messages"; cmd.ExecuteNonQuery(); }
+            catch { }
+        }
+    }
+
+    // Search history
+
+    public void AddSearchHistory(string query, string searchType)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return;
+        lock (_lock)
+        {
+            try
+            {
+                using var del = _db.CreateCommand();
+                del.CommandText = "DELETE FROM search_history WHERE query=$q AND search_type=$t";
+                del.Parameters.AddWithValue("$q", query.Trim());
+                del.Parameters.AddWithValue("$t", searchType);
+                del.ExecuteNonQuery();
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "INSERT INTO search_history(query,search_type,searched_at) VALUES($q,$t,$at)";
+                cmd.Parameters.AddWithValue("$q", query.Trim());
+                cmd.Parameters.AddWithValue("$t", searchType);
+                cmd.Parameters.AddWithValue("$at", DateTime.UtcNow.ToString("o"));
+                cmd.ExecuteNonQuery();
+                using var trim = _db.CreateCommand();
+                trim.CommandText = "DELETE FROM search_history WHERE search_type=$t AND id NOT IN (SELECT id FROM search_history WHERE search_type=$t ORDER BY id DESC LIMIT 20)";
+                trim.Parameters.AddWithValue("$t", searchType);
+                trim.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    public List<string> GetSearchHistory(string searchType, int limit = 10)
+    {
+        var result = new List<string>();
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "SELECT query FROM search_history WHERE search_type=$t ORDER BY id DESC LIMIT $lim";
+                cmd.Parameters.AddWithValue("$t", searchType);
+                cmd.Parameters.AddWithValue("$lim", limit);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    result.Add(r.GetString(0));
+            }
+            catch { }
+        }
+        return result;
+    }
+
+    // Moderation log
+
+    public void AddModerationLog(string userId, string displayName, string action, string note = "")
+    {
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "INSERT INTO moderation_log(user_id,display_name,action,note,logged_at) VALUES($uid,$dn,$act,$note,$at)";
+                cmd.Parameters.AddWithValue("$uid", userId);
+                cmd.Parameters.AddWithValue("$dn", displayName);
+                cmd.Parameters.AddWithValue("$act", action);
+                cmd.Parameters.AddWithValue("$note", note);
+                cmd.Parameters.AddWithValue("$at", DateTime.UtcNow.ToString("o"));
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    public List<object> GetModerationLog(int limit = 200)
+    {
+        var result = new List<object>();
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "SELECT id,user_id,display_name,action,note,logged_at FROM moderation_log ORDER BY id DESC LIMIT $lim";
+                cmd.Parameters.AddWithValue("$lim", limit);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    result.Add(new {
+                        id = r.GetInt64(0),
+                        userId = r.GetString(1),
+                        displayName = r.GetString(2),
+                        action = r.GetString(3),
+                        note = r.GetString(4),
+                        loggedAt = r.GetString(5),
+                    });
+            }
+            catch { }
+        }
+        return result;
+    }
+
+    // Avatar worn history
+
+    public void AddAvatarWorn(string avatarId, string avatarName, string worldId, string worldName)
+    {
+        if (string.IsNullOrEmpty(avatarId)) return;
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "INSERT INTO avatar_worn_history(avatar_id,avatar_name,worn_at,world_id,world_name) VALUES($aid,$an,$at,$wid,$wn)";
+                cmd.Parameters.AddWithValue("$aid", avatarId);
+                cmd.Parameters.AddWithValue("$an", avatarName);
+                cmd.Parameters.AddWithValue("$at", DateTime.UtcNow.ToString("o"));
+                cmd.Parameters.AddWithValue("$wid", worldId);
+                cmd.Parameters.AddWithValue("$wn", worldName);
+                cmd.ExecuteNonQuery();
+                using var trim = _db.CreateCommand();
+                trim.CommandText = "DELETE FROM avatar_worn_history WHERE id NOT IN (SELECT id FROM avatar_worn_history ORDER BY id DESC LIMIT 500)";
+                trim.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    public List<object> GetAvatarWornHistory(int limit = 100)
+    {
+        var result = new List<object>();
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "SELECT avatar_id,avatar_name,worn_at,world_id,world_name FROM avatar_worn_history ORDER BY id DESC LIMIT $lim";
+                cmd.Parameters.AddWithValue("$lim", limit);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    result.Add(new {
+                        avatarId = r.GetString(0),
+                        avatarName = r.GetString(1),
+                        wornAt = r.GetString(2),
+                        worldId = r.GetString(3),
+                        worldName = r.GetString(4),
+                    });
+            }
+            catch { }
+        }
+        return result;
+    }
+
+    // Friend alert flag
+
+    public void SetFriendAlert(string userId, bool enabled)
+    {
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"INSERT INTO user_tracking(user_id,friend_alert)
+                    VALUES($uid,$fa)
+                    ON CONFLICT(user_id) DO UPDATE SET friend_alert=excluded.friend_alert";
+                cmd.Parameters.AddWithValue("$uid", userId);
+                cmd.Parameters.AddWithValue("$fa", enabled ? 1 : 0);
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    public bool GetFriendAlert(string userId)
+    {
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "SELECT friend_alert FROM user_tracking WHERE user_id=$uid";
+                cmd.Parameters.AddWithValue("$uid", userId);
+                using var r = cmd.ExecuteReader();
+                if (r.Read()) return r.GetInt32(0) != 0;
+            }
+            catch { }
+        }
+        return false;
+    }
+
+    // World visit history (reads existing world_tracking)
+
+    public List<object> GetWorldVisitHistory(int limit = 100)
+    {
+        var result = new List<object>();
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"SELECT world_id,world_name,world_thumb,total_seconds,visit_count,last_visited
+                    FROM world_tracking WHERE visit_count > 0
+                    ORDER BY last_visited DESC LIMIT $lim";
+                cmd.Parameters.AddWithValue("$lim", limit);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    result.Add(new {
+                        worldId = r.GetString(0),
+                        worldName = r.GetString(1),
+                        worldThumb = r.GetString(2),
+                        totalSeconds = r.GetInt64(3),
+                        visitCount = r.GetInt32(4),
+                        lastVisited = r.GetString(5),
+                    });
+            }
+            catch { }
+        }
+        return result;
     }
 
     private void MigrateUsersFromJson()

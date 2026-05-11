@@ -2469,6 +2469,66 @@ public partial class AppShell
                         }
                     });
                     break;
+
+                case "vrcGetWorldHistory":
+                {
+                    var wh = _timeEngine.GetWorldVisitHistory(100);
+                    SendToJS("worldVisitHistory", new { entries = wh });
+                    break;
+                }
+
+                case "vrcGetInstanceHistory":
+                {
+                    var ih = _timeEngine.GetInstanceHistory(100);
+                    SendToJS("instanceHistory", new { entries = ih });
+                    break;
+                }
+
+                case "vrcGetAvatarWornHistory":
+                {
+                    var ah = _timeEngine.GetAvatarWornHistory(100);
+                    SendToJS("avatarWornHistory", new { entries = ah });
+                    break;
+                }
+
+                case "vrcGetModerationLog":
+                {
+                    var ml = _timeEngine.GetModerationLog(200);
+                    SendToJS("moderationLog", new { entries = ml });
+                    break;
+                }
+
+                case "chatboxGetHistory":
+                case "chatboxClearHistory":
+                    _chatboxCtrl.HandleMessage(action, msg);
+                    break;
+
+                case "vrcAddSearchHistory":
+                {
+                    var sq = msg["query"]?.ToString() ?? "";
+                    var st = msg["searchType"]?.ToString() ?? "general";
+                    if (!string.IsNullOrEmpty(sq))
+                        _timeEngine.AddSearchHistory(sq, st);
+                    break;
+                }
+
+                case "vrcGetSearchHistory":
+                {
+                    var st2 = msg["searchType"]?.ToString() ?? "general";
+                    var sh = _timeEngine.GetSearchHistory(st2, 10);
+                    SendToJS("searchHistory", new { searchType = st2, queries = sh });
+                    break;
+                }
+
+                case "vrcGetVrchatConfig":
+                case "vrcSaveVrchatConfig":
+                    _vrchatConfigCtrl.HandleMessage(action, msg);
+                    break;
+
+                case "vrcSetFriendAlert":
+                case "vrcGetFriendAlert":
+                    _friends.HandleMessage(action, msg);
+                    break;
             }
         }
         catch (Exception ex)
