@@ -828,6 +828,7 @@ public class AuthController
             ageVerified       = user["ageVerified"]?.Value<bool>() ?? false,
             allowAvatarCopying = user["allowAvatarCopying"]?.Value<bool>() ?? false,
             isBoopingEnabled  = user["isBoopingEnabled"]?.Value<bool>() ?? false,
+            rawJson = user,
         });
 
 #if WINDOWS

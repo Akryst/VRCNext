@@ -420,6 +420,7 @@ function renderGroupDetail(g) {
     ];
     if (g.canManageRoles) tabs.push({ key: 'roles', label: t('groups.tabs.roles', 'Roles') });
     if (g.canBan)         tabs.push({ key: 'banned', label: t('groups.tabs.banned', 'Banned') });
+    tabs.push({ key: 'json', label: 'Json' });
     const tabsHtml = `<div class="fd-tabs gd-tabs">${tabs.map((t,i) => `<button class="fd-tab${i===0?' active':''}" onclick="switchGdTab('${t.key}',this)">${t.label}</button>`).join('')}</div>`;
 
     const rolesTab   = g.canManageRoles ? _buildRolesTab(g) : '';
@@ -434,6 +435,7 @@ function renderGroupDetail(g) {
         <div id="gdTabMembers" style="display:none;">${membersTab}</div>
         ${g.canManageRoles ? `<div id="gdTabRoles" style="display:none;">${rolesTab}</div>` : ''}
         ${g.canBan ? `<div id="gdTabBanned" style="display:none;">${bannedTab}</div>` : ''}
+        <div id="gdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight(g?.rawJson || g || {})}</div></div>
         <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;gap:8px;">${inviteBtn}${createPostBtn}${createEventBtn}${leaveJoinBtn}</div><button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${t('common.close', 'Close')}</button></div>
     </div>`;
     applyGroupDetailTranslations(g);
@@ -740,7 +742,7 @@ function searchGroupMembers() {
 function switchGdTab(tab, btn) {
     const box = document.querySelector('#modalDetail .modal-box');
     animateModalBox(box, () => {
-        ['Info','Posts','Events','Instances','Gallery','Members','Roles','Banned'].forEach(t => {
+        ['Info','Posts','Events','Instances','Gallery','Members','Roles','Banned','Json'].forEach(t => {
             const el = document.getElementById('gdTab' + t);
             if (el) el.style.display = t.toLowerCase() === tab ? '' : 'none';
         });

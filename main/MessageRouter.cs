@@ -1222,6 +1222,7 @@ public partial class AppShell
                                 instances,
                                 worldTimeSeconds = wTimeSeconds,
                                 worldVisitCount = wVisitCount,
+                                rawJson = world,
                             }));
                         });
                     }
@@ -1342,6 +1343,7 @@ public partial class AppShell
                                 hasImpostor,
                                 pcPerf,
                                 questPerf,
+                                rawJson = avatar,
                             }));
                         });
                     }

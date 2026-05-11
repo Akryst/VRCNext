@@ -422,6 +422,7 @@ public class GroupsController
                                     roleIds = (m["roleIds"] as JArray)?.Select(r => r.ToString()).ToArray() ?? Array.Empty<string>(),
                                     joinedAt = m["joinedAt"]?.ToString() ?? "",
                                 }),
+                                rawJson = g,
                             });
                         }
                         else

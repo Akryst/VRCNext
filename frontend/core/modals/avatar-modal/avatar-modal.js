@@ -225,12 +225,19 @@ function renderAvatarDetail(a) {
                 </div>
             </div>
             <div class="fd-badges-row" style="margin-bottom:10px;">${statusBadge}${idBadge(a.id)}</div>
-            <div class="fd-info-wrap">
-                <div class="fd-info-cols">
-                    <div class="fd-info-left">${_descCard}${_tagsCard}</div>
-                    <div class="fd-info-right">${_infosCard}</div>
+            <div class="fd-tabs" style="margin-bottom:14px;">
+                <button class="fd-tab active" onclick="switchAvTab('info',this)">${t('profiles.tabs.info', 'Info')}</button>
+                <button class="fd-tab" onclick="switchAvTab('json',this)">Json</button>
+            </div>
+            <div id="avTabInfo">
+                <div class="fd-info-wrap">
+                    <div class="fd-info-cols">
+                        <div class="fd-info-left">${_descCard}${_tagsCard}</div>
+                        <div class="fd-info-right">${_infosCard}</div>
+                    </div>
                 </div>
             </div>
+            <div id="avTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight(a?.rawJson || a || {})}</div></div>
             <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:6px;">
                 <button class="vrcn-button-round vrcn-btn-join" onclick="selectAvatar('${aid}');closeAvatarDetail()">
                     <span class="msi" style="font-size:14px;">checkroom</span> ${t('avatars.detail.actions.use_avatar', 'Use Avatar')}
@@ -287,6 +294,15 @@ function onAvatarUpdateResult(data) {
             saveBtn.textContent = t('common.save', 'Save');
         }
     }
+}
+
+function switchAvTab(tab, btn) {
+    const infoEl = document.getElementById('avTabInfo');
+    const jsonEl = document.getElementById('avTabJson');
+    if (infoEl) infoEl.style.display = tab === 'info' ? '' : 'none';
+    if (jsonEl) jsonEl.style.display = tab === 'json' ? '' : 'none';
+    document.querySelectorAll('#avatarDetailContent .fd-tab').forEach(t => t.classList.remove('active'));
+    if (btn) btn.classList.add('active');
 }
 
 function avRenderTagChips() {
