@@ -50,7 +50,6 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
     flex-shrink: 0;
     letter-spacing: 0.4px;
     cursor: default;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .tb-menu-item {

@@ -31,7 +31,7 @@ function renderMyProfileContent() {
     // Banner
     const bannerSrc = u.profilePicOverride || u.currentAvatarImageUrl || u.image || '';
     const bannerHtml = bannerSrc
-        ? `<div class="fd-banner"><img src="${esc(bannerSrc)}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div><button class="myp-edit-btn" style="position:absolute;top:8px;right:8px;z-index:2;" onclick="openImagePicker('profile-banner')" title="${esc(changeBannerTitle)}"><span class="msi" style="font-size:13px;">edit</span></button></div>`
+        ? `<div class="fd-banner"><img src="${esc(bannerSrc)}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:44px;z-index:3;" onclick="openImagePicker('profile-banner')" title="${esc(changeBannerTitle)}"><span class="msi" style="font-size:20px;">edit</span></button><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(u.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>`
         : `<div style="display:flex;justify-content:flex-end;padding:4px 0 2px 0;"><button class="myp-edit-btn" onclick="openImagePicker('profile-banner')" title="${esc(addBannerTitle)}"><span class="msi" style="font-size:13px;">edit</span><span style="font-size:11px;margin-left:3px;">${esc(bannerLabel)}</span></button></div>`;
 
     // Avatar with edit overlay
@@ -193,16 +193,23 @@ function renderMyProfileContent() {
                 </div>
             </div>
             ${badgesRowHtml}
-            <div class="fd-info-wrap" style="margin-top:10px;">
-                <div class="fd-info-cols">
-                    <div class="fd-info-left">
-                        ${_badgesCard}${_bioCard}
-                    </div>
-                    <div class="fd-info-right">
-                        ${repGroupCardHtml}${_infosCard}${_trustCard}
+            <div class="fd-tabs" style="margin-bottom:14px;">
+                <button class="fd-tab active" onclick="switchMypTab('info',this)">${t('profiles.tabs.info', 'Info')}</button>
+                <button class="fd-tab" onclick="switchMypTab('json',this)">Json</button>
+            </div>
+            <div id="mypTabInfo">
+                <div class="fd-info-wrap" style="margin-top:10px;">
+                    <div class="fd-info-cols">
+                        <div class="fd-info-left">
+                            ${_badgesCard}${_bioCard}
+                        </div>
+                        <div class="fd-info-right">
+                            ${repGroupCardHtml}${_infosCard}${_trustCard}
+                        </div>
                     </div>
                 </div>
             </div>
+            <div id="mypTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight(u?.rawJson || u || {})}</div></div>
             <div style="margin-top:10px;text-align:right;">
                 <button class="vrcn-button-round" onclick="closeMyProfile()">${t('common.close', 'Close')}</button>
             </div>
@@ -364,6 +371,15 @@ function removeMyLanguage(tag) {
 }
 
 
+
+function switchMypTab(tab, btn) {
+    const infoEl = document.getElementById('mypTabInfo');
+    const jsonEl = document.getElementById('mypTabJson');
+    if (infoEl) infoEl.style.display = tab === 'info' ? '' : 'none';
+    if (jsonEl) jsonEl.style.display = tab === 'json' ? '' : 'none';
+    document.querySelectorAll('#mypBox .fd-tab').forEach(t => t.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+}
 
 function openStatusModal() {
     if (!currentVrcUser) return;

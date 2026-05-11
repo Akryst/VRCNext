@@ -18,7 +18,7 @@
     display: flex;
     flex-direction: column;
     gap: 1px;
-    overflow-y: auto;
+    overflow-y: hidden;
 }
 
 .settings-nav-item {
@@ -137,4 +137,187 @@
 
 .exe-remove:hover {
     color: var(--err);
+}
+
+/* === Settings Nav: separator + Switch Account button === */
+
+.settings-nav-sep {
+    height: 1px;
+    background: rgba(255,255,255,.07);
+    margin: 6px 8px;
+}
+
+.settings-nav-switch-acct {
+    color: var(--accent-lt) !important;
+    background: color-mix(in srgb, var(--accent) 8%, transparent) !important;
+    margin-top: 2px !important;
+}
+
+.settings-nav-switch-acct:hover {
+    background: color-mix(in srgb, var(--accent) 16%, transparent) !important;
+}
+
+/* === Account Switcher Overlay === */
+
+.acct-sw-panel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 420px;
+    max-width: calc(100vw - 32px);
+    max-height: 80vh;
+    background: var(--bg1);
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.09);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 64px rgba(0,0,0,.5);
+}
+
+.acct-sw-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    flex-shrink: 0;
+}
+
+.acct-sw-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 10px;
+    min-height: 60px;
+}
+
+.acct-sw-empty {
+    text-align: center;
+    padding: 28px 16px;
+    color: var(--tx3);
+    font-size: 12px;
+}
+
+.acct-sw-footer {
+    padding: 12px;
+    border-top: 1px solid rgba(255,255,255,.07);
+    flex-shrink: 0;
+}
+
+.acct-sw-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 16px;
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+    color: var(--accent-lt);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background .15s;
+}
+
+.acct-sw-add-btn:hover {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* Individual account row */
+
+.acct-sw-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background .15s;
+    margin-bottom: 3px;
+}
+
+.acct-sw-item:hover {
+    background: var(--bg-hover);
+}
+
+.acct-sw-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--bg2);
+    border: 2px solid rgba(255,255,255,.06);
+}
+
+.acct-sw-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.acct-sw-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tx1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.acct-sw-username {
+    font-size: 11px;
+    color: var(--tx3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+
+.acct-sw-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.acct-sw-switch-btn {
+    font-size: 11px;
+    font-family: inherit;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--accent-lt);
+    border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+    cursor: pointer;
+    transition: background .12s;
+    white-space: nowrap;
+}
+
+.acct-sw-switch-btn:hover {
+    background: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+.acct-sw-remove-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--tx3);
+    cursor: pointer;
+    transition: background .12s, color .12s;
+    flex-shrink: 0;
+}
+
+.acct-sw-remove-btn:hover {
+    background: rgba(255,80,80,.13);
+    color: #ff5555;
 }

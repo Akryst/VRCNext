@@ -915,9 +915,10 @@ public partial class AppShell
                 case "vrcSearchWorlds":
                     var wQ = msg["query"]?.ToString() ?? "";
                     var wOff = msg["offset"]?.Value<int>() ?? 0;
+                    var wSort = msg["sort"]?.ToString() ?? "relevance";
                     _ = Task.Run(async () =>
                     {
-                        var res = await _core.World.SearchWorldsAsync(wQ, 20, wOff);
+                        var res = await _core.World.SearchWorldsAsync(wQ, 20, wOff, wSort);
                         var list = res.Cast<JObject>().Select(w => {
                             var wid2 = w["id"]?.ToString() ?? "";
                             var wurl = ImageCacheHelper.GetWorldUrl(wid2, w["imageUrl"]?.ToString() ?? w["thumbnailImageUrl"]?.ToString());
@@ -1222,6 +1223,7 @@ public partial class AppShell
                                 instances,
                                 worldTimeSeconds = wTimeSeconds,
                                 worldVisitCount = wVisitCount,
+                                rawJson = world,
                             }));
                         });
                     }
@@ -1342,7 +1344,110 @@ public partial class AppShell
                                 hasImpostor,
                                 pcPerf,
                                 questPerf,
+                                rawJson = avatar,
                             }));
+                        });
+                    }
+                    break;
+                }
+
+                case "vrcGetAvatarGallery":
+                {
+                    var galAvId = msg["avatarId"]?.ToString() ?? "";
+                    _ = Task.Run(async () =>
+                    {
+                        var gallery = await _core.Avatars.GetAvatarGalleryAsync(galAvId);
+                        var images = gallery.OfType<JObject>().Select(f =>
+                        {
+                            var vers = f["versions"] as JArray ?? new JArray();
+                            var latest = vers.OfType<JObject>().LastOrDefault(v => v["status"]?.ToString() == "complete")
+                                ?? vers.OfType<JObject>().LastOrDefault();
+                            return new {
+                                id = f["id"]?.ToString() ?? "",
+                                name = f["name"]?.ToString() ?? "",
+                                url = latest?["file"]?["url"]?.ToString() ?? "",
+                                sizeBytes = latest?["file"]?["sizeInBytes"]?.Value<long>() ?? 0L,
+                                createdAt = f["created_at"]?.ToString() ?? ""
+                            };
+                        }).Where(x => !string.IsNullOrEmpty(x.url)).ToList();
+                        Invoke(() => SendToJS("vrcAvatarGallery", new { avatarId = galAvId, images }));
+                    });
+                    break;
+                }
+
+                case "vrcUploadAvatarGallery":
+                {
+                    var galUpAvId = msg["avatarId"]?.ToString() ?? "";
+                    var galDataB64 = msg["data"]?.ToString() ?? "";
+                    if (!string.IsNullOrEmpty(galDataB64))
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                var galRaw = galDataB64.Contains(",") ? galDataB64.Split(',')[1] : galDataB64;
+                                var bytes = Convert.FromBase64String(galRaw);
+                                var (ok, error) = await _core.Avatars.UploadAvatarGalleryImageAsync(galUpAvId, bytes);
+                                if (ok)
+                                {
+                                    var gallery = await _core.Avatars.GetAvatarGalleryAsync(galUpAvId);
+                                    var images = gallery.OfType<JObject>().Select(f =>
+                                    {
+                                        var vers = f["versions"] as JArray ?? new JArray();
+                                        var latest = vers.OfType<JObject>().LastOrDefault(v => v["status"]?.ToString() == "complete")
+                                            ?? vers.OfType<JObject>().LastOrDefault();
+                                        return new {
+                                            id = f["id"]?.ToString() ?? "",
+                                            name = f["name"]?.ToString() ?? "",
+                                            url = latest?["file"]?["url"]?.ToString() ?? "",
+                                            sizeBytes = latest?["file"]?["sizeInBytes"]?.Value<long>() ?? 0L,
+                                            createdAt = f["created_at"]?.ToString() ?? ""
+                                        };
+                                    }).Where(x => !string.IsNullOrEmpty(x.url)).ToList();
+                                    Invoke(() => SendToJS("vrcAvatarGalleryResult", new { ok = true, avatarId = galUpAvId, images }));
+                                }
+                                else
+                                {
+                                    Invoke(() => SendToJS("vrcAvatarGalleryResult", new { ok = false, avatarId = galUpAvId, error }));
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Invoke(() => SendToJS("vrcAvatarGalleryResult", new { ok = false, avatarId = galUpAvId, error = ex.Message }));
+                            }
+                        });
+                    }
+                    break;
+                }
+
+                case "vrcUploadAvatarImage":
+                {
+                    var imgAvId = msg["avatarId"]?.ToString() ?? "";
+                    var imgDataB64 = msg["data"]?.ToString() ?? "";
+                    if (!string.IsNullOrEmpty(imgDataB64))
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                // Fetch raw avatar to get the real VRChat imageUrl (not the local cache URL)
+                                var rawAvatar = await _core.Avatars.GetAvatarAsync(imgAvId);
+                                var rawImageUrl = rawAvatar?["imageUrl"]?.ToString()
+                                    ?? rawAvatar?["thumbnailImageUrl"]?.ToString() ?? "";
+                                if (string.IsNullOrEmpty(rawImageUrl))
+                                {
+                                    Invoke(() => SendToJS("vrcAvatarImageResult", new { ok = false, avatarId = imgAvId, imageUrl = "", error = "Could not retrieve avatar image URL" }));
+                                    return;
+                                }
+                                var imgRaw = imgDataB64.Contains(",") ? imgDataB64.Split(',')[1] : imgDataB64;
+                                var bytes = Convert.FromBase64String(imgRaw);
+                                var (ok, imageUrl, error) = await _core.Avatars.UploadAvatarMainImageAsync(imgAvId, rawImageUrl, bytes);
+                                Invoke(() => SendToJS("vrcAvatarImageResult", new { ok, avatarId = imgAvId, imageUrl, error }));
+                            }
+                            catch (Exception ex)
+                            {
+                                Invoke(() => SendToJS("vrcAvatarImageResult", new { ok = false, avatarId = imgAvId, imageUrl = "", error = ex.Message }));
+                            }
                         });
                     }
                     break;

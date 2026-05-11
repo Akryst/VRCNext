@@ -1907,6 +1907,7 @@ public class FriendsController
             favFriendId = GetFavoriteFriendId(userId),
             badges,
             cachedAvatar = TryParseJObject(dbCache?.ProfileCurrentAvatar ?? "") ?? (object?)null,
+            rawJson = user,
         };
     }
 

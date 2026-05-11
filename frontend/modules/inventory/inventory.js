@@ -422,6 +422,7 @@ function confirmInvDelete() {
 
 function handleInvDeleteResult(payload) {
     if (payload.success) {
+        if (typeof onAvGalleryItemDeleted === 'function') onAvGalleryItemDeleted(payload.fileId);
         _invPendingFileDeletes.add(payload.fileId);
         setTimeout(() => _invPendingFileDeletes.delete(payload.fileId), 10 * 60 * 1000);
 

@@ -56,7 +56,7 @@ function renderGroupDetail(g) {
     const canEdit = g.canEdit === true;
     const gidJs  = jsq(g.id);
     const banner = g.bannerUrl || g.iconUrl || 'fallback_cover.png';
-    const bannerEditBtn = canEdit ? `<button class="myp-edit-btn" style="position:absolute;bottom:8px;right:8px;z-index:4;" onclick="openImagePicker('group-banner','${gidJs}')" title="${esc(t('groups.images.change_banner', 'Change banner'))}"><span class="msi" style="font-size:13px;">edit</span></button>` : '';
+    const bannerEditBtn = canEdit ? `<button class="btn-notif" style="position:absolute;top:8px;right:44px;z-index:4;" onclick="openImagePicker('group-banner','${gidJs}')" title="${esc(t('groups.images.change_banner', 'Change banner'))}"><span class="msi" style="font-size:20px;">edit</span></button>` : '';
     const bannerHtml = banner
         ? `<div class="fd-banner">${bannerEditBtn}<img src="${banner}" onerror="this.src='fallback_cover.png'"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/group/${esc(g.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>`
         : (canEdit ? `<div style="display:flex;justify-content:flex-end;padding:4px 0 2px 0;"><button class="myp-edit-btn" onclick="openImagePicker('group-banner','${gidJs}')" title="${esc(t('groups.images.add_banner', 'Add banner'))}"><span class="msi" style="font-size:13px;">edit</span><span style="font-size:11px;margin-left:3px;">${esc(t('groups.images.banner', 'Banner'))}</span></button></div>` : '');
@@ -420,6 +420,7 @@ function renderGroupDetail(g) {
     ];
     if (g.canManageRoles) tabs.push({ key: 'roles', label: t('groups.tabs.roles', 'Roles') });
     if (g.canBan)         tabs.push({ key: 'banned', label: t('groups.tabs.banned', 'Banned') });
+    tabs.push({ key: 'json', label: 'Json' });
     const tabsHtml = `<div class="fd-tabs gd-tabs">${tabs.map((t,i) => `<button class="fd-tab${i===0?' active':''}" onclick="switchGdTab('${t.key}',this)">${t.label}</button>`).join('')}</div>`;
 
     const rolesTab   = g.canManageRoles ? _buildRolesTab(g) : '';
@@ -434,6 +435,7 @@ function renderGroupDetail(g) {
         <div id="gdTabMembers" style="display:none;">${membersTab}</div>
         ${g.canManageRoles ? `<div id="gdTabRoles" style="display:none;">${rolesTab}</div>` : ''}
         ${g.canBan ? `<div id="gdTabBanned" style="display:none;">${bannedTab}</div>` : ''}
+        <div id="gdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight(g?.rawJson || g || {})}</div></div>
         <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;gap:8px;">${inviteBtn}${createPostBtn}${createEventBtn}${leaveJoinBtn}</div><button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${t('common.close', 'Close')}</button></div>
     </div>`;
     applyGroupDetailTranslations(g);
@@ -740,7 +742,7 @@ function searchGroupMembers() {
 function switchGdTab(tab, btn) {
     const box = document.querySelector('#modalDetail .modal-box');
     animateModalBox(box, () => {
-        ['Info','Posts','Events','Instances','Gallery','Members','Roles','Banned'].forEach(t => {
+        ['Info','Posts','Events','Instances','Gallery','Members','Roles','Banned','Json'].forEach(t => {
             const el = document.getElementById('gdTab' + t);
             if (el) el.style.display = t.toLowerCase() === tab ? '' : 'none';
         });

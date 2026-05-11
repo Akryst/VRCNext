@@ -54,7 +54,8 @@ function doSearch(type, loadMore) {
         if (btn) btn.textContent = searchLoadingText();
     }
 
-    sendToCS({ action, query: searchState[sType].query, offset: searchState[sType].offset });
+    const sort = type === 'worlds' ? (document.getElementById('worldSortSelect')?.value || 'relevance') : undefined;
+    sendToCS({ action, query: searchState[sType].query, offset: searchState[sType].offset, ...(sort !== undefined ? { sort } : {}) });
 }
 
 function renderSearchResults(type, results, offset, hasMore) {

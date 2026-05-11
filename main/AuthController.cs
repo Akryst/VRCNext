@@ -26,6 +26,7 @@ public class AuthController
     private string _lastVideoUrl = "";
     private DateTime _lastVideoUrlTime = DateTime.MinValue;
     private DateTime _readyAt = DateTime.MaxValue;
+    private CancellationTokenSource? _refreshCts;
 
     // In-flight guards — prevent duplicate startup fetches when JS triggers same requests
     private int _favWorldsInFlight = 0;
@@ -78,6 +79,7 @@ public class AuthController
                 break;
 
             case "vrcLogout":
+                _refreshCts?.Cancel();
                 _relayCtrl.StopWebSocket();
                 await _core.Auth.LogoutAsync();
                 _core.Settings.VrcAuthCookie = "";
@@ -643,6 +645,7 @@ public class AuthController
                 await _friends.RefreshFriendsAsync();
                 _relayCtrl.StartWebSocket();
                 _ = TriggerStartupBackgroundRefreshAsync();
+                StartPeriodicRefresh();
                 return;
             }
 
@@ -696,6 +699,7 @@ public class AuthController
             await _friends.RefreshFriendsAsync();
             _relayCtrl.StartWebSocket();
             _ = TriggerStartupBackgroundRefreshAsync();
+            StartPeriodicRefresh();
         }
         else
         {
@@ -719,12 +723,37 @@ public class AuthController
             await _friends.RefreshFriendsAsync();
             _relayCtrl.StartWebSocket();
             _ = TriggerStartupBackgroundRefreshAsync();
+            StartPeriodicRefresh();
         }
         else
         {
             _core.SendToJS("vrcLoginError", new { error = result.Error ?? "2FA failed" });
             _core.SendToJS("log", new { msg = $"VRChat: 2FA error \u2014 {result.Error}", color = "err" });
         }
+    }
+
+    // Periodic auth/user refresh
+
+    private void StartPeriodicRefresh()
+    {
+        _refreshCts?.Cancel();
+        _refreshCts = new CancellationTokenSource();
+        var ct = _refreshCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (!ct.IsCancellationRequested)
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(10), ct);
+                    if (!_core.VrcApi.IsLoggedIn) break;
+                    var result = await _core.Auth.TryResumeSessionAsync();
+                    if (result.Success && result.User != null)
+                        Invoke(() => SendVrcUserData(result.User, loginFlow: false));
+                }
+            }
+            catch (OperationCanceledException) { }
+        });
     }
 
     // Cookie Persistence
@@ -797,6 +826,19 @@ public class AuthController
                 currentPlayerIds.Remove(_core.CurrentVrcUserId ?? "");
                 _core.TimeEngine.RestoreActiveSession(loc, currentPlayerIds);
             }
+
+            var presenceInstance = (user["presence"] as JObject)?["instance"]?.ToString() ?? "";
+            if (presenceInstance == "offline")
+            {
+                var openJoin = _core.Timeline.GetEvents()
+                    .FirstOrDefault(e => e.Type == "instance_join" && e.Tracked == 1 && string.IsNullOrEmpty(e.LeftAt));
+                if (openJoin != null)
+                {
+                    _core.Timeline.SetInstanceEventLeftAt(openJoin.Id, DateTime.UtcNow.ToString("o"));
+                    var closed = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == openJoin.Id);
+                    if (closed != null) _core.SendToJS("timelineEvent", _instance.BuildTimelinePayload(closed));
+                }
+            }
         }
 
         var rawStatus = user["status"]?.ToString() ?? "";
@@ -828,6 +870,7 @@ public class AuthController
             ageVerified       = user["ageVerified"]?.Value<bool>() ?? false,
             allowAvatarCopying = user["allowAvatarCopying"]?.Value<bool>() ?? false,
             isBoopingEnabled  = user["isBoopingEnabled"]?.Value<bool>() ?? false,
+            rawJson = user,
         });
 
 #if WINDOWS

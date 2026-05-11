@@ -164,3 +164,24 @@
 .myp-crumb:hover { color: #fff; }
 .myp-crumb.current { color: #fff; cursor: default; font-weight: 700; flex-shrink: 0; }
 .myp-crumb-sep { color: rgba(255,255,255,0.35); font-size: 12px; user-select: none; flex-shrink: 0; }
+
+/* === JSON Viewer === */
+.json-viewer {
+    background: var(--bg-base);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--tx2);
+    overflow: auto;
+    max-height: 460px;
+    white-space: pre;
+    word-break: break-word;
+    margin: 2px 0;
+}
+.json-key  { color: #b8c5ff; }
+.json-str  { color: var(--tx0); }
+.json-num  { color: #ff7070; }
+.json-bool { color: #ff7070; }
+.json-null { color: #ff7070; }
