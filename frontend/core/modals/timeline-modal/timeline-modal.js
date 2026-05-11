@@ -83,8 +83,6 @@ function _tlAvRow(image, name, label, labelColor) {
 // Detail: instance join
 
 function renderTlDetailJoin(ev, el) {
-    const dateStr = tlFormatLongDate(ev.timestamp);
-    const timeStr = tlFormatTime(ev.timestamp);
     const banner  = _tlBanner(!!ev.worldThumb);
     const players = ev.players || [];
 
@@ -98,11 +96,25 @@ function renderTlDetailJoin(ev, el) {
         playersHtml += '</div>';
     }
 
+    const dateStr = tlFormatLongDate(ev.timestamp);
+    const fromStr = ev.timestamp ? tlFormatTime(ev.timestamp) : null;
+    const toStr   = ev.leftAt    ? tlFormatTime(ev.leftAt)    : null;
+
+    const loc = ev.location || '';
+    const { instanceType } = parseFriendLocation(loc);
+    const { cls: instCls, label: instLabel } = getInstanceBadge(instanceType);
+    const instIdMatch = loc.match(/:(\d+)/);
+    const instanceId  = instIdMatch ? instIdMatch[1] : '';
+
     const worldRowClick = ev.worldId ? ` onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(ev.worldId)}')" style="cursor:pointer;"` : '';
     const infoRows = [
         _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
-        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        fromStr ? _tlMr(esc(t('timeline.detail.from', 'From')), esc(fromStr)) : '',
+        (fromStr && ev.tracked) ? _tlMr(esc(t('timeline.detail.to', 'To')), toStr ? esc(toStr) : `<span style="color:var(--ok);">&#9679;&nbsp;${esc(t('timeline.detail.ongoing', 'Ongoing'))}</span>`) : '',
+        (ev.tracked && ev.leftAt && ev.timestamp) ? _tlMr(esc(t('nav.time_spent', 'Time Spent')), esc(formatDuration(Math.floor((new Date(ev.leftAt) - new Date(ev.timestamp)) / 1000)))) : '',
         ev.worldId ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"${worldRowClick}><span style="color:var(--tx3);">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);text-align:right;">${esc(ev.worldName || ev.worldId)}</span></div>` : '',
+        _tlMr(esc(t('timeline.detail.instance_type', 'Instance Type')), `<span class="vrcn-badge ${instCls}">${instLabel}</span>`),
+        instanceId ? _tlMr(esc(t('timeline.detail.instance_id', 'Instance ID')), `<span style="font-family:monospace;font-size:12px;color:var(--tx2);">#${esc(instanceId)}</span>`) : '',
     ].filter(Boolean).join('');
 
     el.innerHTML = `${banner}<div class="fd-content${banner ? ' fd-has-banner' : ''}" style="padding:20px 0;">
@@ -321,7 +333,8 @@ function renderFtGpsDetailModal(ev) {
         _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
         _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
         fromStr ? _tlMr(esc(t('timeline.detail.from', 'From')), esc(fromStr)) : '',
-        fromStr ? _tlMr(esc(t('timeline.detail.to', 'To')), toStr ? esc(toStr) : `<span style="color:var(--ok);">&#9679;&nbsp;${esc(t('timeline.detail.ongoing', 'Ongoing'))}</span>`) : '',
+        (fromStr && ev.tracked) ? _tlMr(esc(t('timeline.detail.to', 'To')), toStr ? esc(toStr) : `<span style="color:var(--ok);">&#9679;&nbsp;${esc(t('timeline.detail.ongoing', 'Ongoing'))}</span>`) : '',
+        (ev.tracked && ev.leftAt && ev.timestamp) ? _tlMr(esc(t('nav.time_spent', 'Time Spent')), esc(formatDuration(Math.floor((new Date(ev.leftAt) - new Date(ev.timestamp)) / 1000)))) : '',
         _tlMr(esc(t('timeline.detail.instance_type', 'Instance Type')), `<span class="vrcn-badge ${instCls}">${instLabel}</span>`),
         instanceId ? _tlMr(esc(t('timeline.detail.instance_id', 'Instance ID')), `<span style="font-family:monospace;font-size:12px;color:var(--tx2);">#${esc(instanceId)}</span>`) : '',
         _tlMr(esc(t('timeline.detail.event', 'Event')), `<span style="color:var(--tx2);">${esc(tf('timeline.detail.friend_joined_world', { name: ev.friendName || t('timeline.unknown', 'Unknown') }, `${ev.friendName || 'Unknown'} joined this world`))}</span>`),
@@ -609,7 +622,7 @@ function buildPersonalListHtml(events) {
     let rows = '';
     events.forEach(ev => {
         const meta  = tlTypeMeta(ev.type);
-        const color = TL_TYPE_COLOR[ev.type] ?? 'var(--tx3)';
+        const color = getTlEventColor(ev);
         const ei    = jsq(ev.id);
         const { userHtml, detail } = _tlListData(ev);
         const listMeetCount = ev.type === 'meet_again' ? (ev.meetCount || 0) : 0;

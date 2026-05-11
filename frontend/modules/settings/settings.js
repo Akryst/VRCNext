@@ -1227,3 +1227,16 @@ function handleDbBackupDone(data) {
     // Auto-Backups card result
     _showBackupResult('manualBackupResult', 'Database backup created', data);
 }
+
+function switchSettingsSection(id, btn) {
+    document.querySelectorAll('#tab9 [data-section]').forEach(el => {
+        el.style.display = el.dataset.section === id ? '' : 'none';
+    });
+    document.querySelectorAll('#tab9 .settings-nav-item').forEach(b => b.classList.remove('active'));
+    if (btn) {
+        btn.classList.add('active');
+    } else {
+        const match = document.querySelector(`#tab9 .settings-nav-item[onclick*="'${id}'"]`);
+        if (match) match.classList.add('active');
+    }
+}

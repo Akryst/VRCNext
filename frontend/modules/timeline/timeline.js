@@ -80,6 +80,16 @@ const TL_TYPE_COLOR = {
     video_url:     '#29B6F6',
 };
 
+function getTlEventColor(ev) {
+    if (ev.type === 'instance_join') {
+        if (!ev.timestamp || !ev.location) return 'var(--err)'; // Fehler: fehlende Daten
+        if (!ev.tracked)                   return '#FF9800';     // Legacy
+        if (!ev.leftAt)                    return 'var(--ok)';   // Ongoing
+        return 'var(--accent)';                                  // Abgeschlossen
+    }
+    return TL_TYPE_COLOR[ev.type] ?? 'var(--tx3)';
+}
+
 // Type labels and icons
 const TL_TYPE_META = {
     instance_join: { icon: 'travel_explore', key: 'timeline.types.instance_join', fallback: 'Instance Join' },
@@ -764,7 +774,7 @@ function buildTimelineHtml(events) {
 }
 
 function renderTlRow(ev, side) {
-    const color   = TL_TYPE_COLOR[ev.type]  ?? 'var(--tx3)';
+    const color   = getTlEventColor(ev);
     const cardHtml = renderTlCard(ev);
     const dotHtml  = `<div class="tl-dot" style="background:${color}"></div>`;
 
@@ -787,7 +797,7 @@ function renderTlCard(ev) {
     const time  = tlFormatTime(d);
     const date  = tlFormatShortDate(d);
     const meta  = tlTypeMeta(ev.type);
-    const color = TL_TYPE_COLOR[ev.type] ?? 'var(--tx3)';
+    const color = getTlEventColor(ev);
     const ei    = jsq(ev.id);
 
     const meetCount = ev.type === 'meet_again' ? (ev.meetCount || 0) : 0;

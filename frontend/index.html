@@ -860,10 +860,23 @@
             </div>
             <!-- Tab 9: Settings -->
             <div class="tab" id="tab9">
-                <div class="settings-inner sf-layout">
+                <div class="settings-layout">
+                    <nav class="settings-nav">
+                        <button class="settings-nav-item active" onclick="switchSettingsSection('general',this)"><span class="msi">tune</span><span data-i18n="settings.nav.general">General</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('appearance',this)"><span class="msi">palette</span><span data-i18n="settings.nav.appearance">Appearance</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('notifications',this)"><span class="msi">notifications</span><span data-i18n="settings.nav.notifications">Notifications</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('vrchat',this)"><span class="msi">sports_esports</span><span data-i18n="settings.nav.vrchat">VRChat</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('data',this)"><span class="msi">folder_open</span><span data-i18n="settings.nav.data">Data</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('performance',this)"><span class="msi">speed</span><span data-i18n="settings.nav.performance">Performance</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('community',this)"><span class="msi">manage_search</span><span data-i18n="settings.nav.avatarsearch">Avatar Search</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('advanced',this)"><span class="msi">bug_report</span><span data-i18n="settings.nav.advanced">Advanced</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('vrcx',this)"><span class="msi">download</span><span data-i18n="settings.nav.vrcx">VRCX</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('about',this)"><span class="msi">info</span><span data-i18n="settings.nav.about">About</span></button>
+                    </nav>
+                    <div class="settings-content">
 
                     <!-- UPDATE VRCNEXT -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="general">
                         <div class="vrcn-panel-card-header"><span class="msi">system_update_alt</span> <span data-i18n="settings.update.title">Update VRCNext</span></div>
                         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                             <button class="vrcn-button-round" id="setUpdCheckBtn" onclick="settingsCheckUpdate()"><span class="msi" style="font-size:15px;">refresh</span> <span data-i18n="settings.update.check_btn">Check for Update</span></button>
@@ -892,7 +905,7 @@
                     </div>
 
                     <!-- CRASH REPORTING -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="general">
                         <div class="vrcn-panel-card-header"><span class="msi">bug_report</span> <span data-i18n="settings.crash.title">Crash Reporting</span></div>
                         <div class="sf-toggle-row">
                             <span data-i18n="settings.crash.label">Send anonymous crash reports</span>
@@ -913,7 +926,7 @@
                     </div>
 
                     <!-- LANGUAGE -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="general">
                         <div class="vrcn-panel-card-header"><span class="msi">translate</span> <span data-i18n="language.title">Language</span></div>
                         <div class="set-desc">Cambia tu idioma · Change ta langue · Cambia lingua · 言語を変えて · 언어를 바꿔 · 更改你的语言 · Change Language · Sprache Ändern</div>
                         <div class="theme-grid" id="languageGrid"></div>
@@ -924,7 +937,7 @@
                     </div>
 
                     <!-- PERFORMANCE -->
-                    <div class="vrcn-panel-card" data-windows-only>
+                    <div class="vrcn-panel-card" data-windows-only data-section="performance" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">speed</span> <span data-i18n="settings.perf.title">Performance</span></div>
                         <div class="sf-toggle-row">
                             <span data-i18n="settings.perf.gpu_accel.label">Enable Hardware Acceleration</span>
@@ -965,7 +978,7 @@
                     </div>
 
                     <!-- DESIGN -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="appearance" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">palette</span> <span data-i18n="settings.design.title">Design</span></div>
                         <div class="fd-tabs" style="margin-top:10px;">
                             <button class="fd-tab active" onclick="switchDesignTab('background',this)" data-i18n="settings.design.tabs.background">Background</button>
@@ -1020,7 +1033,7 @@
                     </div>
 
                     <!-- WINDOW BEHAVIOR -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="general">
                         <div class="vrcn-panel-card-header"><span class="msi">open_in_full</span> <span data-i18n="settings.window.title">Window Behavior</span></div>
                         <div class="sf-toggle-row">
                             <span data-i18n="settings.window.remember_size">Remember Window Size</span>
@@ -1040,7 +1053,7 @@
                     </div>
 
                     <!-- SYSTEM TRAY -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="general">
                         <div class="vrcn-panel-card-header"><span class="msi" style="font-size:16px;">notifications_active</span> <span data-i18n="settings.system.tray.title">System Tray</span></div>
                         <div class="sf-toggle-row">
                             <span id="labelStartWithSystem" data-i18n="settings.launch.auto_start_windows">Auto-start VRCNext with Windows</span>
@@ -1069,7 +1082,7 @@
                     </div>
 
                     <!-- SOUNDS -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="notifications" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">volume_up</span> <span data-i18n="settings.sounds.title">Sounds</span></div>
                         <div class="sf-toggle-row"><span data-i18n="settings.sounds.notifications">Notification Sounds</span><label class="toggle"><input type="checkbox" id="setNotifySoundEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
                         <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.sounds.notifications_desc">Plays a sound when you receive a new notification such as friend requests, invites and more.</div>
@@ -1082,7 +1095,7 @@
                     </div>
 
                     <!-- VRCHAT LAUNCH OPTIONS -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="vrchat" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">rocket_launch</span> <span data-i18n="settings.launch.title">VRChat Launch Options</span></div>
                         <div class="sf-section-label" data-i18n="settings.launch.path">VRChat Path</div>
                         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
@@ -1104,7 +1117,7 @@
                     </div>
 
                     <!-- AUTO-BACKUPS -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="data" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">backup</span> <span data-i18n="settings.backup.title">Auto-Backups</span></div>
                         <div class="sf-toggle-row">
                             <span data-i18n="settings.backup.registry_enabled">Enable VRChat Registry Backups</span>
@@ -1138,7 +1151,7 @@
                     </div>
 
                     <!-- WATCH FOLDERS -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="vrchat" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">folder_open</span> <span data-i18n="settings.watch_folders.title">Watch Folders</span></div>
                         <div class="set-desc" data-i18n="settings.watch_folders.desc">Watch folders monitor for new images you create. Add your VRChat screenshot folder here. You can also add folders from apps like VHF (VR Hands Frame) to track world location and friends list for those images too.</div>
                         <div class="folder-list" id="folderList"><div class="folder-empty" data-i18n="settings.watch_folders.empty">No folders added</div></div>
@@ -1149,7 +1162,7 @@
                     </div>
 
                     <!-- DEBUGGING -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="advanced" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">bug_report</span> <span data-i18n="settings.debug.title">Debugging</span></div>
                         <div class="set-desc" style="margin-bottom:12px;" data-i18n="settings.debug.desc">Use these options if something isn't working correctly or you want to reconfigure VRCNext from scratch.</div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -1171,7 +1184,7 @@
                     </div>
 
                     <!-- VRCHAT API LOGIN -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="vrchat" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">person</span> <span data-i18n="settings.api.title">VRChat API Login</span></div>
                         <div class="set-desc" style="margin-bottom:12px;" data-i18n="settings.api.desc">Your credentials are stored locally and only used to connect to the VRChat API. VRCNext never shares them with third parties.</div>
                         <div class="sf-section-label" data-i18n="settings.api.credentials">Credentials</div>
@@ -1187,7 +1200,7 @@
                     </div>
 
                     <!-- IMAGE CACHE + FAST FETCH CACHE -->
-                    <div class="vrcn-panel-card-pair">
+                    <div class="vrcn-panel-card-pair" data-section="performance" style="display:none;">
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">cached</span> <span data-i18n="settings.image_cache.title">Image Cache</span></div>
                         <div class="set-desc" data-i18n="settings.image_cache.desc">VRCNext caches avatar, world, and profile images locally for instant loading. Over time this can grow to several gigabytes. Set a limit and the oldest cached images will be removed automatically when it is reached (~2 GB per cleanup pass).</div>
@@ -1236,7 +1249,7 @@
                     </div><!-- /vrcn-panel-card-pair -->
 
                     <!-- DATABASE SETTINGS -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="data" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">database</span> <span data-i18n="settings.db.title">Database Settings</span></div>
                         <div class="set-desc" style="margin-bottom:12px;" data-i18n="settings.db.desc">Limits how many timeline entries are loaded into memory at startup. Keeps the Timeline fast with large databases. A restart is required to apply changes.</div>
                         <div class="sf-toggle-row">
@@ -1257,7 +1270,7 @@
                     </div>
 
                     <!-- DATABASE OPTIMIZATION -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="data" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">cleaning_services</span> Database Optimization</div>
                         <div class="set-desc" style="margin-bottom:8px;color:var(--err);" data-i18n="settings.db.cleanup.danger">Danger Zone! This Database Optimization will delete certain things from the database.</div>
                         <div class="set-desc" style="margin-bottom:8px;" data-i18n="settings.db.cleanup.user_cache">It will delete all cached non-friended users from the whole database. This is mostly safe as it does not contain any important information. Time Spent and Meet Counts are still present on those profiles and will not be wiped.</div>
@@ -1278,7 +1291,7 @@
                         <div id="dbAnalysisResults" style="display:none;margin-top:14px;"></div>
                     </div>
 
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="community" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">database</span> <span data-i18n="settings.avtrdb.title">Avatar Avtrdb and Avtr.icu Community Support</span></div>
                         <div class="fd-tabs" style="margin-top:10px;">
                             <button class="fd-tab active" onclick="switchAvtrdbTab('support',this)" data-i18n="settings.avtrdb.tabs.support">Support</button>
@@ -1310,7 +1323,7 @@
                         </div>
                     </div>
 
-                    <div class="vrcn-panel-card" id="vrcxImportCard">
+                    <div class="vrcn-panel-card" id="vrcxImportCard" data-section="vrcx" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">download</span> <span data-i18n="settings.vrcx.title">Import data from VRCX</span></div>
                         <div class="set-desc"><span data-i18n="settings.vrcx.desc_prefix">Imports your VRCX history into VRCNext: world time, friend time, instance joins, GPS events, online/offline, status and bio changes. Existing data is preserved and values are added on top. Select your</span> <code>VRCX.sqlite3</code> <span data-i18n="settings.vrcx.desc_suffix">file to begin.</span></div>
                         <div style="margin-top:10px;padding:12px 14px;background:rgba(var(--err-rgb,220,50,50),.10);border:1px solid rgba(var(--err-rgb,220,50,50),.30);border-radius:10px;line-height:1.7;">
@@ -1349,7 +1362,7 @@
                     </div>
 
                     <!-- COPYRIGHT AND INFORMATION -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="about" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">info</span> <span data-i18n="settings.info.title">Copyright And Information</span></div>
                         <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.info.p1">VRCNext is a VRChat assistant application that brings together tools and ideas from different applications into one unified app. It is designed for managing friends, groups, worlds, and analytics, and also provides communication features and a toolbox to make everything easier in a single place.</div>
                         <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.info.p2">VRCNext is not endorsed by VRChat and does not reflect the views or opinions of the VRChat staff or anyone officially involved in the development or management of VRChat. VRChat is a registered trademark of VRChat Inc.</div>
@@ -1357,7 +1370,8 @@
                         <div class="set-desc" data-i18n="settings.info.p4">Your User ID and the VRCNext Client ID are used to communicate with the VRChat API. Use VRCNext respectfully and do not attempt to exploit, manipulate, or generate spam requests, as this may lead to moderation.</div>
                     </div>
 
-                </div>
+                    </div><!-- /settings-content -->
+                </div><!-- /settings-layout -->
             </div>
             <!-- Tab 10: Space Flight -->
             <div class="tab" id="tab10">
