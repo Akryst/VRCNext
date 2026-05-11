@@ -311,6 +311,7 @@ function loadSettingsToUI(s) {
     if (_fotEl) _fotEl.checked = s.FriendOnlineToastEnabled ?? s.friendOnlineToastEnabled ?? false;
     const _fotFavEl = document.getElementById('setFriendOnlineToastFavOnly');
     if (_fotFavEl) _fotFavEl.checked = s.FriendOnlineToastFavOnly ?? s.friendOnlineToastFavOnly ?? false;
+    _fotUpdateFavOnly();
     settings.folders = s.WatchFolders || s.watchFolders || s.folders || [];
     settings.relayEnabledFolders = s.RelayEnabledFolders ?? s.relayEnabledFolders ?? null;
     settings.extraExe = s.ExtraExe || s.extraExe || [];
@@ -1249,4 +1250,10 @@ function switchSettingsSection(id, btn) {
         const match = document.querySelector(`#tab9 .settings-nav-item[onclick*="'${id}'"]`);
         if (match) match.classList.add('active');
     }
+}
+
+function _fotUpdateFavOnly() {
+    const enabled = document.getElementById('setFriendOnlineToastEnabled')?.checked ?? false;
+    const row = document.getElementById('fotFavRow');
+    if (row) row.classList.toggle('disabled', !enabled);
 }

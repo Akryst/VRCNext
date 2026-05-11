@@ -166,9 +166,9 @@ function _fotShowCtx(card, uid, name, currentLevel, ev) {
     _fotCtxEl.className = 'fot-ctx-menu';
 
     const items = [
-        { label: 'Always notify', icon: 'notifications_active', level: 1,  active: currentLevel === 1  },
-        { label: 'Never notify',  icon: 'notifications_off',    level: -1, active: currentLevel === -1 },
-        { label: 'Default',       icon: 'notifications',        level: 0,  active: currentLevel === 0  },
+        { label: t('notifications.friend_toast.always_notify', 'Always notify'), icon: 'notifications_active', level: 1,  active: currentLevel === 1  },
+        { label: t('notifications.friend_toast.never_notify',  'Never notify'),  icon: 'notifications_off',    level: -1, active: currentLevel === -1 },
+        { label: t('notifications.friend_toast.default',       'Default'),       icon: 'notifications',        level: 0,  active: currentLevel === 0  },
     ];
     _fotCtxEl.innerHTML = `<div class="fot-ctx-name">${esc(name)}</div>` + items.map(it =>
         `<div class="fot-ctx-item${it.active ? ' active' : ''}" onclick="_fotSetAlert('${jsq(uid)}',${it.level},this)">
@@ -202,8 +202,13 @@ function _fotSetAlert(uid, level, itemEl) {
 
 function _fotHandleAlertState(payload) {
     if (!window._friendAlertCache) window._friendAlertCache = {};
-    if (payload.userId) window._friendAlertCache[payload.userId] = payload.level ?? 0;
-    if (_fotCtxCard) _fotCtxCard.dataset.alertLevel = payload.level ?? 0;
+    const level = payload.level ?? 0;
+    if (payload.userId) window._friendAlertCache[payload.userId] = level;
+    if (_fotCtxCard) _fotCtxCard.dataset.alertLevel = level;
+    if (window._pendingFotSubmenuUpdate?.userId === payload.userId) {
+        window._pendingFotSubmenuUpdate.fn(level);
+        window._pendingFotSubmenuUpdate = null;
+    }
 }
 
 function _showFriendOnlineCard(data) {
@@ -227,9 +232,9 @@ function _showFriendOnlineCard(data) {
         <div class="nc-inner" style="cursor:pointer;" onclick="_dismissNotifCard(this.closest('.nc-card'));navOpenModal('friend','${jsq(uid)}','${jsq(data.displayName || '')}')">
             ${avatarHtml}
             <div class="nc-body">
-                <div class="nc-title"><strong>${name}</strong> <span style="color:var(--tx3);font-weight:400;">came online</span></div>
+                <div class="nc-title"><strong>${name}</strong> <span style="color:var(--tx3);font-weight:400;">${esc(t('notifications.friend_toast.came_online', 'came online'))}</span></div>
             </div>
-            <button class="nc-close-btn" onclick="event.stopPropagation();_dismissNotifCard(this.closest('.nc-card'))" title="Close"><span class="msi" style="font-size:15px;">close</span></button>
+            <button class="nc-close-btn" onclick="event.stopPropagation();_dismissNotifCard(this.closest('.nc-card'))" title="${esc(t('common.close', 'Close'))}"><span class="msi" style="font-size:15px;">close</span></button>
         </div>
         <div class="nc-timer"><div class="nc-timer-bar" style="background:${accentColor};"></div></div>`;
 
@@ -246,6 +251,10 @@ function _showFriendOnlineCard(data) {
     });
 
     card._ncTimer = setTimeout(() => _dismissNotifCard(card), 5200);
+
+    if (document.getElementById('setMinimizeToTray')?.checked && document.getElementById('setTrayNotifications')?.checked) {
+        sendToCS({ action: 'trayNotification', title: data.displayName || uid, subtitle: t('notifications.friend_toast.came_online', 'came online'), imageUrl: img, accentKey: 'ok' });
+    }
 }
 
 function _acceptNotifCard(notifId, btn) {

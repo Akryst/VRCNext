@@ -1,4 +1,4 @@
-**2026.24.2**
+**2026.24.5**
 
 **JSON Payload Information**
 * Added a **JSON Payload** tab to Groups.
@@ -6,6 +6,12 @@
 * Added a **JSON Payload** tab to Avatars.
 * Added a **JSON Payload** tab to User Profiles.
 * Added a **JSON Payload** tab to Own Profile.
+
+**Friend Toasts** by @A31A18B25C9D012
+* A toast card appears in the bottom-right corner when a friend comes online. Disabled by default, enable it in Settings under Notifications.
+* Limit toasts to favorited friends only using the "Favorites only" toggle.
+* Right-click a toast or use the friend context menu to set per-friend overrides: Always notify, Default, or Never notify. Preferences persist across restarts.
+* Triggers notification sounds and system tray notifications alongside the toast.
 
 **World Tab**
 * Added Search filter in Worlds > Search
@@ -32,7 +38,6 @@
 * Added missing translation keys for Avatar Modals
 
 **Fixes**
-
 * Fixed "OnGoing" Status on personal instance locations.
 * Fixed legacy instance infos in timeline.
 * Fixed seperator height between Title and App tools inside the Taskbar.

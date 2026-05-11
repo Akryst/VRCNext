@@ -665,17 +665,33 @@
 
     function showToastAlertSubmenu(userId, parentBtn) {
         const currentLevel = _friendAlertCache[userId] ?? 0;
-        sendToCS({ action: 'vrcGetFriendAlert', userId });
         const opts = [
             { icon: 'notifications_active', label: cm('friend.toast_always', 'Always notify'), level: 1  },
             { icon: 'notifications_off',    label: cm('friend.toast_never',  'Never notify'),  level: -1 },
             { icon: 'notifications',        label: cm('friend.toast_default', 'Default'),       level: 0  },
         ];
+
+        function renderActive(level) {
+            submenu.querySelectorAll('[data-tidx]').forEach(btn => {
+                const active = parseInt(btn.dataset.level) === level;
+                btn.classList.toggle('active', active);
+                const existing = btn.querySelector('.fot-chk');
+                if (existing) existing.remove();
+                if (active) {
+                    const chk = document.createElement('span');
+                    chk.className = 'msi fot-chk';
+                    chk.style.cssText = 'font-size:13px;margin-left:auto;opacity:.7;';
+                    chk.textContent = 'check';
+                    btn.appendChild(chk);
+                }
+            });
+        }
+
         submenu.innerHTML = opts.map((o, i) => `
             <button class="vn-ctx-item${o.level === currentLevel ? ' active' : ''}" data-tidx="${i}" data-level="${o.level}">
                 <span class="msi" style="font-size:14px;">${o.icon}</span>
                 <span class="vn-ctx-label">${esc(o.label)}</span>
-                ${o.level === currentLevel ? '<span class="msi" style="font-size:13px;margin-left:auto;opacity:.7;">check</span>' : ''}
+                ${o.level === currentLevel ? '<span class="msi fot-chk" style="font-size:13px;margin-left:auto;opacity:.7;">check</span>' : ''}
             </button>`).join('');
         submenu.querySelectorAll('[data-tidx]').forEach(btn => {
             btn.addEventListener('click', e => {
@@ -687,6 +703,9 @@
             });
             btn.addEventListener('mouseenter', () => clearTimeout(submenuTimer));
         });
+
+        window._pendingFotSubmenuUpdate = { userId, fn: renderActive };
+        sendToCS({ action: 'vrcGetFriendAlert', userId });
         positionSubmenu(parentBtn);
     }
 
@@ -1088,7 +1107,7 @@
             }
 
             items.push('sep');
-            items.push({ icon: 'notifications', label: cm('friend.toast', 'Toast'), submenuFn: btn => showToastAlertSubmenu(id, btn) });
+            if (settings?.friendOnlineToastEnabled) items.push({ icon: 'notifications', label: cm('friend.toast', 'Toast'), submenuFn: btn => showToastAlertSubmenu(id, btn) });
             items.push({ icon: 'shield_person', label: cm('friend.moderate', 'Moderate'), submenuFn: btn => showModerateSubmenu(id, btn) });
             items.push({ icon: 'person_remove', label: cm('friend.unfriend', 'Unfriend'), action: () => sendToCS({ action: 'vrcUnfriend', userId: id }), danger: true, confirm: true });
         } else {
