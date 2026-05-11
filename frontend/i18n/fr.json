@@ -871,6 +871,7 @@
   "settings.friend_toast.enabled_desc": "Affiche une carte de notification dans le coin inférieur droit quand un ami se connecte.",
   "settings.friend_toast.fav_only": "Favoris uniquement",
   "settings.friend_toast.fav_only_desc": "Afficher les cartes uniquement pour les amis favoris.",
+  "settings.friend_toast.how_it_works": "Faites un clic droit sur le toast d'un ami pour définir une préférence individuelle : <b>Toujours notifier</b> affiche toujours un toast — même si \"Favoris uniquement\" est activé et qu'il n'est pas favori. <b>Par défaut</b> suit ce paramètre global. <b>Ne jamais notifier</b> supprime les toasts pour cet ami quelle que soit la configuration globale.",
   "settings.window.title": "Comportement de la fenêtre",
   "settings.window.remember_size": "Mémoriser la taille de la fenêtre",
   "settings.window.remember_size_desc": "Restaure la dernière taille utilisée de la fenêtre au démarrage de VRCNext.",
