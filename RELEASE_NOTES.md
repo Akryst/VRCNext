@@ -21,5 +21,8 @@
 * Added image compression for images larger than 5 MB.
 * Added an image crop tool for images larger than 2000x2000 pixels.
 
+**Settings Tab**
+* Sidebar is now fixed and only settings content scrolls.
+
 **i18n**
 * Added missing translation keys for Avatar Modals
