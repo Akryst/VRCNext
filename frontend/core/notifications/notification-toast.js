@@ -152,6 +152,102 @@ function _dismissNotifCard(card) {
     setTimeout(() => { if (card.parentNode) card.remove(); }, 350);
 }
 
+// context menu for friend toast right-click options
+let _fotCtxCard = null;
+let _fotCtxEl   = null;
+
+function _fotShowCtx(card, uid, name, currentLevel, ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    // remove any existing menu
+    _fotCtxEl?.remove();
+    _fotCtxEl = document.createElement('div');
+    _fotCtxEl.className = 'fot-ctx-menu';
+
+    const items = [
+        { label: 'Always notify', icon: 'notifications_active', level: 1,  active: currentLevel === 1  },
+        { label: 'Never notify',  icon: 'notifications_off',    level: -1, active: currentLevel === -1 },
+        { label: 'Default',       icon: 'notifications',        level: 0,  active: currentLevel === 0  },
+    ];
+    _fotCtxEl.innerHTML = `<div class="fot-ctx-name">${esc(name)}</div>` + items.map(it =>
+        `<div class="fot-ctx-item${it.active ? ' active' : ''}" onclick="_fotSetAlert('${jsq(uid)}',${it.level},this)">
+            <span class="msi" style="font-size:15px;">${it.icon}</span>${esc(it.label)}
+        </div>`
+    ).join('');
+
+    document.body.appendChild(_fotCtxEl);
+
+    // position near cursor, keep on screen
+    const mw = 170, mh = 110;
+    let x = ev.clientX, y = ev.clientY;
+    if (x + mw > window.innerWidth)  x = window.innerWidth  - mw - 8;
+    if (y + mh > window.innerHeight) y = window.innerHeight - mh - 8;
+    _fotCtxEl.style.left = x + 'px';
+    _fotCtxEl.style.top  = y + 'px';
+
+    _fotCtxCard = card;
+
+    const dismiss = e => { if (!_fotCtxEl?.contains(e.target)) { _fotCtxEl?.remove(); _fotCtxEl = null; document.removeEventListener('mousedown', dismiss); } };
+    setTimeout(() => document.addEventListener('mousedown', dismiss), 0);
+}
+
+function _fotSetAlert(uid, level, itemEl) {
+    sendToCS({ action: 'vrcSetFriendAlert', userId: uid, level });
+    // update active state visually
+    itemEl.closest('.fot-ctx-menu')?.querySelectorAll('.fot-ctx-item').forEach(el => el.classList.remove('active'));
+    itemEl.classList.add('active');
+    setTimeout(() => { _fotCtxEl?.remove(); _fotCtxEl = null; }, 350);
+}
+
+function _fotHandleAlertState(payload) {
+    if (!window._friendAlertCache) window._friendAlertCache = {};
+    if (payload.userId) window._friendAlertCache[payload.userId] = payload.level ?? 0;
+    if (_fotCtxCard) _fotCtxCard.dataset.alertLevel = payload.level ?? 0;
+}
+
+function _showFriendOnlineCard(data) {
+    const area = document.getElementById('notifCardArea');
+    if (!area) return;
+
+    const name  = esc(data.displayName || data.userId || '?');
+    const img   = data.image || '';
+    const uid   = data.userId || '';
+    const level = data.alertLevel ?? 0;
+    const accentColor = 'var(--ok)';
+
+    const avatarHtml = img
+        ? `<div class="nc-avatar" style="background-image:url('${cssUrl(img)}')"><span class="msi nc-avatar-badge" style="color:${accentColor};">wifi</span></div>`
+        : `<span class="msi nc-icon" style="color:${accentColor};">wifi</span>`;
+
+    const card = document.createElement('div');
+    card.className = 'nc-card';
+    card.dataset.alertLevel = level;
+    card.innerHTML = `
+        <div class="nc-inner" style="cursor:pointer;" onclick="_dismissNotifCard(this.closest('.nc-card'));navOpenModal('friend','${jsq(uid)}','${jsq(data.displayName || '')}')">
+            ${avatarHtml}
+            <div class="nc-body">
+                <div class="nc-title"><strong>${name}</strong> <span style="color:var(--tx3);font-weight:400;">came online</span></div>
+            </div>
+            <button class="nc-close-btn" onclick="event.stopPropagation();_dismissNotifCard(this.closest('.nc-card'))" title="Close"><span class="msi" style="font-size:15px;">close</span></button>
+        </div>
+        <div class="nc-timer"><div class="nc-timer-bar" style="background:${accentColor};"></div></div>`;
+
+    card.addEventListener('contextmenu', ev => _fotShowCtx(card, uid, data.displayName || uid, parseInt(card.dataset.alertLevel ?? '0'), ev));
+
+    area.appendChild(card);
+    playNotificationSound();
+
+    requestAnimationFrame(() => {
+        card.classList.add('nc-visible');
+        const bar = card.querySelector('.nc-timer-bar');
+        bar.style.transition = 'transform 5s linear';
+        requestAnimationFrame(() => { bar.style.transform = 'scaleX(0)'; });
+    });
+
+    card._ncTimer = setTimeout(() => _dismissNotifCard(card), 5200);
+}
+
 function _acceptNotifCard(notifId, btn) {
     if (btn) {
         btn.disabled = true;

@@ -32,7 +32,11 @@
 * Added missing translation keys for Avatar Modals
 
 **Fixes**
+
 * Fixed "OnGoing" Status on personal instance locations.
 * Fixed legacy instance infos in timeline.
 * Fixed seperator height between Title and App tools inside the Taskbar.
 * Fixed "Profile Image" is shown in  "user" row in personal timeline instead of profile row.
+* Fixed the `VRCNext` text not being on the same row as the other elements, which caused it to be slightly offset.
+* Fixed several location and instance related issues in Timeline.
+* Fixed database issues caused by Timeline locations.

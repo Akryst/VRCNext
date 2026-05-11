@@ -203,6 +203,8 @@ public class AppSettings
     public bool MessageSoundEnabled { get; set; }
     public bool MediaRelaySoundEnabled { get; set; }
     public bool SteamOverlaySoundEnabled { get; set; } = true;
+    public bool FriendOnlineToastEnabled { get; set; }
+    public bool FriendOnlineToastFavOnly { get; set; }
     public bool MinimizeToTray { get; set; }
     public bool TrayNotificationsEnabled { get; set; }
     public string Language { get; set; } = "en";

@@ -1929,6 +1929,8 @@ public partial class AppShell
                 case "vrcBoop":
                 case "vrcSendChatMessage":
                 case "vrcGetChatHistory":
+                case "vrcSetFriendAlert":
+                case "vrcGetFriendAlert":
                     await _friends.HandleMessage(action, msg);
                     break;
 

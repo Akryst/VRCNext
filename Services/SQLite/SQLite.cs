@@ -1631,6 +1631,7 @@ public class UnifiedTimeEngine : IDisposable
             "mutual_groups               TEXT    NOT NULL DEFAULT ''",
             "mutual_groups_cached_at     TEXT    NOT NULL DEFAULT ''",
             "profile_current_avatar      TEXT    NOT NULL DEFAULT ''",
+            "friend_alert                INTEGER NOT NULL DEFAULT 0",
         })
         {
             try
@@ -2078,6 +2079,45 @@ public class UnifiedTimeEngine : IDisposable
             cmd.ExecuteNonQuery();
         }
         catch { }
+    }
+
+    // per friend online alert level: 0=default, 1=always notify, -1=never notify
+    public void SetFriendAlert(string userId, int level)
+    {
+        if (string.IsNullOrEmpty(userId)) return;
+        lock (_lock)
+        {
+            try
+            {
+                using var ins = _db.CreateCommand();
+                ins.CommandText = "INSERT OR IGNORE INTO user_tracking(user_id) VALUES($id)";
+                ins.Parameters.AddWithValue("$id", userId);
+                ins.ExecuteNonQuery();
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "UPDATE user_tracking SET friend_alert=$fa WHERE user_id=$id";
+                cmd.Parameters.AddWithValue("$id", userId);
+                cmd.Parameters.AddWithValue("$fa", level);
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    public int GetFriendAlert(string userId)
+    {
+        if (string.IsNullOrEmpty(userId)) return 0;
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "SELECT COALESCE(friend_alert,0) FROM user_tracking WHERE user_id=$id";
+                cmd.Parameters.AddWithValue("$id", userId);
+                var result = cmd.ExecuteScalar();
+                return result is long l ? (int)l : 0;
+            }
+            catch { return 0; }
+        }
     }
 
     public void Dispose()
