@@ -18,11 +18,6 @@
     --tx3: #FFFFFF;
     --brd: #6F6CFF;
     --brd-lt: #1F2357;
-    /* aliases for undefined vars referenced across CSS files */
-    --border: var(--brd-lt);
-    --bg2: color-mix(in srgb, var(--bg-base) 60%, var(--bg-card));
-    --bg3: color-mix(in srgb, var(--bg-card) 50%, var(--bg-hover));
-    --bg-line: rgba(255,255,255,.05);
     --sidebar-w: 220px;
     --sidebar-c: 60px;
     --rsidebar-c: 60px;
@@ -366,7 +361,7 @@ html.text-tools-active * { user-select: text !important; }
     padding: 5px 11px 5px 8px;
     border-radius: 20px;
     background: var(--bg-input);
-    border: 1px solid rgba(255,255,255,.1);
+    border: 1px solid var(--brd);
     color: var(--tx1);
     font-size: 11px;
     font-weight: 600;
@@ -385,7 +380,7 @@ html.text-tools-active * { user-select: text !important; }
 
 .fd-bio-link:hover {
     background: var(--bg-hover);
-    border-color: rgba(255,255,255,.18);
+    border-color: var(--brd);
     box-shadow: 0 2px 8px rgba(0,0,0,.2);
 }
 
@@ -705,7 +700,7 @@ html.text-tools-active * { user-select: text !important; }
     height: 18px;
     border-radius: 5px;
     border: none;
-    background: rgba(255,255,255,.12);
+    background: var(--brd);
     flex-shrink: 0;
     transition: background .12s;
     color: #fff;
@@ -767,7 +762,7 @@ html.text-tools-active * { user-select: text !important; }
 .iu-dropzone:hover,
 .iu-dropzone.dragover {
     border-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 7%, transparent);
+    background: rgba(56,132,255,.07);
 }
 
 .inv-single-modal { overflow: hidden; padding: 0; min-width: 320px; max-width: 462px; width: 90%; max-height: calc(100% - 40px); display: flex; flex-direction: column; }
@@ -790,7 +785,7 @@ html.text-tools-active * { user-select: text !important; }
     cursor: pointer; transition: background .12s;
     font-size: 12px; color: var(--tx1);
 }
-.inv-msg-item:hover { background: rgba(255,255,255,.08); }
+.inv-msg-item:hover { background: var(--brd); }
 .inv-msg-item.selected { background: var(--accent); color: #fff; }
 .inv-msg-item.selected .inv-msg-edit { color: rgba(255,255,255,.7); }
 .inv-msg-item.selected .inv-msg-edit:hover { color: #fff; }

@@ -13,7 +13,7 @@
 .net-progress {
     position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
     display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--tx3);
-    background: var(--bg-card); border: 1px solid rgba(255,255,255,.1); border-radius: 20px;
+    background: var(--bg-card); border: 1px solid var(--brd); border-radius: 20px;
     padding: 4px 12px; white-space: nowrap; z-index: 10;
 }
 .net-progress-cancel {

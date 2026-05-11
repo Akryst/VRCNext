@@ -61,7 +61,6 @@
     <link rel="stylesheet" href="core/previews/friend-preview.css">
     <link rel="stylesheet" href="core/SmartSearch/smart-search.css">
     <link rel="stylesheet" href="Debug/CacheTests/cache-debug.css">
-    <link rel="stylesheet" href="modules/history/history.css">
     <link rel="stylesheet" href="core/Taskbar/taskbar.css">
     <script src="Debug/CacheTests/cache-debug.js" defer></script>
 </head>
@@ -97,15 +96,6 @@
                     <button class="nav-btn nav-sub" data-windows-only onclick="showTab(22)"><span class="ni msi">translate</span><span class="nl" data-i18n="nav.kikitan_xd">Kikitan XD</span></button>
                     <button class="nav-btn nav-sub" onclick="showTab(23)"><span class="ni msi">gps_fixed</span><span class="nl" data-i18n="nav.event_snipe">Event Snipe</span><span id="snipeNavDot" style="display:none;width:7px;height:7px;border-radius:50%;background:var(--ok,#4caf50);margin-left:auto;margin-right:4px;flex-shrink:0;"></span></button>
                     <button class="nav-btn nav-sub" data-windows-only onclick="showTab(24)"><span class="ni msi">height</span><span class="nl" data-i18n="nav.avatar_scaling">Avatar Scaling</span></button>
-                </div>
-            </div>
-            <div class="nav-group" id="navHistoryGroup">
-                <button class="nav-group-btn" onclick="toggleNavGroup('navHistoryGroup')"><span class="ni msi">history</span><span class="nl">History</span><span class="nav-group-arrow msi nl">expand_more</span></button>
-                <div class="nav-group-items">
-                    <button class="nav-btn nav-sub" onclick="showTab(25)"><span class="ni msi">travel_explore</span><span class="nl">World History</span></button>
-                    <button class="nav-btn nav-sub" onclick="showTab(26)"><span class="ni msi">event</span><span class="nl">Instance History</span></button>
-                    <button class="nav-btn nav-sub" onclick="showTab(27)"><span class="ni msi">checkroom</span><span class="nl">Avatar History</span></button>
-                    <button class="nav-btn nav-sub" onclick="showTab(28)"><span class="ni msi">gavel</span><span class="nl">Moderation Log</span></button>
                 </div>
             </div>
             <button class="nav-btn" onclick="showTab(9)"><span class="ni msi">settings</span><span class="nl" data-i18n="nav.settings">Settings</span></button>
@@ -752,7 +742,7 @@
 
                 <!-- Live Chat — full width, unterhalb aller anderen Cards -->
                 <div class="vrcn-panel-card" style="margin-top:16px;">
-                    <div class="vrcn-panel-card-header" style="display:flex;align-items:center;gap:8px;"><span class="msi" style="font-size:16px;">forum</span> <span data-i18n="chatbox.live_chat.title">Live Chat</span><button class="vrcn-button" style="margin-left:auto;font-size:11px;" onclick="clearChatboxHistory()" title="Clear history"><span class="msi" style="font-size:13px;">delete_sweep</span></button></div>
+                    <div class="vrcn-panel-card-header"><span class="msi" style="font-size:16px;">forum</span> <span data-i18n="chatbox.live_chat.title">Live Chat</span></div>
                     <div class="cb-messages" id="cbChatHistory">
                         <div class="osc-empty" data-i18n="chatbox.live_chat.empty">No messages sent yet</div>
                     </div>
@@ -872,21 +862,21 @@
             <div class="tab" id="tab9">
                 <div class="settings-layout">
                     <nav class="settings-nav">
-                        <button class="settings-nav-item active" onclick="switchSettingsSection('general',this)"><span class="msi">tune</span><span>General</span></button>
-                        <button class="settings-nav-item" onclick="switchSettingsSection('appearance',this)"><span class="msi">palette</span><span>Appearance</span></button>
-                        <button class="settings-nav-item" onclick="switchSettingsSection('notifications',this)"><span class="msi">notifications</span><span>Notifications</span></button>
-                        <button class="settings-nav-item" onclick="switchSettingsSection('vrchat',this)"><span class="msi">rocket_launch</span><span>VRChat</span></button>
-                        <button class="settings-nav-item" onclick="switchSettingsSection('vrchat-login',this)"><span class="msi">person</span><span>Account</span></button>
-                        <button class="settings-nav-item" onclick="switchSettingsSection('data',this)"><span class="msi">folder_open</span><span>Files & Data</span></button>
-                        <button class="settings-nav-item" onclick="switchSettingsSection('storage',this)"><span class="msi">database</span><span>Storage</span></button>
-                        <button class="settings-nav-item" onclick="switchSettingsSection('performance',this)"><span class="msi">speed</span><span>Performance</span></button>
-                        <button class="settings-nav-item" onclick="switchSettingsSection('community',this)"><span class="msi">groups</span><span>Community</span></button>
-                        <button class="settings-nav-item" onclick="switchSettingsSection('advanced',this)"><span class="msi">build</span><span>Advanced</span></button>
-                        <button class="settings-nav-item" onclick="switchSettingsSection('about',this)"><span class="msi">info</span><span>About</span></button>
+                        <button class="settings-nav-item active" onclick="switchSettingsSection('general',this)"><span class="msi">tune</span><span data-i18n="settings.nav.general">General</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('appearance',this)"><span class="msi">palette</span><span data-i18n="settings.nav.appearance">Appearance</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('notifications',this)"><span class="msi">notifications</span><span data-i18n="settings.nav.notifications">Notifications</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('vrchat',this)"><span class="msi">sports_esports</span><span data-i18n="settings.nav.vrchat">VRChat</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('data',this)"><span class="msi">folder_open</span><span data-i18n="settings.nav.data">Data</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('performance',this)"><span class="msi">speed</span><span data-i18n="settings.nav.performance">Performance</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('community',this)"><span class="msi">manage_search</span><span data-i18n="settings.nav.avatarsearch">Avatar Search</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('advanced',this)"><span class="msi">bug_report</span><span data-i18n="settings.nav.advanced">Advanced</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('vrcx',this)"><span class="msi">download</span><span data-i18n="settings.nav.vrcx">VRCX</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('about',this)"><span class="msi">info</span><span data-i18n="settings.nav.about">About</span></button>
                     </nav>
                     <div class="settings-content">
-                        <div class="settings-section" id="ss-general">
-                    <div class="vrcn-panel-card">
+
+                    <!-- UPDATE VRCNEXT -->
+                    <div class="vrcn-panel-card" data-section="general">
                         <div class="vrcn-panel-card-header"><span class="msi">system_update_alt</span> <span data-i18n="settings.update.title">Update VRCNext</span></div>
                         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                             <button class="vrcn-button-round" id="setUpdCheckBtn" onclick="settingsCheckUpdate()"><span class="msi" style="font-size:15px;">refresh</span> <span data-i18n="settings.update.check_btn">Check for Update</span></button>
@@ -915,7 +905,7 @@
                     </div>
 
                     <!-- CRASH REPORTING -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="general">
                         <div class="vrcn-panel-card-header"><span class="msi">bug_report</span> <span data-i18n="settings.crash.title">Crash Reporting</span></div>
                         <div class="sf-toggle-row">
                             <span data-i18n="settings.crash.label">Send anonymous crash reports</span>
@@ -936,7 +926,7 @@
                     </div>
 
                     <!-- LANGUAGE -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="general">
                         <div class="vrcn-panel-card-header"><span class="msi">translate</span> <span data-i18n="language.title">Language</span></div>
                         <div class="set-desc">Cambia tu idioma · Change ta langue · Cambia lingua · 言語を変えて · 언어를 바꿔 · 更改你的语言 · Change Language · Sprache Ändern</div>
                         <div class="theme-grid" id="languageGrid"></div>
@@ -946,9 +936,8 @@
                         </div>
                     </div>
 
-                        </div>
-                        <div class="settings-section" id="ss-performance" style="display:none;">
-                    <div class="vrcn-panel-card" data-windows-only>
+                    <!-- PERFORMANCE -->
+                    <div class="vrcn-panel-card" data-windows-only data-section="performance" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">speed</span> <span data-i18n="settings.perf.title">Performance</span></div>
                         <div class="sf-toggle-row">
                             <span data-i18n="settings.perf.gpu_accel.label">Enable Hardware Acceleration</span>
@@ -988,9 +977,8 @@
                         </div>
                     </div>
 
-                        </div>
-                        <div class="settings-section" id="ss-appearance" style="display:none;">
-                    <div class="vrcn-panel-card">
+                    <!-- DESIGN -->
+                    <div class="vrcn-panel-card" data-section="appearance" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">palette</span> <span data-i18n="settings.design.title">Design</span></div>
                         <div class="fd-tabs" style="margin-top:10px;">
                             <button class="fd-tab active" onclick="switchDesignTab('background',this)" data-i18n="settings.design.tabs.background">Background</button>
@@ -1045,7 +1033,7 @@
                     </div>
 
                     <!-- WINDOW BEHAVIOR -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="general">
                         <div class="vrcn-panel-card-header"><span class="msi">open_in_full</span> <span data-i18n="settings.window.title">Window Behavior</span></div>
                         <div class="sf-toggle-row">
                             <span data-i18n="settings.window.remember_size">Remember Window Size</span>
@@ -1064,9 +1052,8 @@
                         <div class="set-desc" data-i18n="settings.debug.text_tools.desc">When enabled, all text in VRCNext becomes selectable. You can copy it via the right-click context menu or with Ctrl&nbsp;+&nbsp;C.</div>
                     </div>
 
-                        </div>
-                        <div class="settings-section" id="ss-notifications" style="display:none;">
-                    <div class="vrcn-panel-card">
+                    <!-- SYSTEM TRAY -->
+                    <div class="vrcn-panel-card" data-section="general">
                         <div class="vrcn-panel-card-header"><span class="msi" style="font-size:16px;">notifications_active</span> <span data-i18n="settings.system.tray.title">System Tray</span></div>
                         <div class="sf-toggle-row">
                             <span id="labelStartWithSystem" data-i18n="settings.launch.auto_start_windows">Auto-start VRCNext with Windows</span>
@@ -1095,7 +1082,7 @@
                     </div>
 
                     <!-- SOUNDS -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="notifications" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">volume_up</span> <span data-i18n="settings.sounds.title">Sounds</span></div>
                         <div class="sf-toggle-row"><span data-i18n="settings.sounds.notifications">Notification Sounds</span><label class="toggle"><input type="checkbox" id="setNotifySoundEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
                         <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.sounds.notifications_desc">Plays a sound when you receive a new notification such as friend requests, invites and more.</div>
@@ -1104,14 +1091,11 @@
                         <div class="sf-toggle-row"><span data-i18n="settings.sounds.media_relay">Media Relay Success Sounds</span><label class="toggle"><input type="checkbox" id="setMediaRelaySoundEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
                         <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.sounds.media_relay_desc">Plays a sound when Media Relay successfully sends an image to one of your Discord channels.</div>
                         <div class="sf-toggle-row"><span data-i18n="settings.sounds.overlay">VR Overlay Notification Sounds</span><label class="toggle"><input type="checkbox" id="setSteamOverlaySoundEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
-                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.sounds.overlay_desc">Plays a sound when a notification toast appears in the SteamVR overlay.</div>
-                        <div class="sf-toggle-row"><span>Friend Online Cards</span><label class="toggle"><input type="checkbox" id="setFriendOnlineToast" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
-                        <div class="set-desc">Shows a notification card when a friend comes online in VRChat.</div>
+                        <div class="set-desc" data-i18n="settings.sounds.overlay_desc">Plays a sound when a notification toast appears in the SteamVR overlay.</div>
                     </div>
 
-                        </div>
-                        <div class="settings-section" id="ss-vrchat" style="display:none;">
-                    <div class="vrcn-panel-card">
+                    <!-- VRCHAT LAUNCH OPTIONS -->
+                    <div class="vrcn-panel-card" data-section="vrchat" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">rocket_launch</span> <span data-i18n="settings.launch.title">VRChat Launch Options</span></div>
                         <div class="sf-section-label" data-i18n="settings.launch.path">VRChat Path</div>
                         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
@@ -1132,20 +1116,8 @@
                         </div>
                     </div>
 
-                    <div class="vrcn-panel-card">
-                        <div class="vrcn-panel-card-header"><span class="msi">tune</span> VRChat Config Editor</div>
-                        <div class="set-desc" style="margin-bottom:10px;">Edit your VRChat config.json file. Changes apply the next time VRChat starts.</div>
-                        <div style="display:flex;gap:8px;margin-bottom:10px;">
-                            <button class="vrcn-button" onclick="loadVrchatConfig()"><span class="msi" style="font-size:16px;">refresh</span> Load</button>
-                            <button class="vrcn-button vrcn-btn-primary" id="btnSaveVrchatConfig" onclick="saveVrchatConfig()" disabled><span class="msi" style="font-size:16px;">save</span> Save</button>
-                        </div>
-                        <div id="vrchatConfigStatus" style="font-size:11px;color:var(--tx3);margin-bottom:8px;"></div>
-                        <textarea id="vrchatConfigEditor" class="myp-textarea" rows="14" placeholder="Click Load to read config.json..." style="font-family:monospace;font-size:12px;width:100%;box-sizing:border-box;" oninput="document.getElementById('btnSaveVrchatConfig').disabled=false;"></textarea>
-                    </div>
-
-                        </div>
-                        <div class="settings-section" id="ss-data" style="display:none;">
-                    <div class="vrcn-panel-card">
+                    <!-- AUTO-BACKUPS -->
+                    <div class="vrcn-panel-card" data-section="data" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">backup</span> <span data-i18n="settings.backup.title">Auto-Backups</span></div>
                         <div class="sf-toggle-row">
                             <span data-i18n="settings.backup.registry_enabled">Enable VRChat Registry Backups</span>
@@ -1179,7 +1151,7 @@
                     </div>
 
                     <!-- WATCH FOLDERS -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="vrchat" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">folder_open</span> <span data-i18n="settings.watch_folders.title">Watch Folders</span></div>
                         <div class="set-desc" data-i18n="settings.watch_folders.desc">Watch folders monitor for new images you create. Add your VRChat screenshot folder here. You can also add folders from apps like VHF (VR Hands Frame) to track world location and friends list for those images too.</div>
                         <div class="folder-list" id="folderList"><div class="folder-empty" data-i18n="settings.watch_folders.empty">No folders added</div></div>
@@ -1189,9 +1161,8 @@
                         </div>
                     </div>
 
-                        </div>
-                        <div class="settings-section" id="ss-advanced" style="display:none;">
-                    <div class="vrcn-panel-card">
+                    <!-- DEBUGGING -->
+                    <div class="vrcn-panel-card" data-section="advanced" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">bug_report</span> <span data-i18n="settings.debug.title">Debugging</span></div>
                         <div class="set-desc" style="margin-bottom:12px;" data-i18n="settings.debug.desc">Use these options if something isn't working correctly or you want to reconfigure VRCNext from scratch.</div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -1212,14 +1183,13 @@
                         </div>
                     </div>
 
-                        </div>
-                        <div class="settings-section" id="ss-vrchat-login" style="display:none;">
-                    <div class="vrcn-panel-card">
+                    <!-- VRCHAT API LOGIN -->
+                    <div class="vrcn-panel-card" data-section="vrchat" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">person</span> <span data-i18n="settings.api.title">VRChat API Login</span></div>
                         <div class="set-desc" style="margin-bottom:12px;" data-i18n="settings.api.desc">Your credentials are stored locally and only used to connect to the VRChat API. VRCNext never shares them with third parties.</div>
                         <div class="sf-section-label" data-i18n="settings.api.credentials">Credentials</div>
                         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
-                            <input type="text" id="setVrcUser" class="vrcn-edit-field" placeholder="VRChat username or email" data-i18n-placeholder="settings.api.username" oninput="autoSave()">
+                            <input type="text" id="setVrcUser" class="vrcn-edit-field" placeholder="VRChat username" data-i18n-placeholder="settings.api.username" oninput="autoSave()">
                             <input type="password" id="setVrcPass" class="vrcn-edit-field" placeholder="VRChat password" data-i18n-placeholder="settings.api.password" oninput="autoSave()">
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;">
@@ -1229,9 +1199,8 @@
                         </div>
                     </div>
 
-                        </div>
-                        <div class="settings-section" id="ss-storage" style="display:none;">
-                    <div class="vrcn-panel-card-pair">
+                    <!-- IMAGE CACHE + FAST FETCH CACHE -->
+                    <div class="vrcn-panel-card-pair" data-section="performance" style="display:none;">
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">cached</span> <span data-i18n="settings.image_cache.title">Image Cache</span></div>
                         <div class="set-desc" data-i18n="settings.image_cache.desc">VRCNext caches avatar, world, and profile images locally for instant loading. Over time this can grow to several gigabytes. Set a limit and the oldest cached images will be removed automatically when it is reached (~2 GB per cleanup pass).</div>
@@ -1280,7 +1249,7 @@
                     </div><!-- /vrcn-panel-card-pair -->
 
                     <!-- DATABASE SETTINGS -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="data" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">database</span> <span data-i18n="settings.db.title">Database Settings</span></div>
                         <div class="set-desc" style="margin-bottom:12px;" data-i18n="settings.db.desc">Limits how many timeline entries are loaded into memory at startup. Keeps the Timeline fast with large databases. A restart is required to apply changes.</div>
                         <div class="sf-toggle-row">
@@ -1301,7 +1270,7 @@
                     </div>
 
                     <!-- DATABASE OPTIMIZATION -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="data" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">cleaning_services</span> Database Optimization</div>
                         <div class="set-desc" style="margin-bottom:8px;color:var(--err);" data-i18n="settings.db.cleanup.danger">Danger Zone! This Database Optimization will delete certain things from the database.</div>
                         <div class="set-desc" style="margin-bottom:8px;" data-i18n="settings.db.cleanup.user_cache">It will delete all cached non-friended users from the whole database. This is mostly safe as it does not contain any important information. Time Spent and Meet Counts are still present on those profiles and will not be wiped.</div>
@@ -1322,9 +1291,7 @@
                         <div id="dbAnalysisResults" style="display:none;margin-top:14px;"></div>
                     </div>
 
-                        </div>
-                        <div class="settings-section" id="ss-community" style="display:none;">
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" data-section="community" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">database</span> <span data-i18n="settings.avtrdb.title">Avatar Avtrdb and Avtr.icu Community Support</span></div>
                         <div class="fd-tabs" style="margin-top:10px;">
                             <button class="fd-tab active" onclick="switchAvtrdbTab('support',this)" data-i18n="settings.avtrdb.tabs.support">Support</button>
@@ -1356,7 +1323,7 @@
                         </div>
                     </div>
 
-                    <div class="vrcn-panel-card" id="vrcxImportCard">
+                    <div class="vrcn-panel-card" id="vrcxImportCard" data-section="vrcx" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">download</span> <span data-i18n="settings.vrcx.title">Import data from VRCX</span></div>
                         <div class="set-desc"><span data-i18n="settings.vrcx.desc_prefix">Imports your VRCX history into VRCNext: world time, friend time, instance joins, GPS events, online/offline, status and bio changes. Existing data is preserved and values are added on top. Select your</span> <code>VRCX.sqlite3</code> <span data-i18n="settings.vrcx.desc_suffix">file to begin.</span></div>
                         <div style="margin-top:10px;padding:12px 14px;background:rgba(var(--err-rgb,220,50,50),.10);border:1px solid rgba(var(--err-rgb,220,50,50),.30);border-radius:10px;line-height:1.7;">
@@ -1394,18 +1361,17 @@
                         </div>
                     </div>
 
-                        </div>
-                        <div class="settings-section" id="ss-about" style="display:none;">
-                    <div class="vrcn-panel-card">
+                    <!-- COPYRIGHT AND INFORMATION -->
+                    <div class="vrcn-panel-card" data-section="about" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">info</span> <span data-i18n="settings.info.title">Copyright And Information</span></div>
                         <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.info.p1">VRCNext is a VRChat assistant application that brings together tools and ideas from different applications into one unified app. It is designed for managing friends, groups, worlds, and analytics, and also provides communication features and a toolbox to make everything easier in a single place.</div>
                         <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.info.p2">VRCNext is not endorsed by VRChat and does not reflect the views or opinions of the VRChat staff or anyone officially involved in the development or management of VRChat. VRChat is a registered trademark of VRChat Inc.</div>
                         <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.info.p3">Shinyflvres and all contributors are not responsible for any issues that may be caused by VRCNext. In general, VRCNext is not a problem for VRChat, but misuse such as abusing features, exploiting others, or generating excessive request spam may result in moderation by VRChat.</div>
                         <div class="set-desc" data-i18n="settings.info.p4">Your User ID and the VRCNext Client ID are used to communicate with the VRChat API. Use VRCNext respectfully and do not attempt to exploit, manipulate, or generate spam requests, as this may lead to moderation.</div>
                     </div>
-                        </div>
-                    </div>
-                </div>
+
+                    </div><!-- /settings-content -->
+                </div><!-- /settings-layout -->
             </div>
             <!-- Tab 10: Space Flight -->
             <div class="tab" id="tab10">
@@ -2505,62 +2471,6 @@
                 </div>
             </div>
 
-            <!-- Tab 25: World Visit History -->
-            <div class="tab" id="tab25">
-                <div class="sf-layout">
-                    <div class="vrcn-panel-card" style="flex:1;">
-                        <div class="vrcn-panel-card-header" style="display:flex;align-items:center;gap:8px;">
-                            <span class="msi">travel_explore</span>
-                            <span>World Visit History</span>
-                            <button class="vrcn-button" style="margin-left:auto;" onclick="sendToCS({action:'vrcGetWorldHistory'})"><span class="msi" style="font-size:14px;">refresh</span></button>
-                        </div>
-                        <div id="worldVisitHistoryList" class="history-list"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab 26: Instance History -->
-            <div class="tab" id="tab26">
-                <div class="sf-layout">
-                    <div class="vrcn-panel-card" style="flex:1;">
-                        <div class="vrcn-panel-card-header" style="display:flex;align-items:center;gap:8px;">
-                            <span class="msi">event</span>
-                            <span>Instance History</span>
-                            <button class="vrcn-button" style="margin-left:auto;" onclick="sendToCS({action:'vrcGetInstanceHistory'})"><span class="msi" style="font-size:14px;">refresh</span></button>
-                        </div>
-                        <div id="instanceHistoryList" class="history-list"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab 27: Avatar Worn History -->
-            <div class="tab" id="tab27">
-                <div class="sf-layout">
-                    <div class="vrcn-panel-card" style="flex:1;">
-                        <div class="vrcn-panel-card-header" style="display:flex;align-items:center;gap:8px;">
-                            <span class="msi">checkroom</span>
-                            <span>Avatar History</span>
-                            <button class="vrcn-button" style="margin-left:auto;" onclick="sendToCS({action:'vrcGetAvatarWornHistory'})"><span class="msi" style="font-size:14px;">refresh</span></button>
-                        </div>
-                        <div id="avatarWornHistoryList" class="history-list"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab 28: Moderation Log -->
-            <div class="tab" id="tab28">
-                <div class="sf-layout">
-                    <div class="vrcn-panel-card" style="flex:1;">
-                        <div class="vrcn-panel-card-header" style="display:flex;align-items:center;gap:8px;">
-                            <span class="msi">gavel</span>
-                            <span>Moderation Log</span>
-                            <button class="vrcn-button" style="margin-left:auto;" onclick="sendToCS({action:'vrcGetModerationLog'})"><span class="msi" style="font-size:14px;">refresh</span></button>
-                        </div>
-                        <div id="moderationLogList" class="history-list"></div>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
 
@@ -2576,7 +2486,7 @@
                 <div class="vrc-login-box" id="vrcLoginPrompt">
                     <div style="font-size:14px;margin-bottom:8px;color:var(--tx3);font-weight:700;">VRChat</div>
                     <div style="font-size:12px;color:var(--tx2);margin-bottom:12px;" data-i18n="profiles.friends.login_prompt">Login to VRChat to see friends online</div>
-                    <input type="text" id="vrcQuickUser" placeholder="Username or Email" data-i18n-placeholder="settings.api.username" onkeydown="if(event.key==='Enter')document.getElementById('vrcQuickPass').focus()">
+                    <input type="text" id="vrcQuickUser" placeholder="Username" data-i18n-placeholder="settings.api.username" onkeydown="if(event.key==='Enter')document.getElementById('vrcQuickPass').focus()">
                     <input type="password" id="vrcQuickPass" placeholder="Password" data-i18n-placeholder="settings.api.password" onkeydown="if(event.key==='Enter')vrcQuickLogin()">
                     <button class="vrcn-button" onclick="vrcQuickLogin()" style="width:100%;justify-content:center;"><span class="msi" style="font-size:16px;">login</span> <span data-i18n="common.connect">Connect</span></button>
                     <div id="vrcQuickError" style="font-size:11px;color:var(--tx2);margin-top:6px;min-height:16px;"></div>
@@ -2809,7 +2719,6 @@
     <script src="modules/tools/kikitan-xd/kikitan-xd.js"></script>
     <script src="modules/tools/event-snipe/event-snipe.js"></script>
     <script src="modules/tools/avatar-scaling/avatar-scaling.js"></script>
-    <script src="modules/history/history.js"></script>
     <script src="core/logic/init.js"></script>
     <script src="core/debounce/debounce.js"></script>
     <script src="core/SmartSearch/smart-search.js"></script>

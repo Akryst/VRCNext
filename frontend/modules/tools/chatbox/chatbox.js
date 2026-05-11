@@ -191,24 +191,6 @@ function renderChatboxHistory() {
     el.scrollTop = el.scrollHeight;
 }
 
-function loadChatboxHistory() {
-    sendToCS({ action: 'chatboxGetHistory' });
-}
-
-function clearChatboxHistory() {
-    sendToCS({ action: 'chatboxClearHistory' });
-}
-
-function handleChatboxHistoryPayload(messages) {
-    if (!Array.isArray(messages)) return;
-    _cbChatHistory = messages.map(m => {
-        const d = m.sentAt ? new Date(m.sentAt) : null;
-        const ts = d && !isNaN(d) ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-        return { text: m.message || '', ts };
-    });
-    renderChatboxHistory();
-}
-
 function startCbPause() {
     if (_cbPauseTimer) clearInterval(_cbPauseTimer);
     _cbPauseRemaining = CB_PAUSE_SECONDS;

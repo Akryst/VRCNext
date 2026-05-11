@@ -327,11 +327,11 @@ function sk(type, n = 1) {
 
 
 const THEMES = {
-    slates:    { label: 'Slates',    dot: '#6F6CFF', c: { 'bg-base': '#090814', 'bg-side': '#090814', 'bg-card': '#131125', 'bg-hover': '#4B4998', 'bg-input': '#0E0C1E', 'accent': '#6F6CFF', 'accent-lt': '#6F6CFF', 'cyan': '#8CA5FF', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#FFFFFF', 'tx1': '#C8C5E0', 'tx2': '#8C89AB', 'tx3': '#585577', 'brd': '#1A1833', 'brd-lt': '#1F2357' } },
-    blood:     { label: 'Blood',     dot: '#DF2A4E', c: { 'bg-base': '#0B0611', 'bg-side': '#10091A', 'bg-card': '#190F26', 'bg-hover': '#251936', 'bg-input': '#130B1E', 'accent': '#DF2A4E', 'accent-lt': '#E16B82', 'cyan': '#DC7A56', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#F2EFF5', 'tx1': '#CBBFCC', 'tx2': '#8D8390', 'tx3': '#5A5260', 'brd': '#291B3C', 'brd-lt': '#38284D' } },
-    halloween: { label: 'Halloween', dot: '#DF462A', c: { 'bg-base': '#0B091A', 'bg-side': '#0B091A', 'bg-card': '#110F26', 'bg-hover': '#1B1936', 'bg-input': '#0D0B1E', 'accent': '#DF462A', 'accent-lt': '#E17D6B', 'cyan': '#DCA956', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#F0EFF5', 'tx1': '#C9C8D4', 'tx2': '#8D8C9A', 'tx3': '#5A5967', 'brd': '#1E1B3C', 'brd-lt': '#2B284D' } },
-    miku:      { label: 'Miku',      dot: '#66B4D2', c: { 'bg-base': '#080D14', 'bg-side': '#080D14', 'bg-card': '#080D14', 'bg-hover': '#66B4D2', 'bg-input': '#0B111A', 'accent': '#66B4D2', 'accent-lt': '#66B4D2', 'cyan': '#66B4D2', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#FFFFFF', 'tx1': '#C3DDED', 'tx2': '#87B8CC', 'tx3': '#527A8C', 'brd': '#13223F', 'brd-lt': '#13223F' } },
-    vrchat:    { label: 'VRChat',    dot: '#0B748E', c: { 'bg-base': '#0E1013', 'bg-side': '#0E1013', 'bg-card': '#181B1F', 'bg-hover': '#042E39', 'bg-input': '#1C2126', 'accent': '#0B748E', 'accent-lt': '#53C0D5', 'cyan': '#53C0D5', 'ok': '#18A86A', 'warn': '#D4860A', 'err': '#D93040', 'tx0': '#FFFFFF', 'tx1': '#C2D8DC', 'tx2': '#84B0B8', 'tx3': '#4F7880', 'brd': '#042E39', 'brd-lt': '#BEC8DA' } },
+    slates:    { label: 'Slates',    dot: '#6F6CFF', c: { 'bg-base': '#090814', 'bg-side': '#090814', 'bg-card': '#131125', 'bg-hover': '#4B4998', 'bg-input': '#0E0C1E', 'accent': '#6F6CFF', 'accent-lt': '#6F6CFF', 'cyan': '#8CA5FF', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#1A1833', 'brd-lt': '#1F2357' } },
+    blood:     { label: 'Blood',     dot: '#DF2A4E', c: { 'bg-base': '#0B0611', 'bg-side': '#10091A', 'bg-card': '#190F26', 'bg-hover': '#251936', 'bg-input': '#130B1E', 'accent': '#DF2A4E', 'accent-lt': '#E16B82', 'cyan': '#DC7A56', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#F2EFF5', 'tx1': '#D2CCDB', 'tx2': '#D2CCDB', 'tx3': '#D2CCDB', 'brd': '#291B3C', 'brd-lt': '#38284D' } },
+    halloween: { label: 'Halloween', dot: '#DF462A', c: { 'bg-base': '#0B091A', 'bg-side': '#0B091A', 'bg-card': '#110F26', 'bg-hover': '#1B1936', 'bg-input': '#0D0B1E', 'accent': '#DF462A', 'accent-lt': '#E17D6B', 'cyan': '#DCA956', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#F0EFF5', 'tx1': '#F0EFF5', 'tx2': '#F0EFF5', 'tx3': '#F0EFF5', 'brd': '#1E1B3C', 'brd-lt': '#2B284D' } },
+    miku:      { label: 'Miku',      dot: '#66B4D2', c: { 'bg-base': '#080D14', 'bg-side': '#080D14', 'bg-card': '#080D14', 'bg-hover': '#66B4D2', 'bg-input': '#0B111A', 'accent': '#66B4D2', 'accent-lt': '#66B4D2', 'cyan': '#66B4D2', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#13223F', 'brd-lt': '#13223F' } },
+    vrchat:    { label: 'VRChat',    dot: '#0B748E', c: { 'bg-base': '#0E1013', 'bg-side': '#0E1013', 'bg-card': '#181B1F', 'bg-hover': '#042E39', 'bg-input': '#1C2126', 'accent': '#0B748E', 'accent-lt': '#53C0D5', 'cyan': '#53C0D5', 'ok': '#18A86A', 'warn': '#D4860A', 'err': '#D93040', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#042E39', 'brd-lt': '#BEC8DA' } },
 };
 
 function applyColors(c) {
@@ -1125,11 +1125,6 @@ function showTab(i) {
     if (i === 0) renderDashboard();
     if (i === 1 && favWorldsData.length === 0) sendToCS({ action: 'vrcGetFavoriteWorlds' });
     if (i === 2 && !myGroupsLoaded) loadMyGroups();
-    if (i === 5 && typeof loadChatboxHistory === 'function') loadChatboxHistory();
-    if (i === 25) sendToCS({ action: 'vrcGetWorldHistory' });
-    if (i === 26) sendToCS({ action: 'vrcGetInstanceHistory' });
-    if (i === 27) sendToCS({ action: 'vrcGetAvatarWornHistory' });
-    if (i === 28) sendToCS({ action: 'vrcGetModerationLog' });
     if (i === 23) { if (!myGroupsLoaded) loadMyGroups(); if (typeof onSnipeTabOpen === 'function') onSnipeTabOpen(); }
     if (i === 3 && favFriendsData.length === 0) sendToCS({ action: 'vrcGetFavoriteFriends' });
     if (i === 4) { if (!avatarsLoaded) refreshAvatars(); }

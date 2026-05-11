@@ -745,17 +745,6 @@ function renderFriendDetail(d) {
     const _infosCard = `<div class="fd-info-card">${_aboutRowsHtml}</div>`;
     const _trustCard = trustSideHtml ? `<div class="fd-info-card">${trustSideHtml}</div>` : '';
     const _modCard = `<div class="fd-info-card" id="fdModerationCard">${_buildModCardInner(d.id)}</div>`;
-    const _alertCard = d.isFriend ? `<div class="fd-info-card" id="fdAlertCard">
-        <div class="fd-group-rep-label">Online Alert</div>
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;">
-            <span style="color:var(--tx3);">Mark as important</span>
-            <label class="vrcn-toggle" title="Get a highlighted notification when this friend comes online">
-                <input type="checkbox" id="fdAlertToggle" onchange="setFriendAlert('${uid}',this.checked)">
-                <span class="vrcn-toggle-slider"></span>
-            </label>
-        </div>
-        <div style="font-size:10px;color:var(--tx3);margin-top:4px;">Important friends show a highlighted toast when they come online.</div>
-    </div>` : '';
     const _topSection = (_currentWorldCard && _ownerCard)
         ? `<div class="fd-info-top-row">${_currentWorldCard}${_ownerCard}</div>`
         : (_currentWorldCard || '');
@@ -766,7 +755,7 @@ function renderFriendDetail(d) {
                 ${_badgesCard}${avatarRowHtml}${_bioCard}${_noteCard}
             </div>
             <div class="fd-info-right">
-                ${_infosCard}${_trustCard}${_alertCard}${_modCard}
+                ${_infosCard}${_trustCard}${_modCard}
             </div>
         </div>
         ${_tlCard}
@@ -856,7 +845,6 @@ function renderFriendDetail(d) {
     if (userId) sendToCS({ action: 'vrcGetUserAvatars', userId: userId });
     if (userId) { _fdTimelineEvents = []; sendToCS({ action: 'getTimelineForUser', userId }); }
     if (userId) sendToCS({ action: 'getFriendActivityForUser', userId });
-    if (d.isFriend && userId) sendToCS({ action: 'vrcGetFriendAlert', userId });
 
     if (_fdLiveTimer) { clearInterval(_fdLiveTimer); _fdLiveTimer = null; }
     if (d.inSameInstance && !(currentVrcUser && d.id === currentVrcUser.id)) {
@@ -1356,14 +1344,3 @@ function handleUserBasic(payload) {
         if (tip) tip.style.opacity = '0';
     });
 }());
-
-function setFriendAlert(userId, enabled) {
-    sendToCS({ action: 'vrcSetFriendAlert', userId, enabled });
-}
-
-function handleFriendAlertState(payload) {
-    const toggle = document.getElementById('fdAlertToggle');
-    if (toggle && currentFriendDetail && currentFriendDetail.id === payload.userId)
-        toggle.checked = !!payload.enabled;
-}
-

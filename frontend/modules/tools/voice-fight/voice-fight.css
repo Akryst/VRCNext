@@ -24,7 +24,7 @@
     transition: background 0.15s;
 }
 .vf-item:last-child { margin-bottom: 0; }
-.vf-item-flash { background: color-mix(in srgb, var(--accent) 18%, transparent) !important; }
+.vf-item-flash { background: rgba(56,132,255,.18) !important; }
 
 .vf-item-info {
     display: flex;
@@ -174,7 +174,7 @@
     gap: 4px;
     width: 100%;
     background: transparent;
-    border: 1.5px dashed rgba(255,255,255,.2);
+    border: 1.5px dashed var(--brd);
     border-radius: 6px;
     color: var(--tx2);
     font-size: 12px;
@@ -186,6 +186,6 @@
 .vf-add-btn:hover {
     border-color: var(--accent);
     color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 6%, transparent);
+    background: rgba(56,132,255,.06);
 }
 .vf-add-btn .msi { font-size: 14px; }

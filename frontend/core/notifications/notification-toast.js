@@ -145,41 +145,6 @@ function _showNotifCard(n) {
     }
 }
 
-function _showFriendOnlineCard(data) {
-    const area = document.getElementById('notifCardArea');
-    if (!area) return;
-    const name = data.name || '';
-    const img = data.image || '';
-    const important = !!data.important;
-    const hasImg = img.length > 5;
-    const barColor = important ? 'var(--warn)' : 'var(--ok)';
-    const badgeIcon = important ? 'star' : 'wifi';
-    const badgeColor = important ? 'var(--warn)' : 'var(--ok)';
-    const avatarHtml = hasImg
-        ? `<div class="nc-avatar" style="background-image:url('${cssUrl(img)}')"><span class="msi nc-avatar-badge" style="color:${badgeColor};">${badgeIcon}</span></div>`
-        : `<span class="msi nc-icon" style="color:${barColor};">person</span>`;
-    const card = document.createElement('div');
-    card.className = 'nc-card' + (important ? ' nc-card-important' : '');
-    card.innerHTML = `
-        <div class="nc-inner">
-            ${avatarHtml}
-            <div class="nc-body">
-                <div class="nc-title">${important ? '<span class="msi" style="font-size:12px;color:var(--warn);">star</span> ' : ''}<strong>${esc(name)}</strong> <span>came online</span></div>
-            </div>
-            <button class="nc-close-btn" onclick="_dismissNotifCard(this.closest('.nc-card'))" title="Close"><span class="msi" style="font-size:15px;">close</span></button>
-        </div>
-        <div class="nc-timer"><div class="nc-timer-bar" style="background:${barColor};"></div></div>`;
-    area.appendChild(card);
-    requestAnimationFrame(() => {
-        card.classList.add('nc-visible');
-        const bar = card.querySelector('.nc-timer-bar');
-        bar.style.transition = 'transform 5s linear';
-        requestAnimationFrame(() => { bar.style.transform = 'scaleX(0)'; });
-    });
-    const timer = setTimeout(() => _dismissNotifCard(card), 5200);
-    card._ncTimer = timer;
-}
-
 function _dismissNotifCard(card) {
     if (!card || !card.parentNode) return;
     clearTimeout(card._ncTimer);

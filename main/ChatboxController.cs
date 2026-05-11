@@ -112,20 +112,7 @@ public class ChatboxController : IDisposable
                         var svc = new ChatboxService(_ => { });
                         svc.SendDirect(text);
                     }
-                    _core.TimeEngine.AddChatboxMessage(text);
                 }
-                break;
-
-            case "chatboxGetHistory":
-                {
-                    var msgs = _core.TimeEngine.GetChatboxMessages(50);
-                    _core.SendToJS("chatboxHistory", new { messages = msgs });
-                }
-                break;
-
-            case "chatboxClearHistory":
-                _core.TimeEngine.ClearChatboxMessages();
-                _core.SendToJS("chatboxHistory", new { messages = new List<object>() });
                 break;
 
             case "oscConnect":

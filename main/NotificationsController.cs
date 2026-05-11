@@ -568,7 +568,7 @@ public class NotificationsController
                         {
                             var updated = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == evId);
                             if (updated != null) _core.SendToJS("timelineEvent", _instance.BuildTimelinePayload(updated));
-                            _core.SendToJS("vrcNotifImageUpdate", new { notifId, image = groupIcon, senderUsername = groupName });
+                            _core.SendToJS("vrcNotifImageUpdate", new { notifId, image = ImageCacheHelper.GetGroupUrl(groupId, groupIcon), senderUsername = groupName });
                         });
                     }
                     catch { }

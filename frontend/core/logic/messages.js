@@ -865,7 +865,6 @@ case 'vrcNews':
             case 'timelineSearchResults': handleTlSearchResults(payload); break;
             case 'friendTimelineData':          renderFriendTimeline(payload); break;
             case 'friendTimelineEvent':         handleFriendTimelineEvent(payload); break;
-            case 'friendOnlineToast':           _showFriendOnlineCard(payload); break;
             case 'friendTimelineSearchResults': handleFtlSearchResults(payload); break;
             case 'timelineForUser':        renderFdTimeline(payload.userId, payload.events); break;
             case 'friendActivityForUser':  renderFdUserActivity(payload.userId, payload.events); break;
@@ -952,31 +951,6 @@ case 'vrcNews':
             break;
         case 'vroStopWaterSound':
             if (waterAudio) { waterAudio.loop = false; waterAudio.pause(); waterAudio.currentTime = 0; }
-            break;
-        case 'worldVisitHistory':
-            if (typeof renderWorldVisitHistory === 'function') renderWorldVisitHistory(payload.entries || []);
-            break;
-        case 'instanceHistory':
-            if (typeof renderInstanceHistory === 'function') renderInstanceHistory(payload.entries || []);
-            break;
-        case 'avatarWornHistory':
-            if (typeof renderAvatarWornHistory === 'function') renderAvatarWornHistory(payload.entries || []);
-            break;
-        case 'moderationLog':
-            if (typeof renderModerationLog === 'function') renderModerationLog(payload.entries || []);
-            break;
-        case 'chatboxHistory':
-            if (typeof handleChatboxHistoryPayload === 'function') handleChatboxHistoryPayload(payload.messages || []);
-            break;
-        case 'searchHistory':
-            if (typeof handleSearchHistory === 'function') handleSearchHistory(payload.searchType, payload.queries || []);
-            break;
-        case 'vrchatConfig':
-            if (typeof handleVrchatConfig === 'function') handleVrchatConfig(payload);
-            break;
-        case 'vrcFriendAlertState':
-        case 'vrcFriendAlertSet':
-            if (typeof handleFriendAlertState === 'function') handleFriendAlertState(payload);
             break;
     }
 });

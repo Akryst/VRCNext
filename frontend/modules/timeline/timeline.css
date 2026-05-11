@@ -35,7 +35,7 @@
 }
 
 .tl-list-row {
-    border-bottom: 1px solid rgba(255,255,255,.05);
+    border-bottom: 1px solid var(--brd);
     cursor: pointer;
     transition: background .12s;
 }
@@ -133,7 +133,7 @@
     text-transform: uppercase;
     letter-spacing: .04em;
     background: var(--bg2);
-    border: 1px solid rgba(255,255,255,.07);
+    border: 1px solid var(--brd);
     color: var(--tx2);
 }
 .ft-status-chip.active        { color: var(--status-online);  border-color: var(--status-online);  }
@@ -236,7 +236,7 @@
     gap: 6px;
     margin-top: 10px;
     padding-top: 10px;
-    border-top: 1px solid rgba(255,255,255,.07);
+    border-top: 1px solid var(--brd);
 }
 
 .tl-filter-row {
@@ -274,7 +274,7 @@
     bottom: 0;
     width: 2px;
     transform: translateX(-50%);
-    background: linear-gradient(to bottom, transparent, rgba(255,255,255,.12) 40px, rgba(255,255,255,.12) calc(100% - 40px), transparent);
+    background: linear-gradient(to bottom, transparent, var(--brd) 40px, var(--brd) calc(100% - 40px), transparent);
     pointer-events: none;
     z-index: 0;
 }
@@ -295,7 +295,7 @@
     background: var(--bg-base);
     padding: 3px 14px;
     border-radius: 20px;
-    border: 1px solid rgba(255,255,255,.1);
+    border: 1px solid var(--brd);
     text-transform: uppercase;
 }
 
@@ -340,7 +340,7 @@
 
 .tl-card {
     background: var(--bg-card);
-    border: 1px solid rgba(255,255,255,.07);
+    border: 1px solid var(--brd);
     border-radius: 10px;
     overflow: hidden;
     cursor: pointer;
@@ -359,7 +359,7 @@
 @keyframes tlCardPulse {
     0%   { box-shadow: 0 0 0 0 var(--accent); border-color: var(--accent); }
     30%  { box-shadow: 0 0 0 6px transparent; }
-    100% { box-shadow: none; border-color: rgba(255,255,255,.07); }
+    100% { box-shadow: none; border-color: var(--brd); }
 }
 
 .tl-card-header {
@@ -367,7 +367,7 @@
     align-items: center;
     gap: 6px;
     padding: 8px 10px 6px;
-    border-bottom: 1px solid rgba(255,255,255,.07);
+    border-bottom: 1px solid var(--brd);
 }
 
 .tl-type-icon {

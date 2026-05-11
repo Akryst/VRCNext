@@ -46,7 +46,7 @@
     font-size: 11px;
     gap: 5px;
 }
-.vrcn-button-round:hover { background: rgba(255,255,255,.1); }
+.vrcn-button-round:hover { background: var(--brd); }
 .vrcn-button-round:disabled { opacity: .4; cursor: not-allowed; }
 .vrcn-button-round.active { background: var(--accent); color: #fff; }
 .vrcn-button-round .msi { font-size: 14px !important; line-height: 1; }
