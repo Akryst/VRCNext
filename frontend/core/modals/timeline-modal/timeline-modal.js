@@ -611,6 +611,7 @@ function _tlListProfHtml(img, name) {
 
 function _tlPersonalProfHtml(ev) {
     if (ev.type === 'notification') return _tlListProfHtml(ev.senderImage, ev.senderName);
+    if (ev.type === 'instance_join' || ev.type === 'photo') return _tlListProfHtml(currentVrcUser?.image, currentVrcUser?.displayName);
     return _tlListProfHtml(ev.userImage, ev.userName);
 }
 
@@ -666,7 +667,7 @@ function _tlListPlayerAvatars(players, max) {
 function _tlListData(ev) {
     switch (ev.type) {
         case 'instance_join':
-            return { userHtml: _tlListPlayerAvatars(ev.players, 3), detail: esc(ev.worldName || ev.worldId || t('timeline.unknown_world', 'Unknown World')) };
+            return { userHtml: esc(currentVrcUser?.displayName || t('timeline.unknown', 'Unknown')), detail: esc(ev.worldName || ev.worldId || t('timeline.unknown_world', 'Unknown World')) };
         case 'photo':
             return { userHtml: _tlListPlayerAvatars(ev.players, 3), detail: esc(ev.photoPath ? ev.photoPath.split(/[\\/]/).pop() : t('timeline.photo', 'Photo')) };
         case 'first_meet':

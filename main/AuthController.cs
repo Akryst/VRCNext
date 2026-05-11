@@ -26,6 +26,7 @@ public class AuthController
     private string _lastVideoUrl = "";
     private DateTime _lastVideoUrlTime = DateTime.MinValue;
     private DateTime _readyAt = DateTime.MaxValue;
+    private CancellationTokenSource? _refreshCts;
 
     // In-flight guards — prevent duplicate startup fetches when JS triggers same requests
     private int _favWorldsInFlight = 0;
@@ -78,6 +79,7 @@ public class AuthController
                 break;
 
             case "vrcLogout":
+                _refreshCts?.Cancel();
                 _relayCtrl.StopWebSocket();
                 await _core.Auth.LogoutAsync();
                 _core.Settings.VrcAuthCookie = "";
@@ -643,6 +645,7 @@ public class AuthController
                 await _friends.RefreshFriendsAsync();
                 _relayCtrl.StartWebSocket();
                 _ = TriggerStartupBackgroundRefreshAsync();
+                StartPeriodicRefresh();
                 return;
             }
 
@@ -696,6 +699,7 @@ public class AuthController
             await _friends.RefreshFriendsAsync();
             _relayCtrl.StartWebSocket();
             _ = TriggerStartupBackgroundRefreshAsync();
+            StartPeriodicRefresh();
         }
         else
         {
@@ -719,12 +723,37 @@ public class AuthController
             await _friends.RefreshFriendsAsync();
             _relayCtrl.StartWebSocket();
             _ = TriggerStartupBackgroundRefreshAsync();
+            StartPeriodicRefresh();
         }
         else
         {
             _core.SendToJS("vrcLoginError", new { error = result.Error ?? "2FA failed" });
             _core.SendToJS("log", new { msg = $"VRChat: 2FA error \u2014 {result.Error}", color = "err" });
         }
+    }
+
+    // Periodic auth/user refresh
+
+    private void StartPeriodicRefresh()
+    {
+        _refreshCts?.Cancel();
+        _refreshCts = new CancellationTokenSource();
+        var ct = _refreshCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (!ct.IsCancellationRequested)
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(10), ct);
+                    if (!_core.VrcApi.IsLoggedIn) break;
+                    var result = await _core.Auth.TryResumeSessionAsync();
+                    if (result.Success && result.User != null)
+                        Invoke(() => SendVrcUserData(result.User, loginFlow: false));
+                }
+            }
+            catch (OperationCanceledException) { }
+        });
     }
 
     // Cookie Persistence

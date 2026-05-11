@@ -45,6 +45,7 @@ public class UnifiedTimeEngine : IDisposable
     private Func<bool>? _isVrcRunning;
     private bool _disposed;
     private bool _vrcWasRunning; // tracks previous VRC state for edge detection
+    public Action? OnVrcClosed;
     private Process? _monitoredVrcProcess; // Process.Exited event → near-instant VRC close detection
     private DateTime _lastVrcAliveUtc; // last time we confirmed VRC was running → precise end timestamp
     private DateTime _lastFlushUtc = DateTime.MinValue; // last 30s flush timestamp
@@ -1510,6 +1511,7 @@ public class UnifiedTimeEngine : IDisposable
         ClearActiveSessionLocked();
         try { _monitoredVrcProcess?.Dispose(); } catch { }
         _monitoredVrcProcess = null;
+        try { OnVrcClosed?.Invoke(); } catch { }
     }
 
     // Session end helpers
