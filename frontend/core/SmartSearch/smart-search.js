@@ -39,7 +39,10 @@ const SmartSearch = (() => {
                 : input.type === 'range' ? 'slider'
                 : input.tagName === 'SELECT' ? 'select' : 'input';
 
-            _settingsIndex.push({ row, input, label, section, type });
+            const navSectionEl = row.closest('[data-section]');
+            const sectionId = navSectionEl?.dataset.section || '';
+
+            _settingsIndex.push({ row, input, label, section, type, sectionId });
         });
     }
 
@@ -261,6 +264,9 @@ const SmartSearch = (() => {
             },
             onOpen: (item) => {
                 if (typeof showTab === 'function') showTab(9);
+                if (item.sectionId && typeof switchSettingsSection === 'function') {
+                    switchSettingsSection(item.sectionId);
+                }
                 setTimeout(() => {
                     item.row.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     item.row.classList.add('ss-setting-highlight');
