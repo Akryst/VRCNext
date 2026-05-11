@@ -772,6 +772,9 @@ public class AuthController
                 }
                 else
                 {
+                    // Close any open tracked instance_join event from a previous session
+                    if (lastJoin != null && lastJoin.Tracked == 1 && string.IsNullOrEmpty(lastJoin.LeftAt))
+                        _core.Timeline.SetInstanceEventLeftAt(lastJoin.Id, DateTime.UtcNow.ToString("o"));
                     _instance.HandleWorldChangedOnUiThread(_core.LogWatcher.CurrentWorldId, loc);
                 }
                 var currentPlayers = _core.LogWatcher.GetCurrentPlayers();

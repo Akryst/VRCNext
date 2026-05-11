@@ -1048,7 +1048,9 @@ public class InstanceController
                 Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image)
             }).ToList();
             var prevId = _pendingInstanceEventId;
+            var now    = DateTime.UtcNow.ToString("o");
             _core.Timeline.UpdateEvent(prevId, ev => ev.Players = finalPlayers);
+            _core.Timeline.SetInstanceEventLeftAt(prevId, now);
             var finalEv = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == prevId);
             if (finalEv != null) _core.SendToJS("timelineEvent", BuildTimelinePayload(finalEv));
         }
@@ -1074,7 +1076,8 @@ public class InstanceController
             Type      = "instance_join",
             Timestamp = DateTime.UtcNow.ToString("o"),
             WorldId   = worldId,
-            Location  = location
+            Location  = location,
+            Tracked   = 1,
         };
         _core.Timeline.AddEvent(instEv);
         _core.SendToJS("timelineEvent", BuildTimelinePayload(instEv));
@@ -1459,6 +1462,8 @@ public class InstanceController
         senderId    = ev.SenderId,
         senderImage = ResolveWithDiskFallback(ev.SenderId, ev.SenderImage),
         message     = ev.Message,
+        leftAt      = ev.LeftAt,
+        tracked     = ev.Tracked,
         };
     }
 
