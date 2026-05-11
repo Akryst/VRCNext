@@ -3,7 +3,7 @@
 **Settings**
 * Grouped settings in different sub tabs by @A31A18B25C9D012
 // Extracted from PR #50 and merged to Backend-Refactor-4
-* Settings are now grouped in: General, Apperance, Notifications, VRChat, Data, Performance, Avatar Search, Advanced, VRCX, About.
+* Settings are now grouped in: General, Apperance, Notifications, VRChat, Data, Performance, Avatar Search, Advanced, VRCX, About
 
 **Timeline**
 
