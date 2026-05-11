@@ -872,7 +872,7 @@
   "settings.friend_toast.enabled_desc": "Shows a toast card in the bottom-right corner when a friend comes online.",
   "settings.friend_toast.fav_only": "Favorites only",
   "settings.friend_toast.fav_only_desc": "Only show toast cards for friends you have favorited.",
-  "settings.friend_toast.how_it_works": "Right-click a friend's toast to set a per-friend override: <b>Always notify</b> always shows a toast — even if \"Favorites only\" is on and they are not favorited. <b>Default</b> follows this global setting. <b>Never notify</b> suppresses toasts for that friend regardless of the global setting.",
+  "settings.friend_toast.how_it_works": "Right-click a friend's toast to set a per-friend override. <b>Always notify</b> always shows a toast, even if \"Favorites only\" is on and they are not favorited. <b>Default</b> follows the global setting. <b>Never notify</b> suppresses toasts for that friend regardless of the global setting.",
   "settings.window.title": "Window Behavior",
   "settings.window.remember_size": "Remember Window Size",
   "settings.window.remember_size_desc": "Restores the window to its last used size when VRCNext starts.",

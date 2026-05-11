@@ -871,7 +871,7 @@
   "settings.friend_toast.enabled_desc": "Zeigt eine Toast-Karte in der unteren rechten Ecke an, wenn ein Freund online geht.",
   "settings.friend_toast.fav_only": "Nur Favoriten",
   "settings.friend_toast.fav_only_desc": "Toast-Karten nur für favorisierte Freunde anzeigen.",
-  "settings.friend_toast.how_it_works": "Rechtsklick auf einen Toast setzt eine individuelle Einstellung: <b>Immer benachrichtigen</b> zeigt immer einen Toast — auch wenn \"Nur Favoriten\" aktiviert ist und der Freund nicht favorisiert ist. <b>Standard</b> folgt dieser globalen Einstellung. <b>Nie benachrichtigen</b> unterdrückt Toasts für diesen Freund unabhängig von der globalen Einstellung.",
+  "settings.friend_toast.how_it_works": "Rechtsklick auf einen Toast setzt eine individuelle Einstellung. <b>Immer benachrichtigen</b> zeigt immer einen Toast, auch wenn \"Nur Favoriten\" aktiviert ist und der Freund nicht favorisiert ist. <b>Standard</b> folgt der globalen Einstellung. <b>Nie benachrichtigen</b> unterdrückt Toasts für diesen Freund unabhängig von der globalen Einstellung.",
   "settings.window.title": "Fensterverhalten",
   "settings.window.remember_size": "Fenstergröße merken",
   "settings.window.remember_size_desc": "Stellt die zuletzt verwendete Fenstergröße beim Start von VRCNext wieder her.",

@@ -871,7 +871,7 @@
   "settings.friend_toast.enabled_desc": "フレンドがオンラインになると右下にトースト通知を表示します。",
   "settings.friend_toast.fav_only": "お気に入りのみ",
   "settings.friend_toast.fav_only_desc": "お気に入り登録したフレンドのみトースト通知を表示します。",
-  "settings.friend_toast.how_it_works": "トーストを右クリックするとフレンドごとの設定が可能です。<b>常に通知</b>は「お気に入りのみ」がオンでもお気に入りでないフレンドのトーストを表示します。<b>デフォルト</b>はこのグローバル設定に従います。<b>通知しない</b>はグローバル設定に関わらずそのフレンドのトーストを非表示にします。",
+  "settings.friend_toast.how_it_works": "トーストを右クリックするとフレンドごとの設定が可能です。<b>常に通知</b>は「お気に入りのみ」がオンでもお気に入りでないフレンドのトーストを表示します。<b>デフォルト</b>はグローバル設定に従います。<b>通知しない</b>はグローバル設定に関わらずそのフレンドのトーストを非表示にします。",
   "settings.window.title": "ウィンドウの動作",
   "settings.window.remember_size": "ウィンドウサイズを記憶",
   "settings.window.remember_size_desc": "VRCNextの起動時に最後に使用したウィンドウサイズを復元します。",

@@ -871,7 +871,7 @@
   "settings.friend_toast.enabled_desc": "Muestra una tarjeta en la esquina inferior derecha cuando un amigo se conecta.",
   "settings.friend_toast.fav_only": "Solo favoritos",
   "settings.friend_toast.fav_only_desc": "Mostrar tarjetas solo para amigos marcados como favoritos.",
-  "settings.friend_toast.how_it_works": "Haz clic derecho en el toast de un amigo para establecer una preferencia individual: <b>Notificar siempre</b> muestra siempre un toast — incluso si \"Solo favoritos\" está activado y no es favorito. <b>Por defecto</b> sigue esta configuración global. <b>No notificar nunca</b> suprime los toasts para ese amigo independientemente de la configuración global.",
+  "settings.friend_toast.how_it_works": "Haz clic derecho en el toast de un amigo para establecer una preferencia individual. <b>Notificar siempre</b> muestra siempre un toast, incluso si \"Solo favoritos\" está activado y no es favorito. <b>Por defecto</b> sigue la configuración global. <b>No notificar nunca</b> suprime los toasts para ese amigo independientemente de la configuración global.",
   "settings.window.title": "Comportamiento de la ventana",
   "settings.window.remember_size": "Recordar tamaño de la ventana",
   "settings.window.remember_size_desc": "Restaura el tamaño de la ventana al último utilizado cuando VRCNext se inicia.",
