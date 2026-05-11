@@ -104,6 +104,8 @@ function saveSettings() {
             messageSoundEnabled: document.getElementById('setMessageSoundEnabled').checked,
             mediaRelaySoundEnabled: document.getElementById('setMediaRelaySoundEnabled').checked,
             steamOverlaySoundEnabled: document.getElementById('setSteamOverlaySoundEnabled')?.checked ?? true,
+            friendOnlineToastEnabled: document.getElementById('setFriendOnlineToastEnabled')?.checked ?? false,
+            friendOnlineToastFavOnly: document.getElementById('setFriendOnlineToastFavOnly')?.checked ?? false,
             language: currentLanguage,
             theme: currentTheme,
             specialTheme: currentSpecialTheme,
@@ -233,6 +235,8 @@ function saveSettings() {
     settings.messageSoundEnabled     = payload.data.messageSoundEnabled;
     settings.mediaRelaySoundEnabled  = payload.data.mediaRelaySoundEnabled;
     settings.steamOverlaySoundEnabled = payload.data.steamOverlaySoundEnabled;
+    settings.friendOnlineToastEnabled = payload.data.friendOnlineToastEnabled;
+    settings.friendOnlineToastFavOnly = payload.data.friendOnlineToastFavOnly;
     sendToCS(payload);
 }
 
@@ -303,6 +307,10 @@ function loadSettingsToUI(s) {
     document.getElementById('setNotifySoundEnabled').checked = s.NotifySoundEnabled ?? s.notifySoundEnabled ?? false;
     document.getElementById('setMessageSoundEnabled').checked = s.MessageSoundEnabled ?? s.messageSoundEnabled ?? false;
     document.getElementById('setMediaRelaySoundEnabled').checked = s.MediaRelaySoundEnabled ?? s.mediaRelaySoundEnabled ?? false;
+    const _fotEl = document.getElementById('setFriendOnlineToastEnabled');
+    if (_fotEl) _fotEl.checked = s.FriendOnlineToastEnabled ?? s.friendOnlineToastEnabled ?? false;
+    const _fotFavEl = document.getElementById('setFriendOnlineToastFavOnly');
+    if (_fotFavEl) _fotFavEl.checked = s.FriendOnlineToastFavOnly ?? s.friendOnlineToastFavOnly ?? false;
     settings.folders = s.WatchFolders || s.watchFolders || s.folders || [];
     settings.relayEnabledFolders = s.RelayEnabledFolders ?? s.relayEnabledFolders ?? null;
     settings.extraExe = s.ExtraExe || s.extraExe || [];
@@ -318,6 +326,8 @@ function loadSettingsToUI(s) {
     settings.messageSoundEnabled = s.MessageSoundEnabled ?? s.messageSoundEnabled ?? false;
     settings.mediaRelaySoundEnabled = s.MediaRelaySoundEnabled ?? s.mediaRelaySoundEnabled ?? false;
     settings.steamOverlaySoundEnabled = s.SteamOverlaySoundEnabled ?? s.steamOverlaySoundEnabled ?? true;
+    settings.friendOnlineToastEnabled = s.FriendOnlineToastEnabled ?? s.friendOnlineToastEnabled ?? false;
+    settings.friendOnlineToastFavOnly = s.FriendOnlineToastFavOnly ?? s.friendOnlineToastFavOnly ?? false;
     const _sovEl = document.getElementById('setSteamOverlaySoundEnabled');
     if (_sovEl) _sovEl.checked = settings.steamOverlaySoundEnabled;
     // Restore GUI zoom level

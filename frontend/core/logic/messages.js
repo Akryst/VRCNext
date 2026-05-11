@@ -865,6 +865,8 @@ case 'vrcNews':
             case 'timelineSearchResults': handleTlSearchResults(payload); break;
             case 'friendTimelineData':          renderFriendTimeline(payload); break;
             case 'friendTimelineEvent':         handleFriendTimelineEvent(payload); break;
+            case 'friendOnlineToast':      if (typeof _showFriendOnlineCard  === 'function') _showFriendOnlineCard(payload);  break;
+            case 'vrcFriendAlertState':    if (typeof _fotHandleAlertState  === 'function') _fotHandleAlertState(payload);  break;
             case 'friendTimelineSearchResults': handleFtlSearchResults(payload); break;
             case 'timelineForUser':        renderFdTimeline(payload.userId, payload.events); break;
             case 'friendActivityForUser':  renderFdUserActivity(payload.userId, payload.events); break;

@@ -660,6 +660,36 @@
         positionSubmenu(parentBtn);
     }
 
+    if (!window._friendAlertCache) window._friendAlertCache = {};
+    const _friendAlertCache = window._friendAlertCache;
+
+    function showToastAlertSubmenu(userId, parentBtn) {
+        const currentLevel = _friendAlertCache[userId] ?? 0;
+        sendToCS({ action: 'vrcGetFriendAlert', userId });
+        const opts = [
+            { icon: 'notifications_active', label: cm('friend.toast_always', 'Always notify'), level: 1  },
+            { icon: 'notifications_off',    label: cm('friend.toast_never',  'Never notify'),  level: -1 },
+            { icon: 'notifications',        label: cm('friend.toast_default', 'Default'),       level: 0  },
+        ];
+        submenu.innerHTML = opts.map((o, i) => `
+            <button class="vn-ctx-item${o.level === currentLevel ? ' active' : ''}" data-tidx="${i}" data-level="${o.level}">
+                <span class="msi" style="font-size:14px;">${o.icon}</span>
+                <span class="vn-ctx-label">${esc(o.label)}</span>
+                ${o.level === currentLevel ? '<span class="msi" style="font-size:13px;margin-left:auto;opacity:.7;">check</span>' : ''}
+            </button>`).join('');
+        submenu.querySelectorAll('[data-tidx]').forEach(btn => {
+            btn.addEventListener('click', e => {
+                e.stopPropagation();
+                const level = parseInt(btn.dataset.level);
+                _friendAlertCache[userId] = level;
+                sendToCS({ action: 'vrcSetFriendAlert', userId, level });
+                hideMenu();
+            });
+            btn.addEventListener('mouseenter', () => clearTimeout(submenuTimer));
+        });
+        positionSubmenu(parentBtn);
+    }
+
     function showModerateSubmenu(userId, parentBtn) {
         const isBlocked    = Array.isArray(blockedData)      && blockedData.some(x => x.targetUserId === userId);
         const isMuted      = Array.isArray(mutedData)        && mutedData.some(x => x.targetUserId === userId);
@@ -1058,6 +1088,7 @@
             }
 
             items.push('sep');
+            items.push({ icon: 'notifications', label: cm('friend.toast', 'Toast'), submenuFn: btn => showToastAlertSubmenu(id, btn) });
             items.push({ icon: 'shield_person', label: cm('friend.moderate', 'Moderate'), submenuFn: btn => showModerateSubmenu(id, btn) });
             items.push({ icon: 'person_remove', label: cm('friend.unfriend', 'Unfriend'), action: () => sendToCS({ action: 'vrcUnfriend', userId: id }), danger: true, confirm: true });
         } else {

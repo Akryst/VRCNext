@@ -858,6 +858,24 @@ public class FriendsController
                 }
                 break;
             }
+
+            case "vrcSetFriendAlert":
+            {
+                var uid   = msg["userId"]?.ToString() ?? "";
+                var level = msg["level"]?.Value<int>() ?? 0;
+                if (!string.IsNullOrEmpty(uid))
+                    _core.TimeEngine.SetFriendAlert(uid, level);
+                _core.SendToJS("vrcFriendAlertState", new { userId = uid, level });
+                break;
+            }
+
+            case "vrcGetFriendAlert":
+            {
+                var uid = msg["userId"]?.ToString() ?? "";
+                var level = string.IsNullOrEmpty(uid) ? 0 : _core.TimeEngine.GetFriendAlert(uid);
+                _core.SendToJS("vrcFriendAlertState", new { userId = uid, level });
+                break;
+            }
         }
     }
 
@@ -937,6 +955,7 @@ public class FriendsController
         "vrcBoop",
         "vrcSendChatMessage", "vrcGetChatHistory", "vrcGetUser",
         "vrcGetUserAvatars", "vrcGetUserFavWorlds",
+        "vrcSetFriendAlert", "vrcGetFriendAlert",
     };
 
     public static bool HandlesAction(string action) => _handledActions.Contains(action);
@@ -2144,6 +2163,15 @@ public class FriendsController
         _friendLastLoc[e.UserId] = (string.IsNullOrEmpty(onlineLoc) && prevLoc.StartsWith("wrld_")) ? prevLoc : onlineLoc;
 
         if (alreadyInGame) return; // already online, don't spam timeline
+
+        if (_core.Settings.FriendOnlineToastEnabled && !string.IsNullOrEmpty(fname))
+        {
+            var alertLevel = _core.TimeEngine.GetFriendAlert(e.UserId);
+            var shouldToast = alertLevel == 1 // always notify (per friend override)
+                || (alertLevel == 0 && (!_core.Settings.FriendOnlineToastFavOnly || IsFavorited(e.UserId)));
+            if (shouldToast)
+                _core.SendToJS("friendOnlineToast", new { userId = e.UserId, displayName = fname, image = fimg, alertLevel });
+        }
 
         var fev = new TimelineService.FriendTimelineEvent
         {
