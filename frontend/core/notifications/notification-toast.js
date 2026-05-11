@@ -202,8 +202,13 @@ function _fotSetAlert(uid, level, itemEl) {
 
 function _fotHandleAlertState(payload) {
     if (!window._friendAlertCache) window._friendAlertCache = {};
-    if (payload.userId) window._friendAlertCache[payload.userId] = payload.level ?? 0;
-    if (_fotCtxCard) _fotCtxCard.dataset.alertLevel = payload.level ?? 0;
+    const level = payload.level ?? 0;
+    if (payload.userId) window._friendAlertCache[payload.userId] = level;
+    if (_fotCtxCard) _fotCtxCard.dataset.alertLevel = level;
+    if (window._pendingFotSubmenuUpdate?.userId === payload.userId) {
+        window._pendingFotSubmenuUpdate.fn(level);
+        window._pendingFotSubmenuUpdate = null;
+    }
 }
 
 function _showFriendOnlineCard(data) {
