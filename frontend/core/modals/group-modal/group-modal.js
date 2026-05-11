@@ -56,7 +56,7 @@ function renderGroupDetail(g) {
     const canEdit = g.canEdit === true;
     const gidJs  = jsq(g.id);
     const banner = g.bannerUrl || g.iconUrl || 'fallback_cover.png';
-    const bannerEditBtn = canEdit ? `<button class="myp-edit-btn" style="position:absolute;bottom:8px;right:8px;z-index:4;" onclick="openImagePicker('group-banner','${gidJs}')" title="${esc(t('groups.images.change_banner', 'Change banner'))}"><span class="msi" style="font-size:13px;">edit</span></button>` : '';
+    const bannerEditBtn = canEdit ? `<button class="btn-notif" style="position:absolute;top:8px;right:44px;z-index:4;" onclick="openImagePicker('group-banner','${gidJs}')" title="${esc(t('groups.images.change_banner', 'Change banner'))}"><span class="msi" style="font-size:20px;">edit</span></button>` : '';
     const bannerHtml = banner
         ? `<div class="fd-banner">${bannerEditBtn}<img src="${banner}" onerror="this.src='fallback_cover.png'"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/group/${esc(g.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>`
         : (canEdit ? `<div style="display:flex;justify-content:flex-end;padding:4px 0 2px 0;"><button class="myp-edit-btn" onclick="openImagePicker('group-banner','${gidJs}')" title="${esc(t('groups.images.add_banner', 'Add banner'))}"><span class="msi" style="font-size:13px;">edit</span><span style="font-size:11px;margin-left:3px;">${esc(t('groups.images.banner', 'Banner'))}</span></button></div>` : '');

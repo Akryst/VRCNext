@@ -638,6 +638,15 @@ window.external.receiveMessage(rawMsg => {
             case 'vrcAvatarDetail':
                 renderAvatarDetail(payload);
                 break;
+            case 'vrcAvatarGallery':
+                if (typeof onAvatarGallery === 'function') onAvatarGallery(payload);
+                break;
+            case 'vrcAvatarGalleryResult':
+                if (typeof onAvatarGalleryResult === 'function') onAvatarGalleryResult(payload);
+                break;
+            case 'vrcAvatarImageResult':
+                if (typeof onAvatarImageResult === 'function') onAvatarImageResult(payload);
+                break;
             case 'vrcAvatarUpdateResult':
                 onAvatarUpdateResult(payload);
                 break;

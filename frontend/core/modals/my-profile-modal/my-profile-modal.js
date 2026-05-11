@@ -31,7 +31,7 @@ function renderMyProfileContent() {
     // Banner
     const bannerSrc = u.profilePicOverride || u.currentAvatarImageUrl || u.image || '';
     const bannerHtml = bannerSrc
-        ? `<div class="fd-banner"><img src="${esc(bannerSrc)}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div><button class="myp-edit-btn" style="position:absolute;top:8px;right:8px;z-index:2;" onclick="openImagePicker('profile-banner')" title="${esc(changeBannerTitle)}"><span class="msi" style="font-size:13px;">edit</span></button></div>`
+        ? `<div class="fd-banner"><img src="${esc(bannerSrc)}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:44px;z-index:3;" onclick="openImagePicker('profile-banner')" title="${esc(changeBannerTitle)}"><span class="msi" style="font-size:20px;">edit</span></button><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(u.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>`
         : `<div style="display:flex;justify-content:flex-end;padding:4px 0 2px 0;"><button class="myp-edit-btn" onclick="openImagePicker('profile-banner')" title="${esc(addBannerTitle)}"><span class="msi" style="font-size:13px;">edit</span><span style="font-size:11px;margin-left:3px;">${esc(bannerLabel)}</span></button></div>`;
 
     // Avatar with edit overlay

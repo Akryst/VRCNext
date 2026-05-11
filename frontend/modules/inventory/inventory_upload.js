@@ -1,6 +1,24 @@
 /* === Inventory Upload Modal === */
 
 const INV_UPLOAD_REQS = {
+    avatarGallery: {
+        maxMB: 3,
+        ratioW: null,
+        ratioH: null,
+        minPx: 1,
+        maxPx: 2000,
+        directBlob: true,
+        get hint() { return t('avatars.upload.reqs.gallery', 'PNG/JPG, max 3 MB, max 2000x2000'); }
+    },
+    avatarImage: {
+        maxMB: 3,
+        ratioW: null,
+        ratioH: null,
+        minPx: 1,
+        maxPx: 2000,
+        directBlob: true,
+        get hint() { return t('avatars.upload.reqs.image', 'PNG/JPG, max 3 MB, max 2000x2000'); }
+    },
     photos: {
         maxMB: 8,
         ratioW: null,
@@ -709,6 +727,13 @@ function iuDoUpload() {
     out.getContext('2d').drawImage(_iuImg, 0, 0, targetW, targetH);
 
     out.toBlob(blob => {
+        if (req?.directBlob && _iuCallback) {
+            const cb = _iuCallback;
+            _iuCallback = null;
+            closeInvUploadModal();
+            cb(blob);
+            return;
+        }
         const reader = new FileReader();
         reader.onload = event => {
             sendToCS({

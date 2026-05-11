@@ -2,6 +2,8 @@
 /* === Avatar Detail Modal === */
 let _avDetailData = null;
 let _avEditTags   = [];
+let _avGalleryLoaded = false;
+let _avGalleryImages = [];
 
 const _avatarDetailCache = {};
 
@@ -97,6 +99,8 @@ function avRemoveTag(idx) {
 function renderAvatarDetail(a) {
     if (a.id) _avatarDetailCache[a.id] = a;
     _avDetailData = a;
+    _avGalleryLoaded = false;
+    _avGalleryImages = [];
     if (typeof navUpdateLabel === 'function') navUpdateLabel(a.name || '');
     const c = document.getElementById('avatarDetailContent');
     if (!c) return;
@@ -206,7 +210,7 @@ function renderAvatarDetail(a) {
     </div>`;
 
     c.innerHTML = `
-        ${thumb ? `<div class="fd-banner"><img src="${thumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/avatar/${esc(a.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>` : ''}
+        ${thumb ? `<div class="fd-banner"><img src="${thumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div>${isOwn ? `<button class="btn-notif" style="position:absolute;top:8px;right:44px;z-index:3;" title="${esc(t('avatars.detail.actions.change_image','Change Image'))}" onclick="avUploadBannerImage('${aid}')" id="avBannerEditBtn"><span class="msi" style="font-size:20px;">edit</span></button>` : ''}<button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/avatar/${esc(a.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>` : ''}
         <div class="fd-content${thumb ? ' fd-has-banner' : ''}">
             <div class="fd-header">
                 <div style="flex:1;min-width:0;">
@@ -227,6 +231,7 @@ function renderAvatarDetail(a) {
             <div class="fd-badges-row" style="margin-bottom:10px;">${statusBadge}${idBadge(a.id)}</div>
             <div class="fd-tabs" style="margin-bottom:14px;">
                 <button class="fd-tab active" onclick="switchAvTab('info',this)">${t('profiles.tabs.info', 'Info')}</button>
+                <button class="fd-tab" onclick="switchAvTab('gallery',this)">${t('avatars.tabs.gallery', 'Gallery')}</button>
                 <button class="fd-tab" onclick="switchAvTab('json',this)">Json</button>
             </div>
             <div id="avTabInfo">
@@ -236,6 +241,10 @@ function renderAvatarDetail(a) {
                         <div class="fd-info-right">${_infosCard}</div>
                     </div>
                 </div>
+            </div>
+            <div id="avTabGallery" style="display:none;">
+                ${isOwn ? `<div style="margin-bottom:10px;"><button class="vrcn-button" id="avGalleryUploadBtn" onclick="avUploadGalleryImage('${aid}')"><span class="msi" style="font-size:16px;">upload</span> ${esc(t('avatars.gallery.upload_image', 'Upload Image'))}</button></div>` : ''}
+                <div id="avGalleryContent" style="min-height:60px;"></div>
             </div>
             <div id="avTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight(a?.rawJson || a || {})}</div></div>
             <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:6px;">
@@ -299,10 +308,130 @@ function onAvatarUpdateResult(data) {
 function switchAvTab(tab, btn) {
     const infoEl = document.getElementById('avTabInfo');
     const jsonEl = document.getElementById('avTabJson');
+    const galleryEl = document.getElementById('avTabGallery');
     if (infoEl) infoEl.style.display = tab === 'info' ? '' : 'none';
     if (jsonEl) jsonEl.style.display = tab === 'json' ? '' : 'none';
+    if (galleryEl) galleryEl.style.display = tab === 'gallery' ? '' : 'none';
     document.querySelectorAll('#avatarDetailContent .fd-tab').forEach(t => t.classList.remove('active'));
     if (btn) btn.classList.add('active');
+    if (tab === 'gallery' && !_avGalleryLoaded) {
+        _avGalleryLoaded = true;
+        const avId = _avDetailData?.id;
+        if (avId) {
+            const gc = document.getElementById('avGalleryContent');
+            if (gc) gc.innerHTML = '<div class="myp-empty">' + sk('list') + '</div>';
+            sendToCS({ action: 'vrcGetAvatarGallery', avatarId: avId });
+        }
+    }
+}
+
+function avUploadGalleryImage(avatarId) {
+    openInvUploadModal('avatarGallery', blob => {
+        const btn = document.getElementById('avGalleryUploadBtn');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="msi" style="font-size:16px;">hourglass_empty</span> Uploading...'; }
+        const reader = new FileReader();
+        reader.onload = e => sendToCS({ action: 'vrcUploadAvatarGallery', avatarId, data: e.target.result });
+        reader.readAsDataURL(blob);
+    });
+}
+
+function avUploadBannerImage(avatarId) {
+    openInvUploadModal('avatarImage', blob => {
+        const reader = new FileReader();
+        reader.onload = e => sendToCS({ action: 'vrcUploadAvatarImage', avatarId, data: e.target.result });
+        reader.readAsDataURL(blob);
+    });
+}
+
+function buildAvGalleryCard(img, isOwn) {
+    const imgUrl = img.url || '';
+    const imgAttr = esc(imgUrl);
+    const imgJs = jsq(imgUrl);
+    const fileId = jsq(img.id || '');
+    const defaultFileBase = img.name || 'image';
+    const fileName = jsq(defaultFileBase + '.png');
+    const sizeStr = formatFileSize(img.sizeBytes || 0);
+    const timeStr = invTimeLabel(img.createdAt);
+    const nameDisp = esc(img.name || t('inventory.card.unnamed', 'Unnamed'));
+    const noPreviewHtml = `<div class=\\'inv-no-preview\\'>${esc(t('inventory.empty.no_preview', 'No Preview'))}</div>`;
+
+    const actions = `<div class="lib-actions">
+        <button class="vrcn-lib-button clip" onclick="event.stopPropagation();invDownload('${imgJs}','${fileName}')" title="${esc(t('inventory.actions.download', 'Download'))}"><span class="msi" style="font-size:16px;">download</span></button>
+        ${isOwn ? `<button class="vrcn-lib-button del" onclick="event.stopPropagation();avGalleryConfirmDelete('${fileId}')" title="${esc(t('inventory.actions.delete', 'Delete'))}"><span class="msi" style="font-size:16px;">delete</span></button>` : ''}
+    </div>`;
+
+    return `<div class="lib-card inv-card">
+        ${actions}
+        <div class="lib-thumb-wrap" onclick="openLightbox('${imgJs}','image')">
+            ${imgUrl ? `<img class="lib-thumb" src="${imgAttr}" loading="lazy" onerror="this.outerHTML='${noPreviewHtml}'">` : `<div class="inv-no-preview">${esc(t('inventory.empty.no_preview', 'No Preview'))}</div>`}
+        </div>
+        <div class="lib-info">
+            <div class="lib-name">${nameDisp}</div>
+            <div class="lib-meta"><span>${sizeStr}</span><span>${timeStr}</span></div>
+        </div>
+    </div>`;
+}
+
+function _renderAvGallery() {
+    const gc = document.getElementById('avGalleryContent');
+    if (!gc) return;
+    const isOwn = !!(currentVrcUser && _avDetailData && _avDetailData.authorId === currentVrcUser.id);
+    if (!_avGalleryImages.length) {
+        gc.innerHTML = `<div class="myp-empty">${t('avatars.gallery.empty', 'No gallery images')}</div>`;
+        return;
+    }
+    const groups = {};
+    _avGalleryImages.forEach(img => {
+        const key = invGroupDateLabel(img.createdAt);
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(img);
+    });
+    let inner = '';
+    for (const [groupLabel, items] of Object.entries(groups)) {
+        inner += `<div class="lib-date-group">${esc(groupLabel)}</div>`;
+        items.forEach(img => { inner += buildAvGalleryCard(img, isOwn); });
+    }
+    gc.innerHTML = `<div class="inv-grid" style="overflow:visible;flex:unset;padding:0;">${inner}</div>`;
+}
+
+function onAvatarGallery(data) {
+    if (!data || !_avDetailData || data.avatarId !== _avDetailData.id) return;
+    _avGalleryImages = data.images || [];
+    _renderAvGallery();
+}
+
+function avGalleryConfirmDelete(fileId) {
+    const img = _avGalleryImages.find(i => i.id === fileId);
+    showInvDeleteModal('file', fileId, null, img?.name || t('inventory.delete.this_item', 'this item'));
+}
+
+function onAvGalleryItemDeleted(fileId) {
+    _avGalleryImages = _avGalleryImages.filter(i => i.id !== fileId);
+    _renderAvGallery();
+}
+
+function onAvatarGalleryResult(data) {
+    const btn = document.getElementById('avGalleryUploadBtn');
+    if (btn) { btn.disabled = false; btn.innerHTML = `<span class="msi" style="font-size:16px;">upload</span> ${esc(t('avatars.gallery.upload_image', 'Upload Image'))}`; }
+    if (data.ok) {
+        showToast(true, t('avatars.gallery.uploaded', 'Gallery image uploaded!'));
+        onAvatarGallery(data);
+    } else {
+        showToast(false, data.error || t('avatars.gallery.upload_failed', 'Upload failed'));
+    }
+}
+
+function onAvatarImageResult(data) {
+    if (data.ok) {
+        showToast(true, t('avatars.detail.toast.image_updated', 'Avatar image updated!'));
+        if (data.imageUrl && _avDetailData) {
+            _avDetailData.thumbnailImageUrl = data.imageUrl;
+            _avDetailData.imageUrl = data.imageUrl;
+            renderAvatarDetail(_avDetailData);
+        }
+    } else {
+        showToast(false, data.error || t('avatars.detail.toast.image_update_failed', 'Image update failed'));
+    }
 }
 
 function avRenderTagChips() {
