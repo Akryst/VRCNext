@@ -1,5 +1,11 @@
 **2026.24.1**
 
+**Avatar Search**
+* Improved Avatar Search so deleted avatars are now displayed correctly.
+* Avatar Search now uses its own database for deleted avatars with a TTL of 30 days.
+* Avatar content in user profiles now uses the same caching methods as Avatar Search, so avatars are cached correctly.
+* Reduced VRChat API Calls to verify if an Avatar still exists by using the 30 Day TTL.
+
 **Settings**
 * Grouped settings in different sub tabs by @A31A18B25C9D012
 // Extracted from PR #50 and merged to Backend-Refactor-4

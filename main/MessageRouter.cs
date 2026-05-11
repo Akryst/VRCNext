@@ -110,40 +110,13 @@ public partial class AppShell
     private readonly HashSet<string> _avtrIcuSubmittedIds = new();
     private System.Threading.Timer? _avtrIcuSubmitTimer;
 
-    private static readonly string _deletedAvatarsPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "VRCNext", "deleted_avatars.json");
-
     private void LoadDeletedAvatarsCache()
     {
-        try
+        foreach (var id in AvtrdbCacheHelper.LoadAllDeletedIds())
         {
-            if (File.Exists(_deletedAvatarsPath))
-            {
-                var json = File.ReadAllText(_deletedAvatarsPath);
-                var ids = JsonConvert.DeserializeObject<List<string>>(json);
-                if (ids != null)
-                {
-                    foreach (var id in ids)
-                    {
-                        _deletedAvatarIds.Add(id);
-                        _checkedAvatarIds.Add(id);
-                    }
-                }
-            }
+            _deletedAvatarIds.Add(id);
+            _checkedAvatarIds.Add(id);
         }
-        catch { }
-    }
-
-    private void SaveDeletedAvatarsCache()
-    {
-        try
-        {
-            var dir = Path.GetDirectoryName(_deletedAvatarsPath)!;
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            File.WriteAllText(_deletedAvatarsPath, JsonConvert.SerializeObject(_deletedAvatarIds.ToList()));
-        }
-        catch { }
     }
 
     private void QueueAvtrdbReport(List<string> ids)
@@ -875,11 +848,15 @@ public partial class AppShell
                                 _ = Task.Run(() => QueueAvtrIcuReport(cachedDeleted));
                         }
 
-                        // Mark IDs as checked IMMEDIATELY to prevent duplicate concurrent checks
+                        // Skip IDs already cached in Avatar_Deletion or Avatar_User_Content (30-day TTL).
+                        // Also de-duplicate concurrent checks within the same session.
                         string[] toCheck;
                         lock (_checkedAvatarIds)
                         {
-                            toCheck = ids.Where(id => _checkedAvatarIds.Add(id)).ToArray();
+                            toCheck = ids.Where(id =>
+                                !AvtrdbCacheHelper.IsDeletedCached(id) &&
+                                !AvtrdbCacheHelper.IsUserContentCached(id) &&
+                                _checkedAvatarIds.Add(id)).ToArray();
                         }
 
                         if (toCheck.Length > 0)
@@ -887,19 +864,23 @@ public partial class AppShell
                             _ = Task.Run(async () =>
                             {
                                 var deleted = new List<string>();
+                                var exists  = new List<string>();
                                 foreach (var id in toCheck)
                                 {
                                     try
                                     {
                                         var av = await _core.Avatars.GetAvatarAsync(id);
                                         if (av == null) { deleted.Add(id); lock (_deletedAvatarIds) _deletedAvatarIds.Add(id); }
+                                        else exists.Add(id);
                                     }
                                     catch { deleted.Add(id); lock (_deletedAvatarIds) _deletedAvatarIds.Add(id); }
                                     await Task.Delay(250);
                                 }
+                                if (exists.Count > 0)
+                                    AvtrdbCacheHelper.MarkUserContentBatch("", exists, "avtrdb");
                                 if (deleted.Count > 0)
                                 {
-                                    SaveDeletedAvatarsCache();
+                                    AvtrdbCacheHelper.MarkDeletedBatch(deleted, "avtrdb");
                                     Invoke(() => SendToJS("vrcAvatarsDeleted", new { ids = deleted }));
 
                                     if (_settings.AvtrdbReportDeleted)
