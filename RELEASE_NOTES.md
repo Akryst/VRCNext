@@ -7,6 +7,10 @@
 * Added a **JSON Payload** tab to User Profiles.
 * Added a **JSON Payload** tab to Own Profile.
 
+**Friend Toats** by @A31A18B25C9D012
+* Shows an toast when one of your friends joined the game.
+You can enable or disable this setting in Settings > Notifications
+
 **World Tab**
 * Added Search filter in Worlds > Search
 * You can now filter between: Relevance, Popularity, Updated, Created, Shuffle
