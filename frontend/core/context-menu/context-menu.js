@@ -1088,7 +1088,7 @@
             }
 
             items.push('sep');
-            items.push({ icon: 'notifications', label: cm('friend.toast', 'Toast'), submenuFn: btn => showToastAlertSubmenu(id, btn) });
+            if (settings?.friendOnlineToastEnabled) items.push({ icon: 'notifications', label: cm('friend.toast', 'Toast'), submenuFn: btn => showToastAlertSubmenu(id, btn) });
             items.push({ icon: 'shield_person', label: cm('friend.moderate', 'Moderate'), submenuFn: btn => showModerateSubmenu(id, btn) });
             items.push({ icon: 'person_remove', label: cm('friend.unfriend', 'Unfriend'), action: () => sendToCS({ action: 'vrcUnfriend', userId: id }), danger: true, confirm: true });
         } else {

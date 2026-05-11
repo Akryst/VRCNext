@@ -871,7 +871,7 @@
   "settings.friend_toast.enabled_desc": "当好友上线时，在右下角显示通知卡片。",
   "settings.friend_toast.fav_only": "仅显示收藏好友",
   "settings.friend_toast.fav_only_desc": "仅对已收藏的好友显示通知卡片。",
-  "settings.friend_toast.how_it_works": "右键点击好友的通知卡片可设置单独偏好：<b>始终通知</b>始终显示通知卡片——即使"仅显示收藏好友"已开启且该好友未被收藏。<b>默认</b>遵循此全局设置。<b>从不通知</b>无论全局设置如何都不显示该好友的通知。",
+  "settings.friend_toast.how_it_works": "右键点击好友的通知卡片可设置单独偏好。<b>始终通知</b>始终显示通知卡片，即使"仅显示收藏好友"已开启且该好友未被收藏。<b>默认</b>遵循全局设置。<b>从不通知</b>无论全局设置如何都不显示该好友的通知。",
   "settings.window.title": "窗口行为",
   "settings.window.remember_size": "记住窗口大小",
   "settings.window.remember_size_desc": "VRCNext 启动时恢复上次使用的窗口大小。",
