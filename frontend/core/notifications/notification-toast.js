@@ -251,6 +251,10 @@ function _showFriendOnlineCard(data) {
     });
 
     card._ncTimer = setTimeout(() => _dismissNotifCard(card), 5200);
+
+    if (document.getElementById('setMinimizeToTray')?.checked && document.getElementById('setTrayNotifications')?.checked) {
+        sendToCS({ action: 'trayNotification', title: data.displayName || uid, subtitle: t('notifications.friend_toast.came_online', 'came online'), imageUrl: img, accentKey: 'ok' });
+    }
 }
 
 function _acceptNotifCard(notifId, btn) {
