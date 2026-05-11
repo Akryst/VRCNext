@@ -21,5 +21,5 @@
 
 .vrcn-content-card.av-active {
     outline: 2px solid var(--accent);
-    box-shadow: 0 0 20px rgba(56,132,255,.2);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
 }

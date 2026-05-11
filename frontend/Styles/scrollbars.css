@@ -1,9 +1,9 @@
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--brd); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.28); }
 ::-webkit-scrollbar-corner { background: transparent; }
 .vrcn-scrollbar ::-webkit-scrollbar { width: 5px; }
 .vrcn-scrollbar ::-webkit-scrollbar-track { background: transparent; }
-.vrcn-scrollbar ::-webkit-scrollbar-thumb { background: var(--brd); border-radius: 3px; }
-.vrcn-scrollbar ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+.vrcn-scrollbar ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 3px; }
+.vrcn-scrollbar ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.28); }

@@ -205,6 +205,7 @@ public class AppSettings
     public bool SteamOverlaySoundEnabled { get; set; } = true;
     public bool MinimizeToTray { get; set; }
     public bool TrayNotificationsEnabled { get; set; }
+    public bool FriendOnlineToast { get; set; }
     public string Language { get; set; } = "en";
     public string Theme { get; set; } = "midnight";
     public string SpecialTheme { get; set; } = "";

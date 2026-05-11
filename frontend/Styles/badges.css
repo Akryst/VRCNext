@@ -19,7 +19,7 @@
 .vrcn-badge.hidden     { background: rgba(120,140,175,.12); color: var(--tx2); }
 
 .vrcn-badge.platform-web { background: rgba(255,167,38,.18); color: #FFA726; }
-.vrcn-badge.accent       { background: rgba(56,132,255,.18); color: var(--accent); }
+.vrcn-badge.accent       { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
 
 .vrcn-badge.ok   { background: rgba(45,212,140,.12);  color: var(--ok); }
 .vrcn-badge.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }

@@ -1,4 +1,12 @@
-﻿function renderFolders(f) {
+﻿function switchSettingsSection(id, btn) {
+    document.querySelectorAll('.settings-section').forEach(s => { s.style.display = 'none'; });
+    document.querySelectorAll('.settings-nav-item').forEach(b => b.classList.remove('active'));
+    const sec = document.getElementById('ss-' + id);
+    if (sec) sec.style.display = 'flex';
+    if (btn) btn.classList.add('active');
+}
+
+function renderFolders(f) {
     const e = document.getElementById('folderList');
     if (!f || !f.length) {
         e.innerHTML = `<div class="folder-empty">${t('settings.watch_folders.empty', 'No folders added')}</div>`;
@@ -104,6 +112,7 @@ function saveSettings() {
             messageSoundEnabled: document.getElementById('setMessageSoundEnabled').checked,
             mediaRelaySoundEnabled: document.getElementById('setMediaRelaySoundEnabled').checked,
             steamOverlaySoundEnabled: document.getElementById('setSteamOverlaySoundEnabled')?.checked ?? true,
+            friendOnlineToast: document.getElementById('setFriendOnlineToast')?.checked ?? false,
             language: currentLanguage,
             theme: currentTheme,
             specialTheme: currentSpecialTheme,
@@ -233,6 +242,7 @@ function saveSettings() {
     settings.messageSoundEnabled     = payload.data.messageSoundEnabled;
     settings.mediaRelaySoundEnabled  = payload.data.mediaRelaySoundEnabled;
     settings.steamOverlaySoundEnabled = payload.data.steamOverlaySoundEnabled;
+    settings.friendOnlineToast = payload.data.friendOnlineToast;
     sendToCS(payload);
 }
 
@@ -318,8 +328,11 @@ function loadSettingsToUI(s) {
     settings.messageSoundEnabled = s.MessageSoundEnabled ?? s.messageSoundEnabled ?? false;
     settings.mediaRelaySoundEnabled = s.MediaRelaySoundEnabled ?? s.mediaRelaySoundEnabled ?? false;
     settings.steamOverlaySoundEnabled = s.SteamOverlaySoundEnabled ?? s.steamOverlaySoundEnabled ?? true;
+    settings.friendOnlineToast = s.FriendOnlineToast ?? s.friendOnlineToast ?? false;
     const _sovEl = document.getElementById('setSteamOverlaySoundEnabled');
     if (_sovEl) _sovEl.checked = settings.steamOverlaySoundEnabled;
+    const _fotEl = document.getElementById('setFriendOnlineToast');
+    if (_fotEl) _fotEl.checked = settings.friendOnlineToast;
     // Restore GUI zoom level
     const savedZoom = s.GuiZoom ?? s.guiZoom ?? 100;
     applyGuiZoom(savedZoom / 100);
@@ -1191,6 +1204,47 @@ function handleRegBackupDone(data) {
     const btn = document.getElementById('btnManualRegBackup');
     if (btn) btn.disabled = false;
     _showBackupResult('manualBackupResult', 'Registry backup created', data);
+}
+
+function loadVrchatConfig() {
+    const status = document.getElementById('vrchatConfigStatus');
+    if (status) status.textContent = 'Loading...';
+    sendToCS({ action: 'vrcGetVrchatConfig' });
+}
+
+function saveVrchatConfig() {
+    const editor = document.getElementById('vrchatConfigEditor');
+    if (!editor) return;
+    let parsed;
+    try {
+        parsed = JSON.parse(editor.value);
+    } catch {
+        const status = document.getElementById('vrchatConfigStatus');
+        if (status) { status.textContent = 'Invalid JSON — fix errors before saving.'; status.style.color = 'var(--err)'; }
+        return;
+    }
+    sendToCS({ action: 'vrcSaveVrchatConfig', config: parsed });
+}
+
+function handleVrchatConfig(payload) {
+    const editor = document.getElementById('vrchatConfigEditor');
+    const status = document.getElementById('vrchatConfigStatus');
+    const saveBtn = document.getElementById('btnSaveVrchatConfig');
+    if (!editor) return;
+    if (payload.error) {
+        if (status) { status.textContent = 'Error: ' + payload.error; status.style.color = 'var(--err)'; }
+        return;
+    }
+    try {
+        editor.value = JSON.stringify(payload.config, null, 2);
+        if (status) {
+            status.style.color = 'var(--tx3)';
+            status.textContent = payload.exists ? 'Loaded from: ' + (payload.path || '') : 'File does not exist yet — will be created on save.';
+        }
+        if (saveBtn) saveBtn.disabled = true;
+    } catch {
+        editor.value = '';
+    }
 }
 
 function handleDbBackupDone(data) {

@@ -38,7 +38,7 @@
     color: var(--err) !important;
 }
 .vn-ctx-sep {
-    height: 1px; background: var(--brd); margin: 4px 6px;
+    height: 1px; background: rgba(255,255,255,.07); margin: 4px 6px;
 }
 .gd-post-del { flex-shrink: 0; color: var(--tx3); padding: 2px; transition: color .15s; }
 .gd-post-del:hover { color: var(--err); }

@@ -39,7 +39,7 @@
     width: 36px;
     height: 20px;
     border-radius: 10px;
-    background: var(--brd);
+    background: rgba(255,255,255,.14);
     cursor: pointer;
     transition: background .2s;
     position: relative;

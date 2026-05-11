@@ -887,7 +887,7 @@ public class InstanceController
                             {
                                 var img = VRChatApiService.GetUserImage(profile);
                                 _core.PlayerAgeVerifiedCache[p.UserId] = profile["ageVerified"]?.Value<bool>() ?? false;
-                                _core.PlayerProfileCache[p.UserId] = profile;
+                                _core.CachePlayerProfile(p.UserId, profile);
                                 lock (userProfiles)
                                     userProfiles[p.UserId] = profile;
                             }
@@ -1251,7 +1251,7 @@ public class InstanceController
                         if (profile == null) return;
                         var fetchedImg = ImageCacheHelper.GetUserUrl(userId, VRChatApiService.GetUserImage(profile));
                         if (string.IsNullOrEmpty(fetchedImg)) return;
-                        _core.PlayerProfileCache[userId]   = profile;
+                        _core.CachePlayerProfile(userId, profile);
                         _core.PlayerAgeVerifiedCache[userId] = profile["ageVerified"]?.Value<bool>() ?? false;
                         if (_cumulativeInstancePlayers.TryGetValue(userId, out var ex2) && string.IsNullOrEmpty(ex2.image))
                             _cumulativeInstancePlayers[userId] = (ex2.displayName, fetchedImg);
@@ -1320,7 +1320,7 @@ public class InstanceController
                             if (profile == null) return;
                             var fetchedImg = ImageCacheHelper.GetUserUrl(userId, VRChatApiService.GetUserImage(profile));
                             if (string.IsNullOrEmpty(fetchedImg)) return;
-                            _core.PlayerProfileCache[userId]   = profile;
+                            _core.CachePlayerProfile(userId, profile);
                             _core.PlayerAgeVerifiedCache[userId] = profile["ageVerified"]?.Value<bool>() ?? false;
                             if (_cumulativeInstancePlayers.TryGetValue(userId, out var ex3) && string.IsNullOrEmpty(ex3.image))
                                 _cumulativeInstancePlayers[userId] = (ex3.displayName, fetchedImg);
@@ -1350,7 +1350,7 @@ public class InstanceController
                     if (profile == null) return;
                     var img = VRChatApiService.GetUserImage(profile);
                     _core.PlayerAgeVerifiedCache[userId] = profile["ageVerified"]?.Value<bool>() ?? false;
-                    _core.PlayerProfileCache[userId] = profile;
+                    _core.CachePlayerProfile(userId, profile);
 
                     // Also enrich the cumulative instance player record with the resolved image
                     if (_cumulativeInstancePlayers.TryGetValue(userId, out var existing) && string.IsNullOrEmpty(existing.image))

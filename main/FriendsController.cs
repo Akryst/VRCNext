@@ -353,6 +353,29 @@ public class FriendsController
                 break;
             }
 
+            case "vrcSetFriendAlert":
+            {
+                var alertUid = msg["userId"]?.ToString();
+                var alertEnabled = msg["enabled"]?.Value<bool>() ?? false;
+                if (!string.IsNullOrEmpty(alertUid))
+                {
+                    _core.TimeEngine.SetFriendAlert(alertUid, alertEnabled);
+                    _core.SendToJS("vrcFriendAlertSet", new { userId = alertUid, enabled = alertEnabled });
+                }
+                break;
+            }
+
+            case "vrcGetFriendAlert":
+            {
+                var alertUid = msg["userId"]?.ToString();
+                if (!string.IsNullOrEmpty(alertUid))
+                {
+                    var enabled = _core.TimeEngine.GetFriendAlert(alertUid);
+                    _core.SendToJS("vrcFriendAlertState", new { userId = alertUid, enabled });
+                }
+                break;
+            }
+
             case "vrcJoinFriend":
                 var joinLoc = msg["location"]?.ToString();
                 if (!string.IsNullOrEmpty(joinLoc))
@@ -647,7 +670,13 @@ public class FriendsController
                         var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "block");
                         _core.SendToJS("vrcActionResult", new { action = "block", success = ok,
                             message = ok ? "Blocked" : "Failed to block" });
-                        if (ok) { _core.Cache.Delete(CacheHandler.KeyBlockedPersons); _core.SendToJS("vrcModDone", new { userId = uid, type = "block", active = true }); }
+                        if (ok)
+                        {
+                            var dn = _friendNameImg.GetValueOrDefault(uid).name;
+                            _core.TimeEngine.AddModerationLog(uid, dn, "block");
+                            _core.Cache.Delete(CacheHandler.KeyBlockedPersons);
+                            _core.SendToJS("vrcModDone", new { userId = uid, type = "block", active = true });
+                        }
                     });
                 }
                 break;
@@ -663,7 +692,13 @@ public class FriendsController
                         var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "mute");
                         _core.SendToJS("vrcActionResult", new { action = "mute", success = ok,
                             message = ok ? "Muted" : "Failed to mute" });
-                        if (ok) { _core.Cache.Delete(CacheHandler.KeyMutedPersons); _core.SendToJS("vrcModDone", new { userId = uid, type = "mute", active = true }); }
+                        if (ok)
+                        {
+                            var dn = _friendNameImg.GetValueOrDefault(uid).name;
+                            _core.TimeEngine.AddModerationLog(uid, dn, "mute");
+                            _core.Cache.Delete(CacheHandler.KeyMutedPersons);
+                            _core.SendToJS("vrcModDone", new { userId = uid, type = "mute", active = true });
+                        }
                     });
                 }
                 break;
@@ -679,7 +714,13 @@ public class FriendsController
                         var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "block");
                         _core.SendToJS("vrcActionResult", new { action = "unblock", success = ok,
                             message = ok ? "Unblocked" : "Failed to unblock" });
-                        if (ok) { _core.Cache.Delete(CacheHandler.KeyBlockedPersons); _core.SendToJS("vrcModDone", new { userId = uid, type = "block", active = false }); }
+                        if (ok)
+                        {
+                            var dn = _friendNameImg.GetValueOrDefault(uid).name;
+                            _core.TimeEngine.AddModerationLog(uid, dn, "unblock");
+                            _core.Cache.Delete(CacheHandler.KeyBlockedPersons);
+                            _core.SendToJS("vrcModDone", new { userId = uid, type = "block", active = false });
+                        }
                     });
                 }
                 break;
@@ -695,7 +736,13 @@ public class FriendsController
                         var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "mute");
                         _core.SendToJS("vrcActionResult", new { action = "unmute", success = ok,
                             message = ok ? "Unmuted" : "Failed to unmute" });
-                        if (ok) { _core.Cache.Delete(CacheHandler.KeyMutedPersons); _core.SendToJS("vrcModDone", new { userId = uid, type = "mute", active = false }); }
+                        if (ok)
+                        {
+                            var dn = _friendNameImg.GetValueOrDefault(uid).name;
+                            _core.TimeEngine.AddModerationLog(uid, dn, "unmute");
+                            _core.Cache.Delete(CacheHandler.KeyMutedPersons);
+                            _core.SendToJS("vrcModDone", new { userId = uid, type = "mute", active = false });
+                        }
                     });
                 }
                 break;
@@ -937,6 +984,7 @@ public class FriendsController
         "vrcBoop",
         "vrcSendChatMessage", "vrcGetChatHistory", "vrcGetUser",
         "vrcGetUserAvatars", "vrcGetUserFavWorlds",
+        "vrcSetFriendAlert", "vrcGetFriendAlert",
     };
 
     public static bool HandlesAction(string action) => _handledActions.Contains(action);
@@ -2144,6 +2192,12 @@ public class FriendsController
         _friendLastLoc[e.UserId] = (string.IsNullOrEmpty(onlineLoc) && prevLoc.StartsWith("wrld_")) ? prevLoc : onlineLoc;
 
         if (alreadyInGame) return; // already online, don't spam timeline
+
+        if (_core.Settings.FriendOnlineToast && !string.IsNullOrEmpty(fname))
+        {
+            bool isImportant = _core.TimeEngine.GetFriendAlert(e.UserId);
+            _core.SendToJS("friendOnlineToast", new { name = fname, image = fimg, important = isImportant });
+        }
 
         var fev = new TimelineService.FriendTimelineEvent
         {

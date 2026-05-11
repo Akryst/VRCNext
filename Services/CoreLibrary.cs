@@ -42,6 +42,15 @@ public class CoreLibrary
     public string CurrentVrcUserId { get; set; } = "";
     public string MyVrcStatus { get; set; } = "active";
 
+    // cap profile cache to avoid unbounded growth across long sessions
+    private const int ProfileCacheMax = 500;
+    public void CachePlayerProfile(string userId, Newtonsoft.Json.Linq.JObject profile)
+    {
+        if (PlayerProfileCache.Count >= ProfileCacheMax)
+            PlayerProfileCache.Clear();
+        PlayerProfileCache[userId] = profile;
+    }
+
     // Permini — userId → (allowActive, allowAskMe, allowDnD)
     public Dictionary<string, (bool allowActive, bool allowAskMe, bool allowDnD)> PerminiList { get; } = new();
     public DateTime DiscordJoinedAt { get; set; } = DateTime.MinValue;

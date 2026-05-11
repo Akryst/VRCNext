@@ -16,11 +16,11 @@
     white-space: nowrap;
 }
 .vrcn-notify-button .msi { font-size: 13px; line-height: 1; }
-.vrcn-notify-button:hover { background: var(--brd); color: var(--tx1); }
+.vrcn-notify-button:hover { background: rgba(255,255,255,.1); color: var(--tx1); }
 .vrcn-notify-button:disabled { opacity: .45; cursor: not-allowed; }
 .vrcn-notify-button.primary { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
 .vrcn-notify-button.primary:hover { background: var(--accent); color: #fff; }
-.vrcn-notify-button.danger { background: none; border: 1px solid var(--brd); color: var(--tx3); }
+.vrcn-notify-button.danger { background: none; border: 1px solid rgba(255,255,255,.12); color: var(--tx3); }
 .vrcn-notify-button.danger:hover { background: rgba(255,75,85,.15); color: var(--err); border-color: var(--err); }
 
 
@@ -197,7 +197,7 @@
 /* Toast Notifications */
 .notif-toast-area {
     position: fixed;
-    top: 16px;
+    top: calc(var(--tb-h, 42px) + 8px);
     right: 16px;
     z-index: 99999;
     display: flex;
@@ -317,7 +317,7 @@
 .nc-close-btn:hover { background: var(--bg-hover); color: var(--tx1); }
 .nc-timer {
     height: 3px;
-    background: var(--brd);
+    background: rgba(255,255,255,.07);
 }
 .nc-timer-bar {
     height: 100%;

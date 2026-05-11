@@ -116,7 +116,7 @@
     cursor: pointer; transition: background .12s;
     font-size: 12px; color: var(--tx1);
 }
-.inv-msg-item:hover { background: var(--brd); }
+.inv-msg-item:hover { background: rgba(255,255,255,.08); }
 .inv-msg-item.selected { background: var(--accent); color: #fff; }
 .inv-msg-item.selected .inv-msg-edit { color: rgba(255,255,255,.7); }
 .inv-msg-item.selected .inv-msg-edit:hover { color: #fff; }
