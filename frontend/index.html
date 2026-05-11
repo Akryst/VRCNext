@@ -67,7 +67,7 @@
 <body>
     <div class="app-body">
     <div class="sidebar" id="sidebarEl">
-        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.22.9</div></div></div>
+        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.24.1</div></div></div>
         <div class="nav vrcn-scrollbar">
             <button class="nav-btn active" onclick="showTab(0)" data-nav="dashboard"><span class="ni msi">dashboard</span><span class="nl" data-i18n="nav.dashboard">Dashboard</span></button>
             <button class="nav-btn" onclick="showTab(1)"><span class="ni msi">travel_explore</span><span class="nl" data-i18n="nav.worlds">Worlds</span></button>
@@ -108,7 +108,9 @@
         <div id="taskbar">
             <div id="tb-left">
                 <div class="tb-brand">VRCNext</div>
+                <div class="tb-sep"></div>
                 <span class="topbar-title" id="pageTitle" data-i18n="page.dashboard" onclick="toggleHelpPanel()" style="cursor:pointer;" data-i18n-title="page.help.tooltip">Dashboard</span>
+                <div class="tb-sep"></div>
                 <div id="tbMenuItems">
                     <div class="tb-menu-item" id="tbMenuApp"><span data-i18n="tb.app">App</span>
                         <div class="tb-dropdown">
@@ -460,7 +462,17 @@
                     <div id="worldMineGrid" class="search-grid"><div class="empty-msg" data-i18n="worlds.mine.loading">Loading your worlds...</div></div>
                 </div>
                 <div id="worldSearchArea" style="display:none;">
-                    <div class="search-bar-row"><span class="msi search-ico">search</span><input type="text" id="searchWorldsInput" class="vrcn-input" placeholder="Search worlds..." data-i18n-placeholder="worlds.search.placeholder" onkeydown="if(event.key==='Enter')doSearch('worlds')"><button class="vrcn-button" onclick="doSearch('worlds')" data-i18n="common.search">Search</button></div>
+                    <div class="search-bar-row">
+                        <select id="worldSortSelect" class="vrcn-dropdown" style="flex-shrink:0;">
+                            <option value="relevance" data-i18n="worlds.search.sort.relevance">Relevance</option>
+                            <option value="popularity" data-i18n="worlds.search.sort.popularity">Popularity</option>
+                            <option value="updated" data-i18n="worlds.search.sort.updated">Updated</option>
+                            <option value="created" data-i18n="worlds.search.sort.created">Created</option>
+                            <option value="shuffle" data-i18n="worlds.search.sort.shuffle">Shuffle</option>
+                        </select>
+                        <div style="position:relative;flex:1;display:flex;align-items:center;"><span class="msi search-ico">search</span><input type="text" id="searchWorldsInput" class="vrcn-input" style="width:100%;" placeholder="Search worlds..." data-i18n-placeholder="worlds.search.placeholder" onkeydown="if(event.key==='Enter')doSearch('worlds')"></div>
+                        <button class="vrcn-button" onclick="doSearch('worlds')" data-i18n="common.search">Search</button>
+                    </div>
                     <div id="searchWorldsResults" class="search-grid"><div class="empty-msg" data-i18n="worlds.search.empty_prompt">Search for VRChat worlds</div></div>
                 </div>
                 <div id="worldFavArea">

@@ -230,12 +230,14 @@ function renderWorldSearchDetail(w) {
 
     const isOwnWorld = currentVrcUser && w.authorId === currentVrcUser.id;
     _wdCurrentWorldId = wid;
+    window._currentWorldDetailFull = w;
     _ciWorld = { id: w.id, name: w.name, thumb };
 
     const tabsHtml = `<div class="fd-tabs" style="margin-bottom:14px;">
         <button class="fd-tab active" onclick="switchWdTab('info',this)">${t('worlds.tabs.info', 'Info')}</button>
         <button class="fd-tab" onclick="switchWdTab('instances',this)">${tf('worlds.tabs.instances', { count: allInstances.length }, 'Instances ({count})')}</button>
         ${isOwnWorld ? `<button class="fd-tab" onclick="switchWdTab('insights',this)">${t('worlds.tabs.insights', 'Insights')}</button>` : ''}
+        <button class="fd-tab" onclick="switchWdTab('json',this)">Json</button>
     </div>`;
 
     const _wmr = (label, val) => `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"><span style="color:var(--tx3);">${label}</span><span style="color:var(--tx1);text-align:right;">${val}</span></div>`;
@@ -297,6 +299,7 @@ function renderWorldSearchDetail(w) {
             ${instancesHtml}
         </div>
         ${isOwnWorld ? `<div id="wdTabInsights" style="display:none;"><div id="wiContainer"></div></div>` : ''}
+        <div id="wdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight(w?.rawJson || w || {})}</div></div>
         <div style="margin-top:14px;text-align:right;"><button class="vrcn-button-round" onclick="closeWorldSearchDetail()">${t('common.close', 'Close')}</button></div>
         </div>`;
 
@@ -327,9 +330,11 @@ function switchWdTab(tab, btn) {
         const info      = document.getElementById('wdTabInfo');
         const instances = document.getElementById('wdTabInstances');
         const insights  = document.getElementById('wdTabInsights');
+        const jsonEl = document.getElementById('wdTabJson');
         if (info)      info.style.display      = tab === 'info'      ? '' : 'none';
         if (instances) instances.style.display = tab === 'instances' ? '' : 'none';
         if (insights)  insights.style.display  = tab === 'insights'  ? '' : 'none';
+        if (jsonEl)    jsonEl.style.display    = tab === 'json'      ? '' : 'none';
         document.querySelectorAll('#detailModalContent .fd-tab').forEach(t => t.classList.remove('active'));
         if (btn) btn.classList.add('active');
     });

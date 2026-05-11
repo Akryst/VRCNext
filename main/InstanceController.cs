@@ -47,6 +47,16 @@ public class InstanceController
     {
         _core = core;
         _friends = friends;
+        _core.TimeEngine.OnVrcClosed = () =>
+        {
+            if (_pendingInstanceEventId == null) return;
+            var id = _pendingInstanceEventId;
+            _pendingInstanceEventId = null;
+            var now = DateTime.UtcNow.ToString("o");
+            _core.Timeline.SetInstanceEventLeftAt(id, now);
+            var closed = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == id);
+            if (closed != null) _core.SendToJS("timelineEvent", BuildTimelinePayload(closed));
+        };
     }
 
     // Static Helpers

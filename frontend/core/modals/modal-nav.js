@@ -292,3 +292,25 @@ function _navTypeLabel(type) {
     };
     return labels[type] || type;
 }
+
+function jsonHighlight(obj) {
+    const json = JSON.stringify(obj, null, 2);
+    const re = /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g;
+    let result = '';
+    let last = 0;
+    let m;
+    while ((m = re.exec(json)) !== null) {
+        const pre = json.slice(last, m.index).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        result += pre;
+        const match = m[0];
+        const safe = match.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        let cls = 'json-num';
+        if (/^"/.test(match))       cls = /:$/.test(match) ? 'json-key' : 'json-str';
+        else if (/true|false/.test(match)) cls = 'json-bool';
+        else if (/null/.test(match))       cls = 'json-null';
+        result += `<span class="${cls}">${safe}</span>`;
+        last = m.index + match.length;
+    }
+    result += json.slice(last).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return result;
+}

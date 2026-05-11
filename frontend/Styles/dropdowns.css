@@ -144,3 +144,15 @@ div.vn-select {
     font-size: 18px;
     line-height: 1;
 }
+
+.search-bar-row .vn-select .vn-select-trigger .vn-select-label,
+.tl-topbar .vn-select .vn-select-trigger .vn-select-label,
+.tl-filter-row .vn-select .vn-select-trigger .vn-select-label,
+.inv-filter-row .vn-select .vn-select-trigger .vn-select-label {
+    font-size: 12px;
+}
+
+#worldSearchArea .vn-select .vn-select-trigger {
+    font-size: 12px;
+    line-height: 32px;
+}

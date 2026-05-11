@@ -1,25 +1,42 @@
-**2026.24.1**
+**2026.24.2**
 
-**Avatar Search**
-* Improved Avatar Search so deleted avatars are now displayed correctly.
-* Avatar Search now uses its own database for deleted avatars with a TTL of 30 days.
-* Avatar content in user profiles now uses the same caching methods as Avatar Search, so avatars are cached correctly.
-* Reduced VRChat API Calls to verify if an Avatar still exists by using the 30 Day TTL.
+**JSON Payload Information**
+* Added a **JSON Payload** tab to Groups.
+* Added a **JSON Payload** tab to Worlds.
+* Added a **JSON Payload** tab to Avatars.
+* Added a **JSON Payload** tab to User Profiles.
+* Added a **JSON Payload** tab to Own Profile.
 
-**Settings**
-* Grouped settings in different sub tabs by @A31A18B25C9D012
-// Extracted from PR #50 and merged to Backend-Refactor-4
-* Settings are now grouped in: General, Apperance, Notifications, VRChat, Data, Performance, Avatar Search, Advanced, VRCX, About
+**World Tab**
+* Added Search filter in Worlds > Search
+* You can now filter between: Relevance, Popularity, Updated, Created, Shuffle
 
-**Timeline**
+**Group Modal**
+* Moved the **Change Banner** pen next to the **Share** button.
 
-* Added instance information to `Personal / Locations`.
-* Added `From` and `To` parameters to `Personal / Locations`.
-* Added the `Time Spent` parameter to `Personal / Locations`.
-* Added the `Time Spent` parameter to `Friends / Locations`.
+**Own Profile Modal**
+* Moved the **Change Banner** pen next to the **Share** button.
+* Added a **Share** button to Own Profile.
+
+**Avatar Modal**
+* Added a **Change Banner** pen, so you can now change the image of your avatar inside VRCN.
+* Added a **Gallery** tab inside the Avatar Modal, so you can view gallery images of an avatar.
+* Added an **Upload Image** button to upload images to your own avatar gallery.
+* Added image compression for images larger than 5 MB.
+* Added an image crop tool for images larger than 2000x2000 pixels.
+
+**Settings Tab**
+* Sidebar is now fixed and only settings content scrolls.
+
+**i18n**
+* Added missing translation keys for Avatar Modals
 
 **Fixes**
 
+* Fixed "OnGoing" Status on personal instance locations.
+* Fixed legacy instance infos in timeline.
+* Fixed seperator height between Title and App tools inside the Taskbar.
+* Fixed "Profile Image" is shown in  "user" row in personal timeline instead of profile row.
 * Fixed the `VRCNext` text not being on the same row as the other elements, which caused it to be slightly offset.
 * Fixed several location and instance related issues in Timeline.
 * Fixed database issues caused by Timeline locations.
