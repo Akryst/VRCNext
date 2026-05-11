@@ -1,5 +1,8 @@
 /* === Search (Worlds, Groups, People) === */
 /* === World Tab: Favorites / Search filter === */
+document.documentElement.addEventListener('languagechange', () => {
+    document.getElementById('worldSortSelect')?._vnRefresh?.();
+});
 let _favRefreshTimer = null;
 let _favWorldsLoaded = false;
 let _worldEditMode = false;

@@ -7,6 +7,10 @@
 * Added a **JSON Payload** tab to User Profiles.
 * Added a **JSON Payload** tab to Own Profile.
 
+**World Tab**
+* Added Search filter in Worlds > Search
+* You can now filter between: Relevance, Popularity, Updated, Created, Shuffle
+
 **Group Modal**
 * Moved the **Change Banner** pen next to the **Share** button.
 

@@ -460,7 +460,17 @@
                     <div id="worldMineGrid" class="search-grid"><div class="empty-msg" data-i18n="worlds.mine.loading">Loading your worlds...</div></div>
                 </div>
                 <div id="worldSearchArea" style="display:none;">
-                    <div class="search-bar-row"><span class="msi search-ico">search</span><input type="text" id="searchWorldsInput" class="vrcn-input" placeholder="Search worlds..." data-i18n-placeholder="worlds.search.placeholder" onkeydown="if(event.key==='Enter')doSearch('worlds')"><button class="vrcn-button" onclick="doSearch('worlds')" data-i18n="common.search">Search</button></div>
+                    <div class="search-bar-row">
+                        <select id="worldSortSelect" class="vrcn-dropdown" style="flex-shrink:0;">
+                            <option value="relevance" data-i18n="worlds.search.sort.relevance">Relevance</option>
+                            <option value="popularity" data-i18n="worlds.search.sort.popularity">Popularity</option>
+                            <option value="updated" data-i18n="worlds.search.sort.updated">Updated</option>
+                            <option value="created" data-i18n="worlds.search.sort.created">Created</option>
+                            <option value="shuffle" data-i18n="worlds.search.sort.shuffle">Shuffle</option>
+                        </select>
+                        <div style="position:relative;flex:1;display:flex;align-items:center;"><span class="msi search-ico">search</span><input type="text" id="searchWorldsInput" class="vrcn-input" style="width:100%;" placeholder="Search worlds..." data-i18n-placeholder="worlds.search.placeholder" onkeydown="if(event.key==='Enter')doSearch('worlds')"></div>
+                        <button class="vrcn-button" onclick="doSearch('worlds')" data-i18n="common.search">Search</button>
+                    </div>
                     <div id="searchWorldsResults" class="search-grid"><div class="empty-msg" data-i18n="worlds.search.empty_prompt">Search for VRChat worlds</div></div>
                 </div>
                 <div id="worldFavArea">

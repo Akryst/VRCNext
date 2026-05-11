@@ -797,6 +797,19 @@ public class AuthController
                 currentPlayerIds.Remove(_core.CurrentVrcUserId ?? "");
                 _core.TimeEngine.RestoreActiveSession(loc, currentPlayerIds);
             }
+
+            var presenceInstance = (user["presence"] as JObject)?["instance"]?.ToString() ?? "";
+            if (presenceInstance == "offline")
+            {
+                var openJoin = _core.Timeline.GetEvents()
+                    .FirstOrDefault(e => e.Type == "instance_join" && e.Tracked == 1 && string.IsNullOrEmpty(e.LeftAt));
+                if (openJoin != null)
+                {
+                    _core.Timeline.SetInstanceEventLeftAt(openJoin.Id, DateTime.UtcNow.ToString("o"));
+                    var closed = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == openJoin.Id);
+                    if (closed != null) _core.SendToJS("timelineEvent", _instance.BuildTimelinePayload(closed));
+                }
+            }
         }
 
         var rawStatus = user["status"]?.ToString() ?? "";

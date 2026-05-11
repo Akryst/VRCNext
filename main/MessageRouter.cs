@@ -915,9 +915,10 @@ public partial class AppShell
                 case "vrcSearchWorlds":
                     var wQ = msg["query"]?.ToString() ?? "";
                     var wOff = msg["offset"]?.Value<int>() ?? 0;
+                    var wSort = msg["sort"]?.ToString() ?? "relevance";
                     _ = Task.Run(async () =>
                     {
-                        var res = await _core.World.SearchWorldsAsync(wQ, 20, wOff);
+                        var res = await _core.World.SearchWorldsAsync(wQ, 20, wOff, wSort);
                         var list = res.Cast<JObject>().Select(w => {
                             var wid2 = w["id"]?.ToString() ?? "";
                             var wurl = ImageCacheHelper.GetWorldUrl(wid2, w["imageUrl"]?.ToString() ?? w["thumbnailImageUrl"]?.ToString());

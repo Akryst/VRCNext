@@ -302,12 +302,12 @@ public class WorldAPI
         return new JArray();
     }
 
-    public async Task<JArray> SearchWorldsAsync(string query, int n = 20, int offset = 0)
+    public async Task<JArray> SearchWorldsAsync(string query, int n = 20, int offset = 0, string sort = "relevance")
     {
         if (!ctx.IsLoggedIn || string.IsNullOrEmpty(query)) return new JArray();
         try
         {
-            var resp = await ctx._http.GetAsync($"{VRChatApiService.BASE}/worlds?search={Uri.EscapeDataString(query)}&n={n}&offset={offset}&sort=relevance");
+            var resp = await ctx._http.GetAsync($"{VRChatApiService.BASE}/worlds?search={Uri.EscapeDataString(query)}&n={n}&offset={offset}&sort={Uri.EscapeDataString(sort)}");
             if (resp.IsSuccessStatusCode) return JArray.Parse(await resp.Content.ReadAsStringAsync());
         }
         catch (Exception ex) { ctx.Log($"SearchWorlds exception: {ex.Message}"); }
