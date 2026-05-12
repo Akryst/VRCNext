@@ -4,8 +4,8 @@
  */
 
 let _netGraph        = null;
-let _mutualCache     = {};      // userId → { mutualIds[], optedOut }
-let _cacheLoadPending = false;  // waiting for JSON load from disk
+let _mutualCache     = {};
+let _cacheLoadPending = false;
 
 function networkProgressText(done, total) {
     return tf('network.progress', { done, total }, `Loading connections: ${done} / ${total}`);
@@ -17,7 +17,6 @@ function initNetwork() {
     if (_netGraph) { _netGraph.resize(); return; }
     _netGraph = new MutualGraph(canvas);
 
-    // Load cache from disk first, then loadFriends in the callback
     _cacheLoadPending = true;
     sendToCS({ action: 'vrcLoadMutualCache' });
 }
@@ -60,7 +59,11 @@ function networkResetView() {
 /* ── Tab activation ── */
 document.documentElement.addEventListener('tabchange', () => {
     const tab15 = document.getElementById('tab15');
-    if (tab15 && tab15.classList.contains('active')) initNetwork();
+    if (tab15 && tab15.classList.contains('active')) {
+        initNetwork();
+    } else {
+        if (_netGraph) _netGraph._stopSim();
+    }
 });
 
 /* ════════════════════════════════════════════════════════
@@ -72,6 +75,7 @@ class MutualGraph {
         this.ctx     = canvas.getContext('2d');
         this.nodes   = [];
         this.edges   = [];
+        this._edgeSet = new Set();  // fast O(1) duplicate detection
         this.nodeMap = {};
 
         this.tx = 0; this.ty = 0; this.scale = 1;
@@ -85,6 +89,12 @@ class MutualGraph {
         this.fetchTotal  = 0;
         this.cancelled   = false;
         this._saveTimer  = null;
+
+        this._simRaf        = null;
+        this._simRunning    = false;
+        this._renderPending = false;
+        this._edgesChanged  = true;
+        this._edgeCounts    = null;  // cached, only rebuilt when edges change
 
         this._bindEvents();
         this._resizeObserver = new ResizeObserver(() => this.resize());
@@ -108,7 +118,6 @@ class MutualGraph {
         if (this._friendsLoaded) return;
         const friends = (typeof vrcFriendsData !== 'undefined') ? vrcFriendsData : [];
         if (friends.length === 0) {
-            // Friends data not ready yet — retry shortly
             setTimeout(() => { if (_netGraph === this) this.loadFriends(); }, 800);
             return;
         }
@@ -162,7 +171,7 @@ class MutualGraph {
         if (node.image) {
             const img = new Image();
             img.src = node.image;
-            img.onload  = () => { node.imgEl = img; this._render(); };
+            img.onload  = () => { node.imgEl = img; this._scheduleRender(); };
             img.onerror = () => {};
         }
         return idx;
@@ -170,7 +179,6 @@ class MutualGraph {
 
     /* ── Fetching mutuals (with cache) ── */
     _startFetching() {
-        // Apply cached entries immediately, collect uncached for API
         const toFetch = [];
         this.fetchQueue.forEach(uid => {
             if (_mutualCache[uid] !== undefined) {
@@ -184,9 +192,8 @@ class MutualGraph {
 
         this._updateProgress();
         if (this.fetchQueue.length === 0) {
-            this._runLayout(600);
-            this._render();
             this._hideProgress();
+            this._startSim();
             return;
         }
         this._startSim();
@@ -209,20 +216,24 @@ class MutualGraph {
     _applyMutuals(userId, mutualIds, optedOut) {
         const aIdx = this.nodeMap[userId];
         if (aIdx === undefined || optedOut || !Array.isArray(mutualIds)) return;
+        let changed = false;
         mutualIds.forEach(bid => {
             const bIdx = this.nodeMap[bid];
             if (bIdx !== undefined && aIdx !== bIdx) {
-                const exists = this.edges.some(e =>
-                    (e.a === aIdx && e.b === bIdx) || (e.a === bIdx && e.b === aIdx));
-                if (!exists) this.edges.push({ a: aIdx, b: bIdx });
+                // Canonical key — smaller index first
+                const key = aIdx < bIdx ? `${aIdx},${bIdx}` : `${bIdx},${aIdx}`;
+                if (!this._edgeSet.has(key)) {
+                    this._edgeSet.add(key);
+                    this.edges.push({ a: aIdx, b: bIdx });
+                    changed = true;
+                }
             }
         });
+        if (changed) this._edgesChanged = true;
     }
 
     onMutualsReceived(data) {
-        // Save to in-memory cache
         _mutualCache[data.userId] = { mutualIds: data.mutualIds || [], optedOut: !!data.optedOut };
-        // Debounced save — prevents concurrent File.WriteAllText race in C# when many responses arrive at once
         clearTimeout(this._saveTimer);
         this._saveTimer = setTimeout(() => {
             sendToCS({ action: 'vrcSaveMutualCache', cache: JSON.stringify(_mutualCache) });
@@ -231,8 +242,7 @@ class MutualGraph {
         this.fetchDone++;
         this._applyMutuals(data.userId, data.mutualIds, data.optedOut);
         this._updateProgress();
-        this._runLayout(60);
-        this._render();
+        this._startSim();  // no-op if already running; restarts if settled
         if (this.fetchDone >= this.fetchTotal) this._hideProgress();
     }
 
@@ -240,6 +250,7 @@ class MutualGraph {
         this.cancelled = true;
         clearTimeout(this._saveTimer);
         this._hideProgress();
+        // Keep sim running so the partial graph settles naturally
     }
 
     /* ── Progress ── */
@@ -256,18 +267,44 @@ class MutualGraph {
         if (bar) bar.style.display = 'none';
     }
 
-    /* ── Layout (synchronous, no animation) ── */
+    /* ── Async simulation loop — runs via rAF, never blocks the main thread ── */
     _startSim() {
-        this._runLayout(600);
-        this._render();
+        if (this._simRunning) return;
+        this._settled = false;
+        this._simRunning = true;
+        this._simRaf = requestAnimationFrame(() => this._simTick());
     }
 
-    _runLayout(steps) {
-        for (let i = 0; i < steps; i++) {
+    _stopSim() {
+        this._simRunning = false;
+        if (this._simRaf) { cancelAnimationFrame(this._simRaf); this._simRaf = null; }
+    }
+
+    _simTick() {
+        if (!this._simRunning) return;
+
+        // Stop simulation when tab is not visible or window is hidden (saves CPU in VR)
+        const tab15 = document.getElementById('tab15');
+        if (!tab15 || !tab15.classList.contains('active') || document.hidden) {
+            this._stopSim();
+            return;
+        }
+
+        // Run a small batch per frame — keeps frame budget under control
+        this._settled = false;
+        for (let i = 0; i < 8; i++) {
             this._simulate();
             if (this._settled) break;
         }
-        this._settled = false;
+
+        this._render();
+
+        if (this._settled) {
+            this._simRunning = false;
+            this._simRaf = null;
+        } else {
+            this._simRaf = requestAnimationFrame(() => this._simTick());
+        }
     }
 
     _simulate() {
@@ -278,12 +315,22 @@ class MutualGraph {
         const W = this.canvas.width, H = this.canvas.height;
         const cx = W / 2, cy = H / 2;
 
-        const edgeCounts = new Array(n).fill(0);
-        this.edges.forEach(e => { edgeCounts[e.a]++; edgeCounts[e.b]++; });
-        nodes.forEach((nd, i) => { nd.r = Math.min(12, 5 + edgeCounts[i] * 0.3); });
+        // Recompute edge counts only when edges have changed
+        if (this._edgesChanged || !this._edgeCounts || this._edgeCounts.length !== n) {
+            const counts = new Array(n).fill(0);
+            this.edges.forEach(e => { counts[e.a]++; counts[e.b]++; });
+            nodes.forEach((nd, i) => { nd.r = Math.min(12, 5 + counts[i] * 0.3); });
+            this._edgeCounts = counts;
+            this._edgesChanged = false;
+        }
 
-        const fx = new Float32Array(n);
-        const fy = new Float32Array(n);
+        // Reuse force arrays to reduce GC pressure
+        if (!this._fx || this._fx.length !== n) {
+            this._fx = new Float32Array(n);
+            this._fy = new Float32Array(n);
+        }
+        const fx = this._fx; fx.fill(0);
+        const fy = this._fy; fy.fill(0);
 
         const K_REP = 1900, MIN_D = 25;
         for (let i = 0; i < n; i++) {
@@ -330,18 +377,34 @@ class MutualGraph {
     }
 
     /* ── Render ── */
+
+    // Deferred render — coalesces multiple calls within the same frame into one
+    _scheduleRender() {
+        if (this._renderPending) return;
+        this._renderPending = true;
+        requestAnimationFrame(() => { this._renderPending = false; this._render(); });
+    }
+
     _render() {
         const ctx = this.ctx;
         const W = this.canvas.width, H = this.canvas.height;
+        if (!W || !H) return;
         ctx.clearRect(0, 0, W, H);
 
         ctx.save();
         ctx.translate(this.tx, this.ty);
         ctx.scale(this.scale, this.scale);
 
-        const sel = this.selected;
+        // Visible viewport in world-space for culling (with margin for rings/labels)
+        const margin = 30;
+        const vx0 = -this.tx / this.scale - margin;
+        const vy0 = -this.ty / this.scale - margin;
+        const vx1 = vx0 + W / this.scale + margin * 2;
+        const vy1 = vy0 + H / this.scale + margin * 2;
 
-        // Compute active set when something is selected (selected + its neighbors)
+        const sel = this.selected;
+        const scaleInv = 1 / this.scale;
+
         let activeSet = null;
         if (sel !== null) {
             activeSet = new Set([sel]);
@@ -353,39 +416,102 @@ class MutualGraph {
 
         const ac = this._getAccentRgb();
 
-        // Draw edges
+        // Batch edges into style groups — one path per group instead of one per edge
+        const edgesHighlighted = [];
+        const edgesDimmed      = [];
+        const edgesNormal      = [];
+
         this.edges.forEach(e => {
             const a = this.nodes[e.a], b = this.nodes[e.b];
-            const highlighted = sel !== null && (e.a === sel || e.b === sel);
-            const dimmed = activeSet !== null && !highlighted;
+            // Skip edges where both endpoints are off-screen
+            if (a.x < vx0 && b.x < vx0) return;
+            if (a.x > vx1 && b.x > vx1) return;
+            if (a.y < vy0 && b.y < vy0) return;
+            if (a.y > vy1 && b.y > vy1) return;
+
+            if (sel !== null && (e.a === sel || e.b === sel)) edgesHighlighted.push(e);
+            else if (activeSet !== null)                       edgesDimmed.push(e);
+            else                                               edgesNormal.push(e);
+        });
+
+        if (edgesNormal.length) {
             ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = highlighted
-                ? `rgba(${ac.r},${ac.g},${ac.b},0.85)`
-                : dimmed ? `rgba(${ac.r},${ac.g},${ac.b},0.05)`
-                : `rgba(${ac.r},${ac.g},${ac.b},0.18)`;
-            ctx.lineWidth = highlighted ? 2 / this.scale : 1 / this.scale;
-            ctx.stroke();
-        });
-
-        // Draw nodes — dim non-active in focus mode
-        this.nodes.forEach((nd, i) => {
-            const inActive = activeSet === null || activeSet.has(i);
-            ctx.globalAlpha = inActive ? 1 : 0.12;
-            this._drawNode(ctx, nd, i);
-        });
-        ctx.globalAlpha = 1;
-
-        // Draw labels on top
-        if (activeSet !== null) {
-            // Focus mode: label for every highlighted node
-            activeSet.forEach(i => {
-                if (this.nodes[i]) this._drawLabel(ctx, this.nodes[i], i === sel);
+            ctx.strokeStyle = `rgba(${ac.r},${ac.g},${ac.b},0.42)`;
+            ctx.lineWidth   = 1.2 * scaleInv;
+            edgesNormal.forEach(e => {
+                const a = this.nodes[e.a], b = this.nodes[e.b];
+                ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
             });
-        } else if (this.hovered !== null && this.nodes[this.hovered]) {
-            // Normal mode: label only for hovered node
-            this._drawLabel(ctx, this.nodes[this.hovered], false);
+            ctx.stroke();
+        }
+
+        if (edgesDimmed.length) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(${ac.r},${ac.g},${ac.b},0.08)`;
+            ctx.lineWidth   = scaleInv;
+            edgesDimmed.forEach(e => {
+                const a = this.nodes[e.a], b = this.nodes[e.b];
+                ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+            });
+            ctx.stroke();
+        }
+
+        if (edgesHighlighted.length) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(${ac.r},${ac.g},${ac.b},0.95)`;
+            ctx.lineWidth   = 2.5 * scaleInv;
+            edgesHighlighted.forEach(e => {
+                const a = this.nodes[e.a], b = this.nodes[e.b];
+                ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+            });
+            ctx.stroke();
+        }
+
+        // level of detail based on zoom. less detail when zoomed out:
+        // lod 0: tiny dot only (< 0.35) (no images or detauk)
+        // lod 1: status ring + color fill, no image (< 0.65) 
+        // lod 2: full rendering with avatar image (>= 0.65)
+        const lod = this.scale < 0.35 ? 0 : this.scale < 0.65 ? 1 : 2;
+
+        if (lod === 0) {
+            const byColor = new Map();
+            this.nodes.forEach((nd, i) => {
+                const r = nd.r || 5;
+                if (nd.x + r < vx0 || nd.x - r > vx1 || nd.y + r < vy0 || nd.y - r > vy1) return;
+                const inActive = activeSet === null || activeSet.has(i);
+                const sc = this._statusColor(nd.status);
+                const key = inActive ? sc : sc + '_dim';
+                if (!byColor.has(key)) byColor.set(key, { color: sc, alpha: inActive ? 1 : 0.12, nds: [] });
+                byColor.get(key).nds.push(nd);
+            });
+            byColor.forEach(({ color, alpha, nds }) => {
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                nds.forEach(nd => { ctx.moveTo(nd.x, nd.y); ctx.arc(nd.x, nd.y, Math.max((nd.r || 5) * 0.65, 2), 0, Math.PI * 2); });
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        } else {
+            this.nodes.forEach((nd, i) => {
+                const r = nd.r || 5;
+                if (nd.x + r < vx0 || nd.x - r > vx1 || nd.y + r < vy0 || nd.y - r > vy1) return;
+                const inActive = activeSet === null || activeSet.has(i);
+                ctx.globalAlpha = inActive ? 1 : 0.12;
+                this._drawNode(ctx, nd, i, lod);
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        // labels. skip at lowest LOD where nodes are single pixels
+        if (lod > 0) {
+            if (activeSet !== null) {
+                activeSet.forEach(i => {
+                    if (this.nodes[i]) this._drawLabel(ctx, this.nodes[i], i === sel);
+                });
+            } else if (this.hovered !== null && this.nodes[this.hovered]) {
+                this._drawLabel(ctx, this.nodes[this.hovered], false);
+            }
         }
 
         ctx.restore();
@@ -410,49 +536,49 @@ class MutualGraph {
         return map[status] || '#555';
     }
 
-    _drawNode(ctx, nd, idx) {
-        const r   = nd.r || 5;
-        const x   = nd.x, y = nd.y;
-        const sel = this.selected === idx;
-        const hov = this.hovered  === idx;
-        const sc  = this._statusColor(nd.status);
+    _drawNode(ctx, nd, idx, lod = 2) {
+        const r        = nd.r || 5;
+        const x        = nd.x, y = nd.y;
+        const sel      = this.selected === idx;
+        const hov      = this.hovered  === idx;
+        const sc       = this._statusColor(nd.status);
+        const scaleInv = 1 / this.scale;
 
-        // Selection / hover ring
         if (sel || hov) {
             ctx.beginPath();
             ctx.arc(x, y, r + 4, 0, Math.PI * 2);
             ctx.strokeStyle = sel ? 'rgba(80,180,255,0.9)' : 'rgba(80,180,255,0.45)';
-            ctx.lineWidth = 2 / this.scale;
+            ctx.lineWidth = 2 * scaleInv;
             ctx.stroke();
         }
 
-        // Status-colored ring
         ctx.beginPath();
         ctx.arc(x, y, r + 1.5, 0, Math.PI * 2);
         ctx.strokeStyle = sc;
-        ctx.lineWidth = 2 / this.scale;
+        ctx.lineWidth = 2 * scaleInv;
         ctx.stroke();
 
-        // Avatar circle (clipped)
+        if (lod < 2 || !nd.imgEl) {
+            // color fill.  no expensive save/clip/drawImage
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fillStyle = sc + '44';
+            ctx.fill();
+            return;
+        }
+
         ctx.save();
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.clip();
-        if (nd.imgEl) {
-            ctx.drawImage(nd.imgEl, x - r, y - r, r * 2, r * 2);
-        } else {
-            // Fallback: semi-transparent status fill, no text
-            ctx.fillStyle = sc + '44';
-            ctx.fillRect(x - r, y - r, r * 2, r * 2);
-        }
+        ctx.drawImage(nd.imgEl, x - r, y - r, r * 2, r * 2);
         ctx.restore();
     }
 
-    /* Draw name as a badge pill — accent bg, accent text, no border */
     _drawLabel(ctx, nd, isSelected) {
         const ac     = this._getAccentRgb();
-        const fs     = isSelected ? 9 : 8;  // font-size px in world-space
-        const px     = 4, py = 2;           // horizontal / vertical padding
+        const fs     = isSelected ? 9 : 8;
+        const px     = 4, py = 2;
         const nodeR  = nd.r || 5;
         const yBadge = nd.y + nodeR + 5;
 
@@ -465,14 +591,12 @@ class MutualGraph {
         const bw = tw + px * 2;
         const bh = fs  + py * 2;
 
-        // Badge background — accent at ~22% opacity, rounded, no stroke
         ctx.fillStyle = `rgba(${ac.r},${ac.g},${ac.b},0.22)`;
         ctx.beginPath();
         if (ctx.roundRect) ctx.roundRect(nd.x - bw / 2, yBadge, bw, bh, 4);
         else               ctx.rect(nd.x - bw / 2, yBadge, bw, bh);
         ctx.fill();
 
-        // Text in full accent color
         ctx.fillStyle = ac.raw;
         ctx.fillText(nd.displayName, nd.x, yBadge + py);
 
@@ -486,19 +610,20 @@ class MutualGraph {
             mousedown:  e  => this._onMouseDown(e),
             mousemove:  e  => this._onMouseMove(e),
             mouseup:    () => { this.dragging = null; this.canvas.classList.remove('dragging'); },
-            mouseleave: () => { this.dragging = null; this.hovered = null; this._render(); },
+            mouseleave: () => { this.dragging = null; this.hovered = null; this._scheduleRender(); },
             click:      e  => this._onClick(e),
         };
         const c = this.canvas;
         c.addEventListener('wheel',      this._handlers.wheel,      { passive: false });
         c.addEventListener('mousedown',  this._handlers.mousedown);
         c.addEventListener('mousemove',  this._handlers.mousemove);
-        c.addEventListener('mouseup',   this._handlers.mouseup);
+        c.addEventListener('mouseup',    this._handlers.mouseup);
         c.addEventListener('mouseleave', this._handlers.mouseleave);
-        c.addEventListener('click',     this._handlers.click);
+        c.addEventListener('click',      this._handlers.click);
     }
 
     destroy() {
+        this._stopSim();
         this.cancelLoading();
         this._resizeObserver?.disconnect();
         if (this._handlers) {
@@ -567,15 +692,16 @@ class MutualGraph {
                 this.tx = mx - this.dragging.ox;
                 this.ty = my - this.dragging.oy;
             }
-            this._render();
+            this._scheduleRender();
             return;
         }
 
-        const hit = this._hitTest(wx, wy);
+        // skip hittest when zoomed out. far nodes are too small to reliably hover
+        const hit = this.scale >= 0.35 ? this._hitTest(wx, wy) : -1;
         const newHov = hit >= 0 ? hit : null;
         if (newHov !== this.hovered) {
             this.hovered = newHov;
-            this._render();
+            this._scheduleRender();
         }
     }
 

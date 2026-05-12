@@ -76,6 +76,9 @@
       File="$(MSBuildProjectDirectory)\BuildSecrets.cs"
       Lines="namespace VRCNext%3B internal static class BuildSecrets { internal const string WhKey = %22$(VRCNextWhKey)%22%3B }"
       Overwrite="true" />
+    <ItemGroup>
+      <Compile Include="$(MSBuildProjectDirectory)\BuildSecrets.cs" />
+    </ItemGroup>
   </Target>
 
   <!-- Embed custom icon into apphost (VRCNext.exe) after each build on Windows -->
