@@ -1,0 +1,538 @@
+                <div class="settings-layout">
+                    <nav class="settings-nav">
+                        <button class="settings-nav-item active" onclick="switchSettingsSection('general',this)"><span class="msi">tune</span><span data-i18n="settings.nav.general">General</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('appearance',this)"><span class="msi">palette</span><span data-i18n="settings.nav.appearance">Appearance</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('notifications',this)"><span class="msi">notifications</span><span data-i18n="settings.nav.notifications">Notifications</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('vrchat',this)"><span class="msi">sports_esports</span><span data-i18n="settings.nav.vrchat">VRChat</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('data',this)"><span class="msi">folder_open</span><span data-i18n="settings.nav.data">Data</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('performance',this)"><span class="msi">speed</span><span data-i18n="settings.nav.performance">Performance</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('community',this)"><span class="msi">manage_search</span><span data-i18n="settings.nav.avatarsearch">Avatar Search</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('advanced',this)"><span class="msi">bug_report</span><span data-i18n="settings.nav.advanced">Advanced</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('vrcx',this)"><span class="msi">download</span><span data-i18n="settings.nav.vrcx">VRCX</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('about',this)"><span class="msi">info</span><span data-i18n="settings.nav.about">About</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('accounts',this)"><span class="msi">account_circle</span><span data-i18n="settings.nav.accounts">Accounts</span></button>
+                    </nav>
+                    <div class="settings-content">
+
+                    <!-- UPDATE VRCNEXT -->
+                    <div class="vrcn-panel-card" data-section="general">
+                        <div class="vrcn-panel-card-header"><span class="msi">system_update_alt</span> <span data-i18n="settings.update.title">Update VRCNext</span></div>
+                        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                            <button class="vrcn-button-round" id="setUpdCheckBtn" onclick="settingsCheckUpdate()"><span class="msi" style="font-size:15px;">refresh</span> <span data-i18n="settings.update.check_btn">Check for Update</span></button>
+                            <span id="setUpdStatus" style="font-size:12px;color:var(--tx3);"></span>
+                        </div>
+                        <div class="sf-toggle-row" style="margin-top:10px;">
+                            <div>
+                                <div data-i18n="settings.update.auto_update">Auto-Update VRCNext</div>
+                                <div class="sf-desc" data-i18n="settings.update.auto_update_desc">Automatically download and install updates on startup.</div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="setAutoUpdate" checked onchange="autoSave()">
+                                <div class="toggle-track"><div class="toggle-knob"></div></div>
+                            </label>
+                        </div>
+                        <div id="setUpdInstallWrap" style="display:none;margin-top:12px;">
+                            <div style="font-size:13px;color:var(--tx1);margin-bottom:8px;">
+                                <span data-i18n="settings.update.available_label">New version available:</span> <strong id="setUpdVersion" style="color:var(--accent);"></strong>
+                            </div>
+                            <button class="vrcn-button-round vrcn-btn-join" id="setUpdInstallBtn" onclick="settingsInstallUpdate()"><span class="msi" style="font-size:15px;">download</span> <span data-i18n="settings.update.install_btn">Download &amp; Install</span></button>
+                            <div id="setUpdProgressWrap" style="display:none;margin-top:10px;">
+                                <div class="upd-progress-bar"><div class="upd-progress-fill" id="setUpdProgressFill"></div></div>
+                                <div id="setUpdProgressStatus" style="font-size:11px;color:var(--tx3);margin-top:4px;" data-i18n="update.downloading">Downloading...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CRASH REPORTING -->
+                    <div class="vrcn-panel-card" data-section="general">
+                        <div class="vrcn-panel-card-header"><span class="msi">bug_report</span> <span data-i18n="settings.crash.title">Crash Reporting</span></div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.crash.label">Send anonymous crash reports</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="setSendCrashData" checked onchange="autoSave()">
+                                <div class="toggle-track"><div class="toggle-knob"></div></div>
+                            </label>
+                        </div>
+                        <div class="set-desc" data-i18n="settings.crash.desc">If VRCNext crashes, the stack trace is sent anonymously to help fix issues. No personal data is included: no file paths, usernames, or machine names. Only the crash stack trace.</div>
+                        <div class="sf-toggle-row" style="margin-top:14px;">
+                            <span data-i18n="settings.crash.restart_after_crash">Restart After Crash</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="setRestartAfterCrash" checked onchange="autoSave()">
+                                <div class="toggle-track"><div class="toggle-knob"></div></div>
+                            </label>
+                        </div>
+                        <div class="set-desc" data-i18n="settings.crash.restart_after_crash_desc">VRCNext will automatically restart after an unexpected crash. Does not apply when the app is closed normally or force-quit via Task Manager.</div>
+                    </div>
+
+                    <!-- LANGUAGE -->
+                    <div class="vrcn-panel-card" data-section="general">
+                        <div class="vrcn-panel-card-header"><span class="msi">translate</span> <span data-i18n="language.title">Language</span></div>
+                        <div class="set-desc">Cambia tu idioma · Change ta langue · Cambia lingua · 言語を変えて · 언어를 바꿔 · 更改你的语言 · Change Language · Sprache Ändern</div>
+                        <div class="theme-grid" id="languageGrid"></div>
+                        <div id="langRestartHint" style="display:none;margin-top:10px;">
+                            <span class="set-desc" data-i18n="settings.language.restart_hint">It is recommended to restart the app once you change the language.</span>
+                            <button class="vrcn-button" style="margin-top:8px;" onclick="sendToCS({action:'restartApp'})"><span class="msi" style="font-size:16px;">refresh</span> <span data-i18n="settings.language.restart_btn">Restart VRCNext</span></button>
+                        </div>
+                    </div>
+
+                    <!-- PERFORMANCE -->
+                    <div class="vrcn-panel-card" data-windows-only data-section="performance" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">speed</span> <span data-i18n="settings.perf.title">Performance</span></div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.perf.gpu_accel.label">Enable Hardware Acceleration</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="setPerfGpuAccel" onchange="onPerfSettingChange()">
+                                <div class="toggle-track"><div class="toggle-knob"></div></div>
+                            </label>
+                        </div>
+                        <div class="set-desc" data-i18n="settings.perf.gpu_accel.desc">Enables GPU hardware acceleration for the WebView2 renderer. May improve rendering performance but can cause visual glitches on some systems.</div>
+                        <div class="sf-toggle-row" style="margin-top:14px;">
+                            <span data-i18n="settings.perf.shader_cache.label">Enable GPU Shader Cache</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="setPerfShaderCache" onchange="onPerfSettingChange()">
+                                <div class="toggle-track"><div class="toggle-knob"></div></div>
+                            </label>
+                        </div>
+                        <div class="set-desc" data-i18n="settings.perf.shader_cache.desc">Caches compiled GPU shaders to disk. Reduces GPU startup overhead on subsequent launches.</div>
+                        <div class="sf-toggle-row" style="margin-top:14px;">
+                            <span data-i18n="settings.perf.v8_heap.label">Use 128 MB V8 Heap</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="setPerfV8Heap" onchange="onPerfSettingChange()">
+                                <div class="toggle-track"><div class="toggle-knob"></div></div>
+                            </label>
+                        </div>
+                        <div class="set-desc" data-i18n="settings.perf.v8_heap.desc">Increases the JavaScript engine memory limit from 64 MB to 128 MB. Useful if VRCNext runs sluggishly with large friend lists or many open tabs.</div>
+                        <div class="sf-toggle-row" style="margin-top:14px;">
+                            <span data-i18n="settings.perf.render_proc.label">Use 2 Render Processes</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="setPerfRenderProc" onchange="onPerfSettingChange()">
+                                <div class="toggle-track"><div class="toggle-knob"></div></div>
+                            </label>
+                        </div>
+                        <div class="set-desc" data-i18n="settings.perf.render_proc.desc">Allows WebView2 to use up to 2 renderer processes instead of 1. Can help with stability but uses slightly more memory.</div>
+                        <div id="perfRestartHint" style="display:none;margin-top:10px;">
+                            <span class="set-desc" data-i18n="settings.perf.restart_hint">A restart is required to apply performance changes.</span>
+                            <button class="vrcn-button" style="margin-top:8px;" onclick="sendToCS({action:'restartApp'})"><span class="msi" style="font-size:16px;">refresh</span> <span data-i18n="settings.language.restart_btn">Restart VRCNext</span></button>
+                        </div>
+                    </div>
+
+                    <!-- DESIGN -->
+                    <div class="vrcn-panel-card" data-section="appearance" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">palette</span> <span data-i18n="settings.design.title">Design</span></div>
+                        <div class="fd-tabs" style="margin-top:10px;">
+                            <button class="fd-tab active" onclick="switchDesignTab('background',this)" data-i18n="settings.design.tabs.background">Background</button>
+                            <button class="fd-tab" onclick="switchDesignTab('colors',this)" data-i18n="settings.design.tabs.colors">Colors</button>
+                            <button class="fd-tab" onclick="switchDesignTab('other',this)" data-i18n="settings.design.tabs.other">Other</button>
+                            <button class="fd-tab" onclick="switchDesignTab('themes',this)" data-i18n="settings.design.tabs.themes">Themes</button>
+                        </div>
+
+                        <div id="designTabBackground">
+                            <div class="sf-section-label" style="margin-top:14px;" data-i18n="settings.design.dashboard_background">Dashboard Background</div>
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                                <button class="vrcn-button" onclick="browseDashBg()"><span class="msi" style="font-size:16px;">perm_media</span> <span data-i18n="settings.design.choose_background">Choose Image / Video</span></button>
+                                <span id="dashBgName" style="font-size:11px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;"></span>
+                            </div>
+
+                            <div class="sf-toggle-row"><span data-i18n="settings.design.random_background">Random background from watch folders on launch</span><label class="toggle"><input type="checkbox" id="setRandomBg" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        </div>
+
+                        <div id="designTabColors" style="display:none;">
+                            <div class="sf-section-label" style="margin-top:14px;" data-i18n="settings.design.theme">Theme</div>
+                            <div class="theme-grid" id="themeGrid"></div>
+                            <div id="customThemeSection" style="display:none;">
+                                <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.custom_theme">Custom Theme</div>
+                                <div class="theme-grid" id="customThemeGrid"></div>
+                            </div>
+                            <div style="margin-top:12px;margin-bottom:4px;">
+                                <button class="vrcn-button" onclick="openThemeEditor()">
+                                    <span class="msi" style="font-size:15px;">palette</span>
+                                    <span data-i18n="settings.design.theme_editor">Theme Editor</span>
+                                </button>
+                            </div>
+                            <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.special_themes">Special Themes</div>
+                            <div class="theme-grid" id="specialThemeGrid"></div>
+                            <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.custom_cursor">Custom Cursor</div>
+                            <div class="theme-grid" id="cursorThemeGrid"></div>
+                            <div class="sf-row" id="autoAccuracyRow" style="margin-top:8px;display:none;">
+                                <label style="font-size:12px;color:var(--tx2);" data-i18n="settings.design.color_accuracy">Color Accuracy</label>
+                                <input type="range" id="setAutoAccuracy" min="0" max="100" value="50" style="flex:1;accent-color:var(--accent);" oninput="document.getElementById('autoAccuracyVal').textContent=this.value+'%';setAutoColorAccuracy(this.value);autoSave()">
+                                <span id="autoAccuracyVal" style="font-size:12px;color:var(--tx2);margin-left:8px;min-width:35px;text-align:right;">50%</span>
+                            </div>
+                        </div>
+
+                        <div id="designTabOther" style="display:none;">
+                            <div class="sf-toggle-row" style="margin-top:14px;"><span data-i18n="settings.design.clock_enabled">Enable Clock</span><label class="toggle"><input type="checkbox" id="setClockEnabled" checked onchange="applyClockSettings();autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                            <div class="sf-toggle-row" style="margin-top:8px;"><span data-i18n="settings.design.clock_ampm">Use AM/PM</span><label class="toggle"><input type="checkbox" id="setClockAmPm" onchange="applyClockSettings();autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        </div>
+
+                        <div id="designTabThemes" style="display:none;">
+                            <div class="set-desc" style="margin-top:12px;" data-i18n="settings.design.themes.desc">Drop theme folders into the <code>custom-themes</code> folder next to VRCNext. Each folder can contain any number of CSS files.</div>
+                            <div id="customThemesList" style="margin-top:10px;display:flex;flex-direction:column;gap:6px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- WINDOW BEHAVIOR -->
+                    <div class="vrcn-panel-card" data-section="general">
+                        <div class="vrcn-panel-card-header"><span class="msi">open_in_full</span> <span data-i18n="settings.window.title">Window Behavior</span></div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.window.remember_size">Remember Window Size</span>
+                            <label class="toggle"><input type="checkbox" id="setRememberWindowSize" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.window.remember_size_desc">Restores the window to its last used size when VRCNext starts.</div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.window.remember_position">Remember Window Position</span>
+                            <label class="toggle"><input type="checkbox" id="setRememberWindowPosition" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.window.remember_position_desc">Restores the window to its last screen position when VRCNext starts. Resets to the default monitor if the previous monitor is no longer connected.</div>
+                        <div class="sf-toggle-row" style="margin-top:6px;">
+                            <span data-i18n="settings.debug.text_tools.label">Enable Text Tools</span>
+                            <label class="toggle"><input type="checkbox" id="setTextToolsEnabled" onchange="toggleTextTools(this.checked)"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" data-i18n="settings.debug.text_tools.desc">When enabled, all text in VRCNext becomes selectable. You can copy it via the right-click context menu or with Ctrl&nbsp;+&nbsp;C.</div>
+                    </div>
+
+                    <!-- SYSTEM TRAY -->
+                    <div class="vrcn-panel-card" data-section="general">
+                        <div class="vrcn-panel-card-header"><span class="msi" style="font-size:16px;">notifications_active</span> <span data-i18n="settings.system.tray.title">System Tray</span></div>
+                        <div class="sf-toggle-row">
+                            <span id="labelStartWithSystem" data-i18n="settings.launch.auto_start_windows">Auto-start VRCNext with Windows</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="setStartWithWindows" onchange="autoSave()">
+                                <div class="toggle-track"><div class="toggle-knob"></div></div>
+                            </label>
+                        </div>
+                        <div class="set-desc" data-i18n="settings.launch.auto_start_windows_desc">VRCNext launches automatically when Windows starts. It will appear in the system tray.</div>
+                        <div class="sf-toggle-row" style="margin-top:14px;" data-windows-only>
+                            <span data-i18n="settings.system.hide_in_tray">Hide in System Tray</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="setMinimizeToTray" onchange="autoSave(); updateTrayNotifToggle()">
+                                <div class="toggle-track"><div class="toggle-knob"></div></div>
+                            </label>
+                        </div>
+                        <div class="set-desc" data-windows-only data-i18n="settings.system.hide_in_tray_desc">When closing VRCNext, it minimizes to the system tray instead of exiting. Click the tray icon to restore the window.</div>
+                        <div class="sf-toggle-row" style="margin-top:14px;" id="trayNotifRow" data-windows-only>
+                            <span data-i18n="settings.system.tray.notifications">Show notifications on system tray</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="setTrayNotifications" onchange="autoSave()">
+                                <div class="toggle-track"><div class="toggle-knob"></div></div>
+                            </label>
+                        </div>
+                        <div class="set-desc" id="trayNotifDesc" data-windows-only data-i18n="settings.system.tray.notifications_desc">Displays a notification when a new VRChat notification arrives while VRCNext is hidden in the system tray.</div>
+                    </div>
+
+                    <!-- SOUNDS -->
+                    <div class="vrcn-panel-card" data-section="notifications" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">volume_up</span> <span data-i18n="settings.sounds.title">Sounds</span></div>
+                        <div class="sf-toggle-row"><span data-i18n="settings.sounds.notifications">Notification Sounds</span><label class="toggle"><input type="checkbox" id="setNotifySoundEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.sounds.notifications_desc">Plays a sound when you receive a new notification such as friend requests, invites and more.</div>
+                        <div class="sf-toggle-row"><span data-i18n="settings.sounds.messages">Message Sounds</span><label class="toggle"><input type="checkbox" id="setMessageSoundEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.sounds.messages_desc">Plays a sound when you get a boop or when someone sends you a message through the VRCN Messenger.</div>
+                        <div class="sf-toggle-row"><span data-i18n="settings.sounds.media_relay">Media Relay Success Sounds</span><label class="toggle"><input type="checkbox" id="setMediaRelaySoundEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.sounds.media_relay_desc">Plays a sound when Media Relay successfully sends an image to one of your Discord channels.</div>
+                        <div class="sf-toggle-row"><span data-i18n="settings.sounds.overlay">VR Overlay Notification Sounds</span><label class="toggle"><input type="checkbox" id="setSteamOverlaySoundEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.sounds.overlay_desc">Plays a sound when a notification toast appears in the SteamVR overlay.</div>
+                    </div>
+
+                    <!-- FRIENDS NOTIFICATION TOASTS -->
+                    <div class="vrcn-panel-card" data-section="notifications" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">person_check</span> <span data-i18n="settings.friend_toast.title">Friends Notification Toasts</span></div>
+                        <div class="sf-toggle-row"><span data-i18n="settings.friend_toast.enabled">Friend Online Cards</span><label class="toggle"><input type="checkbox" id="setFriendOnlineToastEnabled" onchange="_fotUpdateFavOnly();autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="set-desc" style="margin-bottom:6px;" data-i18n="settings.friend_toast.enabled_desc">Shows a toast card in the bottom-right corner when a friend comes online.</div>
+                        <div class="sf-toggle-row" id="fotFavRow"><span data-i18n="settings.friend_toast.fav_only">Favorites only</span><label class="toggle"><input type="checkbox" id="setFriendOnlineToastFavOnly" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="set-desc" style="margin-bottom:6px;" data-i18n="settings.friend_toast.fav_only_desc">Only show toast cards for friends you have favorited.</div>
+                        <div class="set-desc" style="margin-top:10px;padding:8px 0;background:var(--bg2);border-radius:6px;line-height:1.6;" data-i18n-html="settings.friend_toast.how_it_works">Right-click a friend's toast to set a per-friend override. <b>Always notify</b> always shows a toast, even if "Favorites only" is on and they are not favorited. <b>Default</b> follows the global setting. <b>Never notify</b> suppresses toasts for that friend regardless of the global setting.</div>
+                    </div>
+
+                    <!-- VRCHAT LAUNCH OPTIONS -->
+                    <div class="vrcn-panel-card" data-section="vrchat" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">rocket_launch</span> <span data-i18n="settings.launch.title">VRChat Launch Options</span></div>
+                        <div class="sf-section-label" data-i18n="settings.launch.path">VRChat Path</div>
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+                            <input type="text" id="setVrcPath" class="vrcn-edit-field" placeholder="C:\...\VRChat.exe" oninput="autoSave()" style="flex:1;">
+                            <button class="vrcn-button" id="browseVrcBtn" onclick="browseExe('vrchat')"><span class="msi" style="font-size:16px;">folder_open</span> <span data-i18n="common.browse">Browse</span></button>
+                        </div>
+                        <div class="sf-section-label" data-i18n="settings.launch.apps_desktop">Start With Desktop</div>
+                        <div class="set-desc" style="margin-bottom:8px;" data-i18n="settings.launch.apps_desktop_desc">Apps launched when starting VRChat in Desktop mode.</div>
+                        <div class="exe-list" id="extraExeDesktopList"><div class="folder-empty" data-i18n="common.none">None</div></div>
+                        <div class="folder-btns" style="margin-top:10px;margin-bottom:14px;">
+                            <button class="vrcn-button" onclick="browseExe('extra-desktop')"><span class="msi" style="font-size:16px;">add</span> <span data-i18n="settings.launch.add_app">Add App</span></button>
+                        </div>
+                        <div class="sf-section-label" data-i18n="settings.launch.apps_vr">Start With VR</div>
+                        <div class="set-desc" style="margin-bottom:8px;" data-i18n="settings.launch.apps_vr_desc">Apps launched when starting VRChat in VR mode.</div>
+                        <div class="exe-list" id="extraExeVRList"><div class="folder-empty" data-i18n="common.none">None</div></div>
+                        <div class="folder-btns" style="margin-top:10px;">
+                            <button class="vrcn-button" onclick="browseExe('extra-vr')"><span class="msi" style="font-size:16px;">add</span> <span data-i18n="settings.launch.add_app">Add App</span></button>
+                        </div>
+                    </div>
+
+                    <!-- AUTO-BACKUPS -->
+                    <div class="vrcn-panel-card" data-section="data" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">backup</span> <span data-i18n="settings.backup.title">Auto-Backups</span></div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.backup.registry_enabled">Enable VRChat Registry Backups</span>
+                            <label class="toggle"><input type="checkbox" id="setRegBackupEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.backup.registry_enabled_desc">Automatically backs up your VRChat registry settings at the selected interval. Backups are saved to your VRCNext data folder.</div>
+                        <div class="sf-section-label" data-i18n="settings.backup.registry_cycle">Registry Backup Cycle</div>
+                        <select id="setRegBackupCycle" class="vrcn-dropdown" onchange="autoSave()" style="margin-bottom:14px;">
+                            <option value="14" data-i18n="settings.backup.days_14">14 Days</option>
+                            <option value="30" data-i18n="settings.backup.days_30">30 Days</option>
+                            <option value="60" data-i18n="settings.backup.days_60">60 Days</option>
+                            <option value="120" data-i18n="settings.backup.days_120">120 Days</option>
+                        </select>
+                        <div class="sf-toggle-row" style="margin-top:4px;">
+                            <span data-i18n="settings.backup.db_enabled">Enable VRCN Database Backups</span>
+                            <label class="toggle"><input type="checkbox" id="setDbAutoBackupEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.backup.db_enabled_desc">Automatically backs up your VRCNext database at the selected interval. Backups are saved to your VRCNext data folder.</div>
+                        <div class="sf-section-label" data-i18n="settings.backup.db_cycle">Database Backup Cycle</div>
+                        <select id="setDbAutoBackupCycle" class="vrcn-dropdown" onchange="autoSave()" style="margin-bottom:14px;">
+                            <option value="60" data-i18n="settings.backup.days_60">60 Days</option>
+                            <option value="120" data-i18n="settings.backup.days_120">120 Days</option>
+                            <option value="240" data-i18n="settings.backup.days_240">240 Days</option>
+                            <option value="356" data-i18n="settings.backup.days_356">356 Days</option>
+                        </select>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button class="vrcn-button" id="btnManualDbBackup" onclick="manualDbBackup()"><span class="msi" style="font-size:16px;">backup</span> <span data-i18n="settings.backup.btn_db">Create Database Backup</span></button>
+                            <button class="vrcn-button" id="btnManualRegBackup" onclick="manualRegBackup()"><span class="msi" style="font-size:16px;">app_registration</span> <span data-i18n="settings.backup.btn_registry">Create VRChat Registry Backup</span></button>
+                        </div>
+                        <div id="manualBackupResult" style="display:none;margin-top:10px;"></div>
+                    </div>
+
+                    <!-- WATCH FOLDERS -->
+                    <div class="vrcn-panel-card" data-section="vrchat" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">folder_open</span> <span data-i18n="settings.watch_folders.title">Watch Folders</span></div>
+                        <div class="set-desc" data-i18n="settings.watch_folders.desc">Watch folders monitor for new images you create. Add your VRChat screenshot folder here. You can also add folders from apps like VHF (VR Hands Frame) to track world location and friends list for those images too.</div>
+                        <div class="folder-list" id="folderList"><div class="folder-empty" data-i18n="settings.watch_folders.empty">No folders added</div></div>
+                        <div class="folder-btns" style="margin-top:10px;">
+                            <button class="vrcn-button" onclick="addFolder()"><span class="msi" style="font-size:16px;">create_new_folder</span> <span data-i18n="settings.watch_folders.add">Add Folder</span></button>
+                            <button class="vrcn-button" onclick="removeFolder()"><span class="msi" style="font-size:16px;">folder_delete</span> <span data-i18n="settings.watch_folders.remove">Remove</span></button>
+                        </div>
+                    </div>
+
+                    <!-- DEBUGGING -->
+                    <div class="vrcn-panel-card" data-section="advanced" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">bug_report</span> <span data-i18n="settings.debug.title">Debugging</span></div>
+                        <div class="set-desc" style="margin-bottom:12px;" data-i18n="settings.debug.desc">Use these options if something isn't working correctly or you want to reconfigure VRCNext from scratch.</div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button class="vrcn-button" onclick="sendToCS({action:'resetSetup'})"><span class="msi" style="font-size:16px;">restart_alt</span> <span data-i18n="settings.debug.redo_setup">Redo Setup Wizard</span></button>
+                            <button class="vrcn-button" id="btnForceFfc" onclick="forceFfcAll()"><span class="msi" style="font-size:16px;">cloud_download</span> <span data-i18n="settings.debug.force_ffc_all">Force FFC All</span></button>
+                        </div>
+                        <div class="sf-toggle-row" style="margin-top:14px;">
+                            <span data-i18n="settings.debug.memory_trim">Enable Memory Trim</span>
+                            <label class="toggle"><input type="checkbox" id="setMemoryTrimEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.debug.memory_trim_desc">Memory Trim periodically frees unused memory from VRCNext. While the app already cleans up automatically during normal use, enabling this triggers a more frequent garbage collection pass every 10 minutes.</div>
+                        <button class="vrcn-button" onclick="sendToCS({action:'forceTrim'})"><span class="msi" style="font-size:16px;">memory</span> <span data-i18n="settings.debug.force_memory_trim">Force Memory Trim</span></button>
+                        <div id="ffcProgressWrap" style="display:none;margin-top:12px;">
+                            <div style="font-size:12px;color:var(--tx2);margin-bottom:6px;" id="ffcProgressLabel" data-i18n="settings.debug.ffc_progress.caching">Caching...</div>
+                            <div style="background:var(--brd);border-radius:4px;height:6px;overflow:hidden;">
+                                <div id="ffcProgressBar" style="height:100%;background:var(--accent);width:0%;transition:width .3s;border-radius:4px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- IMAGE CACHE + FAST FETCH CACHE -->
+                    <div class="vrcn-panel-card-pair" data-section="performance" style="display:none;">
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">cached</span> <span data-i18n="settings.image_cache.title">Image Cache</span></div>
+                        <div class="set-desc" data-i18n="settings.image_cache.desc">VRCNext caches avatar, world, and profile images locally for instant loading. Over time this can grow to several gigabytes. Set a limit and the oldest cached images will be removed automatically when it is reached (~2 GB per cleanup pass).</div>
+                        <div class="sf-toggle-row" style="margin-top:10px;">
+                            <div>
+                                <span data-i18n="settings.image_cache.optimize.label">Optimize Caching</span>
+                                <div style="font-size:11px;color:var(--tx3);margin-top:2px;" data-i18n="settings.image_cache.optimize.desc">PNG images &gt; 1.5 MB are compressed to JPEG automatically</div>
+                            </div>
+                            <label class="toggle"><input type="checkbox" id="setImgCacheOptimizeEnabled" checked onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div id="imgCacheLimitRow" style="margin-top:12px;">
+                            <div class="sf-row">
+                                <label style="font-size:12px;color:var(--tx2);flex-shrink:0;margin-right:10px;" data-i18n="settings.image_cache.max_size">Max Cache Size</label>
+                                <input type="range" id="setImgCacheLimit" min="5" max="30" step="1" value="5" style="flex:1;accent-color:var(--accent);" oninput="document.getElementById('imgCacheLimitVal').textContent=this.value+' GB';sendToCS({action:'getImgCacheSize'});autoSave()">
+                                <span id="imgCacheLimitVal" style="font-size:12px;color:var(--tx2);margin-left:10px;min-width:44px;text-align:right;">5 GB</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+                                <span id="imgCacheSizeLabel" style="font-size:11px;color:var(--tx3);">— MB used</span>
+                            </div>
+                            <div class="ts-bar-wrap" style="margin-top:4px;">
+                                <div id="imgCacheSizeBar" class="ts-bar" style="width:0%;"></div>
+                            </div>
+                            <div style="font-size:10px;color:var(--tx3);margin-top:6px;" data-i18n="settings.image_cache.limit_hint">When the limit is reached, the oldest ~2 GB of cached images are removed automatically.</div>
+                        </div>
+                        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+                            <button class="vrcn-button" id="btnForceOptimize" onclick="startForceOptimize()"><span class="msi" style="font-size:16px;">compress</span> <span data-i18n="settings.image_cache.force_optimize">Force Optimization</span></button>
+                        </div>
+                        <div id="imgOptimizeProgress" style="display:none;margin-top:8px;">
+                            <div class="ts-bar-wrap">
+                                <div id="imgOptimizeBar" class="ts-bar" style="width:0%;background:var(--accent);"></div>
+                            </div>
+                            <span id="imgOptimizeLabel" style="font-size:11px;color:var(--tx3);margin-top:4px;display:block;">Optimizing…</span>
+                        </div>
+                    </div>
+
+                    <!-- FAST FETCH CACHE -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">bolt</span> <span data-i18n="settings.ffc.title">Fast Fetch Cache</span></div>
+                        <div class="set-desc" data-i18n="settings.ffc.desc">Fast Fetch Cache stores user profiles, worlds, groups, and avatars locally to improve load times. When enabled, VRCNext instantly shows cached content (descriptions, texts, images) while silently refreshing it in the background. When disabled, all data is freshly downloaded on every request with no cache stored or used.</div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.ffc.enable">Enable FFC</span>
+                            <label class="toggle"><input type="checkbox" id="setFfcEnabled" checked onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <button class="vrcn-button" style="margin-top:12px;" onclick="sendToCS({action:'clearFfcCache'})"><span class="msi" style="font-size:16px;">delete_sweep</span> <span data-i18n="settings.ffc.clear">Clear FFC Cache</span></button>
+                    </div>
+                    </div><!-- /vrcn-panel-card-pair -->
+
+                    <!-- DATABASE SETTINGS -->
+                    <div class="vrcn-panel-card" data-section="data" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">database</span> <span data-i18n="settings.db.title">Database Settings</span></div>
+                        <div class="set-desc" style="margin-bottom:12px;" data-i18n="settings.db.desc">Limits how many timeline entries are loaded into memory at startup. Keeps the Timeline fast with large databases. A restart is required to apply changes.</div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.db.optimize">Optimize Database</span>
+                            <label class="toggle"><input type="checkbox" id="setDbOptimize" checked onchange="onDbOptimizeChange();autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div id="dbOptimizeEntriesRow" style="margin-top:12px;">
+                            <div class="sf-row">
+                                <label style="font-size:12px;color:var(--tx2);flex-shrink:0;margin-right:10px;" data-i18n="settings.db.entries_label">Optimized Database Entries</label>
+                                <div style="display:flex;align-items:center;gap:10px;flex:1;">
+                                    <input type="range" id="setDbOptimizeMaxEntries" min="500" max="250000" step="500" value="500" style="flex:1;" oninput="document.getElementById('dbOptimizeEntriesVal').textContent=this.value;autoSave()">
+                                    <span id="dbOptimizeEntriesVal" style="font-size:12px;color:var(--tx2);min-width:44px;text-align:right;">500</span>
+                                </div>
+                            </div>
+                            <div class="set-desc" style="margin-top:6px;" data-i18n="settings.db.entries_desc">Min: 500, Max: 250,000. Loads the N most recent entries for Personal and Friends separately.</div>
+                        </div>
+                        <div id="dbOptimizeOffWarning" style="display:none;margin-top:12px;color:var(--red,#e55);" class="set-desc" data-i18n="settings.db.optimize_off_warning">Warning: Optimize Database is disabled. All entries will be loaded on startup. This may significantly impact performance with large databases.</div>
+                    </div>
+
+                    <!-- DATABASE OPTIMIZATION -->
+                    <div class="vrcn-panel-card" data-section="data" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">cleaning_services</span> Database Optimization</div>
+                        <div class="set-desc" style="margin-bottom:8px;color:var(--err);" data-i18n="settings.db.cleanup.danger">Danger Zone! This Database Optimization will delete certain things from the database.</div>
+                        <div class="set-desc" style="margin-bottom:8px;" data-i18n="settings.db.cleanup.user_cache">It will delete all cached non-friended users from the whole database. This is mostly safe as it does not contain any important information. Time Spent and Meet Counts are still present on those profiles and will not be wiped.</div>
+                        <div class="set-desc" style="margin-bottom:8px;" data-i18n="settings.db.cleanup.events">It will also delete certain events in your Personal and Friends Timeline. In the Personal Timeline, all notifications and URL entries will be wiped. In the Friends Timeline, all "Online", "Offline", and "Status Change" entries, for example "Ask Me" > "Join Me", will be wiped.</div>
+                        <div class="set-desc" style="margin-bottom:4px;" data-i18n="settings.db.cleanup.instructions">Run the analysis first. After that, you will see what will be wiped. It is recommended to create a backup of your database in case you still need those entries. Your database is usually stored at:</div>
+                        <div class="set-desc" style="font-family:monospace;color:var(--tx2);">C:\Users\USERNAME\AppData\Roaming\VRCNext</div>
+                        <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
+                            <button class="vrcn-button" id="btnDbAnalyze" onclick="dbRunAnalysis()"><span class="msi" style="font-size:16px;">analytics</span> Run Analysis</button>
+                            <button class="vrcn-button" id="btnDbBackup" onclick="dbCreateBackup()"><span class="msi" style="font-size:16px;">backup</span> Create Backup</button>
+                            <button class="vrcn-button" id="btnDbOptimize" onclick="dbRunOptimize()" style="display:none;"><span class="msi" style="font-size:16px;">cleaning_services</span> Run Optimization</button>
+                        </div>
+                        <div id="dbOptProgressWrap" style="display:none;margin-top:12px;">
+                            <div class="ts-bar-wrap">
+                                <div id="dbOptProgressBar" class="ts-bar" style="width:0%;background:var(--accent);"></div>
+                            </div>
+                            <span id="dbOptProgressLabel" style="font-size:11px;color:var(--tx3);margin-top:4px;display:block;">Analyzing…</span>
+                        </div>
+                        <div id="dbAnalysisResults" style="display:none;margin-top:14px;"></div>
+                    </div>
+
+                    <div class="vrcn-panel-card" data-section="community" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">database</span> <span data-i18n="settings.avtrdb.title">Avatar Avtrdb and Avtr.icu Community Support</span></div>
+                        <div class="fd-tabs" style="margin-top:10px;">
+                            <button class="fd-tab active" onclick="switchAvtrdbTab('support',this)" data-i18n="settings.avtrdb.tabs.support">Support</button>
+                            <button class="fd-tab" onclick="switchAvtrdbTab('reports',this)" data-i18n="settings.avtrdb.tabs.reports">Reports</button>
+                        </div>
+                        <div id="avtrdbTabSupport">
+                            <div class="set-desc" data-i18n="settings.avtrdb.support.deleted_desc">Help improve the avatar databases by reporting deleted avatars. When enabled, VRCNext will notify the respective database whenever you encounter a deleted or DMCA'd avatar, but only if that avatar exists in that database.</div>
+                            <div class="sf-toggle-row">
+                                <span data-i18n="settings.avtrdb.support.deleted_toggle">Report deleted avatars to Avtrdb</span>
+                                <label class="toggle"><input type="checkbox" id="setAvtrdbReport" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                            </div>
+                            <div class="sf-toggle-row" style="margin-top:8px;">
+                                <span data-i18n="settings.avtrdb.support.deleted_toggle_icu">Report deleted avatars to Avtr.icu</span>
+                                <label class="toggle"><input type="checkbox" id="setAvtrIcuReport" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                            </div>
+                            <div class="set-desc" style="margin-top:14px;" data-i18n="settings.avtrdb.support.submit_desc">Submit new public avatars you encounter in-game to the avatar databases. When you switch to an avatar that isn't indexed yet, VRCNext will automatically submit it. This helps expand the databases and makes more avatars discoverable for everyone.</div>
+                            <div class="sf-toggle-row">
+                                <span data-i18n="settings.avtrdb.support.submit_toggle">Submit new avatars to Avtrdb</span>
+                                <label class="toggle"><input type="checkbox" id="setAvtrdbSubmit" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                            </div>
+                            <div class="sf-toggle-row" style="margin-top:8px;">
+                                <span data-i18n="settings.avtrdb.support.submit_toggle_icu">Submit new avatars to Avtr.icu</span>
+                                <label class="toggle"><input type="checkbox" id="setAvtrIcuSubmit" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                            </div>
+                        </div>
+                        <div id="avtrdbTabReports" style="display:none;">
+                            <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.avtrdb.reports.desc">All reports sent to avatar databases during this session. Avtrdb reports include a ticket link to check status.</div>
+                            <div id="avtrdbReportsList"><div class="empty-msg" data-i18n="settings.avtrdb.reports.empty">No reports sent yet this session.</div></div>
+                        </div>
+                    </div>
+
+                    <div class="vrcn-panel-card" id="vrcxImportCard" data-section="vrcx" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">download</span> <span data-i18n="settings.vrcx.title">Import data from VRCX</span></div>
+                        <div class="set-desc"><span data-i18n="settings.vrcx.desc_prefix">Imports your VRCX history into VRCNext: world time, friend time, instance joins, GPS events, online/offline, status and bio changes. Existing data is preserved and values are added on top. Select your</span> <code>VRCX.sqlite3</code> <span data-i18n="settings.vrcx.desc_suffix">file to begin.</span></div>
+                        <div style="margin-top:10px;padding:12px 14px;background:rgba(var(--err-rgb,220,50,50),.10);border:1px solid rgba(var(--err-rgb,220,50,50),.30);border-radius:10px;line-height:1.7;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                                <span class="msi" style="font-size:20px;color:var(--err);">warning</span>
+                                <span style="font-size:13px;font-weight:700;color:var(--err);" data-i18n="settings.vrcx.warning.title">Experimental Feature</span>
+                            </div>
+                            <p style="margin:0 0 8px;font-size:12px;color:var(--tx2);" data-i18n="settings.vrcx.warning.line1">Importing the VRCX database will only add necessary information. This feature is highly experimental and some data may be missing. Instance information works differently in VRCN, so some images or other details might not appear.</p>
+                            <p style="margin:0 0 8px;font-size:12px;color:var(--tx2);" data-i18n="settings.vrcx.warning.line2">If your VRCX database is very important to you, it is recommended to continue using VRCX, as the data will not be fully merged with the VRCN database.</p>
+                            <p style="margin:0;font-size:12px;color:var(--tx3);" data-i18n="settings.vrcx.warning.line3">Full instance data will not be available and some elements may not display correctly.</p>
+                        </div>
+                        <button class="vrcn-button" style="margin-top:12px;" id="vrcxSelectBtn" onclick="vrcxSelectFile()"><span class="msi" style="font-size:16px;">storage</span> <span data-i18n="settings.vrcx.select_db">Select VRCX Database</span></button>
+                        <div id="vrcxPreviewBox" style="display:none;margin-top:14px;">
+                            <div class="set-desc" style="margin-bottom:8px;opacity:.7;" id="vrcxFileName"></div>
+                            <div id="vrcxPreviewRows" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-bottom:14px;"></div>
+                            <div id="vrcxProgressWrap" style="display:none;margin-bottom:14px;">
+                                <div style="font-size:12px;color:var(--tx3);margin-bottom:6px;" id="vrcxProgressLabel" data-i18n="settings.vrcx.progress.reading_database">Reading database...</div>
+                                <div style="background:var(--bg-input);border-radius:6px;height:6px;overflow:hidden;">
+                                    <div id="vrcxProgressBar" style="height:100%;width:0%;background:var(--accent);border-radius:6px;transition:width .4s ease;"></div>
+                                </div>
+                            </div>
+                            <div id="vrcxSuccessCard" style="display:none;background:var(--bg-input);border-radius:10px;padding:20px 16px;margin-bottom:12px;text-align:center;">
+                                <span class="msi" style="font-size:40px;color:var(--ok);display:block;margin-bottom:10px;">check_circle</span>
+                                <div style="font-size:14px;font-weight:600;color:var(--tx0);margin-bottom:6px;" data-i18n="settings.vrcx.import_complete">Import Complete</div>
+                                <div id="vrcxSuccessDetail" style="font-size:12px;color:var(--tx3);line-height:1.6;"></div>
+                            </div>
+                            <div id="vrcxImportError" style="display:none;margin-bottom:10px;font-size:13px;color:var(--err);"></div>
+                            <div id="vrcxActionBtns" style="display:flex;gap:8px;">
+                                <button class="vrcn-button" id="vrcxStartBtn" onclick="vrcxStartImport()"><span class="msi" style="font-size:16px;">upload</span> <span data-i18n="settings.vrcx.start_import">Start Import</span></button>
+                                <button class="vrcn-button" id="vrcxCancelBtn" onclick="vrcxReset()"><span class="msi" style="font-size:16px;">close</span> <span data-i18n="common.cancel">Cancel</span></button>
+                            </div>
+                            <div id="vrcxDoneBtn" style="display:none;">
+                                <button class="vrcn-button" onclick="vrcxReset()" data-i18n="common.done">Done</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- COPYRIGHT AND INFORMATION -->
+                    <div class="vrcn-panel-card" data-section="about" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">info</span> <span data-i18n="settings.info.title">Copyright And Information</span></div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.info.p1">VRCNext is a VRChat assistant application that brings together tools and ideas from different applications into one unified app. It is designed for managing friends, groups, worlds, and analytics, and also provides communication features and a toolbox to make everything easier in a single place.</div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.info.p2">VRCNext is not endorsed by VRChat and does not reflect the views or opinions of the VRChat staff or anyone officially involved in the development or management of VRChat. VRChat is a registered trademark of VRChat Inc.</div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.info.p3">Shinyflvres and all contributors are not responsible for any issues that may be caused by VRCNext. In general, VRCNext is not a problem for VRChat, but misuse such as abusing features, exploiting others, or generating excessive request spam may result in moderation by VRChat.</div>
+                        <div class="set-desc" data-i18n="settings.info.p4">Your User ID and the VRCNext Client ID are used to communicate with the VRChat API. Use VRCNext respectfully and do not attempt to exploit, manipulate, or generate spam requests, as this may lead to moderation.</div>
+                    </div>
+
+                    <!-- ACCOUNTS -->
+                    <div class="vrcn-panel-card" data-section="accounts" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">account_circle</span> <span data-i18n="settings.accounts.title">Accounts</span></div>
+                        <div class="set-desc" style="margin-bottom:12px;" data-i18n="settings.accounts.desc">Manage your VRChat accounts. The primary account uses the main database, secondary accounts each get their own database. Credentials are stored locally and encrypted.</div>
+
+                        <div style="background:rgba(255,180,0,.08);border:1px solid rgba(255,180,0,.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+                            <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--warn);margin-bottom:6px;"><span class="msi" style="font-size:16px;">warning</span><span data-i18n="settings.accounts.warning.title">Experimental Feature</span></div>
+                            <div class="set-desc" style="margin:0;color:var(--tx2);" data-i18n="settings.accounts.warning.body">Switching Accounts is an experimental feature. It creates a separate database for each secondary account so the main database is not overloaded with data. Things might not work correctly on secondary accounts, expect bugs here and there. Secondary accounts do not get auto-backups, only your main account does. Some settings might not work as intended. Be warned.</div>
+                        </div>
+
+                        <div id="accountsList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
+
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                            <button class="vrcn-button" onclick="showAddAccountForm()" id="btnAddAccountToggle"><span class="msi" style="font-size:16px;">person_add</span> <span data-i18n="settings.accounts.add">Add Account</span></button>
+                        </div>
+
+                        <div id="addAccountForm" style="display:none;border-top:1px solid var(--brd);margin-top:6px;padding-top:12px;">
+                            <div class="sf-section-label" data-i18n="settings.accounts.add_credentials">New Account Credentials</div>
+                            <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+                                <input type="text" id="addAccUser" class="vrcn-edit-field" placeholder="VRChat username" data-i18n-placeholder="settings.api.username">
+                                <input type="password" id="addAccPass" class="vrcn-edit-field" placeholder="VRChat password" data-i18n-placeholder="settings.api.password">
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <button class="vrcn-button" onclick="submitAddAccount()"><span class="msi" style="font-size:16px;">login</span> <span data-i18n="settings.accounts.add_submit">Add</span></button>
+                                <button class="vrcn-button" onclick="cancelAddAccount()"><span class="msi" style="font-size:16px;">close</span> <span data-i18n="common.cancel">Cancel</span></button>
+                                <span id="addAccountStatus" style="font-size:11px;color:var(--tx3);"></span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    </div><!-- /settings-content -->
+                </div><!-- /settings-layout -->

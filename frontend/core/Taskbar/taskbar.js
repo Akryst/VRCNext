@@ -1,6 +1,27 @@
 var _helpPanelOpen = false;
 var _helpDismiss = null;
 
+// Updates the App-dropdown user header with the active user's icon and display name.
+function updateTbAppUserHeader() {
+    var av = document.getElementById('tbAppUserAvatar');
+    var nm = document.getElementById('tbAppUserName');
+    if (!av || !nm) return;
+    var u = (typeof currentVrcUser !== 'undefined') ? currentVrcUser : null;
+    if (u) {
+        av.style.backgroundImage = u.image ? "url('" + u.image.replace(/'/g, "\\'") + "')" : '';
+        nm.textContent = u.displayName || '';
+    } else {
+        av.style.backgroundImage = '';
+        nm.textContent = '';
+    }
+}
+
+// Opens the Settings tab and switches to the Accounts section.
+function openAccountsSection() {
+    if (typeof showTab === 'function') showTab(9);
+    if (typeof switchSettingsSection === 'function') switchSettingsSection('accounts', null);
+}
+
 function toggleHelpPanel() {
     _helpPanelOpen = !_helpPanelOpen;
     var panel = document.getElementById('helpPanel');

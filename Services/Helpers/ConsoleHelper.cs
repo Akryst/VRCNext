@@ -14,6 +14,14 @@ public static class ConsoleHelper
             case "/help":
                 return new(HelpText, "info");
 
+            case "/trim":
+                return new("Triggering memory trim...", "sec", "forceTrim", new { });
+
+            case "/force":
+                if (parts.Length >= 2 && parts[1].Equals("trim", StringComparison.OrdinalIgnoreCase))
+                    return new("Triggering force trim...", "sec", "forceTrimAll", new { });
+                return new("Usage: /force trim", "err");
+
             case "/debug":
                 if (parts.Length >= 4
                     && parts[1].Equals("img",   StringComparison.OrdinalIgnoreCase)
@@ -41,6 +49,13 @@ public static class ConsoleHelper
         "Help:\n" +
         "  /help\n" +
         "  Shows all commands\n" +
+        "\n" +
+        "Memory:\n" +
+        "  /trim\n" +
+        "  Forces a GC memory trim and clears in-memory caches.\n" +
+        "\n" +
+        "  /force trim\n" +
+        "  Same as /trim but skips all thresholds — always trims all caches.\n" +
         "\n" +
         "Debugging:\n" +
         "  /debug img cache <true/false>\n" +

@@ -53,25 +53,27 @@ public static class ImageCacheHelper
         using var cmd = _db.CreateCommand();
         cmd.CommandText = "CREATE TABLE IF NOT EXISTS image_versions (key TEXT PRIMARY KEY, url TEXT NOT NULL);";
         cmd.ExecuteNonQuery();
-        _LoadUrls();
     }
 
-    private static void _LoadUrls()
-    {
-        lock (_dbLock)
-        {
-            using var cmd = _db!.CreateCommand();
-            cmd.CommandText = "SELECT key, url FROM image_versions";
-            using var r = cmd.ExecuteReader();
-            while (r.Read())
-                _urls[r.GetString(0)] = r.GetString(1);
-        }
-    }
 
     private static string? GetStoredUrl(string subdir, string entityId)
     {
         var key = $"{subdir}/{entityId}";
-        return _urls.TryGetValue(key, out var url) ? url : null;
+        if (_urls.TryGetValue(key, out var cached)) return cached;
+        try
+        {
+            lock (_dbLock)
+            {
+                if (_db == null) return null;
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = "SELECT url FROM image_versions WHERE key = $key";
+                cmd.Parameters.AddWithValue("$key", key);
+                var result = cmd.ExecuteScalar() as string;
+                if (result != null) _urls[key] = result;
+                return result;
+            }
+        }
+        catch { return null; }
     }
 
     private static void SaveUrl(string subdir, string entityId, string url)
@@ -465,7 +467,7 @@ public static class ImageCacheHelper
         _pathCache[$"{subdir}/{entityId}"] = finalPath;
         SaveUrl(subdir, entityId, fetchUrl);
         Log?.Invoke($"CDN 200 - {subdir} - {fetchUrl}", "ok");
-        _ = Task.Run(TrimIfNeeded);
+        _ = Task.Run(() => TrimIfNeeded());
         return finalPath;
     }
 
@@ -523,7 +525,7 @@ public static class ImageCacheHelper
             .Sum(f => f.Length);
     }
 
-    public static void TrimIfNeeded()
+    public static void TrimIfNeeded(bool force = false)
     {
         var limitBytes = (long)LimitGb * 1024 * 1024 * 1024;
         if (limitBytes <= 0 || !Directory.Exists(_baseDir)) return;
@@ -535,13 +537,54 @@ public static class ImageCacheHelper
                 .OrderBy(f => f.LastWriteTimeUtc)
                 .ToList();
             var total = files.Sum(f => f.Length);
-            if (total <= limitBytes) return;
-            var target = (long)(limitBytes * 0.8);
-            foreach (var f in files)
+
+            int deletedFiles = 0;
+            long deletedBytes = 0;
+
+            if (force || total > limitBytes)
             {
-                if (total <= target) break;
-                try { total -= f.Length; f.Delete(); } catch { }
+                var target = (long)(limitBytes * 0.8);
+                foreach (var f in files)
+                {
+                    if (total <= target) break;
+                    try
+                    {
+                        total -= f.Length;
+                        deletedBytes += f.Length;
+                        f.Delete();
+                        deletedFiles++;
+                        var rel = Path.GetRelativePath(_baseDir, f.FullName);
+                        var key = Path.ChangeExtension(rel, null).Replace('\\', '/');
+                        _pathCache.TryRemove(key, out _);
+                        _urls.TryRemove(key, out _);
+                    }
+                    catch { }
+                }
             }
+
+            int clearedKeys;
+            if (force)
+            {
+                // Clear all in-memory caches — next lookup re-scans disk / re-queries DB
+                clearedKeys = _pathCache.Count + _urls.Count;
+                _pathCache.Clear();
+                _urls.Clear();
+            }
+            else
+            {
+                // Remove stale "not found" markers — safe to evict, next lookup rechecks disk
+                var staleKeys = _pathCache.Where(kv => kv.Value.Length == 0).Select(kv => kv.Key).ToList();
+                foreach (var key in staleKeys)
+                    _pathCache.TryRemove(key, out _);
+                clearedKeys = staleKeys.Count;
+            }
+
+            if (deletedFiles > 0)
+                Log?.Invoke($"[GC] - ImageCache - Trimmed {deletedFiles} files ({deletedBytes / 1024 / 1024} MB freed). {clearedKeys} entries cleared.", "sec");
+            else if (clearedKeys > 0)
+                Log?.Invoke($"[GC] - ImageCache - No disk trim needed. {clearedKeys} entries cleared.", "sec");
+            else
+                Log?.Invoke($"[GC] - ImageCache - No trim needed. {_pathCache.Count} path entries, {_urls.Count} url entries.", "sec");
         }
         catch { }
     }

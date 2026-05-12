@@ -172,6 +172,26 @@ public class FileWatcherService : IDisposable
     public void Dispose() => Stop();
 }
 
+// One VRChat account entry persisted in AppSettings.Accounts.
+public class VrcAccount
+{
+    public string AccountId { get; set; } = ""; 
+    public string UserId { get; set; } = "";     
+    public string DisplayName { get; set; } = "";
+    public string Username { get; set; } = "";
+    public string AvatarImageUrl { get; set; } = "";
+    public bool IsPrimary { get; set; } = false;
+
+    // Encrypted on disk via DPAPI, read decrypted values from Password/AuthCookie/TwoFactorCookie at runtime.
+    public string PasswordEnc { get; set; } = "";
+    public string AuthCookieEnc { get; set; } = "";
+    public string TwoFactorCookieEnc { get; set; } = "";
+
+    [JsonIgnore] public string Password { get; set; } = "";
+    [JsonIgnore] public string AuthCookie { get; set; } = "";
+    [JsonIgnore] public string TwoFactorCookie { get; set; } = "";
+}
+
 // App Settings - persisted to JSON in %AppData%
 public class AppSettings
 {
@@ -220,9 +240,12 @@ public class AppSettings
     public bool RandomDashBg { get; set; } = false;
     public bool ClockEnabled { get; set; } = true;
     public bool ClockAmPm { get; set; } = false;
-    public string VrcUsername { get; set; } = "";
+    // List of configured VRChat accounts and the currently active local AccountId (not UserId).
+    public List<VrcAccount> Accounts { get; set; } = new();
+    public string ActiveAccountId { get; set; } = "";
 
-    // Encrypted on disk via DPAPI — use VrcPassword/VrcAuthCookie/VrcTwoFactorCookie at runtime
+    // Legacy single-account fields migrated into Accounts on Load and cleared on Save.
+    public string VrcUsername { get; set; } = "";
     public string VrcPasswordEnc { get; set; } = "";
     public string VrcAuthCookieEnc { get; set; } = "";
     public string VrcTwoFactorCookieEnc { get; set; } = "";
@@ -230,6 +253,40 @@ public class AppSettings
     [JsonIgnore] public string VrcPassword { get; set; } = "";
     [JsonIgnore] public string VrcAuthCookie { get; set; } = "";
     [JsonIgnore] public string VrcTwoFactorCookie { get; set; } = "";
+
+    // Resolves the currently active account by ActiveAccountId, falling back to the primary or first entry.
+    [JsonIgnore]
+    public VrcAccount? ActiveAccount
+    {
+        get
+        {
+            if (Accounts.Count == 0) return null;
+            if (!string.IsNullOrEmpty(ActiveAccountId))
+            {
+                var byId = Accounts.FirstOrDefault(a => a.AccountId == ActiveAccountId);
+                if (byId != null) return byId;
+            }
+            return Accounts.FirstOrDefault(a => a.IsPrimary) ?? Accounts.FirstOrDefault();
+        }
+    }
+
+    [JsonIgnore]
+    public VrcAccount? PrimaryAccount => Accounts.FirstOrDefault(a => a.IsPrimary);
+
+    // Ensures a primary account exists for fresh installs or corrupted settings and returns it.
+    public VrcAccount EnsurePrimaryAccount()
+    {
+        var p = PrimaryAccount;
+        if (p != null) return p;
+        var primary = new VrcAccount
+        {
+            AccountId = Guid.NewGuid().ToString("N"),
+            IsPrimary = true,
+        };
+        Accounts.Add(primary);
+        if (string.IsNullOrEmpty(ActiveAccountId)) ActiveAccountId = primary.AccountId;
+        return primary;
+    }
 
     private static string Protect(string plain)
     {
@@ -491,10 +548,43 @@ public class AppSettings
                 if (s.Webhooks == null) s.Webhooks = new();
                 if (s.Webhooks.Count > 4) s.Webhooks = s.Webhooks.Take(4).ToList();
                 while (s.Webhooks.Count < 4) s.Webhooks.Add(new() { Name = $"Channel {s.Webhooks.Count + 1}" });
-                // Decrypt credentials
+
+                // One-time migration of legacy single-account fields into Accounts[0] as primary.
+                if (s.Accounts == null) s.Accounts = new();
+                if (s.Accounts.Count == 0 &&
+                    (!string.IsNullOrEmpty(s.VrcUsername) ||
+                     !string.IsNullOrEmpty(s.VrcPasswordEnc) ||
+                     !string.IsNullOrEmpty(s.VrcAuthCookieEnc) ||
+                     !string.IsNullOrEmpty(s.VrcTwoFactorCookieEnc)))
+                {
+                    var primary = new VrcAccount
+                    {
+                        AccountId          = Guid.NewGuid().ToString("N"),
+                        UserId             = "", // Filled on the first successful resume or login.
+                        DisplayName        = s.VrcUsername,
+                        Username           = s.VrcUsername,
+                        IsPrimary          = true,
+                        PasswordEnc        = s.VrcPasswordEnc,
+                        AuthCookieEnc      = s.VrcAuthCookieEnc,
+                        TwoFactorCookieEnc = s.VrcTwoFactorCookieEnc,
+                    };
+                    s.Accounts.Add(primary);
+                    s.ActiveAccountId = primary.AccountId;
+                }
+
+                // Per-account decrypt of stored credentials.
+                foreach (var acc in s.Accounts)
+                {
+                    acc.Password        = Unprotect(acc.PasswordEnc);
+                    acc.AuthCookie      = Unprotect(acc.AuthCookieEnc);
+                    acc.TwoFactorCookie = Unprotect(acc.TwoFactorCookieEnc);
+                }
+
+                // Legacy decrypt kept for backwards-read but should be empty after migration.
                 s.VrcPassword        = Unprotect(s.VrcPasswordEnc);
                 s.VrcAuthCookie      = Unprotect(s.VrcAuthCookieEnc);
                 s.VrcTwoFactorCookie = Unprotect(s.VrcTwoFactorCookieEnc);
+
                 return s;
             }
         }
@@ -506,10 +596,21 @@ public class AppSettings
     {
         try
         {
-            // Encrypt credentials before writing to disk
-            VrcPasswordEnc        = Protect(VrcPassword);
-            VrcAuthCookieEnc      = Protect(VrcAuthCookie);
-            VrcTwoFactorCookieEnc = Protect(VrcTwoFactorCookie);
+            // Per-account encrypt of credentials before writing to disk.
+            foreach (var acc in Accounts)
+            {
+                acc.PasswordEnc        = Protect(acc.Password);
+                acc.AuthCookieEnc      = Protect(acc.AuthCookie);
+                acc.TwoFactorCookieEnc = Protect(acc.TwoFactorCookie);
+            }
+            // Wipe legacy fields so they are removed from JSON after migration.
+            VrcUsername           = "";
+            VrcPasswordEnc        = "";
+            VrcAuthCookieEnc      = "";
+            VrcTwoFactorCookieEnc = "";
+            VrcPassword           = "";
+            VrcAuthCookie         = "";
+            VrcTwoFactorCookie    = "";
             var dir = Path.GetDirectoryName(FilePath)!;
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
             File.WriteAllText(FilePath, JsonConvert.SerializeObject(this, Formatting.Indented));

@@ -1,0 +1,19 @@
+                <div style="display:flex;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <button class="vrcn-button sub-tab-btn active" id="groupFilterMine" onclick="setGroupFilter('mine')"><span class="msi" style="font-size:16px;">groups</span> <span data-i18n="groups.filters.mine">My Groups</span></button>
+                        <button class="vrcn-button sub-tab-btn" id="groupFilterSearch" onclick="setGroupFilter('search')"><span class="msi" style="font-size:16px;">search</span> <span data-i18n="common.search">Search</span></button>
+                    </div>
+                    <button id="groupsRefreshBtn" class="vrcn-button" onclick="refreshGroups()" title="Refresh my groups" data-i18n-title="groups.mine.refresh_title" style="margin-left:auto;"><span class="msi" style="font-size:16px;">refresh</span> <span data-i18n="common.refresh">Refresh</span></button>
+                    <button class="vrcn-button sub-tab-btn active" id="groupGridLarge" onclick="setGridSize('groups','default')" title="Large grid"><span class="msi" style="font-size:16px;">grid_on</span></button>
+                    <button class="vrcn-button sub-tab-btn" id="groupGridSmall" onclick="setGridSize('groups','compact')" title="Compact grid"><span class="msi" style="font-size:14px;">apps</span></button>
+                </div>
+                <div id="groupMineArea">
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+                        <div class="search-bar-row" style="margin-bottom:0;flex:1;min-width:140px;"><span class="msi search-ico">search</span><input type="text" id="filterGroupsInput" class="vrcn-input" placeholder="Filter my groups..." data-i18n-placeholder="groups.mine.filter_placeholder" oninput="filterMyGroups()"></div>
+                    </div>
+                    <div id="myGroupsGrid" class="search-grid"></div>
+                </div>
+                <div id="groupSearchArea" style="display:none;">
+                    <div class="search-bar-row"><span class="msi search-ico">search</span><input type="text" id="searchGroupsInput" class="vrcn-input" placeholder="Search groups..." data-i18n-placeholder="groups.search.placeholder" onkeydown="if(event.key==='Enter')doSearch('groups')"><button class="vrcn-button" onclick="doSearch('groups')" data-i18n="common.search">Search</button></div>
+                    <div id="searchGroupsResults" class="search-grid"><div class="empty-msg" data-i18n="groups.search.empty_prompt">Search for VRChat groups</div></div>
+                </div>

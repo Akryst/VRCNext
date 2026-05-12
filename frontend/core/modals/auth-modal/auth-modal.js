@@ -1,4 +1,7 @@
 /* === Auth Modal (2FA) === */
+// Routes the 2FA submit between the regular login flow and the isolated add-account flow.
+let vrc2faTarget = 'login';
+
 function update2FAMessage(type = vrc2faType) {
     const msgEl = document.getElementById('modal2FAMsg');
     if (!msgEl) return;
@@ -7,8 +10,9 @@ function update2FAMessage(type = vrc2faType) {
         : t('profiles.2fa.message_app', 'Enter the 6-digit code from your authenticator app.');
 }
 
-function show2FAModal(type) {
+function show2FAModal(type, target) {
     vrc2faType = type;
+    vrc2faTarget = (target === 'addAccount') ? 'addAccount' : 'login';
     const m = document.getElementById('modal2FA');
     m.style.display = 'flex';
     document.getElementById('modal2FACode').value = '';
@@ -24,5 +28,6 @@ function modal2FASubmit() {
         return;
     }
     document.getElementById('modal2FAError').textContent = t('profiles.2fa.verifying', 'Verifying...');
-    sendToCS({ action: 'vrc2FA', code: c, type: vrc2faType });
+    const action = (vrc2faTarget === 'addAccount') ? 'addAccount2FA' : 'vrc2FA';
+    sendToCS({ action, code: c, type: vrc2faType });
 }

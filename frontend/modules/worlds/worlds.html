@@ -1,0 +1,68 @@
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                    <div id="worldFilterBtns" style="display:flex;gap:8px;align-items:center;">
+                        <button class="vrcn-button sub-tab-btn active" id="worldFilterFav" onclick="setWorldFilter('favorites')"><span class="msi" style="font-size:16px;">star</span> <span data-i18n="worlds.filters.favorites">Favorites</span></button>
+                        <button class="vrcn-button sub-tab-btn" id="worldFilterMine" onclick="setWorldFilter('mine')"><span class="msi" style="font-size:16px;">cloud_upload</span> <span data-i18n="worlds.filters.mine">My Worlds</span></button>
+                        <button class="vrcn-button sub-tab-btn" id="worldFilterSearch" onclick="setWorldFilter('search')"><span class="msi" style="font-size:16px;">search</span> <span data-i18n="worlds.filters.search">Search</span></button>
+                    </div>
+                    <div id="worldEditBar" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;flex:1;">
+                        <span id="worldEditCount" style="font-size:12px;color:var(--tx2);white-space:nowrap;">0 selected</span>
+                        <button id="worldEditSelectAllBtn" class="vrcn-button" onclick="worldEditSelectAll()" data-i18n="worlds.edit.select_all">Select All</button>
+                        <div style="position:relative;">
+                            <button id="worldEditMoveBtn" class="vrcn-button wd-edit-action" disabled onclick="worldEditShowMoveMenu(this)"><span class="msi" style="font-size:14px;">drive_file_move</span> <span data-i18n="worlds.edit.move_to">Move to...</span></button>
+                            <div id="worldEditMovePicker" class="vn-select-panel" style="display:none;min-width:180px;z-index:1200;"></div>
+                        </div>
+                        <button id="worldEditRemoveBtn" class="vrcn-button wd-edit-action" disabled onclick="worldEditRemoveSelected()"><span class="msi" style="font-size:14px;">star_border</span> <span data-i18n="worlds.edit.remove">Remove</span></button>
+                    </div>
+                    <div style="display:flex;gap:4px;align-items:center;">
+                        <button id="worldEditModeBtn" class="vrcn-button" onclick="toggleWorldEditMode()" title="Edit favorites" data-i18n-title="worlds.edit.button"><span class="msi" style="font-size:16px;">edit</span> <span data-i18n="worlds.edit.button">Edit</span></button>
+                        <button class="vrcn-button sub-tab-btn active" id="worldGridLarge" onclick="setGridSize('worlds','default')" title="Large grid"><span class="msi" style="font-size:16px;">grid_on</span></button>
+                        <button class="vrcn-button sub-tab-btn" id="worldGridSmall" onclick="setGridSize('worlds','compact')" title="Compact grid"><span class="msi" style="font-size:14px;">apps</span></button>
+                    </div>
+                </div>
+                <div id="worldMineArea" style="display:none;">
+                    <div id="worldMineGrid" class="search-grid"><div class="empty-msg" data-i18n="worlds.mine.loading">Loading your worlds...</div></div>
+                </div>
+                <div id="worldSearchArea" style="display:none;">
+                    <div class="search-bar-row">
+                        <select id="worldSortSelect" class="vrcn-dropdown" style="flex-shrink:0;">
+                            <option value="relevance" data-i18n="worlds.search.sort.relevance">Relevance</option>
+                            <option value="popularity" data-i18n="worlds.search.sort.popularity">Popularity</option>
+                            <option value="updated" data-i18n="worlds.search.sort.updated">Updated</option>
+                            <option value="created" data-i18n="worlds.search.sort.created">Created</option>
+                            <option value="shuffle" data-i18n="worlds.search.sort.shuffle">Shuffle</option>
+                        </select>
+                        <div style="position:relative;flex:1;display:flex;align-items:center;"><span class="msi search-ico">search</span><input type="text" id="searchWorldsInput" class="vrcn-input" style="width:100%;" placeholder="Search worlds..." data-i18n-placeholder="worlds.search.placeholder" onkeydown="if(event.key==='Enter')doSearch('worlds')"></div>
+                        <button class="vrcn-button" onclick="doSearch('worlds')" data-i18n="common.search">Search</button>
+                    </div>
+                    <div id="searchWorldsResults" class="search-grid"><div class="empty-msg" data-i18n="worlds.search.empty_prompt">Search for VRChat worlds</div></div>
+                </div>
+                <div id="worldFavArea">
+                    <!-- Category label + inline rename -->
+                    <div id="favWorldGroupHeader" style="display:flex;align-items:center;gap:6px;margin-bottom:10px;min-height:24px;">
+                        <span id="favWorldGroupLabel" style="font-size:13px;font-weight:600;color:var(--tx1);" data-i18n="worlds.favorites.group.all">All Favorites</span>
+                        <span id="favWorldGroupVrcPlusBadge" class="vrcn-supporter-badge" style="display:none;">VRC+</span>
+                        <button id="favWorldGroupEditBtn" class="myp-edit-btn" onclick="startEditWorldGroupName()" style="display:none;" title="Rename category" data-i18n-title="worlds.favorites.rename_category"><span class="msi" style="font-size:14px;">edit</span></button>
+                        <span id="favWorldGroupVisLabel" style="display:none;font-size:11px;color:var(--tx3);font-weight:400;"></span>
+                        <div id="favWorldGroupVisDropWrap" style="display:none;">
+                            <select id="favWorldGroupVisDrop" class="vrcn-dropdown" onchange="saveFavGroupVisibility(this.value)" style="min-width:160px;">
+                                <option value="public" data-i18n="worlds.favorites.visibility.public">Visible for everyone</option>
+                                <option value="friends" data-i18n="worlds.favorites.visibility.friends">Visible for friends</option>
+                                <option value="private" data-i18n="worlds.favorites.visibility.private">Visible only to you</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="favWorldGroupRenameRow" style="display:none;align-items:center;gap:6px;margin-bottom:10px;">
+                        <input type="text" id="favWorldGroupNameInput" class="vrcn-edit-field" maxlength="64" style="flex:1;max-width:280px;">
+                        <button class="vrcn-button vrcn-btn-primary" onclick="saveWorldGroupName()" data-i18n="common.save">Save</button>
+                        <button class="vrcn-button" onclick="cancelEditWorldGroupName()" data-i18n="common.cancel">Cancel</button>
+                    </div>
+                    <!-- Dropdown + search -->
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+                        <select id="favWorldGroupFilter" class="vrcn-dropdown" onchange="setFavWorldGroup(this.value)" style="min-width:160px;max-width:220px;">
+                            <option value="" data-i18n="worlds.favorites.group.all">All Favorites</option>
+                        </select>
+                        <div class="search-bar-row" style="margin-bottom:0;flex:1;min-width:140px;"><span class="msi search-ico">search</span><input type="text" id="favWorldSearchInput" class="vrcn-input" placeholder="Filter favorite worlds..." data-i18n-placeholder="worlds.favorites.filter_placeholder" oninput="filterFavWorlds()"></div>
+                        <button id="favWorldsRefreshBtn" class="vrcn-button" onclick="refreshFavWorlds()" title="Refresh favorites" data-i18n-title="worlds.favorites.refresh_title"><span class="msi" style="font-size:16px;">refresh</span> <span data-i18n="common.refresh">Refresh</span></button>
+                    </div>
+                    <div id="favWorldsGrid" class="search-grid"><div class="empty-msg" data-i18n="worlds.favorites.loading">Loading favorite worlds...</div></div>
+                </div>

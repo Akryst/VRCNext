@@ -3,7 +3,37 @@ window.external.receiveMessage(rawMsg => {
     const { type, payload } = JSON.parse(rawMsg);
     switch (type) {
             case 'translationData': handleTranslationData(payload); break;
-            case 'loadSettings': loadSettingsToUI(payload); break;
+            case 'loadSettings': loadSettingsToUI(payload); if (typeof requestAccountsList === 'function') requestAccountsList(); break;
+            // Multi-Account events.
+            case 'accountsList':
+                if (typeof renderAccountsList === 'function') renderAccountsList(payload);
+                break;
+            case 'accountAddNeeds2FA':
+                if (typeof show2FAModal === 'function') show2FAModal(payload.twoFactorType || 'totp', 'addAccount');
+                break;
+            case 'accountAddSuccess': {
+                if (typeof hideAddAccountForm === 'function') hideAddAccountForm();
+                if (typeof requestAccountsList === 'function') requestAccountsList();
+                const m = document.getElementById('modal2FA');
+                if (m) m.style.display = 'none';
+                break;
+            }
+            case 'accountAddError': {
+                const s = document.getElementById('addAccountStatus');
+                if (s) s.textContent = payload && payload.error ? payload.error : t('settings.accounts.add_error_login_failed', 'Login failed');
+                break;
+            }
+            case 'accountSwitchStarting':
+                if (typeof showLoadingOverlay === 'function') showLoadingOverlay(t('settings.accounts.switching', 'Switching account, restarting...'));
+                break;
+            case 'accountSwitchError':
+                if (typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
+                if (typeof requestAccountsList === 'function') requestAccountsList();
+                if (typeof showToast === 'function') showToast(t('settings.accounts.switch_error', 'Account switch failed') + (payload && payload.reason ? ': ' + payload.reason : ''));
+                break;
+            case 'accountSwitchInProgress':
+                if (typeof showToast === 'function') showToast(t('settings.accounts.switch_in_progress', 'Account switch in progress, action rejected') + (payload && payload.rejectedAction ? ': ' + payload.rejectedAction : ''));
+                break;
             case 'dateTimeFormat': applyDateTimeFormat(payload); break;
             case 'cursorFiles': _localHttpPort = payload.port || _localHttpPort; renderCursorThemeChips(payload.files); applyCursorTheme(currentCursorTheme); break;
             case 'customThemes': _localHttpPort = payload.port || _localHttpPort; _customThemes = payload.themes || []; applyCustomThemesFromSettings([..._activeCustomThemes]); break;
@@ -122,9 +152,9 @@ window.external.receiveMessage(rawMsg => {
                 if (currentInstanceData) renderCurrentInstance(currentInstanceData);
                 if (payload.currentAvatar) currentAvatarId = payload.currentAvatar;
                 document.getElementById('vrcLoginPrompt') && (document.getElementById('vrcLoginPrompt').style.display = 'none');
-                document.getElementById('btnVrcLogin').style.display = 'none';
-                document.getElementById('btnVrcLogout').style.display = '';
-                document.getElementById('vrcLoginStatus').textContent = t('settings.login.connected_as', 'Connected as {name}').replace('{name}', payload.displayName);
+                // Login state is reflected in the Accounts tab now that the old login card is gone.
+                if (typeof requestAccountsList === 'function') requestAccountsList();
+                if (typeof updateTbAppUserHeader === 'function') updateTbAppUserHeader();
                 document.getElementById('modal2FA').style.display = 'none';
                 if (!vrcFriendsLoaded) {
                     const fsl = document.getElementById('vrcFriendsList');
@@ -189,9 +219,12 @@ window.external.receiveMessage(rawMsg => {
                 break;
             case 'vrcNeeds2FA': show2FAModal(payload.type || 'totp'); break;
             case 'vrcLoginError':
-                document.getElementById('modal2FAError').textContent = payload.error || t('profiles.login.failed', 'Login failed');
-                document.getElementById('vrcQuickError').textContent = payload.error || t('profiles.login.failed', 'Login failed');
-                document.getElementById('vrcLoginStatus').textContent = payload.error || t('profiles.login.failed', 'Login failed');
+                {
+                    const err = payload.error || t('profiles.login.failed', 'Login failed');
+                    const _e1 = document.getElementById('modal2FAError'); if (_e1) _e1.textContent = err;
+                    const _e2 = document.getElementById('vrcQuickError'); if (_e2) _e2.textContent = err;
+                    const _e3 = document.getElementById('reloginStatus'); if (_e3) _e3.textContent = err;
+                }
                 break;
             case 'vrcLoggedOut':
                 vrcFriendsLoaded = false;
@@ -199,6 +232,7 @@ window.external.receiveMessage(rawMsg => {
                 document.getElementById('vrcFriendsList').innerHTML = '';
                 document.getElementById('vrcLoginPrompt') && (document.getElementById('vrcLoginPrompt').style.display = '');
                 { const vp = document.getElementById('badgeVrcPlus'); if (vp) vp.style.display = 'none'; }
+                if (typeof updateTbAppUserHeader === 'function') updateTbAppUserHeader();
                 break;
             case 'vrcPrefillLogin':
                 if (payload.username) {
@@ -968,8 +1002,10 @@ case 'vrcNews':
             break;
     }
 });
-sendToCS({ action: 'ready' });
-sendToCS({ action: 'kxdGetDevices' });
+// 'ready' and 'kxdGetDevices' are sent by the fragment loader at the end of
+// index.html, AFTER all scripts have loaded. Sending them here would cause the
+// backend's loadSettings response to arrive before init.js runs, and init.js's
+// renderWebhookCards([{},{},{},{}]) would overwrite the loaded webhook data.
 
 // Crash Report Modal
 
