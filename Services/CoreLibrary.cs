@@ -111,6 +111,53 @@ public class CoreLibrary
         SendToJS = sendToJS;
     }
 
+    public void TrimCaches(bool force = false)
+    {
+        VRCNext.Services.Helpers.ImageCacheHelper.TrimIfNeeded(force);
+        var profileCount = PlayerProfileCache.Count;
+        if (force)
+        {
+            PlayerProfileCache.Clear();
+            PlayerAgeVerifiedCache.Clear();
+            SendToJS("log", new { msg = $"[GC] - PlayerProfileCache - Force trimmed {profileCount} entries. 0 Remaining.", color = "sec" });
+        }
+        else if (profileCount > 300)
+        {
+            var toRemove = PlayerProfileCache.Keys.Take(profileCount - 150).ToList();
+            foreach (var key in toRemove)
+            {
+                PlayerProfileCache.TryRemove(key, out _);
+                PlayerAgeVerifiedCache.TryRemove(key, out _);
+            }
+            SendToJS("log", new { msg = $"[GC] - PlayerProfileCache - Trimmed {toRemove.Count} Cached files. {PlayerProfileCache.Count} Remaining.", color = "sec" });
+        }
+        else
+        {
+            SendToJS("log", new { msg = $"[GC] - PlayerProfileCache - No trim needed. {profileCount}/300 entries.", color = "sec" });
+        }
+
+        lock (VrWorldCache)
+        {
+            var worldCount = VrWorldCache.Count;
+            if (force)
+            {
+                VrWorldCache.Clear();
+                SendToJS("log", new { msg = $"[GC] - VrWorldCache - Force trimmed {worldCount} entries. 0 Remaining.", color = "sec" });
+            }
+            else if (worldCount > 150)
+            {
+                var toRemove = VrWorldCache.Keys.Take(worldCount - 75).ToList();
+                foreach (var key in toRemove)
+                    VrWorldCache.Remove(key);
+                SendToJS("log", new { msg = $"[GC] - VrWorldCache - Trimmed {toRemove.Count} Cached files. {VrWorldCache.Count} Remaining.", color = "sec" });
+            }
+            else
+            {
+                SendToJS("log", new { msg = $"[GC] - VrWorldCache - No trim needed. {worldCount}/150 entries.", color = "sec" });
+            }
+        }
+    }
+
     public string FixLocalUrl(string url)
     {
         if (string.IsNullOrEmpty(url) || !url.StartsWith("http://localhost:")) return url;

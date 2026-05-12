@@ -20,6 +20,8 @@ public class MemoryTrimService : IDisposable
         }
     }
 
+    public Action? OnTrim { get; set; }
+
     public void TrimNow()
     {
         Task.Run(() =>
@@ -29,6 +31,7 @@ public class MemoryTrimService : IDisposable
                 GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
                 GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
                 TrimWorkingSet();
+                OnTrim?.Invoke();
             }
             catch (Exception ex)
             {

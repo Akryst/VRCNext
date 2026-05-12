@@ -60,7 +60,6 @@ public class TimelineService : IDisposable
 
     private readonly List<TimelineEvent>       _events       = new();
     private readonly List<FriendTimelineEvent> _friendEvents = new();
-    private readonly HashSet<string>           _knownUserIds = new();
     private readonly HashSet<string>           _loggedNotifs = new();
     private readonly object                    _lock         = new();
     private bool                               _knownUsersSeeded;
@@ -79,7 +78,19 @@ public class TimelineService : IDisposable
 
     public bool KnownUsersSeeded => _knownUsersSeeded;
 
-    public HashSet<string> GetKnownUserIds() { lock (_lock) return new HashSet<string>(_knownUserIds); }
+    public HashSet<string> GetKnownUserIds()
+    {
+        try
+        {
+            var result = new HashSet<string>();
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT user_id FROM known_users";
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) result.Add(r.GetString(0));
+            return result;
+        }
+        catch { return new HashSet<string>(); }
+    }
 
     private TimelineService(SqliteConnection db) { _db = db; }
 
@@ -309,15 +320,13 @@ public class TimelineService : IDisposable
 
             using (var cmd = _db.CreateCommand())
             {
-                cmd.CommandText = "SELECT user_id FROM known_users";
-                using var r = cmd.ExecuteReader();
-                while (r.Read()) _knownUserIds.Add(r.GetString(0));
+                cmd.CommandText = "SELECT COUNT(1) FROM known_users LIMIT 1";
+                _knownUsersSeeded = (long)(cmd.ExecuteScalar() ?? 0L) > 0;
             }
-            if (_knownUserIds.Count > 0) _knownUsersSeeded = true;
 
             using (var cmd = _db.CreateCommand())
             {
-                cmd.CommandText = "SELECT notif_id FROM logged_notifs";
+                cmd.CommandText = "SELECT notif_id FROM logged_notifs ORDER BY rowid DESC LIMIT 2000";
                 using var r = cmd.ExecuteReader();
                 while (r.Read()) _loggedNotifs.Add(r.GetString(0));
             }
@@ -418,15 +427,13 @@ public class TimelineService : IDisposable
 
         using (var cmd = _db.CreateCommand())
         {
-            cmd.CommandText = "SELECT user_id FROM known_users";
-            using var r = cmd.ExecuteReader();
-            while (r.Read()) _knownUserIds.Add(r.GetString(0));
+            cmd.CommandText = "SELECT COUNT(1) FROM known_users LIMIT 1";
+            _knownUsersSeeded = (long)(cmd.ExecuteScalar() ?? 0L) > 0;
         }
-        if (_knownUserIds.Count > 0) _knownUsersSeeded = true;
 
         using (var cmd = _db.CreateCommand())
         {
-            cmd.CommandText = "SELECT notif_id FROM logged_notifs";
+            cmd.CommandText = "SELECT notif_id FROM logged_notifs ORDER BY rowid DESC LIMIT 2000";
             using var r = cmd.ExecuteReader();
             while (r.Read()) _loggedNotifs.Add(r.GetString(0));
         }
@@ -1619,17 +1626,19 @@ public class TimelineService : IDisposable
     public bool IsKnownUser(string userId)
     {
         if (string.IsNullOrEmpty(userId)) return true;
-        lock (_lock) return _knownUserIds.Contains(userId);
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(1) FROM known_users WHERE user_id = $id";
+            cmd.Parameters.AddWithValue("$id", userId);
+            return (long)(cmd.ExecuteScalar() ?? 0L) > 0;
+        }
+        catch { return false; }
     }
 
     public void SeedKnownUsers(IEnumerable<string> userIds)
     {
         var toAdd = userIds.Where(x => !string.IsNullOrEmpty(x)).ToList();
-        lock (_lock)
-        {
-            foreach (var id in toAdd) _knownUserIds.Add(id);
-            _knownUsersSeeded = true;
-        }
         try
         {
             using var tx  = _db.BeginTransaction();
@@ -1639,6 +1648,7 @@ public class TimelineService : IDisposable
             var p = cmd.Parameters.Add("$id", SqliteType.Text);
             foreach (var id in toAdd) { p.Value = id; cmd.ExecuteNonQuery(); }
             tx.Commit();
+            _knownUsersSeeded = true;
         }
         catch { }
     }
@@ -1646,7 +1656,6 @@ public class TimelineService : IDisposable
     public void AddKnownUser(string userId)
     {
         if (string.IsNullOrEmpty(userId)) return;
-        lock (_lock) _knownUserIds.Add(userId);
         try
         {
             using var cmd = _db.CreateCommand();
@@ -1668,7 +1677,7 @@ public class TimelineService : IDisposable
     public void AddLoggedNotif(string notifId)
     {
         if (string.IsNullOrEmpty(notifId)) return;
-        lock (_lock) _loggedNotifs.Add(notifId);
+        lock (_lock) { if (_loggedNotifs.Count < 2000) _loggedNotifs.Add(notifId); }
         try
         {
             using var cmd = _db.CreateCommand();

@@ -587,7 +587,11 @@ public partial class AppShell
                     var result = ConsoleHelper.Execute(cmd);
                     if (!string.IsNullOrEmpty(result.Text))
                         SendToJS("consoleOutput", new { text = result.Text, color = result.Color });
-                    if (result.Extra != null && result.ExtraPayload != null)
+                    if (result.Extra == "forceTrim")
+                        _core.MemTrim.TrimNow();
+                    else if (result.Extra == "forceTrimAll")
+                        _core.TrimCaches(force: true);
+                    else if (result.Extra != null && result.ExtraPayload != null)
                         SendToJS(result.Extra, result.ExtraPayload);
                     break;
                 }
