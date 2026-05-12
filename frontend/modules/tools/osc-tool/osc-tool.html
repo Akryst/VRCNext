@@ -1,0 +1,26 @@
+                <div class="sf-layout">
+                    <div class="vrcn-panel-card status">
+                        <div class="sf-status-row">
+                            <div class="sf-status"><span class="sf-dot offline" id="oscDot"></span><span id="oscStatusText" data-i18n="osc.status.not_connected">Not connected</span></div>
+                            <button class="vrcn-button" id="oscConnBtn" onclick="oscConnect()"><span class="msi" style="font-size:16px;">link</span> <span data-i18n="common.connect">Connect</span></button>
+                        </div>
+                    </div>
+                    <div id="oscOutputBanner" class="osc-output-banner" style="display:none;">
+                        <span class="msi" style="font-size:15px;flex-shrink:0;">warning</span>
+                        <span class="osc-banner-text"></span>
+                        <button class="vrcn-button osc-enable-btn" id="oscEnableBtn" onclick="oscEnableOutputs()"><span class="msi" style="font-size:14px;">output</span> <span data-i18n="osc.outputs.enable_all">Enable All Outputs</span></button>
+                    </div>
+                    <div class="vrcn-panel-card" style="flex:1;min-height:0;display:flex;flex-direction:column;">
+                        <div class="vrcn-panel-card-header" style="display:flex;align-items:center;justify-content:space-between;">
+                            <span style="display:inline-flex;align-items:center;gap:6px;"><span class="msi">tune</span> <span data-i18n="osc.parameters.title">Parameters</span></span>
+                            <span class="osc-badge-count" id="oscParamCount" data-i18n="osc.parameters.count.zero">0 params</span>
+                        </div>
+                        <div class="search-bar-row" style="margin-bottom:8px;">
+                            <span class="msi search-ico">search</span>
+                            <input type="text" id="oscSearch" class="search-input" placeholder="Search parameters..." data-i18n-placeholder="osc.search.placeholder" oninput="filterOscParams()">
+                        </div>
+                        <div class="osc-param-list" id="oscParamList">
+                            <div class="osc-empty" id="oscEmptyMsg" data-i18n="osc.empty.connect_hint">Connect, then toggle OSC off/on in VRChat's Action Menu to load all parameters.</div>
+                        </div>
+                    </div>
+                </div>

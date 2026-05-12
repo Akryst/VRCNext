@@ -5,6 +5,7 @@ const SmartSearch = (() => {
     let _calEventsCache = [];
     let _settingsIndex = null;
     let _modulesIndex  = null;
+    let _inited = false;
 
     function _patchRenderMyWorlds() {
         if (typeof renderMyWorlds !== 'function') return;
@@ -415,6 +416,7 @@ const SmartSearch = (() => {
     }
 
     function init() {
+        if (_inited) return;
         _wrap     = document.getElementById('ssWrap');
         _badge    = document.getElementById('ssBadge');
         _modal    = document.getElementById('ssModal');
@@ -422,6 +424,7 @@ const SmartSearch = (() => {
         _dropdown = document.getElementById('ssDropdown');
 
         if (!_wrap || !_badge || !_modal || !_input || !_dropdown) return;
+        _inited = true;
 
         _debouncedRender = debounceAnim(
             () => _renderResults(_query(_input.value.trim())),
@@ -456,4 +459,8 @@ const SmartSearch = (() => {
     return { init };
 })();
 
-document.addEventListener('DOMContentLoaded', () => SmartSearch.init());
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => SmartSearch.init());
+} else {
+    SmartSearch.init();
+}
