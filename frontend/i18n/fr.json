@@ -2022,5 +2022,6 @@
   "settings.accounts.btn.signin": "Se connecter",
   "settings.accounts.signin_title": "Se connecter",
   "settings.accounts.signin_prompt": "Se connecter en tant que <b>{name}</b>",
-  "settings.accounts.signin_enter_password": "Entrer le mot de passe"
+  "settings.accounts.signin_enter_password": "Entrer le mot de passe",
+  "tb.app.switch_accounts": "Changer de compte"
 }

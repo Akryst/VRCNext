@@ -2022,5 +2022,6 @@
   "settings.accounts.btn.signin": "Iniciar sesión",
   "settings.accounts.signin_title": "Iniciar sesión",
   "settings.accounts.signin_prompt": "Iniciar sesión como <b>{name}</b>",
-  "settings.accounts.signin_enter_password": "Introduce la contraseña"
+  "settings.accounts.signin_enter_password": "Introduce la contraseña",
+  "tb.app.switch_accounts": "Cambiar de cuenta"
 }

@@ -154,6 +154,7 @@ window.external.receiveMessage(rawMsg => {
                 document.getElementById('vrcLoginPrompt') && (document.getElementById('vrcLoginPrompt').style.display = 'none');
                 // Login state is reflected in the Accounts tab now that the old login card is gone.
                 if (typeof requestAccountsList === 'function') requestAccountsList();
+                if (typeof updateTbAppUserHeader === 'function') updateTbAppUserHeader();
                 document.getElementById('modal2FA').style.display = 'none';
                 if (!vrcFriendsLoaded) {
                     const fsl = document.getElementById('vrcFriendsList');
@@ -231,6 +232,7 @@ window.external.receiveMessage(rawMsg => {
                 document.getElementById('vrcFriendsList').innerHTML = '';
                 document.getElementById('vrcLoginPrompt') && (document.getElementById('vrcLoginPrompt').style.display = '');
                 { const vp = document.getElementById('badgeVrcPlus'); if (vp) vp.style.display = 'none'; }
+                if (typeof updateTbAppUserHeader === 'function') updateTbAppUserHeader();
                 break;
             case 'vrcPrefillLogin':
                 if (payload.username) {

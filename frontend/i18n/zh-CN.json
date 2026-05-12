@@ -2022,5 +2022,6 @@
   "settings.accounts.btn.signin": "登录",
   "settings.accounts.signin_title": "登录",
   "settings.accounts.signin_prompt": "以 <b>{name}</b> 登录",
-  "settings.accounts.signin_enter_password": "输入密码"
+  "settings.accounts.signin_enter_password": "输入密码",
+  "tb.app.switch_accounts": "切换账户"
 }

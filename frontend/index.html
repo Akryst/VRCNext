@@ -113,6 +113,12 @@
                 <div id="tbMenuItems">
                     <div class="tb-menu-item" id="tbMenuApp"><span data-i18n="tb.app">App</span>
                         <div class="tb-dropdown">
+                            <div class="tb-dd-user" id="tbAppUserHeader">
+                                <div class="tb-dd-user-avatar" id="tbAppUserAvatar"></div>
+                                <span class="tb-dd-user-name" id="tbAppUserName"></span>
+                            </div>
+                            <div class="tb-dd-item" onclick="openAccountsSection()"><span class="msi">switch_account</span><span data-i18n="tb.app.switch_accounts">Switch Accounts</span></div>
+                            <div class="tb-dd-sep"></div>
                             <div class="tb-dd-item" onclick="showTab(9)"><span class="msi">settings</span><span data-i18n="nav.settings">Settings</span></div>
                             <div class="tb-dd-sep"></div>
                             <div class="tb-dd-item" onclick="sendToCS({action:'restartApp'})"><span class="msi">refresh</span><span data-i18n="tb.app.restart">Restart</span></div>

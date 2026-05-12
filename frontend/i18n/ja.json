@@ -2021,5 +2021,6 @@
   "settings.accounts.btn.signin": "サインイン",
   "settings.accounts.signin_title": "サインイン",
   "settings.accounts.signin_prompt": "<b>{name}</b> としてサインイン",
-  "settings.accounts.signin_enter_password": "パスワードを入力"
+  "settings.accounts.signin_enter_password": "パスワードを入力",
+  "tb.app.switch_accounts": "アカウント切り替え"
 }

@@ -2024,5 +2024,6 @@
   "settings.accounts.btn.signin": "Einloggen",
   "settings.accounts.signin_title": "Einloggen",
   "settings.accounts.signin_prompt": "Als <b>{name}</b> einloggen",
-  "settings.accounts.signin_enter_password": "Passwort eingeben"
+  "settings.accounts.signin_enter_password": "Passwort eingeben",
+  "tb.app.switch_accounts": "Accounts wechseln"
 }
