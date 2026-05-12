@@ -117,8 +117,7 @@ function saveSettings() {
             randomDashBg: document.getElementById('setRandomBg').checked,
             clockEnabled: document.getElementById('setClockEnabled').checked,
             clockAmPm: document.getElementById('setClockAmPm').checked,
-            vrcUsername: document.getElementById('setVrcUser').value,
-            vrcPassword: document.getElementById('setVrcPass').value,
+            // Credentials are no longer transported via saveSettings, they live in the Accounts tab.
             sfMultiplier: parseFloat(document.getElementById('sfMultiplier').value) || 1,
             sfLockX: document.getElementById('sfLockX').checked,
             sfLockY: document.getElementById('sfLockY').checked,
@@ -265,7 +264,6 @@ function initAutoSave() {
     const ids = ['setBotName','setBotAvatar','setVrcPath','setStartWithWindows','setMinimizeToTray','setTrayNotifications',
         'setNotifySoundEnabled','setMessageSoundEnabled','setMediaRelaySoundEnabled','setSteamOverlaySoundEnabled',
         'setRandomBg','setClockEnabled','setClockAmPm',
-        'setVrcUser','setVrcPass',
         'setAutoStartVR','setAutoStartDesktop',
         'setCbAutoStartVR','setCbAutoStartDesktop',
         'setSfAutoStartVR',
@@ -295,8 +293,7 @@ function loadSettingsToUI(s) {
     document.getElementById('setBotName').value = s.BotName || s.botName || '';
     document.getElementById('setBotAvatar').value = s.BotAvatarUrl || s.botAvatarUrl || '';
     document.getElementById('setVrcPath').value = s.VrcPath || s.vrcPath || '';
-    document.getElementById('setVrcUser').value = s.VrcUsername || s.vrcUsername || '';
-    document.getElementById('setVrcPass').value = s.VrcPassword || s.vrcPassword || '';
+    // setVrcUser and setVrcPass were removed since login now runs through the Accounts tab.
     const _asVR  = document.getElementById('setAutoStartVR');  if (_asVR)  _asVR.checked  = s.RelayAutoStartVR  ?? s.relayAutoStartVR  ?? false;
     const _asDT  = document.getElementById('setAutoStartDesktop'); if (_asDT) _asDT.checked = s.RelayAutoStartDesktop ?? s.relayAutoStartDesktop ?? false;
     document.getElementById('setStartWithWindows').checked = s.StartWithWindows || s.startWithWindows || false;
@@ -1250,6 +1247,8 @@ function switchSettingsSection(id, btn) {
         const match = document.querySelector(`#tab9 .settings-nav-item[onclick*="'${id}'"]`);
         if (match) match.classList.add('active');
     }
+    // Refresh the accounts list whenever the Accounts tab is opened to avoid startup race conditions.
+    if (id === 'accounts' && typeof requestAccountsList === 'function') requestAccountsList();
 }
 
 function _fotUpdateFavOnly() {

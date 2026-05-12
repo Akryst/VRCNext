@@ -24,11 +24,12 @@ public class CoreLibrary
     public InventoryAPI Inventory { get; }
     public EconomyAPI Economy { get; }
     public VRChatLogWatcher LogWatcher { get; }
-    public TimelineService Timeline { get; }
+    // DB services are recreated on account switch since disposed instances cannot be reused.
+    public TimelineService Timeline { get; internal set; } = null!;
     public AppSettings Settings { get; }
     public CacheHandler Cache { get; }
-    public UnifiedTimeEngine TimeEngine { get; }
-    public PhotoPlayersStore PhotoPlayersStore { get; }
+    public UnifiedTimeEngine TimeEngine { get; internal set; } = null!;
+    public PhotoPlayersStore PhotoPlayersStore { get; internal set; } = null!;
     public WebhookService Webhook { get; }
     public FileWatcherService FileWatcher { get; }
     public Action<string, object?> SendToJS { get; }
@@ -68,14 +69,12 @@ public class CoreLibrary
     public Action<Dictionary<string, string>>? OnTrayThemeUpdate { get; set; }
 #endif
 
+    // Constructs API wrappers only, the DB services are populated later via LoadDatabaseServices.
     public CoreLibrary(
         VRChatApiService vrcApi,
         VRChatLogWatcher logWatcher,
-        TimelineService timeline,
         AppSettings settings,
         CacheHandler cache,
-        UnifiedTimeEngine timeEngine,
-        PhotoPlayersStore photoPlayersStore,
         WebhookService webhook,
         FileWatcherService fileWatcher,
         MemoryTrimService memTrim,
@@ -99,11 +98,8 @@ public class CoreLibrary
         Inventory        = new InventoryAPI(vrcApi);
         Economy          = new EconomyAPI(vrcApi);
         LogWatcher = logWatcher;
-        Timeline = timeline;
         Settings = settings;
         Cache = cache;
-        TimeEngine = timeEngine;
-        PhotoPlayersStore = photoPlayersStore;
         Webhook = webhook;
         FileWatcher = fileWatcher;
         MemTrim = memTrim;
@@ -164,4 +160,62 @@ public class CoreLibrary
         var slash = url.IndexOf('/', "http://localhost:".Length);
         return slash < 0 ? url : $"http://localhost:{HttpPort}{url[slash..]}";
     }
+
+    // Multi-Account lifecycle.
+
+    // Non-reentrant lock that serializes Accounts-list and settings mutations across all account flows.
+    internal readonly System.Threading.SemaphoreSlim AccountMutationLock = new(1, 1);
+
+    private readonly object _switchLock = new();
+    private bool _switchInProgress;
+
+    public bool IsSwitchInProgress { get { lock (_switchLock) return _switchInProgress; } }
+
+    public bool TryBeginAccountSwitch()
+    {
+        lock (_switchLock)
+        {
+            if (_switchInProgress) return false;
+            _switchInProgress = true;
+            return true;
+        }
+    }
+
+    public void EndAccountSwitch()
+    {
+        lock (_switchLock) { _switchInProgress = false; }
+    }
+
+    // Callback slots wired by controllers so CoreLibrary can stop and restart account-scoped tasks without hard coupling.
+    public Func<Task>? StopAccountScopedTasks { get; set; }
+    public Func<Task>? StartAccountScopedTasks { get; set; }
+
+    public async Task StopAccountScopedTasksAsync()
+    {
+        if (StopAccountScopedTasks != null) await StopAccountScopedTasks();
+    }
+
+    public async Task StartAccountScopedTasksAsync()
+    {
+        if (StartAccountScopedTasks != null) await StartAccountScopedTasks();
+    }
+
+    // Disposes the three DB services, which afterwards are unusable due to readonly connection fields.
+    public void DisposeDatabaseServices()
+    {
+        try { Timeline?.Dispose(); } catch { }
+        try { PhotoPlayersStore?.Dispose(); } catch { }
+        try { TimeEngine?.Dispose(); } catch { }
+    }
+
+    // Creates fresh DB service instances using their static Load factories at the path set on Database.
+    public void LoadDatabaseServices()
+    {
+        TimeEngine        = UnifiedTimeEngine.Load(
+            () => IsVrcRunning?.Invoke() ?? false,
+            msg => SendToJS("log", new { msg, color = "sec" }));
+        PhotoPlayersStore = PhotoPlayersStore.Load();
+        Timeline          = TimelineService.Load(Settings);
+    }
+
 }

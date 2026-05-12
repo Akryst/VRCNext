@@ -152,6 +152,96 @@ public class AuthAPI(VRChatApiService ctx)
         }
     }
 
+    // Isolated login variant for the add-account flow that leaves ctx.IsLoggedIn and CurrentUserRaw untouched.
+    public async Task<VRChatApiService.LoginResult> LoginIsolatedAsync(
+        string username, string password, HttpClient http, CookieContainer cookies)
+    {
+        try
+        {
+            var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(
+                $"{Uri.EscapeDataString(username)}:{Uri.EscapeDataString(password)}"));
+
+            var req = new HttpRequestMessage(HttpMethod.Get, $"{VRChatApiService.BASE}/auth/user");
+            req.Headers.TryAddWithoutValidation("Authorization", $"Basic {encoded}");
+
+            var resp = await http.SendAsync(req);
+            var body = await resp.Content.ReadAsStringAsync();
+
+            ctx.Log($"[isolated] Login response: {(int)resp.StatusCode}");
+
+            JObject json;
+            try { json = JObject.Parse(body); }
+            catch { return new VRChatApiService.LoginResult { Error = $"Invalid response: {body[..Math.Min(100, body.Length)]}" }; }
+
+            var require2fa = json["requiresTwoFactorAuth"];
+            if (require2fa != null && require2fa.Type == JTokenType.Array)
+            {
+                var methods = require2fa.ToObject<List<string>>() ?? new();
+                var type = methods.Contains("totp") ? "totp" :
+                           methods.Contains("emailOtp") ? "emailotp" :
+                           methods.Contains("otp") ? "totp" :
+                           methods.FirstOrDefault() ?? "totp";
+                return new VRChatApiService.LoginResult { Requires2FA = true, TwoFactorType = type };
+            }
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var errMsg = json["error"]?["message"]?.ToString() ?? body[..Math.Min(100, body.Length)];
+                return new VRChatApiService.LoginResult { Error = errMsg };
+            }
+
+            return new VRChatApiService.LoginResult { Success = true, User = json };
+        }
+        catch (Exception ex)
+        {
+            ctx.Log($"[isolated] Login exception: {ex.Message}");
+            return new VRChatApiService.LoginResult { Error = ex.Message };
+        }
+    }
+
+    public async Task<VRChatApiService.LoginResult> Verify2FAIsolatedAsync(
+        string code, string type, HttpClient http, CookieContainer cookies)
+    {
+        try
+        {
+            string endpoint = type == "emailotp"
+                ? $"{VRChatApiService.BASE}/auth/twofactorauth/emailotp/verify"
+                : $"{VRChatApiService.BASE}/auth/twofactorauth/totp/verify";
+
+            var json = JsonConvert.SerializeObject(new Dictionary<string, string> { { "code", code } });
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var resp = await http.PostAsync(endpoint, content);
+            var body = await resp.Content.ReadAsStringAsync();
+
+            ctx.Log($"[isolated] 2FA verify response: {(int)resp.StatusCode}");
+
+            if (!resp.IsSuccessStatusCode)
+                return new VRChatApiService.LoginResult { Error = $"2FA failed ({(int)resp.StatusCode}): {body}" };
+
+            var result = JObject.Parse(body);
+            if (result["verified"]?.Value<bool>() != true)
+                return new VRChatApiService.LoginResult { Error = "2FA code invalid or expired" };
+
+            await Task.Delay(300);
+            var userResp = await http.GetAsync($"{VRChatApiService.BASE}/auth/user");
+            var userBody = await userResp.Content.ReadAsStringAsync();
+
+            if (!userResp.IsSuccessStatusCode)
+                return new VRChatApiService.LoginResult { Error = $"Failed to get user after 2FA: {(int)userResp.StatusCode}" };
+
+            var user = JObject.Parse(userBody);
+            if (user["requiresTwoFactorAuth"] != null)
+                return new VRChatApiService.LoginResult { Error = "Still requires 2FA after verification" };
+
+            return new VRChatApiService.LoginResult { Success = true, User = user };
+        }
+        catch (Exception ex)
+        {
+            ctx.Log($"[isolated] 2FA exception: {ex.Message}");
+            return new VRChatApiService.LoginResult { Error = ex.Message };
+        }
+    }
+
     public async Task LogoutAsync()
     {
         try { await ctx._http.PutAsync($"{VRChatApiService.BASE}/logout", null); } catch { }

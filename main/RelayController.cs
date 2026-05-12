@@ -77,7 +77,7 @@ public class RelayController : IDisposable
                 await _friends.RefreshFriendsAsync(true);
             });
         }
-        else if (!string.IsNullOrEmpty(_core.Settings.VrcAuthCookie))
+        else if (!string.IsNullOrEmpty(_core.Settings.ActiveAccount?.AuthCookie))
         {
             // Not logged in yet (startup resume failed) — retry now that network is up
             _resumeRetryCount = 0;

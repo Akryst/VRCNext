@@ -6,8 +6,9 @@ namespace VRCNext.Services;
 
 public class VRChatApiService
 {
-    internal readonly HttpClient _http;
-    internal readonly CookieContainer _cookies = new();
+    // Recreated by ResetSession so these are no longer readonly.
+    internal HttpClient _http = null!;
+    internal CookieContainer _cookies = new();
     internal const string BASE = "https://api.vrchat.cloud/api/1";
     private const string UA = AppInfo.UserAgent;
 
@@ -53,6 +54,12 @@ public class VRChatApiService
 
     public VRChatApiService()
     {
+        BuildHttpClient();
+    }
+
+    private void BuildHttpClient()
+    {
+        _cookies = new CookieContainer();
         var inner = new HttpClientHandler
         {
             CookieContainer = _cookies,
@@ -60,6 +67,15 @@ public class VRChatApiService
         };
         _http = new HttpClient(new BackoffHandler(new LoggingHandler(inner, Log), Log));
         _http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", UA);
+    }
+
+    // Fully resets the API session by recreating CookieContainer and HttpClient so no prior state leaks.
+    public void ResetSession()
+    {
+        try { _http?.Dispose(); } catch { }
+        IsLoggedIn = false;
+        CurrentUserRaw = null;
+        BuildHttpClient();
     }
 
     public void RestoreCookies(string? authCookie, string? twoFactorAuthCookie)

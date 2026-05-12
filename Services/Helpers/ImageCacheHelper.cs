@@ -55,6 +55,7 @@ public static class ImageCacheHelper
         cmd.ExecuteNonQuery();
     }
 
+
     private static string? GetStoredUrl(string subdir, string entityId)
     {
         var key = $"{subdir}/{entityId}";

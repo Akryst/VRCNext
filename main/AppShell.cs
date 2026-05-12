@@ -50,9 +50,7 @@ public partial class AppShell
     private SnipeController _snipeCtrl = null!;
     private WindowController _windowCtrl = null!;
     private readonly CacheHandler _cache = new();
-    private readonly UnifiedTimeEngine _timeEngine;
-    private readonly PhotoPlayersStore _photoPlayersStore;
-    private readonly TimelineService _timeline;
+    // DB services live in CoreLibrary and are accessed via _core.TimeEngine, _core.PhotoPlayersStore and _core.Timeline.
     private readonly UpdateService _updateService = new();
     private readonly MemoryTrimService _memTrim = new();
     private readonly Channel<string> _jsQueue = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true, AllowSynchronousContinuations = false });
@@ -133,22 +131,30 @@ public partial class AppShell
         MigrationHelper.MigrateCachesToSubdir();               // moves 5 cache JSONs from root → Caches/
         MigrationHelper.MigrateBuiltInDashboardTheme(_settings); // removes AppData copy; now hardcoded in index.html
         if (_settings.MemoryTrimEnabled) _memTrim.SetEnabled(true);
-        _timeEngine = UnifiedTimeEngine.Load(
-            () => _core?.IsVrcRunning?.Invoke() ?? false,
-            msg => _core?.SendToJS("log", new { msg, color = "sec" }));
-        _photoPlayersStore = PhotoPlayersStore.Load();
-        _timeline = TimelineService.Load(_settings);
-        _ = MigrationHelper.MigrateUserTrackingCountsAsync(_settings,
-            pct => _core?.SendToJS("dbMigrationProgress", new { percent = pct })); // backfill first_meet_date + meet_again_count in background
+
+        // Ensure at least one primary account exists for fresh installs or corrupted settings.
+        if (_settings.Accounts.Count == 0) _settings.EnsurePrimaryAccount();
+        // Set the DB path from the active account before loading any DB services.
+        try { Database.SetActiveAccount(_settings.ActiveAccount); }
+        catch (InvalidOperationException)
+        {
+            // Active account had an invalid UserId so we defensively fall back to the primary.
+            _settings.ActiveAccountId = _settings.EnsurePrimaryAccount().AccountId;
+            Database.SetActiveAccount(_settings.PrimaryAccount);
+        }
+
         _minimized = args.Contains("--minimized");
         LoadDeletedAvatarsCache();
 
         // Create shared service container and domain controllers
         _core = new CoreLibrary(
-            _vrcApi, _logWatcher, _timeline, _settings, _cache,
-            _timeEngine, _photoPlayersStore,
+            _vrcApi, _logWatcher, _settings, _cache,
             _webhook, _fileWatcher, _memTrim, _updateService,
             (type, payload) => SendToJS(type, payload));
+        // Initialize DB services through the same path used by account switching.
+        _core.LoadDatabaseServices();
+        _ = MigrationHelper.MigrateUserTrackingCountsAsync(_settings,
+            pct => _core?.SendToJS("dbMigrationProgress", new { percent = pct })); // backfill first_meet_date + meet_again_count in background
         _core.IsVrcRunning = RelayController.IsVrcRunning;
         _core.IsSteamVrRunning = RelayController.IsSteamVrRunning;
         _core.DispatchMessage = rawMsg => OnWebMessage(rawMsg);
@@ -189,7 +195,7 @@ public partial class AppShell
             _chatboxCtrl.IsEnabled);
         _fileWatcher.NewFile += _photos.OnNewFile;
         _ = SQLiteMigrator.PruneOrphanedTimelinePhotosAsync(
-            _timeline,
+            _core.Timeline,
             pct => _core.SendToJS("dbMigrationProgress", new { percent = pct }),
             id  => _core.SendToJS("timelineEventDeleted", new { id }));
 
@@ -457,7 +463,7 @@ public partial class AppShell
                 var active    = w["occupants"]?.Value<int>() ?? 0;
                 var favorites = w["favorites"]?.Value<int>() ?? 0;
                 var visits    = w["visits"]?.Value<int>() ?? 0;
-                _timeline.InsertWorldStats(id, active, favorites, visits);
+                _core.Timeline.InsertWorldStats(id, active, favorites, visits);
             }
         }
         catch { }
@@ -549,9 +555,7 @@ public partial class AppShell
         _discordCtrl?.Dispose();
         _chatboxCtrl?.Dispose();
         _vroCtrl?.Dispose();
-        _timeline.Dispose();
-        _photoPlayersStore.Dispose();
-        _timeEngine.Dispose();
+        _core.DisposeDatabaseServices();
         _photos.VrcPhotoWatcher?.Dispose();
         _webhook.Dispose();
         _logWatcher.Dispose();

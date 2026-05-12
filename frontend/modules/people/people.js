@@ -6,22 +6,8 @@ function vrcQuickLogin() {
     sendToCS({ action: 'vrcLogin', username: u, password: p });
 }
 
-function vrcLoginFromSettings() {
-    const u = document.getElementById('setVrcUser').value, p = document.getElementById('setVrcPass').value;
-    if (!u || !p) {
-        document.getElementById('vrcLoginStatus').textContent = t('profiles.login.enter_credentials', 'Enter username and password');
-        return;
-    }
-    document.getElementById('vrcLoginStatus').textContent = t('profiles.login.connecting', 'Connecting...');
-    sendToCS({ action: 'vrcLogin', username: u, password: p });
-}
-
-
 function vrcLogout() {
     sendToCS({ action: 'vrcLogout' });
-    document.getElementById('btnVrcLogin').style.display = '';
-    document.getElementById('btnVrcLogout').style.display = 'none';
-    document.getElementById('vrcLoginStatus').textContent = t('profiles.login.disconnected', 'Disconnected');
     currentVrcUser = null;
 }
 

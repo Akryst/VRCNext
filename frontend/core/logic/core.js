@@ -1436,6 +1436,25 @@ function sendToCS(m) {
     window.external.sendMessage(JSON.stringify(m));
 }
 
+// Loading overlay used during account switch and restart.
+function showLoadingOverlay(text) {
+    let el = document.getElementById('vrcnLoadingOverlay');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'vrcnLoadingOverlay';
+        el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;backdrop-filter:blur(4px);';
+        el.innerHTML = '<div style="padding:18px 26px;background:var(--bg-input);border-radius:12px;color:var(--tx1);display:flex;align-items:center;gap:10px;"><span class="msi" style="font-size:20px;">sync</span><span id="vrcnLoadingOverlayText"></span></div>';
+        document.body.appendChild(el);
+    }
+    const t = document.getElementById('vrcnLoadingOverlayText');
+    if (t) t.textContent = text || 'Loading...';
+    el.style.display = 'flex';
+}
+function hideLoadingOverlay() {
+    const el = document.getElementById('vrcnLoadingOverlay');
+    if (el) el.style.display = 'none';
+}
+
 function execConsoleCommand(cmd) {
     cmd = (cmd || '').trim();
     if (!cmd) return;

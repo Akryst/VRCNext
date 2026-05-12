@@ -4,6 +4,7 @@ using NativeFileDialogSharp;
 using VRCNext.Services;
 using VRCNext.Services.Helpers;
 using System.Diagnostics;
+using System.Net;
 
 namespace VRCNext;
 
@@ -55,6 +56,19 @@ public class AuthController
 
         // Allow RelayController to trigger a session resume....
         _relayCtrl.OnWakeResumeRequested = VrcTryResumeAsync;
+
+        // CoreLibrary uses these callbacks to stop and restart account-scoped background tasks.
+        _core.StopAccountScopedTasks = () =>
+        {
+            _refreshCts?.Cancel();
+            _relayCtrl.StopWebSocket();
+            return Task.CompletedTask;
+        };
+        _core.StartAccountScopedTasks = () =>
+        {
+            StartPeriodicRefresh();
+            return Task.CompletedTask;
+        };
     }
 
     // Invoke shim (Photino is thread-safe)
@@ -67,12 +81,23 @@ public class AuthController
         switch (action)
         {
             case "vrcLogin":
+                // Reject login while an account switch is in progress.
+                if (_core.IsSwitchInProgress)
+                {
+                    _core.SendToJS("accountSwitchInProgress", new { rejectedAction = "vrcLogin" });
+                    break;
+                }
                 var vrcUser = msg["username"]?.ToString() ?? "";
                 var vrcPass = msg["password"]?.ToString() ?? "";
                 await VrcLoginAsync(vrcUser, vrcPass);
                 break;
 
             case "vrc2FA":
+                if (_core.IsSwitchInProgress)
+                {
+                    _core.SendToJS("accountSwitchInProgress", new { rejectedAction = "vrc2FA" });
+                    break;
+                }
                 var code2fa = msg["code"]?.ToString() ?? "";
                 var type2fa = msg["type"]?.ToString() ?? "totp";
                 await VrcVerify2FAAsync(code2fa, type2fa);
@@ -82,11 +107,87 @@ public class AuthController
                 _refreshCts?.Cancel();
                 _relayCtrl.StopWebSocket();
                 await _core.Auth.LogoutAsync();
-                _core.Settings.VrcAuthCookie = "";
-                _core.Settings.VrcTwoFactorCookie = "";
-                _core.Settings.Save();
+                await _core.AccountMutationLock.WaitAsync();
+                try
+                {
+                    var acc = _core.Settings.ActiveAccount;
+                    if (acc != null)
+                    {
+                        acc.AuthCookie = "";
+                        acc.TwoFactorCookie = "";
+                    }
+                    _core.Settings.Save();
+                }
+                finally { _core.AccountMutationLock.Release(); }
                 _core.SendToJS("vrcLoggedOut", null);
                 _core.SendToJS("log", new { msg = "VRChat: Logged out", color = "sec" });
+                break;
+
+            // Multi-Account handlers.
+
+            case "listAccounts":
+                SendAccountsList();
+                break;
+
+            case "addAccount":
+                if (_core.IsSwitchInProgress)
+                {
+                    _core.SendToJS("accountSwitchInProgress", new { rejectedAction = "addAccount" });
+                    break;
+                }
+                {
+                    var addUser = msg["username"]?.ToString() ?? "";
+                    var addPass = msg["password"]?.ToString() ?? "";
+                    await AddAccountAsync(addUser, addPass);
+                }
+                break;
+
+            case "addAccount2FA":
+                if (_core.IsSwitchInProgress)
+                {
+                    _core.SendToJS("accountSwitchInProgress", new { rejectedAction = "addAccount2FA" });
+                    break;
+                }
+                {
+                    var addCode = msg["code"]?.ToString() ?? "";
+                    var addType = msg["type"]?.ToString() ?? "totp";
+                    await AddAccountVerify2FAAsync(addCode, addType);
+                }
+                break;
+
+            case "addAccountCancel":
+                AddAccountCancel();
+                break;
+
+            case "switchAccount":
+                {
+                    var switchId = msg["accountId"]?.ToString() ?? "";
+                    _ = SwitchAccountAsync(switchId);
+                }
+                break;
+
+            case "removeAccount":
+                if (_core.IsSwitchInProgress)
+                {
+                    _core.SendToJS("accountSwitchInProgress", new { rejectedAction = "removeAccount" });
+                    break;
+                }
+                {
+                    var removeId = msg["accountId"]?.ToString() ?? "";
+                    await RemoveAccountAsync(removeId);
+                }
+                break;
+
+            case "logoutAccount":
+                if (_core.IsSwitchInProgress)
+                {
+                    _core.SendToJS("accountSwitchInProgress", new { rejectedAction = "logoutAccount" });
+                    break;
+                }
+                {
+                    var logoutId = msg["accountId"]?.ToString() ?? "";
+                    await LogoutAccountAsync(logoutId);
+                }
                 break;
 
             case "saveSettings":
@@ -631,10 +732,11 @@ public class AuthController
     {
         SetupVrcDebugLog();
 
-        if (!string.IsNullOrEmpty(_core.Settings.VrcAuthCookie))
+        var active = _core.Settings.ActiveAccount;
+        if (active != null && !string.IsNullOrEmpty(active.AuthCookie))
         {
             _core.SendToJS("log", new { msg = "VRChat: Resuming session...", color = "sec" });
-            _core.VrcApi.RestoreCookies(_core.Settings.VrcAuthCookie, _core.Settings.VrcTwoFactorCookie);
+            _core.VrcApi.RestoreCookies(active.AuthCookie, active.TwoFactorCookie);
 
             var result = await _core.Auth.TryResumeSessionAsync();
             if (result.Success && result.User != null)
@@ -657,25 +759,29 @@ public class AuthController
                 return;
             }
 
-            // auth failure w 401 or 403 or 2FA required.. try to lear invalid cookies
-            _core.Settings.VrcAuthCookie = "";
-            _core.Settings.VrcTwoFactorCookie = "";
-            _core.Settings.Save();
+            // auth failure w 401 or 403 or 2FA required.. clear invalid cookies on the active account
+            await _core.AccountMutationLock.WaitAsync();
+            try
+            {
+                active.AuthCookie = "";
+                active.TwoFactorCookie = "";
+                _core.Settings.Save();
+            }
+            finally { _core.AccountMutationLock.Release(); }
             _core.SendToJS("log", new { msg = "VRChat: Session expired, please log in again", color = "warn" });
         }
 
-        if (!string.IsNullOrEmpty(_core.Settings.VrcUsername))
+        if (active != null && !string.IsNullOrEmpty(active.Username))
         {
             _core.SendToJS("vrcPrefillLogin", new
             {
-                username = _core.Settings.VrcUsername,
-                password = _core.Settings.VrcPassword
+                username = active.Username,
+                password = active.Password
             });
         }
     }
 
-    // Login
-
+    // Login writes credentials into the active account while holding the mutation lock for the full flow.
     private async Task VrcLoginAsync(string username, string password)
     {
         SetupVrcDebugLog();
@@ -689,12 +795,18 @@ public class AuthController
         }
         else if (result.Success && result.User != null)
         {
-            _core.Settings.VrcUsername = username;
-            _core.Settings.VrcPassword = password;
-            SaveVrcCookies();
-            _core.Settings.Save();
+            await _core.AccountMutationLock.WaitAsync();
+            try
+            {
+                var acc = _core.Settings.ActiveAccount ?? _core.Settings.EnsurePrimaryAccount();
+                acc.Username = username;
+                acc.Password = password;
+                SaveVrcCookiesUnlocked();
+                _core.Settings.Save();
+                SendVrcUserDataUnlocked(result.User, loginFlow: true);
+            }
+            finally { _core.AccountMutationLock.Release(); }
 
-            SendVrcUserData(result.User, loginFlow: true);
             _core.SendToJS("log", new { msg = $"VRChat: Logged in as {result.User["displayName"]}", color = "ok" });
             await _friends.RefreshFriendsAsync();
             _relayCtrl.StartWebSocket();
@@ -708,17 +820,22 @@ public class AuthController
         }
     }
 
-    // 2FA
-
+    // 2FA continues the login flow and persists cookies into the active account.
     private async Task VrcVerify2FAAsync(string code, string type)
     {
         var result = await _core.Auth.Verify2FAAsync(code, type);
         if (result.Success && result.User != null)
         {
-            SaveVrcCookies();
-            _core.Settings.Save();
+            await _core.AccountMutationLock.WaitAsync();
+            try
+            {
+                _ = _core.Settings.ActiveAccount ?? _core.Settings.EnsurePrimaryAccount();
+                SaveVrcCookiesUnlocked();
+                _core.Settings.Save();
+                SendVrcUserDataUnlocked(result.User, loginFlow: true);
+            }
+            finally { _core.AccountMutationLock.Release(); }
 
-            SendVrcUserData(result.User, loginFlow: true);
             _core.SendToJS("log", new { msg = $"VRChat: Logged in as {result.User["displayName"]}", color = "ok" });
             await _friends.RefreshFriendsAsync();
             _relayCtrl.StartWebSocket();
@@ -756,20 +873,56 @@ public class AuthController
         });
     }
 
-    // Cookie Persistence
-
-    private void SaveVrcCookies()
+    // Writes current session cookies into the active account, caller must already hold the mutation lock.
+    private void SaveVrcCookiesUnlocked()
     {
         var (auth, tfa) = _core.VrcApi.GetCookies();
-        _core.Settings.VrcAuthCookie = auth ?? "";
-        _core.Settings.VrcTwoFactorCookie = tfa ?? "";
+        var acc = _core.Settings.ActiveAccount ?? _core.Settings.EnsurePrimaryAccount();
+        acc.AuthCookie = auth ?? "";
+        acc.TwoFactorCookie = tfa ?? "";
     }
 
-    // SendVrcUserData (cross-cutting login orchestration)
+    // Public wrapper that acquires the mutation lock itself.
+    public async Task SaveVrcCookiesAsync()
+    {
+        await _core.AccountMutationLock.WaitAsync();
+        try { SaveVrcCookiesUnlocked(); _core.Settings.Save(); }
+        finally { _core.AccountMutationLock.Release(); }
+    }
 
+    // Public wrapper for SendVrcUserData that acquires the mutation lock synchronously for callback sites.
     public void SendVrcUserData(JObject user, bool loginFlow = false)
     {
+        _core.AccountMutationLock.Wait();
+        try { SendVrcUserDataUnlocked(user, loginFlow); }
+        finally { _core.AccountMutationLock.Release(); }
+    }
+
+    public void SendVrcUserDataUnlocked(JObject user, bool loginFlow = false)
+    {
         _core.CurrentVrcUserId = user["id"]?.ToString() ?? "";
+
+        // Backwrite UserId to the active account if empty and always refresh display name and avatar.
+        var acc = _core.Settings.ActiveAccount;
+        if (acc != null)
+        {
+            var uid = user["id"]?.ToString() ?? "";
+            if (string.IsNullOrEmpty(acc.UserId) && Database.IsValidVrcUserId(uid))
+            {
+                acc.UserId = uid;
+            }
+            var dn = user["displayName"]?.ToString();
+            if (!string.IsNullOrEmpty(dn)) acc.DisplayName = dn;
+            // Use the user icon or pic ovverride
+            var profileImg = VRChatApiService.GetUserImage(user);
+            if (!string.IsNullOrEmpty(profileImg)) acc.AvatarImageUrl = profileImg;
+            // Backfill username if it was never captured before.
+            if (string.IsNullOrEmpty(acc.Username))
+            {
+                var un = user["username"]?.ToString();
+                if (!string.IsNullOrEmpty(un)) acc.Username = un;
+            }
+        }
 
         if (loginFlow)
         {
@@ -918,6 +1071,313 @@ public class AuthController
         }
     }
 
+    // Multi-Account state, list, add, switch, remove and logout flows.
+
+    public enum SwitchOutcome { Success, RequiresLogin, Error }
+
+    private class PendingAddAccount
+    {
+        public HttpClient Http = null!;
+        public CookieContainer Cookies = null!;
+        public string Username = "";
+        public string Password = "";
+    }
+    private PendingAddAccount? _pendingAddAccount;
+
+    // Sends a sanitized account list to the frontend without any passwords or cookies.
+    public void SendAccountsList()
+    {
+        var payload = new
+        {
+            activeAccountId = _core.Settings.ActiveAccountId,
+            accounts = _core.Settings.Accounts.Select(a => new
+            {
+                accountId      = a.AccountId,
+                userId         = a.UserId,
+                displayName    = a.DisplayName,
+                username       = a.Username,
+                avatarImageUrl = a.AvatarImageUrl,
+                isPrimary      = a.IsPrimary,
+                isActive       = a.AccountId == _core.Settings.ActiveAccountId,
+                hasSession     = !string.IsNullOrEmpty(a.AuthCookie),
+            }).ToList()
+        };
+        _core.SendToJS("accountsList", payload);
+    }
+
+    // Cleans up the in-flight add-account session on success, cancel or any terminal error.
+    private void DisposePendingAdd()
+    {
+        try { _pendingAddAccount?.Http?.Dispose(); } catch { }
+        _pendingAddAccount = null;
+    }
+
+    // Adds an account through an isolated session, locking only around the final save block.
+    private async Task AddAccountAsync(string username, string password)
+    {
+        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+        {
+            _core.SendToJS("accountAddError", new { error = "Username and password required" });
+            return;
+        }
+        // Discard any previous in-flight add-account session.
+        if (_pendingAddAccount != null) DisposePendingAdd();
+
+        // Build an isolated HttpClient that has no effect on _core.VrcApi.
+        var cookies = new CookieContainer();
+        var handler = new HttpClientHandler { CookieContainer = cookies, UseCookies = true };
+        var http = new HttpClient(handler);
+        http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", AppInfo.UserAgent);
+        _pendingAddAccount = new PendingAddAccount { Http = http, Cookies = cookies, Username = username, Password = password };
+
+        var result = await _core.Auth.LoginIsolatedAsync(username, password, http, cookies);
+
+        if (result.Requires2FA)
+        {
+            _core.SendToJS("accountAddNeeds2FA", new { twoFactorType = result.TwoFactorType });
+            return; // HttpClient stays open until AddAccountVerify2FAAsync runs.
+        }
+
+        if (result.Success && result.User != null)
+        {
+            await FinalizeAddAccountAsync(result.User);
+            return;
+        }
+
+        _core.SendToJS("accountAddError", new { error = result.Error ?? "Login failed" });
+        DisposePendingAdd();
+    }
+
+    private async Task AddAccountVerify2FAAsync(string code, string type)
+    {
+        if (_pendingAddAccount == null)
+        {
+            _core.SendToJS("accountAddError", new { error = "No pending add-account flow" });
+            return;
+        }
+        var pending = _pendingAddAccount;
+        var result = await _core.Auth.Verify2FAIsolatedAsync(code, type, pending.Http, pending.Cookies);
+        if (result.Success && result.User != null)
+        {
+            await FinalizeAddAccountAsync(result.User);
+            return;
+        }
+        // Keep the HttpClient open on a wrong 2FA code so the user can retry.
+        _core.SendToJS("accountAddError", new { error = result.Error ?? "2FA failed" });
+    }
+
+    private void AddAccountCancel()
+    {
+        DisposePendingAdd();
+        _core.SendToJS("accountAddError", new { error = "Cancelled", cancelled = true });
+    }
+
+    private async Task FinalizeAddAccountAsync(JObject user)
+    {
+        var pending = _pendingAddAccount!;
+        var newUserId = user["id"]?.ToString() ?? "";
+        if (!Database.IsValidVrcUserId(newUserId))
+        {
+            _core.SendToJS("accountAddError", new { error = "Invalid VRChat user ID returned by API" });
+            DisposePendingAdd();
+            return;
+        }
+
+        await _core.AccountMutationLock.WaitAsync();
+        string newAccountId;
+        try
+        {
+            if (_core.Settings.Accounts.Any(a => a.UserId == newUserId))
+            {
+                _core.SendToJS("accountAddError", new { error = "Account already added" });
+                DisposePendingAdd();
+                return;
+            }
+
+            string? auth = null, twoFA = null;
+            foreach (Cookie c in pending.Cookies.GetCookies(new Uri("https://api.vrchat.cloud")))
+            {
+                if (c.Name == "auth") auth = c.Value;
+                if (c.Name == "twoFactorAuth") twoFA = c.Value;
+            }
+
+            var newAcc = new VrcAccount
+            {
+                AccountId      = Guid.NewGuid().ToString("N"),
+                UserId         = newUserId,
+                Username       = string.IsNullOrEmpty(pending.Username)
+                                    ? (user["username"]?.ToString() ?? "")
+                                    : pending.Username,
+                DisplayName    = user["displayName"]?.ToString() ?? pending.Username,
+                AvatarImageUrl = VRChatApiService.GetUserImage(user),
+                IsPrimary      = false,
+                Password       = pending.Password,
+                AuthCookie     = auth ?? "",
+                TwoFactorCookie= twoFA ?? "",
+            };
+            newAccountId = newAcc.AccountId;
+            _core.Settings.Accounts.Add(newAcc);
+            _core.Settings.Save();
+        }
+        finally { _core.AccountMutationLock.Release(); }
+
+        DisposePendingAdd();
+        _core.SendToJS("accountAddSuccess", new { accountId = newAccountId });
+        SendAccountsList();
+    }
+
+    // Switch — Lock für die gesamte Transaktion (HR4).
+    public async Task<SwitchOutcome> SwitchAccountAsync(string accountId)
+    {
+        if (!_core.TryBeginAccountSwitch())
+        {
+            _core.SendToJS("accountSwitchError", new { reason = "switch_in_progress" });
+            return SwitchOutcome.Error;
+        }
+        await _core.AccountMutationLock.WaitAsync();
+        try { return await SwitchAccountInternalAsync(accountId); }
+        finally
+        {
+            _core.AccountMutationLock.Release();
+            _core.EndAccountSwitch();
+        }
+    }
+
+    // Restart-based switch that persists state and relaunches the process so resume and DB-load happen on next start.
+    private async Task<SwitchOutcome> SwitchAccountInternalAsync(string accountId)
+    {
+        var target = _core.Settings.Accounts.FirstOrDefault(a => a.AccountId == accountId);
+        if (target == null)
+        {
+            _core.SendToJS("accountSwitchError", new { reason = "not_found" });
+            return SwitchOutcome.Error;
+        }
+        if (_core.Settings.ActiveAccountId == accountId)
+        {
+            // Already active so no restart is needed.
+            return SwitchOutcome.Success;
+        }
+        if (!target.IsPrimary && !Database.IsValidVrcUserId(target.UserId))
+        {
+            _core.SendToJS("accountSwitchError", new { reason = "invalid_user_id" });
+            return SwitchOutcome.Error;
+        }
+
+        // Tell the frontend to show the restart overlay.
+        _core.SendToJS("accountSwitchStarting", new
+        {
+            targetAccountId = accountId,
+            displayName     = target.DisplayName,
+        });
+
+        // Save current cookies so the prior account can resume without re-login when switched back.
+        var (curAuth, curTwoFA) = _core.VrcApi.GetCookies();
+        var cur = _core.Settings.ActiveAccount;
+        if (cur != null)
+        {
+            cur.AuthCookie = curAuth ?? "";
+            cur.TwoFactorCookie = curTwoFA ?? "";
+        }
+
+        // Switch the active account and persist before restarting.
+        _core.Settings.ActiveAccountId = target.AccountId;
+        _core.Settings.Save();
+
+        // Brief delay so the frontend can render the restart overlay before exit.
+        await Task.Delay(400);
+
+        // Launch a new instance and terminate the current one.
+        try
+        {
+            var exe = Environment.ProcessPath
+                ?? System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
+            if (!string.IsNullOrEmpty(exe))
+            {
+                System.Diagnostics.Process.Start(exe);
+            }
+        }
+        catch { }
+
+        try { _core.Window?.Close(); } catch { }
+        Environment.Exit(0);
+        return SwitchOutcome.Success; // unreachable
+    }
+
+    // Remove blocks the primary account and switches an active secondary to primary first.
+    private async Task RemoveAccountAsync(string accountId)
+    {
+        var target = _core.Settings.Accounts.FirstOrDefault(a => a.AccountId == accountId);
+        if (target == null)
+        {
+            _core.SendToJS("accountSwitchError", new { reason = "not_found", action = "remove" });
+            return;
+        }
+        if (target.IsPrimary)
+        {
+            _core.SendToJS("accountSwitchError", new { reason = "primary_immutable", action = "remove" });
+            return;
+        }
+
+        // Switch to the primary first without holding the mutation lock since SwitchAccountAsync acquires it.
+        if (target.AccountId == _core.Settings.ActiveAccountId)
+        {
+            var primary = _core.Settings.PrimaryAccount;
+            if (primary == null)
+            {
+                _core.SendToJS("accountSwitchError", new { reason = "no_primary", action = "remove" });
+                return;
+            }
+            var outcome = await SwitchAccountAsync(primary.AccountId);
+            if (outcome != SwitchOutcome.Success)
+            {
+                _core.SendToJS("accountSwitchError", new { reason = "pre_remove_switch_failed", action = "remove" });
+                return;
+            }
+        }
+
+        await _core.AccountMutationLock.WaitAsync();
+        try
+        {
+            _core.Settings.Accounts.RemoveAll(a => a.AccountId == accountId);
+            _core.Settings.Save();
+        }
+        finally { _core.AccountMutationLock.Release(); }
+
+        // The {userId}_VRCNData.db file is intentionally left on disk.
+        SendAccountsList();
+    }
+
+    // Logout clears the account session and cookies without changing the active DB.
+    private async Task LogoutAccountAsync(string accountId)
+    {
+        await _core.AccountMutationLock.WaitAsync();
+        try
+        {
+            var target = _core.Settings.Accounts.FirstOrDefault(a => a.AccountId == accountId);
+            if (target == null)
+            {
+                _core.SendToJS("accountSwitchError", new { reason = "not_found", action = "logout" });
+                return;
+            }
+            if (target.AccountId == _core.Settings.ActiveAccountId)
+            {
+                // Active account is being logged out so tear down the current session in place.
+                _refreshCts?.Cancel();
+                _relayCtrl.StopWebSocket();
+                await _core.StopAccountScopedTasksAsync();
+                _core.VrcApi.ResetSession();
+                _core.CurrentVrcUserId = "";
+            }
+            target.AuthCookie = "";
+            target.TwoFactorCookie = "";
+            _core.Settings.Save();
+        }
+        finally { _core.AccountMutationLock.Release(); }
+
+        SendAccountsList();
+        _core.SendToJS("vrcLoggedOut", null);
+    }
+
     // Settings
 
     private void ApplySettings(JToken data)
@@ -998,10 +1458,7 @@ public class AuthController
             var extraExeVR = data["extraExeVR"]?.ToObject<List<string>>();
             if (extraExeVR != null) _core.Settings.ExtraExeVR = extraExeVR;
 
-            var vrcU = data["vrcUsername"]?.ToString();
-            var vrcP = data["vrcPassword"]?.ToString();
-            if (vrcU != null) _core.Settings.VrcUsername = vrcU;
-            if (vrcP != null) _core.Settings.VrcPassword = vrcP;
+            // Credentials are no longer accepted through saveSettings, login runs through the Accounts tab.
 
             // Space Flight settings
             _core.Settings.SfMultiplier = data["sfMultiplier"]?.Value<float>() ?? 1f;

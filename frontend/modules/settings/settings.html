@@ -10,6 +10,7 @@
                         <button class="settings-nav-item" onclick="switchSettingsSection('advanced',this)"><span class="msi">bug_report</span><span data-i18n="settings.nav.advanced">Advanced</span></button>
                         <button class="settings-nav-item" onclick="switchSettingsSection('vrcx',this)"><span class="msi">download</span><span data-i18n="settings.nav.vrcx">VRCX</span></button>
                         <button class="settings-nav-item" onclick="switchSettingsSection('about',this)"><span class="msi">info</span><span data-i18n="settings.nav.about">About</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('accounts',this)"><span class="msi">account_circle</span><span data-i18n="settings.nav.accounts">Accounts</span></button>
                     </nav>
                     <div class="settings-content">
 
@@ -331,22 +332,6 @@
                         </div>
                     </div>
 
-                    <!-- VRCHAT API LOGIN -->
-                    <div class="vrcn-panel-card" data-section="vrchat" style="display:none;">
-                        <div class="vrcn-panel-card-header"><span class="msi">person</span> <span data-i18n="settings.api.title">VRChat API Login</span></div>
-                        <div class="set-desc" style="margin-bottom:12px;" data-i18n="settings.api.desc">Your credentials are stored locally and only used to connect to the VRChat API. VRCNext never shares them with third parties.</div>
-                        <div class="sf-section-label" data-i18n="settings.api.credentials">Credentials</div>
-                        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
-                            <input type="text" id="setVrcUser" class="vrcn-edit-field" placeholder="VRChat username" data-i18n-placeholder="settings.api.username" oninput="autoSave()">
-                            <input type="password" id="setVrcPass" class="vrcn-edit-field" placeholder="VRChat password" data-i18n-placeholder="settings.api.password" oninput="autoSave()">
-                        </div>
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <button class="vrcn-button" onclick="vrcLoginFromSettings()" id="btnVrcLogin"><span class="msi" style="font-size:16px;">login</span> <span data-i18n="common.connect">Connect</span></button>
-                            <button class="vrcn-button" onclick="vrcLogout()" style="display:none;" id="btnVrcLogout"><span class="msi" style="font-size:16px;">logout</span> <span data-i18n="common.disconnect">Disconnect</span></button>
-                            <span id="vrcLoginStatus" style="font-size:11px;color:var(--tx3);"></span>
-                        </div>
-                    </div>
-
                     <!-- IMAGE CACHE + FAST FETCH CACHE -->
                     <div class="vrcn-panel-card-pair" data-section="performance" style="display:none;">
                     <div class="vrcn-panel-card">
@@ -516,6 +501,37 @@
                         <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.info.p2">VRCNext is not endorsed by VRChat and does not reflect the views or opinions of the VRChat staff or anyone officially involved in the development or management of VRChat. VRChat is a registered trademark of VRChat Inc.</div>
                         <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.info.p3">Shinyflvres and all contributors are not responsible for any issues that may be caused by VRCNext. In general, VRCNext is not a problem for VRChat, but misuse such as abusing features, exploiting others, or generating excessive request spam may result in moderation by VRChat.</div>
                         <div class="set-desc" data-i18n="settings.info.p4">Your User ID and the VRCNext Client ID are used to communicate with the VRChat API. Use VRCNext respectfully and do not attempt to exploit, manipulate, or generate spam requests, as this may lead to moderation.</div>
+                    </div>
+
+                    <!-- ACCOUNTS -->
+                    <div class="vrcn-panel-card" data-section="accounts" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">account_circle</span> <span data-i18n="settings.accounts.title">Accounts</span></div>
+                        <div class="set-desc" style="margin-bottom:12px;" data-i18n="settings.accounts.desc">Manage your VRChat accounts. The primary account uses the main database, secondary accounts each get their own database. Credentials are stored locally and encrypted.</div>
+
+                        <div style="background:rgba(255,180,0,.08);border:1px solid rgba(255,180,0,.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+                            <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--warn);margin-bottom:6px;"><span class="msi" style="font-size:16px;">warning</span><span data-i18n="settings.accounts.warning.title">Experimental Feature</span></div>
+                            <div class="set-desc" style="margin:0;color:var(--tx2);" data-i18n="settings.accounts.warning.body">Switching Accounts is an experimental feature. It creates a separate database for each secondary account so the main database is not overloaded with data. Things might not work correctly on secondary accounts, expect bugs here and there. Secondary accounts do not get auto-backups, only your main account does. Some settings might not work as intended. Be warned.</div>
+                        </div>
+
+                        <div id="accountsList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
+
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                            <button class="vrcn-button" onclick="showAddAccountForm()" id="btnAddAccountToggle"><span class="msi" style="font-size:16px;">person_add</span> <span data-i18n="settings.accounts.add">Add Account</span></button>
+                        </div>
+
+                        <div id="addAccountForm" style="display:none;border-top:1px solid var(--brd);margin-top:6px;padding-top:12px;">
+                            <div class="sf-section-label" data-i18n="settings.accounts.add_credentials">New Account Credentials</div>
+                            <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+                                <input type="text" id="addAccUser" class="vrcn-edit-field" placeholder="VRChat username" data-i18n-placeholder="settings.api.username">
+                                <input type="password" id="addAccPass" class="vrcn-edit-field" placeholder="VRChat password" data-i18n-placeholder="settings.api.password">
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <button class="vrcn-button" onclick="submitAddAccount()"><span class="msi" style="font-size:16px;">login</span> <span data-i18n="settings.accounts.add_submit">Add</span></button>
+                                <button class="vrcn-button" onclick="cancelAddAccount()"><span class="msi" style="font-size:16px;">close</span> <span data-i18n="common.cancel">Cancel</span></button>
+                                <span id="addAccountStatus" style="font-size:11px;color:var(--tx3);"></span>
+                            </div>
+                        </div>
+
                     </div>
 
                     </div><!-- /settings-content -->

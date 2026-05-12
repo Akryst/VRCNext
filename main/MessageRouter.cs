@@ -499,6 +499,14 @@ public partial class AppShell
                 case "vrcLogin":
                 case "vrc2FA":
                 case "vrcLogout":
+                // Multi-Account actions.
+                case "listAccounts":
+                case "addAccount":
+                case "addAccount2FA":
+                case "addAccountCancel":
+                case "switchAccount":
+                case "removeAccount":
+                case "logoutAccount":
                     await _authCtrl.HandleMessage(action, msg);
                     break;
 
@@ -933,7 +941,7 @@ public partial class AppShell
                             capacity = w["capacity"]?.Value<int>() ?? 0, favorites = w["favorites"]?.Value<int>() ?? 0,
                             visits = w["visits"]?.Value<int>() ?? 0, description = w["description"]?.ToString() ?? "",
                             tags = w["tags"]?.ToObject<List<string>>() ?? new(),
-                            worldTimeSeconds = _timeEngine.GetWorldStats(wid2).totalSeconds,
+                            worldTimeSeconds = _core.TimeEngine.GetWorldStats(wid2).totalSeconds,
                             };
                         }).ToList();
                         Invoke(() => SendToJS("vrcSearchResults", new { type = "worlds", results = list, offset = wOff, hasMore = list.Count >= 20 }));
@@ -949,7 +957,7 @@ public partial class AppShell
                     if (!string.IsNullOrEmpty(wdId))
                     {
                         // Serve from DB cache immediately if available
-                        var wdCached = _timeEngine.GetWorldDetail(wdId);
+                        var wdCached = _core.TimeEngine.GetWorldDetail(wdId);
                         if (wdCached != null)
                         {
                             Invoke(() => SendToJS("vrcWorldDetail", new
@@ -1109,7 +1117,7 @@ public partial class AppShell
                                 return new { instanceId = r.instanceId, users = r.users, type = r.type, region = r.region, location = r.location, ownerName, ownerGroup, ownerId = r.ownerId, ageGate = r.ageGate, languageRatio = r.languageRatio };
                             }).ToList<object>();
                             var tags = world["tags"]?.ToObject<List<string>>() ?? new();
-                            var (wTimeSeconds, wVisitCount, wLastVisited) = _timeEngine.GetWorldStats(world["id"]?.ToString() ?? "");
+                            var (wTimeSeconds, wVisitCount, wLastVisited) = _core.TimeEngine.GetWorldStats(world["id"]?.ToString() ?? "");
 
                             // Extract PC and Android download sizes via /file/{fileId} API.
                             // assetUrl pattern: .../file/{fileId}/{version}/file
@@ -1147,7 +1155,7 @@ public partial class AppShell
 
                             // Use cached sizes when world version hasn't changed — skips 2 file API calls.
                             var newVersion = world["version"]?.Value<int>() ?? 0;
-                            var sizeCache  = _timeEngine.GetWorldDetail(world["id"]?.ToString() ?? "");
+                            var sizeCache  = _core.TimeEngine.GetWorldDetail(world["id"]?.ToString() ?? "");
                             long pcSize, androidSize;
                             if (sizeCache != null && sizeCache.Version == newVersion
                                 && (sizeCache.PcSize > 0 || sizeCache.AndroidSize > 0))
@@ -1177,7 +1185,7 @@ public partial class AppShell
                                     return dt.ToUniversalTime().ToString("yyyy-MM-dd");
                                 return "";
                             }
-                            _timeEngine.SaveWorldDetail(
+                            _core.TimeEngine.SaveWorldDetail(
                                 worldId:             world["id"]?.ToString() ?? "",
                                 name:                world["name"]?.ToString() ?? "",
                                 thumb:               world["thumbnailImageUrl"]?.ToString() ?? "",
@@ -1250,10 +1258,10 @@ public partial class AppShell
                             var (ok, error) = await _core.Avatars.UpdateAvatarAsync(avId, avName, avDesc, avStatus, avTags);
                             if (ok)
                             {
-                                var ex = _timeEngine.GetAvatarDetail(avId);
+                                var ex = _core.TimeEngine.GetAvatarDetail(avId);
                                 if (ex != null)
                                 {
-                                    _timeEngine.SaveAvatarDetail(
+                                    _core.TimeEngine.SaveAvatarDetail(
                                         avId, avName, ex.AuthorName, ex.AuthorId,
                                         ex.ThumbnailImageUrl, ex.ImageUrl,
                                         avStatus, ex.Version,
@@ -1282,7 +1290,7 @@ public partial class AppShell
                     var avdId = msg["avatarId"]?.ToString() ?? "";
                     if (!string.IsNullOrEmpty(avdId))
                     {
-                        var avdCached = _timeEngine.GetAvatarDetail(avdId);
+                        var avdCached = _core.TimeEngine.GetAvatarDetail(avdId);
                         if (avdCached != null)
                             Invoke(() => SendToJS("vrcAvatarDetail", new {
                                 id = avdId, name = avdCached.Name, authorName = avdCached.AuthorName,
@@ -1315,7 +1323,7 @@ public partial class AppShell
                             if (string.IsNullOrEmpty(questPerf)) questPerf = perf?["android"]?.ToString() ?? "";
                             // Save immediately so future opens are instant from DB
                             var avtSaveId = avatar["id"]?.ToString() ?? avdId;
-                            _timeEngine.SaveAvatarDetail(
+                            _core.TimeEngine.SaveAvatarDetail(
                                 avtSaveId,
                                 avatar["name"]?.ToString() ?? "",
                                 avatar["authorName"]?.ToString() ?? "",
@@ -1583,7 +1591,7 @@ public partial class AppShell
                         var from    = msg["from"]?.ToString() ?? "";
                         var to      = msg["to"]?.ToString() ?? "";
                         if (string.IsNullOrEmpty(worldId) || string.IsNullOrEmpty(from) || string.IsNullOrEmpty(to)) return;
-                        var stats = _timeline.GetWorldStats(worldId, from, to);
+                        var stats = _core.Timeline.GetWorldStats(worldId, from, to);
                         Invoke(() => SendToJS("worldInsights", new { worldId, from, to, stats }));
                     });
                     break;
@@ -1605,12 +1613,12 @@ public partial class AppShell
                                 var active    = w["occupants"]?.Value<int>() ?? 0;
                                 var favorites = w["favorites"]?.Value<int>() ?? 0;
                                 var visits    = w["visits"]?.Value<int>() ?? 0;
-                                _timeline.InsertWorldStats(id, active, favorites, visits);
+                                _core.Timeline.InsertWorldStats(id, active, favorites, visits);
                             }
 
                             if (!string.IsNullOrEmpty(worldId) && !string.IsNullOrEmpty(from) && !string.IsNullOrEmpty(to))
                             {
-                                var stats = _timeline.GetWorldStats(worldId, from, to);
+                                var stats = _core.Timeline.GetWorldStats(worldId, from, to);
                                 Invoke(() => SendToJS("worldInsights", new { worldId, from, to, stats }));
                             }
                         }
@@ -1956,7 +1964,7 @@ public partial class AppShell
                     var calEvtId = msg["calendarId"]?.ToString();
                     if (!string.IsNullOrEmpty(calGrpId) && !string.IsNullOrEmpty(calEvtId))
                     {
-                        var calCached = _timeEngine.GetEventDetail(calEvtId);
+                        var calCached = _core.TimeEngine.GetEventDetail(calEvtId);
                         if (calCached != null)
                             Invoke(() => SendToJS("vrcCalendarEvent", new JObject {
                                 ["id"]          = calEvtId,
@@ -1975,7 +1983,7 @@ public partial class AppShell
                             var ev = await _core.Calendar.GetCalendarEventAsync(calGrpId, calEvtId);
                             if (ev != null)
                             {
-                                _timeEngine.SaveEventDetail(
+                                _core.TimeEngine.SaveEventDetail(
                                     ev["id"]?.ToString() ?? calEvtId,
                                     ev["groupId"]?.ToString() ?? calGrpId,
                                     ev["title"]?.ToString() ?? "",
@@ -2039,7 +2047,7 @@ public partial class AppShell
                     var guId = msg["userId"]?.ToString();
                     if (!string.IsNullOrEmpty(guId))
                     {
-                        var guCached = _timeEngine.GetUserDetail(guId);
+                        var guCached = _core.TimeEngine.GetUserDetail(guId);
                         if (guCached != null)
                             Invoke(() => SendToJS("vrcUserDetail", new {
                                 id = guId, displayName = guCached.DisplayName, image = guCached.Image,
@@ -2052,7 +2060,7 @@ public partial class AppShell
                             if (u != null)
                             {
                                 var guImg = VRChatApiService.GetUserImage(u);
-                                _timeEngine.SaveUserDetail(
+                                _core.TimeEngine.SaveUserDetail(
                                     u["id"]?.ToString() ?? guId,
                                     u["displayName"]?.ToString() ?? "",
                                     guImg,
