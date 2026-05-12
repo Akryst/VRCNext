@@ -968,8 +968,10 @@ case 'vrcNews':
             break;
     }
 });
-sendToCS({ action: 'ready' });
-sendToCS({ action: 'kxdGetDevices' });
+// 'ready' and 'kxdGetDevices' are sent by the fragment loader at the end of
+// index.html, AFTER all scripts have loaded. Sending them here would cause the
+// backend's loadSettings response to arrive before init.js runs, and init.js's
+// renderWebhookCards([{},{},{},{}]) would overwrite the loaded webhook data.
 
 // Crash Report Modal
 

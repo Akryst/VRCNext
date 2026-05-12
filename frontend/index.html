@@ -353,88 +353,25 @@
     </div><!-- /.app-body -->
 
     <!-- 2FA Modal -->
-    <div class="modal-overlay" id="modal2FA" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-        <div class="modal-box" style="max-width:396px;">
-            <div class="modal-icon" style="background:rgba(56,132,255,.1);color:var(--accent);"><span class="msi" style="font-size:22px;">shield</span></div>
-            <div class="modal-title" data-i18n="profiles.2fa.title">VRChat 2FA Verification</div>
-            <div class="modal-msg" id="modal2FAMsg" data-i18n="profiles.2fa.default_message">Enter the 6-digit code from your email or authenticator app.</div>
-            <div style="margin:16px 0;"><input type="text" id="modal2FACode" maxlength="6" placeholder="000000" autocomplete="one-time-code" style="width:100%;text-align:center;font-size:24px;letter-spacing:8px;font-weight:700;padding:12px;background:var(--bg-input);border:none;border-radius:8px;color:var(--tx0);outline:none;font-family:inherit;" onkeydown="if(event.key==='Enter')modal2FASubmit()"></div>
-            <div id="modal2FAError" style="font-size:11px;color:var(--err);margin-bottom:8px;min-height:16px;"></div>
-            <div class="modal-btns"><button class="vrcn-button-round" onclick="document.getElementById('modal2FA').style.display='none'" data-i18n="common.cancel">Cancel</button><button class="vrcn-button-round vrcn-btn-join" onclick="modal2FASubmit()" data-i18n="profiles.2fa.verify">Verify</button></div>
-        </div>
-    </div>
+    <div class="modal-overlay" id="modal2FA" style="display:none;" onclick="if(event.target===this)this.style.display='none'"></div>
 
     <!-- Status Change Modal -->
-    <div class="modal-overlay" id="modalStatus" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-        <div class="modal-box" style="max-width:418px;">
-            <div class="modal-title" style="margin-bottom:14px;" data-i18n="profiles.status.modal_title">Change Status</div>
-            <div id="statusOptions"></div>
-            <textarea class="status-desc-input" id="statusDescInput" rows="2" maxlength="32" placeholder="Status message..." data-i18n-placeholder="profiles.status.message_placeholder"></textarea>
-            <div style="font-size:10px;color:var(--tx3);margin-top:4px;margin-bottom:14px;text-align:right;" id="statusDescCount">0/32</div>
-            <div class="modal-btns"><button class="vrcn-button-round" onclick="document.getElementById('modalStatus').style.display='none'" data-i18n="common.cancel">Cancel</button><button class="vrcn-button-round vrcn-btn-join" onclick="submitStatusChange()" data-i18n="profiles.status.update">Update</button></div>
-        </div>
-    </div>
+    <div class="modal-overlay" id="modalStatus" style="display:none;" onclick="if(event.target===this)this.style.display='none'"></div>
 
     <!-- Friend Detail Modal -->
-    <div class="modal-overlay" id="modalFriendDetail" style="display:none;" onclick="if(event.target===this)closeFriendDetail()">
-        <div class="modal-box wide" style="position:relative;padding:0;">
-            <div class="myp-breadcrumb-bar" id="fd_navBar" style="display:none;">
-                <div class="myp-breadcrumbs">
-                    <button class="myp-crumb" id="fd_ov" hidden onclick="navGoTo(0)">···</button>
-                    <span class="myp-crumb-sep" id="fd_s0" hidden>›</span><button class="myp-crumb" id="fd_b0" hidden></button><span class="myp-crumb current" id="fd_cur0" hidden></span>
-                    <span class="myp-crumb-sep" id="fd_s1" hidden>›</span><button class="myp-crumb" id="fd_b1" hidden></button><span class="myp-crumb current" id="fd_cur1" hidden></span>
-                    <span class="myp-crumb-sep" id="fd_s2" hidden>›</span><button class="myp-crumb" id="fd_b2" hidden></button><span class="myp-crumb current" id="fd_cur2" hidden></span>
-                    <span class="myp-crumb-sep" id="fd_s3" hidden>›</span><button class="myp-crumb" id="fd_b3" hidden></button><span class="myp-crumb current" id="fd_cur3" hidden></span>
-                    <span class="myp-crumb-sep" id="fd_s4" hidden>›</span><button class="myp-crumb" id="fd_b4" hidden></button><span class="myp-crumb current" id="fd_cur4" hidden></span>
-                </div>
-            </div>
-            <div class="modal-box-body" id="friendDetailContent"><div class="fd-loading" data-i18n="profiles.friend_detail.loading">Loading profile...</div></div>
-        </div>
-    </div>
+    <div class="modal-overlay" id="modalFriendDetail" style="display:none;" onclick="if(event.target===this)closeFriendDetail()"></div>
 
     <!-- World Detail Modal -->
-    <div class="modal-overlay" id="modalWorldDetail" style="display:none;" onclick="if(event.target===this)closeWorldDetail()">
-        <div class="modal-box wide" style="position:relative;padding:0;">
-            <div class="myp-breadcrumb-bar" id="wd_navBar" style="display:none;">
-                <div class="myp-breadcrumbs">
-                    <button class="myp-crumb" id="wd_ov" hidden onclick="navGoTo(0)">···</button>
-                    <span class="myp-crumb-sep" id="wd_s0" hidden>›</span><button class="myp-crumb" id="wd_b0" hidden></button><span class="myp-crumb current" id="wd_cur0" hidden></span>
-                    <span class="myp-crumb-sep" id="wd_s1" hidden>›</span><button class="myp-crumb" id="wd_b1" hidden></button><span class="myp-crumb current" id="wd_cur1" hidden></span>
-                    <span class="myp-crumb-sep" id="wd_s2" hidden>›</span><button class="myp-crumb" id="wd_b2" hidden></button><span class="myp-crumb current" id="wd_cur2" hidden></span>
-                    <span class="myp-crumb-sep" id="wd_s3" hidden>›</span><button class="myp-crumb" id="wd_b3" hidden></button><span class="myp-crumb current" id="wd_cur3" hidden></span>
-                    <span class="myp-crumb-sep" id="wd_s4" hidden>›</span><button class="myp-crumb" id="wd_b4" hidden></button><span class="myp-crumb current" id="wd_cur4" hidden></span>
-                </div>
-            </div>
-            <div class="modal-box-body" id="worldDetailContent"></div>
-        </div>
-    </div>
+    <div class="modal-overlay" id="modalWorldDetail" style="display:none;" onclick="if(event.target===this)closeWorldDetail()"></div>
 
     <!-- Instance Info Modal (current instance player list) -->
-    <div class="modal-overlay" id="modalInstanceInfo" style="display:none;" onclick="if(event.target===this)closeInstanceInfoModal()">
-        <div class="modal-box wide" id="instanceInfoContent" style="position:relative;max-width:946px;width:95vw;"></div>
-    </div>
+    <div class="modal-overlay" id="modalInstanceInfo" style="display:none;" onclick="if(event.target===this)closeInstanceInfoModal()"></div>
 
     <!-- My Instance Detail Modal -->
-    <div class="modal-overlay" id="modalMyInstance" style="display:none;" onclick="if(event.target===this)closeMyInstanceDetail()">
-        <div class="modal-box wide" style="position:relative;padding:0;overflow:hidden;">
-            <div class="myp-breadcrumb-bar" id="mi_navBar" style="display:none;">
-                <div class="myp-breadcrumbs">
-                    <button class="myp-crumb" id="mi_ov" hidden onclick="navGoTo(0)">···</button>
-                    <span class="myp-crumb-sep" id="mi_s0" hidden>›</span><button class="myp-crumb" id="mi_b0" hidden></button><span class="myp-crumb current" id="mi_cur0" hidden></span>
-                    <span class="myp-crumb-sep" id="mi_s1" hidden>›</span><button class="myp-crumb" id="mi_b1" hidden></button><span class="myp-crumb current" id="mi_cur1" hidden></span>
-                    <span class="myp-crumb-sep" id="mi_s2" hidden>›</span><button class="myp-crumb" id="mi_b2" hidden></button><span class="myp-crumb current" id="mi_cur2" hidden></span>
-                    <span class="myp-crumb-sep" id="mi_s3" hidden>›</span><button class="myp-crumb" id="mi_b3" hidden></button><span class="myp-crumb current" id="mi_cur3" hidden></span>
-                    <span class="myp-crumb-sep" id="mi_s4" hidden>›</span><button class="myp-crumb" id="mi_b4" hidden></button><span class="myp-crumb current" id="mi_cur4" hidden></span>
-                </div>
-            </div>
-            <div id="myInstanceContent"></div>
-        </div>
-    </div>
+    <div class="modal-overlay" id="modalMyInstance" style="display:none;" onclick="if(event.target===this)closeMyInstanceDetail()"></div>
 
     <!-- Friend GPS Instance Log Modal -->
-    <div class="modal-overlay" id="modalFtGpsDetail" style="display:none;" onclick="if(event.target===this)closeFtGpsDetail()">
-        <div class="modal-box wide" id="ftGpsDetailContent" style="position:relative;"></div>
-    </div>
+    <div class="modal-overlay" id="modalFtGpsDetail" style="display:none;" onclick="if(event.target===this)closeFtGpsDetail()"></div>
 
     <!-- Universal Detail Modal (groups / events / world search) -->
     <div class="modal-overlay" id="modalDetail" style="display:none;z-index:10001;" onclick="if(event.target===this){this.style.display='none';navClear();}">
@@ -454,103 +391,32 @@
     </div>
 
     <!-- Avatar Detail Modal -->
-    <div class="modal-overlay" id="modalAvatarDetail" style="display:none;" onclick="if(event.target===this)closeAvatarDetail()">
-        <div class="modal-box wide" style="position:relative;padding:0;">
-            <div class="myp-breadcrumb-bar" id="av_navBar" style="display:none;">
-                <div class="myp-breadcrumbs" id="av_navCrumbs">
-                    <button class="myp-crumb" id="av_ov" hidden onclick="navGoTo(0)">···</button>
-                    <span class="myp-crumb-sep" id="av_s0" hidden>›</span><button class="myp-crumb" id="av_b0" hidden></button><span class="myp-crumb current" id="av_cur0" hidden></span>
-                    <span class="myp-crumb-sep" id="av_s1" hidden>›</span><button class="myp-crumb" id="av_b1" hidden></button><span class="myp-crumb current" id="av_cur1" hidden></span>
-                    <span class="myp-crumb-sep" id="av_s2" hidden>›</span><button class="myp-crumb" id="av_b2" hidden></button><span class="myp-crumb current" id="av_cur2" hidden></span>
-                    <span class="myp-crumb-sep" id="av_s3" hidden>›</span><button class="myp-crumb" id="av_b3" hidden></button><span class="myp-crumb current" id="av_cur3" hidden></span>
-                    <span class="myp-crumb-sep" id="av_s4" hidden>›</span><button class="myp-crumb" id="av_b4" hidden></button><span class="myp-crumb current" id="av_cur4" hidden></span>
-                </div>
-            </div>
-            <div class="modal-box-body" id="avatarDetailContent"></div>
-        </div>
-    </div>
+    <div class="modal-overlay" id="modalAvatarDetail" style="display:none;" onclick="if(event.target===this)closeAvatarDetail()"></div>
 
     <!-- My Profile Modal -->
-    <div class="modal-overlay" id="modalMyProfile" style="display:none;" onclick="if(event.target===this)closeMyProfile()">
-        <div class="modal-box wide" id="mypBox" style="position:relative;"></div>
-    </div>
+    <div class="modal-overlay" id="modalMyProfile" style="display:none;" onclick="if(event.target===this)closeMyProfile()"></div>
 
     <!-- Voice Fight Block Words Modal -->
-    <div class="modal-overlay" id="modalVfBlock" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-        <div class="modal-box" style="max-width:484px;">
-            <div class="modal-title" style="margin-bottom:4px;" data-i18n="voicefight.block_words.title">Block Words</div>
-            <div style="font-size:12px;color:var(--tx3);margin-bottom:14px;" data-i18n="voicefight.block_words.desc">Stripped from recognition. Type a word and press Enter.</div>
-            <div class="vf-block-chips" id="vfBlockChips" onclick="document.getElementById('vfBlockInlineInput')?.focus()"></div>
-            <div class="modal-btns" style="margin-top:14px;">
-                <button class="vrcn-button-round" onclick="document.getElementById('modalVfBlock').style.display='none'" data-i18n="common.close">Close</button>
-            </div>
-        </div>
-    </div>
+    <div class="modal-overlay" id="modalVfBlock" style="display:none;" onclick="if(event.target===this)this.style.display='none'"></div>
 
     <!-- Multi-Invite Modal -->
-    <div class="modal-overlay" id="modalInvite" style="display:none;" onclick="if(event.target===this)closeInviteModal()">
-        <div class="modal-box inv-box" id="inviteBox"></div>
-    </div>
+    <div class="modal-overlay" id="modalInvite" style="display:none;" onclick="if(event.target===this)closeInviteModal()"></div>
 
     <!-- Permini Friend Picker Modal -->
-    <div class="modal-overlay" id="modalCreateInstance" style="display:none;z-index:10010;" onclick="if(event.target===this)closeCreateInstanceModal()">
-        <div class="modal-box wide" id="createInstanceContent" style="position:relative;max-width:506px;padding:0;"></div>
-    </div>
+    <div class="modal-overlay" id="modalCreateInstance" style="display:none;z-index:10010;" onclick="if(event.target===this)closeCreateInstanceModal()"></div>
 
-    <div class="modal-overlay" id="modalPerminiPicker" style="display:none;" onclick="if(event.target===this)closePerminiPicker()">
-        <div class="modal-box inv-box">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 32px 0;">
-                <div style="font-size:13px;font-weight:700;" data-i18n="permini.picker.title">Add Friend to Permini</div>
-                <button class="vrcn-button" onclick="closePerminiPicker()" style="padding:2px 8px;"><span class="msi" style="font-size:14px;">close</span></button>
-            </div>
-            <div class="inv-search-wrap">
-                <input class="inv-search-input" type="text" id="pmSearchInput" data-i18n-placeholder="permini.picker.search" oninput="filterPerminiPicker(this.value)">
-            </div>
-            <div class="inv-list vrcn-scrollbar" id="pmPickerList"></div>
-        </div>
-    </div>
+    <div class="modal-overlay" id="modalPerminiPicker" style="display:none;" onclick="if(event.target===this)closePerminiPicker()"></div>
 
     <!-- Notification Toast (top-right, action feedback) -->
     <div id="notifToastArea" class="notif-toast-area"></div>
     <!-- Notification Cards (bottom-right, incoming VRChat notifications) -->
     <div id="notifCardArea"></div>
     <!-- Dashboard layout editor modal -->
-    <div id="dashLayoutModal" class="modal-overlay" style="display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeDashLayoutEditor()">
-        <div class="dash-layout-panel">
-            <div class="dash-layout-header">
-                <span class="msi" style="font-size:18px;color:var(--accent);">dashboard_customize</span>
-                <span data-i18n="dashboard.edit.title">Dashboard Layout</span>
-            </div>
-            <p class="dash-layout-hint" data-i18n="dashboard.edit.hint">Reorder and show/hide sections. Changes are saved immediately.</p>
-            <div class="dash-layout-list" id="dashLayoutList"></div>
-            <div class="dash-layout-footer">
-                <button class="vrcn-button-round" onclick="dashLayoutReset()" style="margin-right:auto;"><span class="msi">restart_alt</span><span data-i18n="dashboard.edit.reset">Reset</span></button>
-                <button class="vrcn-button-round vrcn-btn-primary" onclick="saveDashLayoutFromModal()"><span class="msi">check</span><span data-i18n="common.save">Save</span></button>
-                <button class="vrcn-button-round" onclick="closeDashLayoutEditor()" data-i18n="common.cancel">Cancel</button>
-            </div>
-        </div>
-    </div>
+    <div id="dashLayoutModal" class="modal-overlay" style="display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeDashLayoutEditor()"></div>
     <!-- Favorite group picker popup (global, outside tabs so it's always visible) -->
-    <div id="avFavPickerPanel" style="display:none;position:fixed;z-index:10005;background:var(--bg-card);border:1px solid var(--brd-lt);border-radius:10px;padding:10px;min-width:220px;max-width:280px;box-shadow:0 8px 32px #0008;">
-        <div style="font-size:11px;font-weight:700;color:var(--tx3);margin-bottom:8px;letter-spacing:.5px;" data-i18n="avatars.favorites.add_group_title">ADD TO FAVORITE GROUP</div>
-        <div id="avFavPickerList"></div>
-        <div style="margin-top:8px;text-align:right;"><button class="vrcn-button" onclick="closeAvFavPicker()" data-i18n="common.cancel">Cancel</button></div>
-    </div>
+    <div id="avFavPickerPanel" style="display:none;position:fixed;z-index:10005;background:var(--bg-card);border:1px solid var(--brd-lt);border-radius:10px;padding:10px;min-width:220px;max-width:280px;box-shadow:0 8px 32px #0008;"></div>
 <!-- Theme Editor Panel -->
-<div id="themeEditorPanel" style="display:none;position:fixed;bottom:16px;right:16px;width:380px;max-height:600px;z-index:9999;flex-direction:column;background:var(--bg-card);border:1px solid var(--brd);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--brd);flex-shrink:0;">
-        <span style="font-size:13px;font-weight:600;color:var(--tx1);" data-i18n="settings.design.theme_editor">Theme Editor</span>
-        <button class="vrcn-button" onclick="closeThemeEditor()" style="padding:3px 8px;"><span class="msi" style="font-size:14px;">close</span></button>
-    </div>
-    <div id="teColorRows" style="overflow-y:auto;padding:8px 12px;flex:1;min-height:0;"></div>
-    <div style="padding:10px 12px;border-top:1px solid var(--brd);flex-shrink:0;display:flex;flex-direction:column;gap:6px;">
-        <input type="text" class="vrcn-input" id="teThemeName" placeholder="Theme name..." data-i18n-placeholder="settings.design.theme_editor_name_placeholder">
-        <button class="vrcn-button" onclick="teSaveTheme()" style="width:100%;justify-content:center;">
-            <span class="msi" style="font-size:15px;">save</span>
-            <span data-i18n="settings.design.theme_editor_save">Save Theme</span>
-        </button>
-    </div>
-</div>
+<div id="themeEditorPanel" style="display:none;position:fixed;bottom:16px;right:16px;width:380px;max-height:600px;z-index:9999;flex-direction:column;background:var(--bg-card);border:1px solid var(--brd);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);"></div>
 <!-- Custom Color Picker -->
 <div id="teColorPicker" style="display:none;position:fixed;z-index:10001;background:var(--bg-card);border:1px solid var(--brd);border-radius:10px;padding:10px;box-shadow:0 4px 24px rgba(0,0,0,.6);width:220px;">
     <canvas id="tePickerSV"  width="200" height="150" style="border-radius:6px;cursor:crosshair;display:block;"></canvas>
@@ -564,16 +430,7 @@
     </div>
 </div>
     <!-- SmartSearch Modal -->
-    <div id="ssModal" class="ss-modal-overlay">
-        <div class="ss-modal-box">
-            <div class="ss-modal-input-wrap">
-                <span class="msi">search</span>
-                <input id="ssInput" type="text" placeholder="Search friends, worlds, groups…" autocomplete="off" spellcheck="false">
-                <button id="ssCloseBtn" class="ss-close-btn"><span class="msi">close</span></button>
-            </div>
-            <div class="ss-dropdown vrcn-scrollbar" id="ssDropdown"></div>
-        </div>
-    </div>
+    <div id="ssModal" class="ss-modal-overlay"></div>
 
     <!-- Crash Report Modal -->
     <div class="modal-overlay" id="modalCrash" style="display:none;">
@@ -627,6 +484,26 @@
             tab22: 'modules/tools/kikitan-xd/kikitan-xd.html',
             tab23: 'modules/tools/event-snipe/event-snipe.html',
             tab24: 'modules/tools/avatar-scaling/avatar-scaling.html',
+        };
+
+        const modalFragments = {
+            modal2FA:            'core/modals/auth-modal/auth-modal.html',
+            modalStatus:         'core/modals/my-profile-modal/status-modal.html',
+            modalFriendDetail:   'core/modals/user-modal/user-modal.html',
+            modalWorldDetail:    'core/modals/world-modal/world-modal.html',
+            modalInstanceInfo:   'core/modals/instance-modal/instance-modal.html',
+            modalMyInstance:     'core/modals/my-instance-modal/my-instance-modal.html',
+            modalFtGpsDetail:    'core/modals/timeline-modal/timeline-modal.html',
+            modalAvatarDetail:   'core/modals/avatar-modal/avatar-modal.html',
+            modalMyProfile:      'core/modals/my-profile-modal/my-profile-modal.html',
+            modalInvite:         'core/modals/invite-modal/invite-modal.html',
+            modalCreateInstance: 'core/modals/create-instance-modal/create-instance-modal.html',
+            modalVfBlock:       'modules/tools/voice-fight/voice-fight-block.html',
+            modalPerminiPicker: 'modules/tools/permini/permini-picker.html',
+            dashLayoutModal:    'modules/dashboard/dash-layout.html',
+            avFavPickerPanel:   'modules/avatars/fav-picker.html',
+            themeEditorPanel:   'modules/settings/theme-editor.html',
+            ssModal:            'core/SmartSearch/smart-search.html',
         };
 
         const scripts = [
@@ -698,7 +575,7 @@
         ];
 
         try {
-            const entries = Object.entries(tabFragments);
+            const entries = Object.entries({ ...tabFragments, ...modalFragments });
             const htmls = await Promise.all(entries.map(async ([tabId, p]) => {
                 const r = await fetch(p);
                 if (!r.ok) throw new Error('fetch ' + p + ' -> HTTP ' + r.status);
@@ -706,7 +583,7 @@
             }));
             for (const [tabId, html] of htmls) {
                 const host = document.getElementById(tabId);
-                if (!host) throw new Error('Tab host #' + tabId + ' missing in DOM');
+                if (!host) throw new Error('Fragment host #' + tabId + ' missing in DOM');
                 host.innerHTML = html;
             }
             for (const src of scripts) {
@@ -718,6 +595,13 @@
                     s.onerror = () => reject(new Error('script ' + src + ' failed to load'));
                     document.body.appendChild(s);
                 });
+            }
+            // All scripts loaded — signal backend that JS is ready.
+            // Must run AFTER init.js so that the backend's loadSettings response
+            // doesn't overwrite UI state that init.js will populate (e.g. webhooks).
+            if (typeof sendToCS === 'function') {
+                sendToCS({ action: 'ready' });
+                sendToCS({ action: 'kxdGetDevices' });
             }
         } catch (err) {
             showFatalError(err.message, err.stack);
