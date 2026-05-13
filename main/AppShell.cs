@@ -142,6 +142,8 @@ public partial class AppShell
             _settings.ActiveAccountId = _settings.EnsurePrimaryAccount().AccountId;
             Database.SetActiveAccount(_settings.PrimaryAccount);
         }
+        // Route per-account JSON caches under Accounts/{userId}/Caches/ for secondary accounts.
+        CacheHandler.SetActiveAccount(_settings.ActiveAccount);
 
         _minimized = args.Contains("--minimized");
         LoadDeletedAvatarsCache();

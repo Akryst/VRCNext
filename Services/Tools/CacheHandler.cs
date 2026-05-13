@@ -7,6 +7,10 @@ public class CacheHandler
     private static readonly string _dir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VRCNext");
 
+    // Per-account subdirectory inserted into cache paths for secondary accounts.
+    // Primary uses the default layout under "Caches/..." so existing files keep working.
+    private static string _accountSubdir = "";
+
     public static readonly string KeyFavWorlds      = "Caches/fav_worlds_cache.json";
     public static readonly string KeyFavFriends     = "Caches/fav_friends_cache.json";
     public static readonly string KeyFavAvatars     = "Caches/fav_avatars_cache.json";
@@ -15,8 +19,6 @@ public class CacheHandler
     public static readonly string KeyFriends        = "Caches/friends_cache.json";
     public static readonly string KeyMutuals        = "Caches/mutual_cache.json";
     public static readonly string KeyInventory       = "Caches/inventory_cache.json";
-    public static readonly string KeyBlockedPersons = "Caches/blocked_persons.json";
-    public static readonly string KeyMutedPersons   = "Caches/muted_persons.json";
     public static readonly string KeyCustomColors   = "custom_colors.json";
     public static readonly string KeyPermini        = "permini_list.json";
     public static readonly string KeySharedContent    = "Caches/shared_content_cache.json";
@@ -31,9 +33,36 @@ public class CacheHandler
     public static string KeyUserMutualGroups(string userId)  => $"Caches/Profiles/{userId}/mutual_groups_cache.json";
     public static string KeyUserMutuals(string userId)       => $"Caches/Profiles/{userId}/user_mutuals_cache.json";
 
+    // Keys that are universal and stay shared across all accounts (app-wide theme, world metadata).
+    private static readonly HashSet<string> _sharedKeys = new()
+    {
+        "custom_colors.json",
+        "Caches/world_meta_cache.json",
+    };
+
+    // Routes per-account keys through Accounts/{userId}/Caches/... for secondary accounts.
+    public static void SetActiveAccount(VrcAccount? account)
+    {
+        if (account == null || account.IsPrimary || string.IsNullOrEmpty(account.UserId))
+        {
+            _accountSubdir = "";
+        }
+        else
+        {
+            _accountSubdir = Path.Combine("Accounts", account.UserId);
+        }
+    }
+
+    private static string Resolve(string key)
+    {
+        if (string.IsNullOrEmpty(_accountSubdir) || _sharedKeys.Contains(key))
+            return Path.Combine(_dir, key);
+        return Path.Combine(_dir, _accountSubdir, key);
+    }
+
     public object? LoadRaw(string key)
     {
-        var path = Path.Combine(_dir, key);
+        var path = Resolve(key);
         if (!File.Exists(path)) return null;
         try   { return JsonConvert.DeserializeObject(File.ReadAllText(path)); }
         catch { return null; }
@@ -43,29 +72,30 @@ public class CacheHandler
     {
         try
         {
-            var path = Path.Combine(_dir, key);
+            var path = Resolve(key);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, JsonConvert.SerializeObject(data));
         }
         catch { /* non-critical */ }
     }
 
-    public bool Has(string key) => File.Exists(Path.Combine(_dir, key));
+    public bool Has(string key) => File.Exists(Resolve(key));
 
     /// <summary>Returns true if the cache file exists and was written less than <paramref name="ttl"/> ago.</summary>
     public bool IsFresh(string key, TimeSpan ttl)
     {
-        var path = Path.Combine(_dir, key);
+        var path = Resolve(key);
         if (!File.Exists(path)) return false;
         return DateTime.UtcNow - File.GetLastWriteTimeUtc(path) < ttl;
     }
 
     public void Delete(string key)
     {
-        try { File.Delete(Path.Combine(_dir, key)); }
+        try { File.Delete(Resolve(key)); }
         catch { }
     }
 
+    // Clears caches for the currently active account only.
     public void ClearAll()
     {
         try
@@ -77,17 +107,14 @@ public class CacheHandler
             Delete(KeyGroups);
             Delete(KeyFriends);
             Delete(KeyInventory);
-            Delete(KeyBlockedPersons);
-            Delete(KeyMutedPersons);
-            var profilesDir = Path.Combine(_dir, "profiles");
-            if (Directory.Exists(profilesDir))
-                Directory.Delete(profilesDir, true);
-            var favWorldsDir = Path.Combine(_dir, "favworlds");
-            if (Directory.Exists(favWorldsDir))
-                Directory.Delete(favWorldsDir, true);
-            var profilesCacheDir = Path.Combine(_dir, "Caches", "Profiles");
-            if (Directory.Exists(profilesCacheDir))
-                Directory.Delete(profilesCacheDir, true);
+            // Sub-folders are per-account, resolve under the current account root.
+            var root = string.IsNullOrEmpty(_accountSubdir) ? _dir : Path.Combine(_dir, _accountSubdir);
+            var profilesDir = Path.Combine(root, "profiles");
+            if (Directory.Exists(profilesDir)) Directory.Delete(profilesDir, true);
+            var favWorldsDir = Path.Combine(root, "favworlds");
+            if (Directory.Exists(favWorldsDir)) Directory.Delete(favWorldsDir, true);
+            var profilesCacheDir = Path.Combine(root, "Caches", "Profiles");
+            if (Directory.Exists(profilesCacheDir)) Directory.Delete(profilesCacheDir, true);
         }
         catch { }
     }
