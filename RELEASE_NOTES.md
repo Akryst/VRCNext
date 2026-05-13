@@ -9,3 +9,6 @@
 
 **Instance Modal**
 * The entries are now scrollable.
+**World Modal**
+* Added "Photos" to World Modals so when you open up a World Modal you can quickly see
+if you mad eimages in that world without opening the media library
