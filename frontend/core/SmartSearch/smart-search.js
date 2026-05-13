@@ -290,6 +290,85 @@ const SmartSearch = (() => {
         return out;
     }
 
+    const REMOTE_SEARCH_TARGETS = [
+        { key: 'worlds', labelKey: 'search.remote.worlds', label: 'Worlds' },
+        { key: 'groups', labelKey: 'search.remote.groups', label: 'Groups' },
+        { key: 'users', labelKey: 'search.remote.users', label: 'Users' },
+        { key: 'avatars', labelKey: 'search.remote.avatars', label: 'Avatars' },
+    ];
+
+    function _setSearchInputValue(id, query) {
+        const input = document.getElementById(id);
+        if (input) input.value = query;
+        return input;
+    }
+
+    function _openRemoteSearchTarget(key, query) {
+        const q = query.trim();
+        if (!q) return;
+
+        if (key === 'worlds') {
+            if (typeof showTab === 'function') showTab(1);
+            if (typeof setWorldFilter === 'function') setWorldFilter('search');
+            const input = _setSearchInputValue('searchWorldsInput', q);
+            if (typeof doSearch === 'function') doSearch('worlds');
+            setTimeout(() => input?.focus(), 80);
+        } else if (key === 'groups') {
+            if (typeof showTab === 'function') showTab(2);
+            if (typeof setGroupFilter === 'function') setGroupFilter('search');
+            const input = _setSearchInputValue('searchGroupsInput', q);
+            if (typeof doSearch === 'function') doSearch('groups');
+            setTimeout(() => input?.focus(), 80);
+        } else if (key === 'users') {
+            if (typeof showTab === 'function') showTab(3);
+            if (typeof setPeopleFilter === 'function') setPeopleFilter('search');
+            const input = _setSearchInputValue('searchPeopleInput', q);
+            if (typeof doSearch === 'function') doSearch('people');
+            setTimeout(() => input?.focus(), 80);
+        } else if (key === 'avatars') {
+            if (typeof showTab === 'function') showTab(4);
+            if (typeof setAvatarFilter === 'function') setAvatarFilter('search');
+            const input = _setSearchInputValue('avatarSearchInput', q);
+            if (typeof doAvatarSearch === 'function') doAvatarSearch();
+            setTimeout(() => input?.focus(), 80);
+        }
+
+        _close();
+    }
+
+    function _renderRemoteSearchActions(query) {
+        const wrap = document.createElement('div');
+        wrap.className = 'ss-search-in';
+
+        const label = document.createElement('span');
+        label.className = 'ss-search-in-label';
+        label.textContent = (typeof t === 'function') ? t('search.remote.label', 'Search in:') : 'Search in:';
+        wrap.appendChild(label);
+
+        const actions = document.createElement('div');
+        actions.className = 'ss-search-in-actions';
+
+        for (const target of REMOTE_SEARCH_TARGETS) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'vrcn-button';
+            btn.textContent = (typeof t === 'function') ? t(target.labelKey, target.label) : target.label;
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                _openRemoteSearchTarget(target.key, query);
+            });
+            actions.appendChild(btn);
+        }
+
+        wrap.appendChild(actions);
+        return wrap;
+    }
+
     function _isSettingsToggle(section, item) {
         return section.key === 'settings'
             && item?.type === 'toggle'
@@ -422,6 +501,10 @@ const SmartSearch = (() => {
 
     function _renderResults(results) {
         _dropdown.innerHTML = '';
+        const query = _input.value.trim();
+        if (query) {
+            _dropdown.appendChild(_renderRemoteSearchActions(query));
+        }
         if (results.length === 0) {
             const el = document.createElement('div');
             el.className = 'ss-empty';
