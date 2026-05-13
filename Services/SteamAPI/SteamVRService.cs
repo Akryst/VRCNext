@@ -402,9 +402,9 @@ namespace VRCNext.Services
             if (!_hasBaseStandingPose) CacheBasePoses();
             if (!_hasBaseStandingPose) return;
 
-            off.X = Math.Clamp(off.X, -50f, 50f);
-            off.Y = Math.Clamp(off.Y, -50f, 50f);
-            off.Z = Math.Clamp(off.Z, -50f, 50f);
+            off.X = Math.Clamp(off.X, -500f, 500f);
+            off.Y = Math.Clamp(off.Y, -500f, 500f);
+            off.Z = Math.Clamp(off.Z, -500f, 500f);
 
             OffsetX = off.X;
             OffsetY = off.Y;

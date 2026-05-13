@@ -573,19 +573,8 @@ public class FriendsController
             case "vrcGetBlocked":
                 _ = Task.Run(async () =>
                 {
-                    if (_core.Settings.FfcEnabled && _core.Cache.IsFresh(CacheHandler.KeyBlockedPersons, TimeSpan.FromDays(1)))
-                    {
-                        var cached = _core.Cache.LoadRaw(CacheHandler.KeyBlockedPersons);
-                        if (cached is JArray bArr)
-                        {
-                            foreach (var e in bArr)
-                                if (e is JObject eo) eo["image"] = ImageCacheHelper.GetUserUrl(eo["targetUserId"]?.ToString(), eo["image"]?.ToString());
-                            _core.SendToJS("vrcBlockedList", bArr); return;
-                        }
-                    }
                     var arr = await _core.PlayerModeration.GetPlayerModerationsAsync("block");
                     await EnrichModerationsWithImagesAsync(arr);
-                    if (_core.Settings.FfcEnabled) _core.Cache.Save(CacheHandler.KeyBlockedPersons, arr);
                     _core.SendToJS("vrcBlockedList", arr);
                 });
                 break;
@@ -593,19 +582,8 @@ public class FriendsController
             case "vrcGetMuted":
                 _ = Task.Run(async () =>
                 {
-                    if (_core.Settings.FfcEnabled && _core.Cache.IsFresh(CacheHandler.KeyMutedPersons, TimeSpan.FromDays(1)))
-                    {
-                        var cached = _core.Cache.LoadRaw(CacheHandler.KeyMutedPersons);
-                        if (cached is JArray mArr)
-                        {
-                            foreach (var e in mArr)
-                                if (e is JObject eo) eo["image"] = ImageCacheHelper.GetUserUrl(eo["targetUserId"]?.ToString(), eo["image"]?.ToString());
-                            _core.SendToJS("vrcMutedList", mArr); return;
-                        }
-                    }
                     var arr = await _core.PlayerModeration.GetPlayerModerationsAsync("mute");
                     await EnrichModerationsWithImagesAsync(arr);
-                    if (_core.Settings.FfcEnabled) _core.Cache.Save(CacheHandler.KeyMutedPersons, arr);
                     _core.SendToJS("vrcMutedList", arr);
                 });
                 break;
@@ -647,7 +625,7 @@ public class FriendsController
                         var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "block");
                         _core.SendToJS("vrcActionResult", new { action = "block", success = ok,
                             message = ok ? "Blocked" : "Failed to block" });
-                        if (ok) { _core.Cache.Delete(CacheHandler.KeyBlockedPersons); _core.SendToJS("vrcModDone", new { userId = uid, type = "block", active = true }); }
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "block", active = true });
                     });
                 }
                 break;
@@ -663,7 +641,7 @@ public class FriendsController
                         var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "mute");
                         _core.SendToJS("vrcActionResult", new { action = "mute", success = ok,
                             message = ok ? "Muted" : "Failed to mute" });
-                        if (ok) { _core.Cache.Delete(CacheHandler.KeyMutedPersons); _core.SendToJS("vrcModDone", new { userId = uid, type = "mute", active = true }); }
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "mute", active = true });
                     });
                 }
                 break;
@@ -679,7 +657,7 @@ public class FriendsController
                         var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "block");
                         _core.SendToJS("vrcActionResult", new { action = "unblock", success = ok,
                             message = ok ? "Unblocked" : "Failed to unblock" });
-                        if (ok) { _core.Cache.Delete(CacheHandler.KeyBlockedPersons); _core.SendToJS("vrcModDone", new { userId = uid, type = "block", active = false }); }
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "block", active = false });
                     });
                 }
                 break;
@@ -695,7 +673,7 @@ public class FriendsController
                         var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "mute");
                         _core.SendToJS("vrcActionResult", new { action = "unmute", success = ok,
                             message = ok ? "Unmuted" : "Failed to unmute" });
-                        if (ok) { _core.Cache.Delete(CacheHandler.KeyMutedPersons); _core.SendToJS("vrcModDone", new { userId = uid, type = "mute", active = false }); }
+                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "mute", active = false });
                     });
                 }
                 break;
