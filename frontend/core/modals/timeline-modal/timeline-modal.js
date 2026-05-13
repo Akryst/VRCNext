@@ -611,7 +611,12 @@ function _tlListProfHtml(img, name) {
 
 function _tlPersonalProfHtml(ev) {
     if (ev.type === 'notification') return _tlListProfHtml(ev.senderImage, ev.senderName);
-    if (ev.type === 'instance_join' || ev.type === 'photo') return _tlListProfHtml(currentVrcUser?.image, currentVrcUser?.displayName);
+    if (ev.type === 'instance_join') {
+        const players = ev.players || [];
+        if (players.length > 0) return _tlListPlayerAvatars(players, 3);
+        return _tlListProfHtml(currentVrcUser?.image, currentVrcUser?.displayName);
+    }
+    if (ev.type === 'photo') return _tlListProfHtml(currentVrcUser?.image, currentVrcUser?.displayName);
     return _tlListProfHtml(ev.userImage, ev.userName);
 }
 
