@@ -17,6 +17,8 @@ body:
       description: The version you are using right now, where the bug occurs.
       multiple: false
       options:
+        - 2026.25.1
+        - 2026.25.0
         - 2026.24.6
         - 2026.24.X
         - 2026.23.X

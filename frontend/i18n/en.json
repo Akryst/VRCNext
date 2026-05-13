@@ -2004,6 +2004,8 @@
   "tb.app.exit": "Exit",
   "tb.help": "Help",
   "tb.help.join_discord": "Join Discord",
+  "tb.help.report_bug": "Report Bug",
+  "tb.help.feature_request": "Feature Request",
   "tb.title.smart_search": "Smart Search",
   "tb.title.vrc_credits": "VRC Credits",
   "tb.title.vrc_plus": "VRC+",

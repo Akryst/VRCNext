@@ -6,6 +6,10 @@
 * New `Sign In` button for disconnected accounts. Just enter your password to come back online.
 * Warning card on the Accounts page so you know what to expect from secondary accounts.
 
+**Taskbar**
+* Added "Report Bug" to the "Help" entry
+* Added "Feature Request" to the "Help" entry
+
 **Improvements**
 
 * Each secondary account now keeps its own friends, favorites, inventory and other lists separate from your main account.

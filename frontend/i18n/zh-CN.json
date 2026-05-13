@@ -1984,6 +1984,8 @@
   "tb.app.exit": "退出",
   "tb.help": "帮助",
   "tb.help.join_discord": "加入 Discord",
+  "tb.help.report_bug": "报告错误",
+  "tb.help.feature_request": "功能请求",
   "tb.title.smart_search": "智能搜索",
   "tb.title.vrc_credits": "VRC 积分",
   "tb.title.vrc_plus": "VRC+",

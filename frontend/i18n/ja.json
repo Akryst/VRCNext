@@ -1983,6 +1983,8 @@
   "tb.app.exit": "終了",
   "tb.help": "ヘルプ",
   "tb.help.join_discord": "Discordに参加",
+  "tb.help.report_bug": "バグを報告",
+  "tb.help.feature_request": "機能をリクエスト",
   "tb.title.smart_search": "スマート検索",
   "tb.title.vrc_credits": "VRCクレジット",
   "tb.title.vrc_plus": "VRC+",

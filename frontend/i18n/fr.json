@@ -1984,6 +1984,8 @@
   "tb.app.exit": "Quitter",
   "tb.help": "Aide",
   "tb.help.join_discord": "Rejoindre Discord",
+  "tb.help.report_bug": "Signaler un bug",
+  "tb.help.feature_request": "Demander une fonctionnalité",
   "tb.title.smart_search": "Recherche intelligente",
   "tb.title.vrc_credits": "VRC Credits",
   "tb.title.vrc_plus": "VRC+",
