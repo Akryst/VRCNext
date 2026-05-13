@@ -1639,6 +1639,7 @@
   "worlds.instances.age_gated": "年齢制限あり",
   "worlds.tabs.info": "情報",
   "worlds.tabs.instances": "インスタンス ({count})",
+  "worlds.tabs.photos": "写真",
   "worlds.tabs.insights": "インサイト",
   "worlds.meta.by": "作者:",
   "worlds.meta.active": "アクティブ",

@@ -1640,6 +1640,7 @@
   "worlds.instances.age_gated": "年龄限制",
   "worlds.tabs.info": "信息",
   "worlds.tabs.instances": "实例 ({count})",
+  "worlds.tabs.photos": "照片",
   "worlds.tabs.insights": "洞察",
   "worlds.meta.by": "作者",
   "worlds.meta.active": "活跃",

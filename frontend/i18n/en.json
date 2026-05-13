@@ -1660,6 +1660,7 @@
   "worlds.instances.age_gated": "Age Gated",
   "worlds.tabs.info": "Info",
   "worlds.tabs.instances": "Instances ({count})",
+  "worlds.tabs.photos": "Photos",
   "worlds.tabs.insights": "Insights",
   "worlds.meta.by": "by",
   "worlds.meta.active": "Active",

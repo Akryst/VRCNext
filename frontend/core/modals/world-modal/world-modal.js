@@ -232,10 +232,12 @@ function renderWorldSearchDetail(w) {
     _wdCurrentWorldId = wid;
     window._currentWorldDetailFull = w;
     _ciWorld = { id: w.id, name: w.name, thumb };
+    const hasWorldPhotos = typeof libraryFiles !== 'undefined' && libraryFiles.some(x => x.worldId === wid && (x.type === 'image' || x.type === 'gif'));
 
     const tabsHtml = `<div class="fd-tabs" style="margin-bottom:14px;">
         <button class="fd-tab active" onclick="switchWdTab('info',this)">${t('worlds.tabs.info', 'Info')}</button>
         <button class="fd-tab" onclick="switchWdTab('instances',this)">${tf('worlds.tabs.instances', { count: allInstances.length }, 'Instances ({count})')}</button>
+        ${hasWorldPhotos ? `<button class="fd-tab" onclick="switchWdTab('photos',this)">${t('worlds.tabs.photos', 'Photos')}</button>` : ''}
         ${isOwnWorld ? `<button class="fd-tab" onclick="switchWdTab('insights',this)">${t('worlds.tabs.insights', 'Insights')}</button>` : ''}
         <button class="fd-tab" onclick="switchWdTab('json',this)">Json</button>
     </div>`;
@@ -298,15 +300,21 @@ function renderWorldSearchDetail(w) {
             <div class="wd-section-label wd-instances-label" style="margin-top:4px;"><span>${tf('worlds.instances.active_title', { count: allInstances.length }, 'ACTIVE INSTANCES ({count})')}</span><button class="mi-refresh-btn" id="wdInstancesRefreshBtn" onclick="refreshWorldInstances()" title="Refresh instances">&#8635;</button></div>
             ${instancesHtml}
         </div>
+        <div id="wdTabPhotos" style="display:none;"><div id="wdPhotosGrid"></div><div id="wdPhotosPaginatorBar" class="mini-paginator"></div></div>
         ${isOwnWorld ? `<div id="wdTabInsights" style="display:none;"><div id="wiContainer"></div></div>` : ''}
         <div id="wdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight(w?.rawJson || w || {})}</div></div>
         <div style="margin-top:14px;text-align:right;"><button class="vrcn-button-round" onclick="closeWorldSearchDetail()">${t('common.close', 'Close')}</button></div>
         </div>`;
 
     if (thumb) { const s = document.getElementById('wd-banner-slot'); const bi = _getWorldBannerImg(wid, thumb); if (s && bi) s.insertBefore(bi, s.firstChild); }
+    if (hasWorldPhotos) { _wdPreloadPhotos(wid); _wdLoadPhotos(wid); }
     if (_wdCurrentTab !== 'info') {
-        const activeTabBtn = el.querySelector(`.fd-tab[onclick*="'${_wdCurrentTab}'"]`);
-        switchWdTab(_wdCurrentTab, activeTabBtn);
+        if (_wdCurrentTab === 'photos' && !hasWorldPhotos) {
+            _wdCurrentTab = 'info';
+        } else {
+            const activeTabBtn = el.querySelector(`.fd-tab[onclick*="'${_wdCurrentTab}'"]`);
+            switchWdTab(_wdCurrentTab, activeTabBtn);
+        }
     }
     // Live timer - only when currently in this world
     if (_wdLiveTimer) { clearInterval(_wdLiveTimer); _wdLiveTimer = null; }
@@ -322,6 +330,109 @@ function renderWorldSearchDetail(w) {
 }
 
 let _wdCurrentWorldId = '';
+let _wdPhotosPage = 0;
+let _wdPhotosItems = [];
+let _wdPreloadedThumbs = [];
+
+function _wdPreloadPhotos(worldId) {
+    _wdPreloadedThumbs.forEach(img => { img.src = typeof PLACEHOLDER !== 'undefined' ? PLACEHOLDER : ''; });
+    _wdPreloadedThumbs = [];
+    const photos = (typeof libraryFiles !== 'undefined' ? libraryFiles : [])
+        .filter(x => x.worldId === worldId && (x.type === 'image' || x.type === 'gif') && x.url);
+    photos.slice(0, MINI_IMAGE_PG_SIZE).forEach(x => {
+        const img = new Image();
+        img.src = x.url + '?thumb=1';
+        _wdPreloadedThumbs.push(img);
+    });
+}
+
+function _wdLoadPhotos(worldId) {
+    _wdPhotosPage = 0;
+    _wdPhotosItems = (typeof libraryFiles !== 'undefined' ? libraryFiles : [])
+        .filter(x => x.worldId === worldId && (x.type === 'image' || x.type === 'gif'));
+    _wdPhotosItems.sort((a, b) => new Date(b.modified) - new Date(a.modified));
+    _wdRenderPhotosPage();
+}
+
+function _wdPhotosGoPage(page) {
+    const totalPages = Math.ceil(_wdPhotosItems.length / MINI_IMAGE_PG_SIZE) || 1;
+    if (page < 0 || page >= totalPages) return;
+    _wdPhotosPage = page;
+    _wdRenderPhotosPage();
+}
+
+function _wdRenderPhotosPage() {
+    const grid = document.getElementById('wdPhotosGrid');
+    if (!grid) return;
+    const start = _wdPhotosPage * MINI_IMAGE_PG_SIZE;
+    const pageItems = _wdPhotosItems.slice(start, start + MINI_IMAGE_PG_SIZE);
+    const totalPages = Math.ceil(_wdPhotosItems.length / MINI_IMAGE_PG_SIZE) || 1;
+    if (!pageItems.length) {
+        grid.innerHTML = `<div class="empty-msg">${t('worlds.photos.empty', 'No photos taken in this world.')}</div>`;
+        const emptyBar = document.getElementById('wdPhotosPaginatorBar');
+        if (emptyBar) emptyBar.innerHTML = '';
+        return;
+    }
+    let h = `<div class="lib-date-group-cards" style="grid-template-columns:repeat(auto-fill,minmax(126px,1fr));">`;
+    pageItems.forEach(x => { h += _buildWdPhotoCard(x); });
+    h += `</div>`;
+    grid.innerHTML = h;
+    const bar = document.getElementById('wdPhotosPaginatorBar');
+    if (bar) bar.innerHTML = buildMiniPaginator(_wdPhotosPage, totalPages, '_wdPhotosGoPage');
+}
+
+function _wdOpenInLibrary(path) {
+    closeWorldSearchDetail();
+    showTab(7);
+    if (typeof _libViewMode !== 'undefined' && _libViewMode === 'folder') setLibViewMode('grid');
+    if (typeof showFavOnly !== 'undefined' && showFavOnly) {
+        showFavOnly = false;
+        document.getElementById('libFavBtn')?.classList.remove('active');
+    }
+    if (typeof _libFriendFilter !== 'undefined') _libFriendFilter = '__all__';
+    if (typeof _libWorldFilter  !== 'undefined') _libWorldFilter  = '__all__';
+    const folderEl = document.getElementById('libFolderFilter');
+    if (folderEl) folderEl.value = '__all__';
+    const typeEl = document.getElementById('libTypeFilter');
+    if (typeEl) typeEl.value = 'all';
+    filterLibrary();
+    const idx = (typeof _libFiltered !== 'undefined' ? _libFiltered : []).findIndex(x => x.path === path);
+    if (idx >= 0) libGoPage(Math.floor(idx / LIB_PAGE_SIZE));
+    requestAnimationFrame(() => {
+        const card = document.querySelector(`.lib-card[data-path="${CSS.escape(path)}"]`);
+        if (card) card.scrollIntoView({ block: 'nearest' });
+    });
+}
+
+function _buildWdPhotoCard(x) {
+    const su        = x.url || '';
+    const suAttr    = esc(su);
+    const sp        = jsq(x.path || '');
+    const iH        = (typeof hiddenMedia !== 'undefined') && hiddenMedia.has(x.path);
+    const blurClass = iH ? ' lib-blurred' : '';
+    const players   = x.players || [];
+    let playersOverlay = '';
+    if (players.length > 0) {
+        const show      = players.slice(0, 3);
+        const remaining = players.length - show.length;
+        playersOverlay  = `<div class="lib-players-overlay">` +
+            show.map(p => {
+                const isOwn = currentVrcUser && p.userId === currentVrcUser.id;
+                const fr    = isOwn ? currentVrcUser : vrcFriendsData.find(f => f.id === p.userId);
+                const img   = fr?.image || p.image || '';
+                return img
+                    ? `<div class="lib-player-av" style="background-image:url('${cssUrl(img)}')" title="${esc(p.displayName)}"></div>`
+                    : `<div class="lib-player-av lib-player-av-letter" title="${esc(p.displayName)}">${esc((p.displayName || '?')[0])}</div>`;
+            }).join('') +
+            (remaining > 0 ? `<div class="lib-player-av lib-player-av-more">+${remaining}</div>` : '') +
+            `</div>`;
+    }
+    const thumbSrc = suAttr ? suAttr + '?thumb=1' : '';
+    const h        = x.imgH || 0;
+    const resTag   = !h ? '' : h <= 720 ? 'SD' : h <= 1080 ? 'HD' : h <= 1440 ? '2K' : h <= 2160 ? '4K' : '8K';
+    const resBadge = resTag ? `<span class="vrcn-badge accent" style="margin-left:4px;">${resTag}</span>` : '';
+    return `<div class="lib-card" data-path="${esc(x.path||'')}" style="cursor:pointer;" onclick="_wdOpenInLibrary('${sp}')"><div class="lib-thumb-wrap${blurClass}"><img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px;font-weight:700\\'>${jsq(t('library.no_preview', 'No Preview'))}</div>'">${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}${playersOverlay}</div><div class="lib-info"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span style="display:flex;align-items:center;">${x.size}${resBadge}</span><span>${x.time}</span></div></div></div>`;
+}
 
 function switchWdTab(tab, btn) {
     _wdCurrentTab = tab;
@@ -329,10 +440,12 @@ function switchWdTab(tab, btn) {
     animateModalBox(box, () => {
         const info      = document.getElementById('wdTabInfo');
         const instances = document.getElementById('wdTabInstances');
+        const photos    = document.getElementById('wdTabPhotos');
         const insights  = document.getElementById('wdTabInsights');
-        const jsonEl = document.getElementById('wdTabJson');
+        const jsonEl    = document.getElementById('wdTabJson');
         if (info)      info.style.display      = tab === 'info'      ? '' : 'none';
         if (instances) instances.style.display = tab === 'instances' ? '' : 'none';
+        if (photos)    photos.style.display    = tab === 'photos'    ? '' : 'none';
         if (insights)  insights.style.display  = tab === 'insights'  ? '' : 'none';
         if (jsonEl)    jsonEl.style.display    = tab === 'json'      ? '' : 'none';
         document.querySelectorAll('#detailModalContent .fd-tab').forEach(t => t.classList.remove('active'));
@@ -345,6 +458,8 @@ function switchWdTab(tab, btn) {
 
 function closeWorldSearchDetail(fromNav = false) {
     if (_wdLiveTimer) { clearInterval(_wdLiveTimer); _wdLiveTimer = null; }
+    _wdPreloadedThumbs.forEach(img => { img.src = typeof PLACEHOLDER !== 'undefined' ? PLACEHOLDER : ''; });
+    _wdPreloadedThumbs = [];
     _wdCurrentWorldId = '';
     _wdCurrentTab = 'info';
     if (typeof _wiReset === 'function') _wiReset();

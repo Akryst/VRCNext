@@ -634,6 +634,7 @@ function toggleFavorite(p) {
         sendToCS({ action: 'addFavorite', path: p });
     }
     filterLibrary(true); // stay on current page
+    if (typeof _wdRenderPhotosPage === 'function') _wdRenderPhotosPage();
 }
 
 function toggleHidden(p) {
@@ -645,6 +646,7 @@ function toggleHidden(p) {
     try { localStorage.setItem('vrcnext_hidden', JSON.stringify([...hiddenMedia])); } catch {}
     filterLibrary(true); // stay on current page
     renderDashRecentPhotos();
+    if (typeof _wdRenderPhotosPage === 'function') _wdRenderPhotosPage();
 }
 
 async function setLibItemAsDashBg(path, url) {

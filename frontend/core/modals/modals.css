@@ -17,8 +17,9 @@
 .modal-nav-instant .modal-overlay,
 .modal-nav-instant .modal-box { animation: none !important; }
 
-#modalStatus { z-index: 10002; }
+#modalStatus  { z-index: 10002; }
 #modalInvite  { z-index: 10002; }
+#deleteModal  { z-index: 10003; }
 
 .modal-box-body {
     padding: 28px 32px 22px;
