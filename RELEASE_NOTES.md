@@ -10,6 +10,13 @@
 * Added "Report Bug" to the "Help" entry
 * Added "Feature Request" to the "Help" entry
 
+**Debounce Search Settings**
+* Added a new **Debounce** setting under **Settings > Advanced > Performance**.
+* The default value is **500ms**, which is fast and stable for both small lists with around **20-100 entries** and large lists with around **500-1500 entries**, including friends, groups, worlds and avatars.
+* It is recommended to keep this setting at **500ms**.
+* You can lower the value for faster search responses if you have smaller lists. For example, users with around **100-200 friends** can safely use values below **500ms**.
+* Smart Search now uses the same debounce as the global debouncer.
+
 **Improvements**
 
 * Each secondary account now keeps its own friends, favorites, inventory and other lists separate from your main account.

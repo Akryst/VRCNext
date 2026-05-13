@@ -332,6 +332,24 @@
                         </div>
                     </div>
 
+                    <!-- SEARCH DEBOUNCE PERFORMANCE -->
+                    <div class="vrcn-panel-card" data-section="advanced" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">speed</span> <span data-i18n="settings.search_debounce.title">Performance</span></div>
+                        <div class="sf-section-label" style="margin-bottom:6px;" data-i18n="settings.search_debounce.label">Search Index Debounce Speed</div>
+                        <select id="setSearchDebounceMs" class="vrcn-dropdown" onchange="onSearchDebounceMsChange()" style="margin-bottom:10px;">
+                            <option value="15" data-i18n="settings.search_debounce.ms_15">15 ms</option>
+                            <option value="50" data-i18n="settings.search_debounce.ms_50">50 ms</option>
+                            <option value="100" data-i18n="settings.search_debounce.ms_100">100 ms</option>
+                            <option value="200" data-i18n="settings.search_debounce.ms_200">200 ms</option>
+                            <option value="300" data-i18n="settings.search_debounce.ms_300">300 ms</option>
+                            <option value="500" selected data-i18n="settings.search_debounce.ms_500">500 ms (Default)</option>
+                            <option value="750" data-i18n="settings.search_debounce.ms_750">750 ms</option>
+                            <option value="900" data-i18n="settings.search_debounce.ms_900">900 ms</option>
+                        </select>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="settings.search_debounce.desc">Search Index Debounce determines how many milliseconds it takes until it starts searching the database or certain entries after your last key press. Default is 500ms which works fine for almost every user. If you have more than 1000 Friends, 500ms is perfect. If you have more than 2500 Friends, it is recommended to use 750ms.</div>
+                        <div class="set-desc" style="color:var(--warn,#e8a020);" data-i18n="settings.search_debounce.warning">Do not change this to a value below 500ms, especially when you have a large friends list, many groups, many saved avatars and worlds!</div>
+                    </div>
+
                     <!-- IMAGE CACHE + FAST FETCH CACHE -->
                     <div class="vrcn-panel-card-pair" data-section="performance" style="display:none;">
                     <div class="vrcn-panel-card">

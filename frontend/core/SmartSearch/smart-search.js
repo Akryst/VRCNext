@@ -428,7 +428,7 @@ const SmartSearch = (() => {
 
         _debouncedRender = debounceAnim(
             () => _renderResults(_query(_input.value.trim())),
-            typeof DEBOUNCE_SEARCH_MS !== 'undefined' ? DEBOUNCE_SEARCH_MS : 200, // Short Debounce instead of 500ms
+            typeof DEBOUNCE_SEARCH_MS !== 'undefined' ? DEBOUNCE_SEARCH_MS : 500,
             'ssInput'
         );
 
@@ -456,7 +456,16 @@ const SmartSearch = (() => {
         });
     }
 
-    return { init };
+    function rebuildDebouncer() {
+        if (!_inited) return;
+        _debouncedRender = debounceAnim(
+            () => _renderResults(_query(_input.value.trim())),
+            typeof DEBOUNCE_SEARCH_MS !== 'undefined' ? DEBOUNCE_SEARCH_MS : 500,
+            'ssInput'
+        );
+    }
+
+    return { init, rebuildDebouncer };
 })();
 
 if (document.readyState === 'loading') {

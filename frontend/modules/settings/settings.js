@@ -201,6 +201,7 @@ function saveSettings() {
             dpHidePlayersOnline: document.getElementById('dpHidePlayers_online')?.checked ?? false,
             dpHidePlayersAskMe:  document.getElementById('dpHidePlayers_askme')?.checked  ?? false,
             dpHidePlayersBusy:   document.getElementById('dpHidePlayers_busy')?.checked   ?? false,
+            searchDebounceMs:        parseInt(document.getElementById('setSearchDebounceMs')?.value) || 500,
             imgCacheLimitGb:         parseInt(document.getElementById('setImgCacheLimit').value) || 5,
             imgCacheOptimizeEnabled: document.getElementById('setImgCacheOptimizeEnabled').checked,
             ffcEnabled: document.getElementById('setFfcEnabled').checked,
@@ -560,6 +561,12 @@ function loadSettingsToUI(s) {
     const perfHint = document.getElementById('perfRestartHint');
     if (perfHint) perfHint.style.display = 'none';
 
+    // Search debounce speed
+    const searchDebounceMs = s.SearchDebounceMs ?? s.searchDebounceMs ?? 500;
+    const sdEl = document.getElementById('setSearchDebounceMs');
+    if (sdEl) { sdEl.value = String(searchDebounceMs); sdEl._vnRefresh && sdEl._vnRefresh(); }
+    if (typeof rebuildSearchDebouncers === 'function') rebuildSearchDebouncers(searchDebounceMs);
+
     // Sync custom dropdowns to reflect programmatically set values
     document.querySelectorAll('select').forEach(s => s._vnRefresh && s._vnRefresh());
 
@@ -622,6 +629,12 @@ function onPerfSettingChange() {
     autoSave();
     const hint = document.getElementById('perfRestartHint');
     if (hint) hint.style.display = '';
+}
+
+function onSearchDebounceMsChange() {
+    const ms = parseInt(document.getElementById('setSearchDebounceMs')?.value) || 500;
+    if (typeof rebuildSearchDebouncers === 'function') rebuildSearchDebouncers(ms);
+    autoSave();
 }
 
 // Text Tools (Debugging).

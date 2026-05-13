@@ -1565,6 +1565,7 @@ public class AuthController
             _core.Settings.GpuShaderCache     = data["gpuShaderCache"]?.Value<bool>()     ?? false;
             _core.Settings.V8Heap128          = data["v8Heap128"]?.Value<bool>()          ?? false;
             _core.Settings.TwoRenderProcesses = data["twoRenderProcesses"]?.Value<bool>() ?? false;
+            _core.Settings.SearchDebounceMs   = Math.Clamp(data["searchDebounceMs"]?.Value<int>() ?? 500, 15, 900);
 
             // Dashboard layout
             var dashOrder  = data["dashSectionOrder"]?.ToObject<List<string>>();
