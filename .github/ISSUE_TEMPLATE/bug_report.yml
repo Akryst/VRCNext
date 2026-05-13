@@ -7,7 +7,7 @@ body:
   - type: checkboxes
     attributes:
       label: Make sure to only report one bug per issue-report
-      description: Tick everything that applies
+      description: Please click the checkmark to show that you understand.
       options:
         - label: This is only one bug report
           required: true
