@@ -290,6 +290,71 @@ const SmartSearch = (() => {
         return out;
     }
 
+    function _isSettingsToggle(section, item) {
+        return section.key === 'settings'
+            && item?.type === 'toggle'
+            && item.input?.type === 'checkbox';
+    }
+
+    function _isSettingsToggleDisabled(item) {
+        return !!(item?.input?.disabled || item?.row?.classList.contains('disabled'));
+    }
+
+    function _syncSettingsToggle(toggle, item) {
+        const checked = !!item.input.checked;
+        const disabled = _isSettingsToggleDisabled(item);
+        toggle.classList.toggle('is-on', checked);
+        toggle.classList.toggle('ss-item-toggle-disabled', disabled);
+        toggle.setAttribute('aria-checked', checked ? 'true' : 'false');
+        toggle.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+    }
+
+    function _syncRenderedSettingsToggles(input) {
+        if (!_dropdown) return;
+        _dropdown.querySelectorAll('.ss-item-toggle').forEach(toggle => {
+            if (input && toggle._ssSettingsInput !== input) return;
+            _syncSettingsToggle(toggle, toggle._ssSettingsItem);
+        });
+    }
+
+    function _toggleSettingFromSearch(item) {
+        if (_isSettingsToggleDisabled(item)) return;
+        item.input.checked = !item.input.checked;
+        item.input.dispatchEvent(new Event('input', { bubbles: true }));
+        item.input.dispatchEvent(new Event('change', { bubbles: true }));
+        _syncRenderedSettingsToggles();
+    }
+
+    function _renderSettingsToggle(item, label) {
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'ss-item-toggle';
+        toggle.setAttribute('role', 'switch');
+        toggle.setAttribute('aria-label', label);
+        toggle._ssSettingsItem = item;
+        toggle._ssSettingsInput = item.input;
+
+        const track = document.createElement('span');
+        track.className = 'ss-item-toggle-track';
+        const knob = document.createElement('span');
+        knob.className = 'ss-item-toggle-knob';
+        track.appendChild(knob);
+        toggle.appendChild(track);
+
+        toggle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        toggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            _toggleSettingFromSearch(item);
+        });
+
+        _syncSettingsToggle(toggle, item);
+        return toggle;
+    }
+
     // ---- DOM ----
     let _wrap, _badge, _modal, _input, _dropdown;
     let _open = false;
@@ -329,7 +394,7 @@ const SmartSearch = (() => {
 
         // Text
         const info = document.createElement('div');
-        info.style.cssText = 'min-width:0;flex:1;';
+        info.className = 'ss-item-info';
         const nameEl = document.createElement('div');
         nameEl.className = 'ss-item-name';
         nameEl.textContent = name;
@@ -341,6 +406,10 @@ const SmartSearch = (() => {
             info.appendChild(subEl);
         }
         row.appendChild(info);
+
+        if (_isSettingsToggle(section, item)) {
+            row.appendChild(_renderSettingsToggle(item, name));
+        }
 
         row.addEventListener('mousedown', (e) => {
             e.preventDefault();
