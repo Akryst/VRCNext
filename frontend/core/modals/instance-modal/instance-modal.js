@@ -125,7 +125,9 @@ function openInstanceInfoModal() {
         ? `<div class="iim-scroll"><table class="iim-table">${thead}<tbody>${bodyRows}</tbody></table></div>`
         : `<div style="padding:14px 0;color:var(--tx3);font-size:12px;">${t('instance.no_player_data_available', 'No player data available.')}</div>`;
 
-    const prevIimScroll = c.querySelector('.iim-scroll')?.scrollTop || 0;
+    const prevIimScroller = c.querySelector('.iim-scroll');
+    const prevIimScrollTop = prevIimScroller?.scrollTop || 0;
+    const prevIimScrollLeft = prevIimScroller?.scrollLeft || 0;
     c.innerHTML = `${bannerHtml}
     <div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:16px;">
         <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(name)}</h2>
@@ -145,9 +147,12 @@ function openInstanceInfoModal() {
     </div>`;
 
     m.style.display = 'flex';
-    if (prevIimScroll > 0) {
+    if (prevIimScrollTop > 0 || prevIimScrollLeft > 0) {
         const newIimScroll = c.querySelector('.iim-scroll');
-        if (newIimScroll) newIimScroll.scrollTop = prevIimScroll;
+        if (newIimScroll) {
+            newIimScroll.scrollTop = prevIimScrollTop;
+            newIimScroll.scrollLeft = prevIimScrollLeft;
+        }
     }
 }
 

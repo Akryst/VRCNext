@@ -810,13 +810,15 @@ html.text-tools-active * { user-select: text !important; }
 
 .iim-scroll {
     max-height: 420px;
-    overflow-y: auto;
+    max-width: 100%;
+    overflow: auto;
     border-radius: 10px;
     background: var(--bg-input);
     margin-bottom: 14px;
 }
 .iim-table {
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
     border-collapse: collapse;
     background: transparent;
 }
@@ -873,7 +875,8 @@ html.text-tools-active * { user-select: text !important; }
 
 .iim-lang-cell {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 3px;
     align-items: center;
+    min-width: max-content;
 }
