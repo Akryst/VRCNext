@@ -24,6 +24,7 @@
 
 **Smart Search**
 * When opening smart search it will close any currently open modals.
+* You can now navigate the smart search with UP/DOWN/LEFT/RIGHT arrow keys on your keyboard to select and choose items.
 
 **Navbar Editor**
 * You can now customize the order and content of the left navigation bar.

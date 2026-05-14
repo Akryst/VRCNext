@@ -438,6 +438,34 @@ const SmartSearch = (() => {
     let _wrap, _badge, _modal, _input, _dropdown;
     let _open = false;
     let _debouncedRender = null;
+    let _focusedIdx = -1;
+    let _focusedChipIdx = -1;
+
+    function _getNavItems() { return _dropdown ? [..._dropdown.querySelectorAll('.ss-item')] : []; }
+    function _getNavChips() { return _dropdown ? [..._dropdown.querySelectorAll('.ss-search-in-actions .vrcn-button')] : []; }
+
+    function _setFocusedItem(idx) {
+        _getNavItems().forEach(el => el.classList.remove('ss-item-focused'));
+        _getNavChips().forEach(el => el.classList.remove('ss-chip-focused'));
+        _focusedChipIdx = -1;
+        _focusedIdx = idx;
+        const items = _getNavItems();
+        if (idx >= 0 && idx < items.length) {
+            items[idx].classList.add('ss-item-focused');
+            items[idx].scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    function _setFocusedChip(idx) {
+        _getNavItems().forEach(el => el.classList.remove('ss-item-focused'));
+        _getNavChips().forEach(el => el.classList.remove('ss-chip-focused'));
+        _focusedIdx = -1;
+        _focusedChipIdx = idx;
+        const chips = _getNavChips();
+        if (idx >= 0 && idx < chips.length) chips[idx].classList.add('ss-chip-focused');
+    }
+
+    function _clearNavFocus() { _setFocusedItem(-1); }
 
     // Build a result row entirely via DOM — avoids any innerHTML/onerror injection issues
     function _renderItem(section, item) {
@@ -490,16 +518,19 @@ const SmartSearch = (() => {
             row.appendChild(_renderSettingsToggle(item, name));
         }
 
+        row._ssActivate = () => { section.onOpen(item); _close(); };
+
         row.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            section.onOpen(item);
-            _close();
+            row._ssActivate();
         });
 
         return row;
     }
 
     function _renderResults(results) {
+        _focusedIdx = -1;
+        _focusedChipIdx = -1;
         _dropdown.innerHTML = '';
         const query = _input.value.trim();
         if (query) {
@@ -662,7 +693,31 @@ const SmartSearch = (() => {
             else _showDropdown();
         });
         _input.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') { e.preventDefault(); _close(); }
+            if (e.key === 'Escape') { e.preventDefault(); _close(); return; }
+            if (!_dropdown.classList.contains('ss-visible')) return;
+            const items = _getNavItems();
+            const chips = _getNavChips();
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                _setFocusedItem(Math.min(_focusedIdx + 1, items.length - 1));
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (_focusedIdx > 0) _setFocusedItem(_focusedIdx - 1);
+                else _clearNavFocus();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                if (chips.length) _setFocusedChip(Math.min(Math.max(_focusedChipIdx, -1) + 1, chips.length - 1));
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                if (chips.length) _setFocusedChip(Math.max((_focusedChipIdx < 0 ? chips.length : _focusedChipIdx) - 1, 0));
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (_focusedChipIdx >= 0 && chips[_focusedChipIdx]) {
+                    chips[_focusedChipIdx].click();
+                } else if (_focusedIdx >= 0 && items[_focusedIdx]?._ssActivate) {
+                    items[_focusedIdx]._ssActivate();
+                }
+            }
         });
 
         document.getElementById('ssCloseBtn')?.addEventListener('click', (e) => {
