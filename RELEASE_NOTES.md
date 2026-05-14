@@ -57,3 +57,4 @@
 * Fixed an issue where Smart Search could render behind other modals.
 * Fixed several z-ordering values for all modals to prevent overlap issues.
 * Fixed padding in instance modals
+* Fixed some caching issues on user profiles.
