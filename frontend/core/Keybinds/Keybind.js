@@ -1,0 +1,84 @@
+const VrcnKeybinds = (() => {
+    let _inited = false;
+
+    function _label(key, fallback) {
+        return typeof t === 'function' ? t(key, fallback) : fallback;
+    }
+
+    function _toast(ok, message) {
+        if (typeof showToast === 'function') showToast(ok, message);
+    }
+
+    function _isCtrlChord(e, key) {
+        return e.ctrlKey
+            && !e.altKey
+            && !e.metaKey
+            && !e.shiftKey
+            && !e.isComposing
+            && (e.key || '').toLowerCase() === key;
+    }
+
+    function _openSmartSearch() {
+        if (window.SmartSearch && typeof window.SmartSearch.open === 'function') {
+            window.SmartSearch.open();
+            return;
+        }
+        document.getElementById('ssBadge')?.click();
+    }
+
+    async function _openDirectAccess() {
+        const access = window.VrcnDirectAccess;
+        if (!access || typeof access.detect !== 'function' || typeof access.open !== 'function') {
+            _toast(false, _label('keybinds.direct_access_unavailable', 'Direct Access is not ready yet.'));
+            return;
+        }
+
+        let clipText = '';
+        try {
+            clipText = await navigator.clipboard.readText();
+        } catch {
+            _toast(false, _label('keybinds.direct_access_clipboard_failed', 'Could not read clipboard.'));
+            return;
+        }
+
+        const vrcData = access.detect(clipText);
+        if (!vrcData) {
+            _toast(false, _label('keybinds.direct_access_no_match', 'No VRChat ID or link in clipboard.'));
+            return;
+        }
+
+        if (window.SmartSearch && typeof window.SmartSearch.close === 'function') {
+            window.SmartSearch.close();
+        }
+
+        access.open(vrcData);
+    }
+
+    function _onKeyDown(e) {
+        if (e.defaultPrevented || e.repeat) return;
+
+        if (_isCtrlChord(e, 'k')) {
+            e.preventDefault();
+            e.stopPropagation();
+            _openSmartSearch();
+        } else if (_isCtrlChord(e, 'd')) {
+            e.preventDefault();
+            e.stopPropagation();
+            _openDirectAccess();
+        }
+    }
+
+    function init() {
+        if (_inited) return;
+        _inited = true;
+        document.addEventListener('keydown', _onKeyDown, true);
+    }
+
+    return { init };
+})();
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => VrcnKeybinds.init());
+} else {
+    VrcnKeybinds.init();
+}

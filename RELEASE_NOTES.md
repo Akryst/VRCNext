@@ -1,5 +1,10 @@
 **2026.25.3**
 
+**Keybinds**
+* Added CTRL + K Keybind to quickly open the Smart Search window global.
+* Added CTRL + D Keybind to use Direct Access for world, user, group, instance and avatar URLS/IDs
+* Added CTRL + R Keybind for hot-reload VRCNext.
+
 **Dashboard Editor**
 
 * Fixed several issues with the Dashboard Editor.

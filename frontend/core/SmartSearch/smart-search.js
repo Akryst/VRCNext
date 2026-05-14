@@ -542,7 +542,10 @@ const SmartSearch = (() => {
     }
 
     function _open_ui() {
-        if (_open) return;
+        if (_open) {
+            setTimeout(() => _input?.focus(), 0);
+            return;
+        }
         _open = true;
         _badge.classList.add('tb-active');
         _modal.classList.add('ss-modal-open');
@@ -617,8 +620,10 @@ const SmartSearch = (() => {
         );
     }
 
-    return { init, rebuildDebouncer };
+    return { init, open: _open_ui, close: _close, rebuildDebouncer };
 })();
+
+window.SmartSearch = SmartSearch;
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => SmartSearch.init());
