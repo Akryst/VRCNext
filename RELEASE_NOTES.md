@@ -1,4 +1,4 @@
-**2026.25.3**
+**2026.25.5**
 
 **Keybinds**
 * Added keybinds to VRCNext for power users. You now have a large set of useful shortcuts to do many things faster.
