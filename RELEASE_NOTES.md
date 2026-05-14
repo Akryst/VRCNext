@@ -1,5 +1,8 @@
 **2026.25.6**
 
+**User Preview**
+* Shows now if other mutual friends are in the same instance.
+
 **User Profiles**
 * Shows now if other friends are in the same instance in "Current World" section.
 

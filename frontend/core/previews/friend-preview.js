@@ -49,6 +49,26 @@
         return REGION_LABELS[code] || code.toUpperCase();
     }
 
+    function buildInstFriendsHtml(f, loc) {
+        const all = typeof vrcFriendsData !== 'undefined' ? vrcFriendsData : [];
+        const myId = typeof currentVrcUser !== 'undefined' && currentVrcUser ? currentVrcUser.id : null;
+        const instFriends = all.filter(x => x.id !== f.id && x.id !== myId && x.location === loc);
+        if (!instFriends.length) return '';
+        const shown = instFriends.slice(0, 2);
+        const extra = instFriends.length - 2;
+        let html = '<div class="fp-inst-friends">';
+        shown.forEach(fr => {
+            if (fr.image) {
+                html += `<img class="fp-inst-av" src="${esc(fr.image)}" title="${esc(fr.displayName || '')}">`;
+            } else {
+                html += `<div class="fp-inst-av fp-inst-av-letter" title="${esc(fr.displayName || '')}">${esc((fr.displayName || '?')[0].toUpperCase())}</div>`;
+            }
+        });
+        if (extra > 0) html += `<span class="fp-inst-more">+${extra}</span>`;
+        html += '</div>';
+        return html;
+    }
+
     function buildInstanceHtml(f) {
         if (f.presence !== 'game' || !f.location) return '';
         const loc = f.location;
@@ -77,6 +97,7 @@
 
         const regionHtml = `<span class="vrcn-badge"><span class="msi" style="font-size:10px;">public</span>${esc(region)}</span>`;
         const metaHtml = `<div class="fd-group-card-meta"><span class="vrcn-badge ${cls}">${esc(label)}</span>${regionHtml}</div>`;
+        const friendsHtml = buildInstFriendsHtml(f, loc);
 
         if (worldName) {
             const thumbHtml = worldThumb
@@ -85,7 +106,10 @@
             return `<div class="fd-group-card" ${onclick}>
                 ${thumbHtml}
                 <div class="fd-group-card-info">
-                    <div class="fd-group-card-name">${esc(worldName)}</div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;">
+                        <div class="fd-group-card-name" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(worldName)}</div>
+                        ${friendsHtml}
+                    </div>
                     ${metaHtml}
                 </div>
             </div>`;
@@ -95,7 +119,10 @@
         return `<div class="fd-group-card" ${onclick}>
             <div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:16px;">travel_explore</span></div>
             <div class="fd-group-card-info">
-                <div class="fd-group-card-name" style="color:var(--tx3);font-size:11px;">${typeof t === 'function' ? t('profiles.meta.in_game','In Game') : 'In Game'}</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;">
+                    <div class="fd-group-card-name" style="color:var(--tx3);font-size:11px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${typeof t === 'function' ? t('profiles.meta.in_game','In Game') : 'In Game'}</div>
+                    ${friendsHtml}
+                </div>
                 ${metaHtml}
             </div>
         </div>`;

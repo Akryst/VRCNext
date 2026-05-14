@@ -101,3 +101,40 @@
     overflow-y: visible;
     font-size: 11px;
 }
+
+/* Friends in same instance strip */
+.fp-inst-friends {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-shrink: 0;
+}
+
+.fp-inst-av {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-card);
+    object-fit: cover;
+    margin-left: -5px;
+    background: var(--bg-hover);
+    flex-shrink: 0;
+}
+
+.fp-inst-av:first-child { margin-left: 0; }
+
+.fp-inst-av-letter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--tx3);
+}
+
+.fp-inst-more {
+    margin-left: 5px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--tx3);
+}
