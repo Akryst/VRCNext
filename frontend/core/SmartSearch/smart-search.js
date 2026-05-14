@@ -541,7 +541,71 @@ const SmartSearch = (() => {
         _showDropdown();
     }
 
+    const MODAL_CLOSE_HANDLERS = {
+        modalFriendDetail: () => typeof closeFriendDetail === 'function' && closeFriendDetail(true),
+        modalWorldDetail: () => typeof closeWorldDetail === 'function' && closeWorldDetail(true),
+        modalDetail: () => typeof closeWorldSearchDetail === 'function' && closeWorldSearchDetail(true),
+        modalAvatarDetail: () => typeof closeAvatarDetail === 'function' && closeAvatarDetail(true),
+        modalInstanceInfo: () => typeof closeInstanceInfoModal === 'function' && closeInstanceInfoModal(),
+        modalMyInstance: () => typeof closeMyInstanceDetail === 'function' && closeMyInstanceDetail(true),
+        modalFtGpsDetail: () => typeof closeFtGpsDetail === 'function' && closeFtGpsDetail(),
+        modalMyProfile: () => typeof closeMyProfile === 'function' && closeMyProfile(),
+        modalInvite: () => typeof closeInviteModal === 'function' && closeInviteModal(),
+        modalCreateInstance: () => typeof closeCreateInstanceModal === 'function' && closeCreateInstanceModal(),
+        modalPerminiPicker: () => typeof closePerminiPicker === 'function' && closePerminiPicker(),
+        dashLayoutModal: () => typeof closeDashLayoutEditor === 'function' && closeDashLayoutEditor(),
+        navEditorOverlay: () => typeof closeNavEditor === 'function' && closeNavEditor(),
+        invUploadModal: () => typeof closeInvUploadModal === 'function' && closeInvUploadModal(),
+        invDeleteModal: () => typeof closeInvDeleteModal === 'function' && closeInvDeleteModal(),
+        deleteModal: () => typeof closeDeleteModal === 'function' && closeDeleteModal(),
+        imagePickerOverlay: () => typeof closeImagePicker === 'function' && closeImagePicker(),
+        groupPostOverlay: () => typeof closeGroupPostModal === 'function' && closeGroupPostModal(),
+        groupEventOverlay: () => typeof closeGroupEventModal === 'function' && closeGroupEventModal(),
+        accountSwitcherOverlay: () => typeof closeAccountSwitcher === 'function' && closeAccountSwitcher(),
+    };
+
+    function _isVisibleOverlay(el) {
+        return !!el && el.isConnected && getComputedStyle(el).display !== 'none';
+    }
+
+    function _closeModalOverlay(el) {
+        if (!_isVisibleOverlay(el) || el === _modal) return false;
+
+        if (el === window._inviteModalEl && typeof closeFriendInviteModal === 'function') {
+            closeFriendInviteModal();
+            return true;
+        }
+        if (el === window._launchModalEl && typeof closeLaunchModal === 'function') {
+            closeLaunchModal();
+            return true;
+        }
+
+        const closeHandler = MODAL_CLOSE_HANDLERS[el.id];
+        if (closeHandler) {
+            closeHandler();
+        } else {
+            el.style.display = 'none';
+        }
+        if (_isVisibleOverlay(el)) el.style.display = 'none';
+        return true;
+    }
+
+    function _closeOpenModalsBeforeOpen() {
+        const overlays = [
+            ...document.querySelectorAll('.modal-overlay'),
+            ...document.querySelectorAll('#imagePickerOverlay, #groupPostOverlay, #groupEventOverlay, #accountSwitcherOverlay'),
+        ];
+        let closedAny = false;
+
+        for (const overlay of new Set(overlays)) {
+            closedAny = _closeModalOverlay(overlay) || closedAny;
+        }
+
+        if (closedAny && typeof navClear === 'function') navClear();
+    }
+
     function _open_ui() {
+        _closeOpenModalsBeforeOpen();
         if (_open) {
             setTimeout(() => _input?.focus(), 0);
             return;

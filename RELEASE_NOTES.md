@@ -11,6 +11,9 @@
 * Refactored the movement and selection logic to make editing more stable.
 * Added Flip Animation
 
+**Smart Search**
+* When opening smart search it will close any currently open modals.
+
 **Navbar Editor**
 
 * You can now customize the order and content of the left navigation bar.
