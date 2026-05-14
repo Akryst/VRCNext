@@ -28,3 +28,8 @@
 **Fixes**
 * Added the missing `Biography` i18n entry for all languages.
 * Fixed a small visual bug where the Windows Close, Maximize, and Minimize buttons shifted to the right when opening the Tools section.
+* Fixed an issue that could show the wrong time for when a picture was taken in a world.
+* Fixed a Media Library issue where new images added during runtime could show the wrong metadata.
+* Fixed an issue where Smart Search could render behind other modals.
+* Fixed several z-ordering values for all modals to prevent overlap issues.
+

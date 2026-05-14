@@ -509,8 +509,8 @@ public class PhotosController
                 folder,
                 type     = isGif ? "gif" : isImg ? "image" : "video",
                 size     = sizeMB < 1 ? $"{fi.Length / 1024.0:F0} KB" : $"{sizeMB:F1} MB",
-                modified = fi.LastWriteTime.ToString("o"),
-                time     = VRCNext.Services.Helpers.DateTimeHelper.FormatTime(fi.LastWriteTime),
+                modified = fi.CreationTime.ToString("o"),
+                time     = VRCNext.Services.Helpers.DateTimeHelper.FormatTime(fi.CreationTime),
                 url,
                 worldId  = worldId ?? "",
                 players  = players ?? new List<object>(),
@@ -658,7 +658,7 @@ public class PhotosController
                     catch { }
                 }
 
-                _libFileCache      = entries.OrderByDescending(e => e.Fi.LastWriteTime).ToList();
+                _libFileCache      = entries.OrderByDescending(e => e.Fi.CreationTime).ToList();
                 _libFileCacheTotal = _libFileCache.Count;
                 _libCacheReady     = true;
 
@@ -716,8 +716,8 @@ public class PhotosController
                 folder   = e.Folder,
                 type     = isGif ? "gif" : isImg ? "image" : "video",
                 size     = sizeMB < 1 ? $"{f.Length / 1024.0:F0} KB" : $"{sizeMB:F1} MB",
-                modified = f.LastWriteTime.ToString("o"),
-                time     = VRCNext.Services.Helpers.DateTimeHelper.FormatTime(f.LastWriteTime),
+                modified = f.CreationTime.ToString("o"),
+                time     = VRCNext.Services.Helpers.DateTimeHelper.FormatTime(f.CreationTime),
                 url,
                 worldId  = worldId ?? "",
                 players  = players ?? new List<object>(),
