@@ -27,6 +27,7 @@ const NAV_ITEMS_DEF = {
 };
 
 const NAV_ICON_OPTIONS = [
+    // Nav defaults
     'dashboard','travel_explore','groups','person_search','calendar_month','checkroom',
     'inventory_2','timeline','photo_library','settings','chat','cell_tower','rocket_launch',
     'tune','smart_display','article','hub','schedule','mic','sensors','watch','lock',
@@ -34,6 +35,32 @@ const NAV_ICON_OPTIONS = [
     'home','explore','map','music_note','videocam','image','code','analytics','bar_chart',
     'notifications','sports_esports','emoji_events','diamond','auto_awesome','bolt',
     'local_fire_department','cloud','terminal','bug_report','water_drop','edit',
+    // People & Social
+    'person','manage_accounts','face','badge','group_add','waving_hand','contacts',
+    'handshake','supervisor_account','record_voice_over','diversity_3','diversity_1',
+    // VR / Gaming
+    'view_in_ar','vrpano','3d_rotation','videogame_asset','joystick','stadia_controller',
+    'headset','headset_mic','glasses','precision_manufacturing','gamepad',
+    // Media & Creative
+    'palette','brush','photo_camera','movie','live_tv','radio','podcasts',
+    'collections','camera_roll','draw','color_lens','theaters',
+    // Communication
+    'forum','message','mail','send','call','video_call','comment','chat_bubble',
+    'mark_chat_unread','question_answer','sms',
+    // Status / Badges
+    'flag','label','new_releases','workspace_premium','military_tech',
+    'verified','shield','key','vpn_key','security','privacy_tip','info','warning',
+    // Navigation / Location
+    'location_on','place','directions','navigation','pin_drop','my_location','public','language',
+    // Time
+    'event','today','timer','alarm','access_time','date_range','history',
+    // Files / Data
+    'description','folder_open','download','upload','cloud_upload','sync','storage','dns','backup',
+    // UI / Misc
+    'grid_view','list','category','extension','widgets','apps','dashboard_customize',
+    'search','filter_list','sort','refresh','add_circle','link','share','open_in_new',
+    'dark_mode','brightness_high','wifi','bluetooth','power','emoji_objects','psychology',
+    'local_activity','celebration','cake','pets','spa','nature','forest','whatshot',
 ];
 
 const NAV_DEFAULT_LAYOUT = [
