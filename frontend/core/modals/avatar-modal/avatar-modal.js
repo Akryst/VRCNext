@@ -1,5 +1,10 @@
 /* === Avatar Modal === */
 /* === Avatar Detail Modal === */
+
+function fmtAvatarTag(tag) {
+    const raw = tag.startsWith('author_tag_') ? tag.slice(11) : tag;
+    return raw.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 let _avDetailData = null;
 let _avEditTags   = [];
 let _avGalleryLoaded = false;
@@ -140,7 +145,7 @@ function renderAvatarDetail(a) {
     ].join('');
 
     const tagsViewHtml = (a.tags && a.tags.length)
-        ? `<div class="fd-lang-tags">${a.tags.map(tag => `<span class="vrcn-badge">${esc(tag)}</span>`).join('')}</div>`
+        ? `<div class="fd-lang-tags">${a.tags.map(tag => `<span class="vrcn-badge">${esc(fmtAvatarTag(tag))}</span>`).join('')}</div>`
         : `<div class="myp-empty">${t('avatars.detail.empty_tags', 'No tags')}</div>`;
 
     const _descCard = `<div class="fd-info-card">

@@ -58,3 +58,4 @@
 * Fixed several z-ordering values for all modals to prevent overlap issues.
 * Fixed padding in instance modals
 * Fixed some caching issues on user profiles.
+* Fixed "Author_Tag_Example" not showing as "Example" Tag in Avatar Modals
