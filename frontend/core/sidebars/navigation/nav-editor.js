@@ -371,7 +371,9 @@ function _edInitDrag(list) {
         if (mode === 'into') {
             if (isDraggingFolder) return;
             draggedBlock.classList.add('ne-sub');
-            target.appendChild(draggedBlock);
+            const placeholder = target.querySelector('.ne-folder-empty');
+            if (placeholder) target.insertBefore(draggedBlock, placeholder);
+            else target.appendChild(draggedBlock);
             return;
         }
 
