@@ -49,6 +49,7 @@ function renderMyProfileContent() {
     if (u.ageVerified) badgesRowHtml += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">verified</span>18+</span>`;
     if (rank) badgesRowHtml += `<span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>`;
     if (u.id) badgesRowHtml += idBadge(u.id);
+    badgesRowHtml += `<span class="vrcn-keybind" style="margin-left:auto;border-radius:5px;">CTRL P</span>`;
     badgesRowHtml += '</div>';
 
     // Representing group — prefer dedicated endpoint result, fall back to myGroups

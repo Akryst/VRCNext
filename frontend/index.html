@@ -57,48 +57,19 @@
     <link rel="stylesheet" href="core/paginator/mini-paginator.css">
     <link rel="stylesheet" href="core/debounce/deb-anim.css">
     <link rel="stylesheet" href="core/sidebars/navigation/navigation.css">
+    <link rel="stylesheet" href="core/sidebars/navigation/nav-editor.css">
     <link rel="stylesheet" href="core/sidebars/friends/friends.css">
     <link rel="stylesheet" href="core/previews/friend-preview.css">
     <link rel="stylesheet" href="core/SmartSearch/smart-search.css">
+    <link rel="stylesheet" href="core/Keybinds/Keybind.css">
     <link rel="stylesheet" href="Debug/CacheTests/cache-debug.css">
     <link rel="stylesheet" href="core/Taskbar/taskbar.css">
 </head>
 <body>
     <div class="app-body">
     <div class="sidebar" id="sidebarEl">
-        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.25.1</div></div></div>
-        <div class="nav vrcn-scrollbar">
-            <button class="nav-btn active" onclick="showTab(0)" data-nav="dashboard"><span class="ni msi">dashboard</span><span class="nl" data-i18n="nav.dashboard">Dashboard</span></button>
-            <button class="nav-btn" onclick="showTab(1)"><span class="ni msi">travel_explore</span><span class="nl" data-i18n="nav.worlds">Worlds</span></button>
-            <button class="nav-btn" onclick="showTab(2)"><span class="ni msi">groups</span><span class="nl" data-i18n="nav.groups">Groups</span></button>
-            <button class="nav-btn" onclick="showTab(3)"><span class="ni msi">person_search</span><span class="nl" data-i18n="nav.people">People</span></button>
-            <button class="nav-btn" onclick="showTab(17)"><span class="ni msi">calendar_month</span><span class="nl" data-i18n="nav.calendar">Calendar</span></button>
-            <button class="nav-btn" onclick="showTab(4)"><span class="ni msi">checkroom</span><span class="nl" data-i18n="nav.avatars">Avatars</span></button>
-            <button class="nav-btn" onclick="showTab(13)"><span class="ni msi">inventory_2</span><span class="nl" data-i18n="nav.inventory">Inventory</span></button>
-            <button class="nav-btn" onclick="showTab(12)"><span class="ni msi">timeline</span><span class="nl" data-i18n="nav.timeline">Timeline</span></button>
-            <button class="nav-btn" onclick="showTab(7)"><span class="ni msi">photo_library</span><span class="nl" data-i18n="nav.media_library">Media Library</span></button>
-            <div class="nav-group" id="navToolsGroup">
-                <button class="nav-group-btn" onclick="toggleNavGroup('navToolsGroup')"><span class="ni msi">build</span><span class="nl" data-i18n="nav.tools">Tools</span><span class="nav-group-arrow msi nl">expand_more</span></button>
-                <div class="nav-group-items">
-                    <button class="nav-btn nav-sub" onclick="showTab(5)"><span class="ni msi">chat</span><span class="nl" data-i18n="nav.custom_chatbox">Custom Chatbox</span></button>
-                    <button class="nav-btn nav-sub" data-windows-only onclick="showTab(6)"><span class="ni msi">cell_tower</span><span class="nl" data-i18n="nav.media_relay">Media Relay</span></button>
-                    <button class="nav-btn nav-sub" data-windows-only onclick="showTab(10)"><span class="ni msi">rocket_launch</span><span class="nl" data-i18n="nav.space_flight">Space Flight</span></button>
-                    <button class="nav-btn nav-sub" onclick="showTab(11)" data-windows-only><span class="ni msi">tune</span><span class="nl" data-i18n="nav.osc_tool">OSC Tool</span></button>
-                    <button class="nav-btn nav-sub" data-windows-only onclick="showTab(14)"><span class="ni msi">smart_display</span><span class="nl" data-i18n="nav.youtube_fix">YouTube Fix</span></button>
-                    <button class="nav-btn nav-sub" onclick="showTab(8)"><span class="ni msi">article</span><span class="nl" data-i18n="nav.activity_log">Activity Log</span></button>
-                    <button class="nav-btn nav-sub" onclick="showTab(15)"><span class="ni msi">hub</span><span class="nl" data-i18n="nav.mutual_network">Mutual Network</span></button>
-                    <button class="nav-btn nav-sub" onclick="showTab(16)"><span class="ni msi">schedule</span><span class="nl" data-i18n="nav.time_spent">Time Spent</span></button>
-                    <button class="nav-btn nav-sub" data-windows-only onclick="showTab(18)"><span class="ni msi">mic</span><span class="nl" data-i18n="nav.voice_fight">Voice Fight</span></button>
-                    <button class="nav-btn nav-sub" onclick="showTab(19)"><span class="ni msi">sensors</span><span class="nl" data-i18n="nav.discord_presence">Discord Presence</span></button>
-                    <button class="nav-btn nav-sub" data-windows-only onclick="showTab(20)"><span class="ni msi">watch</span><span class="nl" data-i18n="nav.vr_overlay">VR Overlay</span><span class="sf-dot offline nl" id="badgeVro" style="margin-left:auto;margin-right:4px;width:7px;height:7px;flex-shrink:0;"></span></button>
-                    <button class="nav-btn nav-sub" onclick="showTab(21)"><span class="ni msi">lock</span><span class="nl" data-i18n="nav.permini">Permini</span></button>
-                    <button class="nav-btn nav-sub" data-windows-only onclick="showTab(22)"><span class="ni msi">translate</span><span class="nl" data-i18n="nav.kikitan_xd">Kikitan XD</span></button>
-                    <button class="nav-btn nav-sub" onclick="showTab(23)"><span class="ni msi">gps_fixed</span><span class="nl" data-i18n="nav.event_snipe">Event Snipe</span><span id="snipeNavDot" style="display:none;width:7px;height:7px;border-radius:50%;background:var(--ok,#4caf50);margin-left:auto;margin-right:4px;flex-shrink:0;"></span></button>
-                    <button class="nav-btn nav-sub" data-windows-only onclick="showTab(24)"><span class="ni msi">height</span><span class="nl" data-i18n="nav.avatar_scaling">Avatar Scaling</span></button>
-                </div>
-            </div>
-            <button class="nav-btn" onclick="showTab(9)"><span class="ni msi">settings</span><span class="nl" data-i18n="nav.settings">Settings</span></button>
-        </div>
+        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.25.2</div></div></div>
+        <div class="nav vrcn-scrollbar" id="navEl"></div>
         <div class="clock-area"><div class="clock-time" id="clock">00:00:00</div><div class="clock-date" id="clockDate"></div></div>
         <div class="play-area"><button class="btn-play" onclick="playVRChat()"><span class="msi play-icon">play_arrow</span><span class="pl" data-i18n="sidebar.play_vrchat">Play VRChat</span></button></div>
     </div>
@@ -367,6 +338,9 @@
     <!-- Status Change Modal -->
     <div class="modal-overlay" id="modalStatus" style="display:none;" onclick="if(event.target===this)this.style.display='none'"></div>
 
+    <!-- Keybind Help Modal -->
+    <div class="modal-overlay" id="modalKeybinds" style="display:none;" onclick="if(event.target===this)this.style.display='none'"></div>
+
     <!-- Friend Detail Modal -->
     <div class="modal-overlay" id="modalFriendDetail" style="display:none;" onclick="if(event.target===this)closeFriendDetail()"></div>
 
@@ -441,6 +415,20 @@
     <!-- SmartSearch Modal -->
     <div id="ssModal" class="ss-modal-overlay"></div>
 
+    <!-- Nav Editor Modal -->
+    <div class="modal-overlay" id="navEditorOverlay" style="display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeNavEditor()">
+        <div class="modal-box wide narrow">
+            <div class="modal-title" data-i18n="nav.editor.title">Edit Navigation</div>
+            <div id="navEditorList" class="ne-list vrcn-scrollbar"></div>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <button class="vrcn-button" onclick="_edAddFolder()"><span class="msi" style="font-size:16px;">create_new_folder</span><span data-i18n="nav.editor.add_folder">Add Folder</span></button>
+                <span style="flex:1;"></span>
+                <button class="vrcn-button" onclick="_edRestoreDefault()"><span class="msi" style="font-size:16px;">restore</span><span data-i18n="nav.editor.reset">Reset</span></button>
+                <button class="vrcn-button vrcn-btn-primary" onclick="_edConfirm()"><span class="msi" style="font-size:16px;">check</span><span data-i18n="common.save">Save</span></button>
+            </div>
+        </div>
+    </div>
+
     <!-- Crash Report Modal -->
     <div class="modal-overlay" id="modalCrash" style="display:none;">
         <div class="modal-box" style="width:750px;max-width:90%;">
@@ -498,6 +486,7 @@
         const modalFragments = {
             modal2FA:            'core/modals/auth-modal/auth-modal.html',
             modalStatus:         'core/modals/my-profile-modal/status-modal.html',
+            modalKeybinds:       'core/keybinds/keybind-modal.html',
             modalFriendDetail:   'core/modals/user-modal/user-modal.html',
             modalWorldDetail:    'core/modals/world-modal/world-modal.html',
             modalInstanceInfo:   'core/modals/instance-modal/instance-modal.html',
@@ -527,6 +516,7 @@
             'core/paginator/paginator.js',
             'core/paginator/mini-paginator.js',
             'core/debounce/deb-anim.js',
+            'core/sidebars/navigation/nav-model.js',
             'core/sidebars/navigation/navigation.js',
             'core/i18n/i18n.js',
             'modules/tools/media-relay/media-relay.js',
@@ -567,6 +557,7 @@
             'core/logic/messages.js',
             'core/messenger/messenger.js',
             'core/context-menu/context-menu.js',
+            'core/sidebars/navigation/nav-editor.js',
             'modules/tools/mutual-network/mutual-network.js',
             'modules/tools/time-spent/time-spent.js',
             'core/modals/event-modal/event-modal.js',
@@ -581,6 +572,7 @@
             'core/logic/init.js',
             'core/debounce/debounce.js',
             'core/SmartSearch/smart-search.js',
+            'core/Keybinds/Keybind.js',
             'core/Taskbar/taskbar.js',
         ];
 

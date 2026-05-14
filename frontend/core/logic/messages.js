@@ -952,6 +952,7 @@ case 'vrcNews':
                 break;
         case 'setPlatform':
             if (payload?.isLinux) {
+                if (typeof navSetLinux === 'function') navSetLinux(true);
                 document.querySelectorAll('[data-windows-only]').forEach(el => el.style.display = 'none');
                 const lbl = document.getElementById('labelStartWithSystem');
                 if (lbl) lbl.textContent = t('settings.system.autostart_with_system', 'Auto-start VRCNext with system');

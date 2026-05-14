@@ -20,6 +20,7 @@
 #modalStatus  { z-index: 10002; }
 #modalInvite  { z-index: 10002; }
 #deleteModal  { z-index: 10003; }
+#modalKeybinds { z-index: 10010; }
 
 .modal-box-body {
     padding: 28px 32px 22px;

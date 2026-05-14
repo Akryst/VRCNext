@@ -66,6 +66,8 @@ public class VRChatApiService
             UseCookies = true,
         };
         _http = new HttpClient(new BackoffHandler(new LoggingHandler(inner, Log), Log));
+        _http.DefaultRequestVersion = HttpVersion.Version20;
+        _http.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
         _http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", UA);
     }
 

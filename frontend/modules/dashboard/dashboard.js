@@ -1219,78 +1219,145 @@ function _renderDashLayoutList() {
         const label  = t(meta.nameKey, meta.name);
         const hidden = _dashModalLayout.hidden.includes(id);
         const sid    = jsq(id);
-        return `<div class="dash-layout-item${hidden ? ' dli-hidden' : ''}" data-id="${esc(id)}">
-            <span class="msi dash-drag-handle" onmousedown="dashDragStart(event,'${sid}')">drag_indicator</span>
-            <span class="dash-layout-name">${esc(label)}</span>
-            <button class="vrcn-button-round" style="padding:4px 8px;" onclick="dashModalToggle('${sid}')">
-                <span class="msi" style="font-size:16px;">${hidden ? 'visibility_off' : 'visibility'}</span>
+        return `<div class="ne-row${hidden ? ' dli-hidden' : ''}" data-id="${esc(id)}">
+            <span class="ne-handle msi">drag_indicator</span>
+            <span class="ne-label">${esc(label)}</span>
+            <span class="ne-spacer"></span>
+            <button class="ne-btn" onclick="dashModalToggle('${sid}')">
+                <span class="msi">${hidden ? 'visibility_off' : 'visibility'}</span>
             </button>
         </div>`;
     }).join('');
+    _dashInitDrag(list);
 }
 
-function dashDragStart(e, id) {
-    e.preventDefault();
-    const list = document.getElementById('dashLayoutList');
-    if (!list || !_dashModalLayout) return;
-    const dragEl = list.querySelector(`.dash-layout-item[data-id="${CSS.escape(id)}"]`);
-    if (!dragEl) return;
+function _dashInitDrag(list) {
+    const ANIM_MS = 200;
+    const EASE    = 'cubic-bezier(.2,.7,.3,1)';
+    let drag = null;
 
-    dragEl.classList.add('dli-dragging');
-    document.body.style.cursor = 'grabbing';
-
-    function onMove(ev) {
-        // Temporarily hide the dragged element so elementFromPoint finds the item underneath
-        dragEl.style.pointerEvents = 'none';
-        const under = document.elementFromPoint(ev.clientX, ev.clientY);
-        dragEl.style.pointerEvents = '';
-        const target = under?.closest('#dashLayoutList .dash-layout-item[data-id]');
-        if (!target || target === dragEl) return;
-
-        const rect   = target.getBoundingClientRect();
-        const middle = rect.top + rect.height / 2;
-        const insertBefore = ev.clientY < middle;
-
-        // FLIP — snapshot positions of all non-dragged items before the move
-        const snapshots = new Map();
-        list.querySelectorAll('.dash-layout-item[data-id]').forEach(el => {
-            if (el !== dragEl) snapshots.set(el, el.getBoundingClientRect().top);
+    function snap() {
+        const map = new Map();
+        list.querySelectorAll('.ne-row[data-id]').forEach(el => {
+            map.set(el, el.getBoundingClientRect().top);
         });
+        return map;
+    }
 
-        if (insertBefore) {
-            list.insertBefore(dragEl, target);
-        } else {
-            list.insertBefore(dragEl, target.nextSibling);
+    function flip(prev) {
+        list.querySelectorAll('.ne-row[data-id]').forEach(el => {
+            if (!prev.has(el)) return;
+            const dy = prev.get(el) - el.getBoundingClientRect().top;
+            if (!dy) return;
+            el.animate(
+                [{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }],
+                { duration: ANIM_MS, easing: EASE }
+            );
+        });
+    }
+
+    function resolveTarget(clientY, dragEl) {
+        let best = null;
+        list.querySelectorAll('.ne-row[data-id]').forEach(el => {
+            if (el === dragEl) return;
+            const rect = el.getBoundingClientRect();
+            const mid  = rect.top + rect.height / 2;
+            if (clientY < mid && !best) best = { target: el, before: true };
+            else if (clientY >= mid)    best = { target: el, before: false };
+        });
+        return best;
+    }
+
+    function onDown(e) {
+        if (e.button !== 0) return;
+        const handle = e.target.closest('.ne-handle');
+        if (!handle) return;
+        const dragEl = handle.closest('.ne-row[data-id]');
+        if (!dragEl) return;
+        e.preventDefault();
+
+        const rect = dragEl.getBoundingClientRect();
+        const ghost = dragEl.cloneNode(true);
+        Object.assign(ghost.style, {
+            position:     'fixed',
+            top:          rect.top + 'px',
+            left:         rect.left + 'px',
+            width:        rect.width + 'px',
+            pointerEvents:'none',
+            zIndex:       '10020',
+            opacity:      '0.92',
+            boxShadow:    '0 14px 40px rgba(0,0,0,.55)',
+            borderRadius: '8px',
+            background:   'var(--bg-card)',
+            transform:    'scale(1.01)',
+        });
+        document.body.appendChild(ghost);
+        dragEl.classList.add('ne-dragging');
+
+        drag = {
+            dragEl, ghost,
+            offsetX: e.clientX - rect.left,
+            offsetY: e.clientY - rect.top,
+            lastKey: null,
+        };
+
+        handle.setPointerCapture?.(e.pointerId);
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup',   onUp);
+        window.addEventListener('pointercancel', onUp);
+        document.body.style.cursor = 'grabbing';
+    }
+
+    function onMove(e) {
+        if (!drag) return;
+        drag.ghost.style.top  = (e.clientY - drag.offsetY) + 'px';
+        drag.ghost.style.left = (e.clientX - drag.offsetX) + 'px';
+
+        const drop = resolveTarget(e.clientY, drag.dragEl);
+        const key  = drop ? `${drop.before}:${drop.target.dataset.id}` : 'none';
+        if (key === drag.lastKey) return;
+        drag.lastKey = key;
+
+        const prev = snap();
+        if (drop) {
+            if (drop.before) list.insertBefore(drag.dragEl, drop.target);
+            else             list.insertBefore(drag.dragEl, drop.target.nextSibling);
         }
-
-        // FLIP — animate items that moved due to the insert
-        list.querySelectorAll('.dash-layout-item[data-id]').forEach(el => {
-            if (el === dragEl || !snapshots.has(el)) return;
-            const delta = snapshots.get(el) - el.getBoundingClientRect().top;
-            if (!delta) return;
-            el.style.transition = 'none';
-            el.style.transform  = `translateY(${delta}px)`;
-        });
-        list.offsetHeight; // force reflow
-        list.querySelectorAll('.dash-layout-item[data-id]').forEach(el => {
-            if (el === dragEl || !el.style.transform) return;
-            el.style.transition = 'transform 0.15s ease';
-            el.style.transform  = '';
-        });
+        flip(prev);
     }
 
     function onUp() {
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup',   onUp);
-        dragEl.classList.remove('dli-dragging');
+        if (!drag) return;
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup',   onUp);
+        window.removeEventListener('pointercancel', onUp);
         document.body.style.cursor = '';
-        // Sync _dashModalLayout.order from current DOM order
-        _dashModalLayout.order = [...list.querySelectorAll('.dash-layout-item[data-id]')]
-            .map(el => el.dataset.id);
+
+        const { dragEl, ghost } = drag;
+        drag = null;
+
+        const finalRect = dragEl.getBoundingClientRect();
+        const ghostRect = ghost.getBoundingClientRect();
+        const dx = finalRect.left - ghostRect.left;
+        const dy = finalRect.top  - ghostRect.top;
+
+        ghost.animate(
+            [
+                { transform: 'translate(0,0) scale(1.01)', opacity: 0.92 },
+                { transform: `translate(${dx}px,${dy}px) scale(1)`, opacity: 1 },
+            ],
+            { duration: ANIM_MS, easing: EASE, fill: 'forwards' }
+        ).onfinish = () => {
+            ghost.remove();
+            dragEl.classList.remove('ne-dragging');
+            if (_dashModalLayout) {
+                _dashModalLayout.order = [...list.querySelectorAll('.ne-row[data-id]')]
+                    .map(el => el.dataset.id);
+            }
+        };
     }
 
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup',   onUp);
+    list.addEventListener('pointerdown', onDown);
 }
 
 function dashModalToggle(id) {

@@ -438,6 +438,34 @@ const SmartSearch = (() => {
     let _wrap, _badge, _modal, _input, _dropdown;
     let _open = false;
     let _debouncedRender = null;
+    let _focusedIdx = -1;
+    let _focusedChipIdx = -1;
+
+    function _getNavItems() { return _dropdown ? [..._dropdown.querySelectorAll('.ss-item')] : []; }
+    function _getNavChips() { return _dropdown ? [..._dropdown.querySelectorAll('.ss-search-in-actions .vrcn-button')] : []; }
+
+    function _setFocusedItem(idx) {
+        _getNavItems().forEach(el => el.classList.remove('ss-item-focused'));
+        _getNavChips().forEach(el => el.classList.remove('ss-chip-focused'));
+        _focusedChipIdx = -1;
+        _focusedIdx = idx;
+        const items = _getNavItems();
+        if (idx >= 0 && idx < items.length) {
+            items[idx].classList.add('ss-item-focused');
+            items[idx].scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    function _setFocusedChip(idx) {
+        _getNavItems().forEach(el => el.classList.remove('ss-item-focused'));
+        _getNavChips().forEach(el => el.classList.remove('ss-chip-focused'));
+        _focusedIdx = -1;
+        _focusedChipIdx = idx;
+        const chips = _getNavChips();
+        if (idx >= 0 && idx < chips.length) chips[idx].classList.add('ss-chip-focused');
+    }
+
+    function _clearNavFocus() { _setFocusedItem(-1); }
 
     // Build a result row entirely via DOM — avoids any innerHTML/onerror injection issues
     function _renderItem(section, item) {
@@ -490,16 +518,19 @@ const SmartSearch = (() => {
             row.appendChild(_renderSettingsToggle(item, name));
         }
 
+        row._ssActivate = () => { section.onOpen(item); _close(); };
+
         row.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            section.onOpen(item);
-            _close();
+            row._ssActivate();
         });
 
         return row;
     }
 
     function _renderResults(results) {
+        _focusedIdx = -1;
+        _focusedChipIdx = -1;
         _dropdown.innerHTML = '';
         const query = _input.value.trim();
         if (query) {
@@ -541,8 +572,75 @@ const SmartSearch = (() => {
         _showDropdown();
     }
 
+    const MODAL_CLOSE_HANDLERS = {
+        modalFriendDetail: () => typeof closeFriendDetail === 'function' && closeFriendDetail(true),
+        modalWorldDetail: () => typeof closeWorldDetail === 'function' && closeWorldDetail(true),
+        modalDetail: () => typeof closeWorldSearchDetail === 'function' && closeWorldSearchDetail(true),
+        modalAvatarDetail: () => typeof closeAvatarDetail === 'function' && closeAvatarDetail(true),
+        modalInstanceInfo: () => typeof closeInstanceInfoModal === 'function' && closeInstanceInfoModal(),
+        modalMyInstance: () => typeof closeMyInstanceDetail === 'function' && closeMyInstanceDetail(true),
+        modalFtGpsDetail: () => typeof closeFtGpsDetail === 'function' && closeFtGpsDetail(),
+        modalMyProfile: () => typeof closeMyProfile === 'function' && closeMyProfile(),
+        modalInvite: () => typeof closeInviteModal === 'function' && closeInviteModal(),
+        modalCreateInstance: () => typeof closeCreateInstanceModal === 'function' && closeCreateInstanceModal(),
+        modalPerminiPicker: () => typeof closePerminiPicker === 'function' && closePerminiPicker(),
+        dashLayoutModal: () => typeof closeDashLayoutEditor === 'function' && closeDashLayoutEditor(),
+        navEditorOverlay: () => typeof closeNavEditor === 'function' && closeNavEditor(),
+        invUploadModal: () => typeof closeInvUploadModal === 'function' && closeInvUploadModal(),
+        invDeleteModal: () => typeof closeInvDeleteModal === 'function' && closeInvDeleteModal(),
+        deleteModal: () => typeof closeDeleteModal === 'function' && closeDeleteModal(),
+        imagePickerOverlay: () => typeof closeImagePicker === 'function' && closeImagePicker(),
+        groupPostOverlay: () => typeof closeGroupPostModal === 'function' && closeGroupPostModal(),
+        groupEventOverlay: () => typeof closeGroupEventModal === 'function' && closeGroupEventModal(),
+        accountSwitcherOverlay: () => typeof closeAccountSwitcher === 'function' && closeAccountSwitcher(),
+    };
+
+    function _isVisibleOverlay(el) {
+        return !!el && el.isConnected && getComputedStyle(el).display !== 'none';
+    }
+
+    function _closeModalOverlay(el) {
+        if (!_isVisibleOverlay(el) || el === _modal) return false;
+
+        if (el === window._inviteModalEl && typeof closeFriendInviteModal === 'function') {
+            closeFriendInviteModal();
+            return true;
+        }
+        if (el === window._launchModalEl && typeof closeLaunchModal === 'function') {
+            closeLaunchModal();
+            return true;
+        }
+
+        const closeHandler = MODAL_CLOSE_HANDLERS[el.id];
+        if (closeHandler) {
+            closeHandler();
+        } else {
+            el.style.display = 'none';
+        }
+        if (_isVisibleOverlay(el)) el.style.display = 'none';
+        return true;
+    }
+
+    function _closeOpenModalsBeforeOpen() {
+        const overlays = [
+            ...document.querySelectorAll('.modal-overlay'),
+            ...document.querySelectorAll('#imagePickerOverlay, #groupPostOverlay, #groupEventOverlay, #accountSwitcherOverlay'),
+        ];
+        let closedAny = false;
+
+        for (const overlay of new Set(overlays)) {
+            closedAny = _closeModalOverlay(overlay) || closedAny;
+        }
+
+        if (closedAny && typeof navClear === 'function') navClear();
+    }
+
     function _open_ui() {
-        if (_open) return;
+        _closeOpenModalsBeforeOpen();
+        if (_open) {
+            setTimeout(() => _input?.focus(), 0);
+            return;
+        }
         _open = true;
         _badge.classList.add('tb-active');
         _modal.classList.add('ss-modal-open');
@@ -595,7 +693,31 @@ const SmartSearch = (() => {
             else _showDropdown();
         });
         _input.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') { e.preventDefault(); _close(); }
+            if (e.key === 'Escape') { e.preventDefault(); _close(); return; }
+            if (!_dropdown.classList.contains('ss-visible')) return;
+            const items = _getNavItems();
+            const chips = _getNavChips();
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                _setFocusedItem(Math.min(_focusedIdx + 1, items.length - 1));
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (_focusedIdx > 0) _setFocusedItem(_focusedIdx - 1);
+                else _clearNavFocus();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                if (chips.length) _setFocusedChip(Math.min(Math.max(_focusedChipIdx, -1) + 1, chips.length - 1));
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                if (chips.length) _setFocusedChip(Math.max((_focusedChipIdx < 0 ? chips.length : _focusedChipIdx) - 1, 0));
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (_focusedChipIdx >= 0 && chips[_focusedChipIdx]) {
+                    chips[_focusedChipIdx].click();
+                } else if (_focusedIdx >= 0 && items[_focusedIdx]?._ssActivate) {
+                    items[_focusedIdx]._ssActivate();
+                }
+            }
         });
 
         document.getElementById('ssCloseBtn')?.addEventListener('click', (e) => {
@@ -617,8 +739,10 @@ const SmartSearch = (() => {
         );
     }
 
-    return { init, rebuildDebouncer };
+    return { init, open: _open_ui, close: _close, rebuildDebouncer };
 })();
+
+window.SmartSearch = SmartSearch;
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => SmartSearch.init());

@@ -653,8 +653,7 @@ body:has(.rsidebar.collapsed) .dash-hero-content { padding-right: calc(var(--rsi
     cursor: default;
 }
 .dash-layout-item:hover { background: var(--bg-hover); }
-.dash-layout-item.dli-hidden .dash-layout-name { color: var(--tx3); opacity: .6; }
-.dash-layout-item.dli-dragging { opacity: .3; }
+.ne-row.dli-hidden .ne-label { color: var(--tx3); opacity: .6; }
 
 .dash-drag-handle {
     font-size: 18px;

@@ -56,6 +56,35 @@
         instance: { icon: 'meeting_room',   labelKey: 'ctx.open_instance_link', fallback: 'Open Instance Link' },
     };
 
+    function getVrcContextLabel(vrcData) {
+        const meta = VRC_CTX_META[vrcData?.type];
+        if (!meta) return '';
+        const key = vrcData.bare && meta.bareKey ? meta.bareKey : meta.labelKey;
+        const fallback = vrcData.bare && meta.bareFallback ? meta.bareFallback : meta.fallback;
+        return typeof t === 'function' ? t(key, fallback) : fallback;
+    }
+
+    function openVrcContextTarget(vrcData) {
+        if (!vrcData) return false;
+        if      (vrcData.type === 'avatar')   navOpenModal('avatar',       vrcData.id, '');
+        else if (vrcData.type === 'world')    navOpenModal('worldSearch',  vrcData.id, '');
+        else if (vrcData.type === 'group')    navOpenModal('group',        vrcData.id, '');
+        else if (vrcData.type === 'user')     navOpenModal('friend',       vrcData.id, '');
+        else if (vrcData.type === 'instance') sendToCS({ action: 'vrcGetInstanceDetail', location: vrcData.id + ':' + vrcData.instanceId });
+        else return false;
+        return true;
+    }
+
+    window.VrcnDirectAccess = {
+        detect: detectVrcClipboard,
+        getLabel: getVrcContextLabel,
+        open: openVrcContextTarget,
+        openFromText(text) {
+            const vrcData = detectVrcClipboard(text);
+            return openVrcContextTarget(vrcData) ? vrcData : null;
+        },
+    };
+
     /* Main listener */
     document.addEventListener('contextmenu', async e => {
         e.preventDefault();
@@ -84,14 +113,8 @@
             const meta = VRC_CTX_META[vrcData.type];
             const vrcItem = {
                 icon: meta.icon,
-                label: vrcData.bare ? t(meta.bareKey, meta.bareFallback) : t(meta.labelKey, meta.fallback),
-                action: () => {
-                    if      (vrcData.type === 'avatar')   navOpenModal('avatar',       vrcData.id, '');
-                    else if (vrcData.type === 'world')    navOpenModal('worldSearch',  vrcData.id, '');
-                    else if (vrcData.type === 'group')    navOpenModal('group',        vrcData.id, '');
-                    else if (vrcData.type === 'user')     navOpenModal('friend',       vrcData.id, '');
-                    else if (vrcData.type === 'instance') sendToCS({ action: 'vrcGetInstanceDetail', location: vrcData.id + ':' + vrcData.instanceId });
-                }
+                label: getVrcContextLabel(vrcData),
+                action: () => openVrcContextTarget(vrcData)
             };
             cfg = cfg ? [vrcItem, 'sep', ...cfg] : [vrcItem];
         }
@@ -436,7 +459,10 @@
         }
 
         if (el.closest('.nav-btn[data-nav="dashboard"]')) {
-            return [{ icon: 'dashboard_customize', label: cm('dash_layout', 'Edit Dashboard'), action: () => openDashLayoutEditor() }];
+            return [
+                { icon: 'dashboard_customize', label: cm('dash_layout', 'Edit Dashboard'), action: () => openDashLayoutEditor() },
+                { icon: 'tune', label: cm('nav_edit', 'Edit Navigation'), action: () => openNavEditor() },
+            ];
         }
 
         if (el.closest('#vrcProfileArea') && (typeof currentVrcUser !== 'undefined') && currentVrcUser) {
@@ -550,6 +576,10 @@
         if (instanceCard) {
             const wid = (typeof currentInstanceData !== 'undefined') && currentInstanceData?.worldId;
             if (wid && !currentInstanceData.empty && !currentInstanceData.error) return buildWorldItems(wid);
+        }
+
+        if (el.closest('#sidebarEl')) {
+            return [{ icon: 'tune', label: cm('nav_edit', 'Edit Navigation'), action: () => openNavEditor() }];
         }
 
         return null;
