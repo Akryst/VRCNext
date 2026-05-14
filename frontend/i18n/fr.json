@@ -2054,5 +2054,19 @@
   "nav.editor.hide": "Masquer",
   "nav.editor.show": "Afficher",
   "nav.editor.delete_folder": "Supprimer le dossier",
-  "nav.editor.drop_here": "Déposer les éléments ici"
+  "nav.editor.drop_here": "Déposer les éléments ici",
+
+  "keybinds.modal.title": "Raccourcis clavier",
+  "keybinds.modal.smart_search": "Ouvrir la recherche",
+  "keybinds.modal.own_profile": "Ouvrir mon profil",
+  "keybinds.modal.user_status": "Changer le statut",
+  "keybinds.modal.keybind_help": "Aide raccourcis",
+  "keybinds.modal.timeline": "Ouvrir la chronologie",
+  "keybinds.modal.direct_access": "Accès direct",
+  "keybinds.modal.left_sidebar": "Basculer barre gauche",
+  "keybinds.modal.right_sidebar": "Basculer barre droite",
+  "keybinds.modal.reload": "Recharger VRCN",
+  "keybinds.modal.close_modals": "Fermer les fenêtres",
+  "keybinds.modal.launch_desktop": "Lancer VRChat (Bureau)",
+  "keybinds.modal.launch_vr": "Lancer VRChat (VR)"
 }

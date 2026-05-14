@@ -2054,5 +2054,19 @@
   "nav.editor.hide": "隐藏",
   "nav.editor.show": "显示",
   "nav.editor.delete_folder": "删除文件夹",
-  "nav.editor.drop_here": "将项目拖放到此处"
+  "nav.editor.drop_here": "将项目拖放到此处",
+
+  "keybinds.modal.title": "键盘快捷键",
+  "keybinds.modal.smart_search": "打开智能搜索",
+  "keybinds.modal.own_profile": "打开我的主页",
+  "keybinds.modal.user_status": "更改状态",
+  "keybinds.modal.keybind_help": "快捷键帮助",
+  "keybinds.modal.timeline": "打开时间线",
+  "keybinds.modal.direct_access": "直接访问",
+  "keybinds.modal.left_sidebar": "切换左侧边栏",
+  "keybinds.modal.right_sidebar": "切换右侧边栏",
+  "keybinds.modal.reload": "重新加载 VRCN",
+  "keybinds.modal.close_modals": "关闭窗口",
+  "keybinds.modal.launch_desktop": "启动 VRChat（桌面）",
+  "keybinds.modal.launch_vr": "启动 VRChat（VR）"
 }

@@ -2053,5 +2053,19 @@
   "nav.editor.hide": "非表示にする",
   "nav.editor.show": "表示する",
   "nav.editor.delete_folder": "フォルダを削除",
-  "nav.editor.drop_here": "ここにドロップ"
+  "nav.editor.drop_here": "ここにドロップ",
+
+  "keybinds.modal.title": "キーボードショートカット",
+  "keybinds.modal.smart_search": "スマート検索を開く",
+  "keybinds.modal.own_profile": "プロフィールを開く",
+  "keybinds.modal.user_status": "ステータスを変更",
+  "keybinds.modal.keybind_help": "ショートカットヘルプ",
+  "keybinds.modal.timeline": "タイムラインを開く",
+  "keybinds.modal.direct_access": "ダイレクトアクセス",
+  "keybinds.modal.left_sidebar": "左サイドバーを切替",
+  "keybinds.modal.right_sidebar": "右サイドバーを切替",
+  "keybinds.modal.reload": "VRCNを再読込",
+  "keybinds.modal.close_modals": "ウィンドウを閉じる",
+  "keybinds.modal.launch_desktop": "VRChatを起動（デスクトップ）",
+  "keybinds.modal.launch_vr": "VRChatを起動（VR）"
 }
