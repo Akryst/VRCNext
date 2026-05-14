@@ -21,4 +21,6 @@
 * This helps images and data load faster, especially when opening profiles, worlds, friend lists, or other pages with many thumbnails.
 
 **Fixes**
-* Missing "Biography" i18n in all languages.
+
+* Added the missing `Biography` i18n entry for all languages.
+* Fixed a small visual bug where the Windows Close, Maximize, and Minimize buttons shifted to the right when opening the Tools section.

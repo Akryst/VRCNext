@@ -346,8 +346,12 @@ function _edInitDrag(list) {
             const mid  = rect.top + rect.height / 2;
 
             if (b.type === 'folder' && !isDraggingFolder) {
+                const hasOtherItems = [...b.el.querySelectorAll(':scope > .ne-sub')]
+                    .some(s => s !== draggedBlock);
                 const intoTop = rect.top + rect.height * 0.25;
-                const intoBot = rect.top + rect.height * 0.75;
+                const intoBot = hasOtherItems
+                    ? rect.top + rect.height * 0.75
+                    : b.el.getBoundingClientRect().bottom - 4;
                 if (clientY >= intoTop && clientY <= intoBot) {
                     return { mode: 'into', target: b.el, block: b };
                 }
