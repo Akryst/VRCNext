@@ -4,6 +4,9 @@
 * Added CTRL + K Keybind to quickly open the Smart Search window global.
 * Added CTRL + D Keybind to use Direct Access for world, user, group, instance and avatar URLS/IDs
 * Added CTRL + R Keybind for hot-reload VRCNext.
+* Added CTRL + I Keybind to change your status text and online status quickly.
+* Added CTRL + P keybind to show your own user profile.
+* Added ESC Keybind to close any open modal that is currently displayed.
 
 **Dashboard Editor**
 * Fixed several issues with the Dashboard Editor.

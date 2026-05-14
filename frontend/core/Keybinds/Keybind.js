@@ -54,13 +54,39 @@ const VrcnKeybinds = (() => {
         access.open(vrcData);
     }
 
+    function _closeTopModal() {
+        const overlays = [...document.querySelectorAll('.modal-overlay')]
+            .filter(el => el.style.display !== 'none' && el.style.display !== '');
+        if (!overlays.length) return false;
+        const top = overlays.reduce((a, b) => {
+            const za = parseInt(getComputedStyle(a).zIndex) || 0;
+            const zb = parseInt(getComputedStyle(b).zIndex) || 0;
+            return zb > za ? b : a;
+        });
+        top.click();
+        return true;
+    }
+
     function _onKeyDown(e) {
         if (e.defaultPrevented || e.repeat) return;
+
+        if (e.key === 'Escape') {
+            _closeTopModal();
+            return;
+        }
 
         if (_isCtrlChord(e, 'k')) {
             e.preventDefault();
             e.stopPropagation();
             _openSmartSearch();
+        } else if (_isCtrlChord(e, 'i')) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof openStatusModal === 'function') openStatusModal();
+        } else if (_isCtrlChord(e, 'p')) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof openMyProfileModal === 'function') openMyProfileModal();
         } else if (_isCtrlChord(e, 'd')) {
             e.preventDefault();
             e.stopPropagation();
