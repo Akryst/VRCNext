@@ -49,6 +49,9 @@
 * HTTP/2 allows multiple requests to run over a single connection at the same time instead of waiting in a queue.
 * This helps images and data load faster, especially when opening profiles, worlds, friend lists, or other pages with many thumbnails.
 
+**All Modals with JSON Pill**
+* Always use RAW API Response. Cache for 5 minutes max.
+
 **Fixes**
 * Added the missing `Biography` i18n entry for all languages.
 * Fixed a small visual bug where the Windows Close, Maximize, and Minimize buttons shifted to the right when opening the Tools section.
@@ -59,3 +62,4 @@
 * Fixed padding in instance modals
 * Fixed some caching issues on user profiles.
 * Fixed "Author_Tag_Example" not showing as "Example" Tag in Avatar Modals
+* Fixed some issues where "JSON" Tabs don't show raw Data.

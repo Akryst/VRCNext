@@ -18,6 +18,7 @@ function setGroupVisibility(groupId, visibility) {
 }
 
 const _groupDetailCache = {};
+const _gdRawJsonCache = {};
 
 function openGroupDetail(groupId) {
     if (typeof navSetCurrent === 'function') navSetCurrent('group', groupId);
@@ -46,6 +47,7 @@ function closeGroupDetail(fromNav = false) {
 }
 
 function renderGroupDetail(g) {
+    if (g.id && g.rawJson) _gdRawJsonCache[g.id] = g.rawJson;
     if (g.id) _groupDetailCache[g.id] = g;
     window._currentGroupDetailFull = g;
     window._currentGroupDetail = { id: g.id, canKick: g.canKick === true, canBan: g.canBan === true, canManageRoles: g.canManageRoles === true, canAssignRoles: g.canAssignRoles === true, languages: g.languages || [], links: g.links || [], joinState: g.joinState || '', roles: g.roles || [] };
@@ -435,7 +437,7 @@ function renderGroupDetail(g) {
         <div id="gdTabMembers" style="display:none;">${membersTab}</div>
         ${g.canManageRoles ? `<div id="gdTabRoles" style="display:none;">${rolesTab}</div>` : ''}
         ${g.canBan ? `<div id="gdTabBanned" style="display:none;">${bannedTab}</div>` : ''}
-        <div id="gdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight(g?.rawJson || g || {})}</div></div>
+        <div id="gdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((g.id && _gdRawJsonCache[g.id]) || {})}</div></div>
         <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;gap:8px;">${inviteBtn}${createPostBtn}${createEventBtn}${leaveJoinBtn}</div><button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${t('common.close', 'Close')}</button></div>
     </div>`;
     applyGroupDetailTranslations(g);

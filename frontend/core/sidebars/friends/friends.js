@@ -12,6 +12,7 @@ function toggleRsidebar() {
 function renderVrcProfile(u) {
     const a = document.getElementById('vrcProfileArea');
     if (!u) { a.innerHTML = ''; currentVrcUser = null; return; }
+    if (u.rawJson) _mypRawJson = u.rawJson;
     currentVrcUser = u;
     // If My Profile modal is open, refresh it immediately
     const _myp = document.getElementById('modalMyProfile');

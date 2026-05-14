@@ -17,6 +17,7 @@ let _wdLiveTimer = null;
 let _wdCurrentId = '';
 let _wdCurrentTab = 'info';
 let _wdRefreshing = false;
+const _wdRawJsonCache = {};
 
 /* === Detail Modals (shared) === */
 function openWorldSearchDetail(id) {
@@ -135,6 +136,7 @@ function _wdUpdateInstancesInPlace(w) {
 }
 
 function renderWorldSearchDetail(w) {
+    if (w.id && w.rawJson) _wdRawJsonCache[w.id] = w.rawJson;
     if (typeof navUpdateLabel === 'function') navUpdateLabel(w.name || '');
     // Stop refresh spinner if running
     const refreshBtn = document.getElementById('wdInstancesRefreshBtn');
@@ -302,7 +304,7 @@ function renderWorldSearchDetail(w) {
         </div>
         <div id="wdTabPhotos" style="display:none;"><div id="wdPhotosGrid"></div><div id="wdPhotosPaginatorBar" class="mini-paginator"></div></div>
         ${isOwnWorld ? `<div id="wdTabInsights" style="display:none;"><div id="wiContainer"></div></div>` : ''}
-        <div id="wdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight(w?.rawJson || w || {})}</div></div>
+        <div id="wdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((w.id && _wdRawJsonCache[w.id]) || {})}</div></div>
         <div style="margin-top:14px;text-align:right;"><button class="vrcn-button-round" onclick="closeWorldSearchDetail()">${t('common.close', 'Close')}</button></div>
         </div>`;
 

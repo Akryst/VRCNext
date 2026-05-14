@@ -1,4 +1,5 @@
 /* === My Profile Modal === */
+let _mypRawJson = null;
 // My Profile Modal
 function openMyProfileModal() {
     if (!currentVrcUser) return;
@@ -210,7 +211,7 @@ function renderMyProfileContent() {
                     </div>
                 </div>
             </div>
-            <div id="mypTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight(u?.rawJson || u || {})}</div></div>
+            <div id="mypTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight(_mypRawJson || {})}</div></div>
             <div style="margin-top:10px;text-align:right;">
                 <button class="vrcn-button-round" onclick="closeMyProfile()">${t('common.close', 'Close')}</button>
             </div>

@@ -11,6 +11,7 @@ let _avGalleryLoaded = false;
 let _avGalleryImages = [];
 
 const _avatarDetailCache = {};
+const _avRawJsonCache = {};
 
 function openAvatarDetail(avatarId) {
     if (typeof navSetCurrent === 'function') navSetCurrent('avatar', avatarId);
@@ -102,6 +103,7 @@ function avRemoveTag(idx) {
 
 
 function renderAvatarDetail(a) {
+    if (a.id && a.rawJson) _avRawJsonCache[a.id] = a.rawJson;
     if (a.id) _avatarDetailCache[a.id] = a;
     _avDetailData = a;
     _avGalleryLoaded = false;
@@ -251,7 +253,7 @@ function renderAvatarDetail(a) {
                 ${isOwn ? `<div style="margin-bottom:10px;"><button class="vrcn-button" id="avGalleryUploadBtn" onclick="avUploadGalleryImage('${aid}')"><span class="msi" style="font-size:16px;">upload</span> ${esc(t('avatars.gallery.upload_image', 'Upload Image'))}</button></div>` : ''}
                 <div id="avGalleryContent" style="min-height:60px;"></div>
             </div>
-            <div id="avTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight(a?.rawJson || a || {})}</div></div>
+            <div id="avTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((a.id && _avRawJsonCache[a.id]) || {})}</div></div>
             <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:6px;">
                 <button class="vrcn-button-round vrcn-btn-join" onclick="selectAvatar('${aid}');closeAvatarDetail()">
                     <span class="msi" style="font-size:14px;">checkroom</span> ${t('avatars.detail.actions.use_avatar', 'Use Avatar')}

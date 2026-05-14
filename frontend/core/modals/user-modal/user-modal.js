@@ -1,4 +1,5 @@
 /* === User Modal (Friend / Profile Detail) === */
+const _fdRawJsonCache = {};
 
 function fdEditNote() {
     document.getElementById('fdVrcNoteView')?.style.setProperty('display', 'none');
@@ -437,6 +438,7 @@ function _getFdBannerImg(userId, src) {
 }
 
 function renderFriendDetail(d) {
+    if (d.id && d.rawJson) _fdRawJsonCache[d.id] = d.rawJson;
     currentFriendDetail = d;
     if (typeof navUpdateLabel === 'function') navUpdateLabel(d.displayName || '');
     window._fdGroupsPage = 0;
@@ -807,7 +809,7 @@ function renderFriendDetail(d) {
             <div id="fdAvatarsPageBar" class="mini-paginator"></div>
         </div>`;
 
-    c.innerHTML = `${bannerHtml}<div class="fd-content${bannerSrc ? ' fd-has-banner' : ''}"><div class="fd-header">${imgTag}<div><div class="fd-name" style="display:flex;align-items:center;gap:6px;">${esc(d.displayName)}${vrcPlusBadge}</div>${pronounsHtml}<div class="fd-status-row"><div class="fd-status" id="fd-live-status"><span class="${fdDotClass} ${fdStatusDotCls}" style="width:8px;height:8px;"></span>${fdIsOffline ? t('status.offline', 'Offline') : statusLabel(d.status)}${(!fdIsOffline && fdIsWeb) ? ' ' + t('profiles.friends.web_suffix', '(Web)') : ''}${(!fdIsOffline && d.statusDescription) ? ' - ' + esc(d.statusDescription) : ''}</div>${repGroupBadgeHtml}</div></div></div>${badgesHtml}${actionsHtml}${favPickerHtml}${tabsHtml}<div id="fdTabInfo">${infoContent}</div><div id="fdTabGroups" style="display:none;">${groupsContent}</div><div id="fdTabMutuals" style="display:none;">${mutualsContent}</div><div id="fdTabContent" style="display:none;">${contentHtml}</div><div id="fdTabFavs" style="display:none;" data-user-id="${esc(userId)}"></div><div id="fdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight(d?.rawJson || d || {})}</div></div><div style="margin-top:10px;text-align:right;"><button class="vrcn-button-round" onclick="closeFriendDetail()">${t('common.close', 'Close')}</button></div></div>`;
+    c.innerHTML = `${bannerHtml}<div class="fd-content${bannerSrc ? ' fd-has-banner' : ''}"><div class="fd-header">${imgTag}<div><div class="fd-name" style="display:flex;align-items:center;gap:6px;">${esc(d.displayName)}${vrcPlusBadge}</div>${pronounsHtml}<div class="fd-status-row"><div class="fd-status" id="fd-live-status"><span class="${fdDotClass} ${fdStatusDotCls}" style="width:8px;height:8px;"></span>${fdIsOffline ? t('status.offline', 'Offline') : statusLabel(d.status)}${(!fdIsOffline && fdIsWeb) ? ' ' + t('profiles.friends.web_suffix', '(Web)') : ''}${(!fdIsOffline && d.statusDescription) ? ' - ' + esc(d.statusDescription) : ''}</div>${repGroupBadgeHtml}</div></div></div>${badgesHtml}${actionsHtml}${favPickerHtml}${tabsHtml}<div id="fdTabInfo">${infoContent}</div><div id="fdTabGroups" style="display:none;">${groupsContent}</div><div id="fdTabMutuals" style="display:none;">${mutualsContent}</div><div id="fdTabContent" style="display:none;">${contentHtml}</div><div id="fdTabFavs" style="display:none;" data-user-id="${esc(userId)}"></div><div id="fdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((d.id && _fdRawJsonCache[d.id]) || {})}</div></div><div style="margin-top:10px;text-align:right;"><button class="vrcn-button-round" onclick="closeFriendDetail()">${t('common.close', 'Close')}</button></div></div>`;
 
     if (bannerSrc) {
         const bannerSlot = document.getElementById('fd-banner-slot');
