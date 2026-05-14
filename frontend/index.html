@@ -114,6 +114,15 @@
                     </div>
                     <div class="tb-menu-item" id="tbMenuTools"><span data-i18n="nav.tools">Tools</span>
                         <div class="tb-dropdown">
+                            <div class="tb-dd-submenu">
+                                <button class="tb-dd-item"><span class="msi">link</span><span data-i18n="tb.tools.shortcuts">Shortcuts</span><span class="msi tb-dd-arrow">chevron_right</span></button>
+                                <div class="tb-dd-sub-drop">
+                                    <button class="tb-dd-item" onclick="sendToCS({action:'openShortcutFolder',folder:'vrchat_data'})"><span class="msi">folder</span><span data-i18n="tb.shortcuts.vrchat_data">VRChat Data</span></button>
+                                    <button class="tb-dd-item" onclick="sendToCS({action:'openShortcutFolder',folder:'vrchat_crash'})"><span class="msi">folder</span><span data-i18n="tb.shortcuts.vrchat_crash">VRChat Crash Dump</span></button>
+                                    <button class="tb-dd-item" onclick="sendToCS({action:'openShortcutFolder',folder:'vrcn_data'})"><span class="msi">folder</span><span data-i18n="tb.shortcuts.vrcn_data">VRCN Data</span></button>
+                                </div>
+                            </div>
+                            <div class="tb-dd-sep"></div>
                             <div class="tb-dd-item" onclick="showTab(5)"><span class="msi">chat</span><span data-i18n="nav.custom_chatbox">Custom Chatbox</span></div>
                             <div class="tb-dd-item" onclick="showTab(6)"><span class="msi">cell_tower</span><span data-i18n="nav.media_relay">Media Relay</span></div>
                             <div class="tb-dd-item" onclick="showTab(10)"><span class="msi">rocket_launch</span><span data-i18n="nav.space_flight">Space Flight</span></div>

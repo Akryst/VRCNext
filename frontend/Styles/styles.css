@@ -426,7 +426,8 @@ html.text-tools-active * { user-select: text !important; }
 .wd-friends-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
+    padding: 6px 0;
     margin-bottom: 16px;
     max-height: 240px;
     overflow-y: auto;

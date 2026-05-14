@@ -1,4 +1,15 @@
-**2026.25.5**
+**2026.25.6**
+
+**User Preview**
+* Shows now if other mutual friends are in the same instance.
+
+**User Profiles**
+* Shows now if other friends are in the same instance in "Current World" section.
+
+**Taskbar**
+* Added "VRChat Data" to Tools > Shortcuts which opens the VRChat Data folder.
+* Added "VRChat Crash Dump" to Tools > Shortcuts which opens the VRChat Crash Dump folder.
+* Added "VRCN Data" to Tools > Shortcuts which opens the VRCNext Data folder.
 
 **Keybinds**
 * Added keybinds to VRCNext for power users. You now have a large set of useful shortcuts to do many things faster.
@@ -45,3 +56,5 @@
 * Fixed a Media Library issue where new images added during runtime could show the wrong metadata.
 * Fixed an issue where Smart Search could render behind other modals.
 * Fixed several z-ordering values for all modals to prevent overlap issues.
+* Fixed padding in instance modals
+* Fixed some caching issues on user profiles.

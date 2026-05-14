@@ -2449,6 +2449,27 @@ public partial class AppShell
                     break;
                 }
 
+                case "openShortcutFolder":
+                {
+                    var folder = msg["folder"]?.ToString();
+                    string? dir = folder switch
+                    {
+                        "vrchat_data"  => Path.GetFullPath(Path.Combine(
+                                              Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                                              "..", "LocalLow", "VRChat", "VRChat")),
+                        "vrchat_crash" => Path.Combine(
+                                              Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                                              "Temp", "VRChat", "VRChat", "Crashes"),
+                        "vrcn_data"    => Path.Combine(
+                                              Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                                              "VRCNext"),
+                        _ => null
+                    };
+                    if (!string.IsNullOrEmpty(dir))
+                        Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true });
+                    break;
+                }
+
                 // Discord Rich Presence
                 case "dpStart":
                 case "dpStop":

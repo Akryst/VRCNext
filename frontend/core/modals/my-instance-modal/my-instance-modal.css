@@ -219,4 +219,6 @@
 .mi-friends-list {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 10px 12px;
 }
