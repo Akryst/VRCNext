@@ -1,5 +1,8 @@
 **2026.25.6**
 
+**User Profiles**
+* Shows now if other friends are in the same instance in "Current World" section.
+
 **Taskbar**
 * Added "VRChat Data" to Tools > Shortcuts which opens the VRChat Data folder.
 * Added "VRChat Crash Dump" to Tools > Shortcuts which opens the VRChat Crash Dump folder.
@@ -50,3 +53,4 @@
 * Fixed a Media Library issue where new images added during runtime could show the wrong metadata.
 * Fixed an issue where Smart Search could render behind other modals.
 * Fixed several z-ordering values for all modals to prevent overlap issues.
+* Fixed padding in instance modals
