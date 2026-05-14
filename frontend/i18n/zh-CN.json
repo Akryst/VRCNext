@@ -1313,6 +1313,7 @@
   "context_menu.image.inspect": "查看图片",
   "context_menu.check_for_avatar": "搜索头像",
   "context_menu.dash_layout": "编辑仪表板",
+  "context_menu.nav_edit": "编辑导航",
   "dashboard.edit.title": "仪表板布局",
   "dashboard.edit.hint": "重新排序并显示/隐藏各部分。更改将立即保存。",
   "dashboard.edit.reset": "重置",

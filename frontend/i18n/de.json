@@ -1315,6 +1315,7 @@
   "context_menu.image.inspect": "Bild ansehen",
   "context_menu.check_for_avatar": "Avatar suchen",
   "context_menu.dash_layout": "Dashboard bearbeiten",
+  "context_menu.nav_edit": "Navigation bearbeiten",
   "dashboard.edit.title": "Dashboard-Layout",
   "dashboard.edit.hint": "Bereiche neu anordnen und ein-/ausblenden. Änderungen werden sofort gespeichert.",
   "dashboard.edit.reset": "Zurücksetzen",

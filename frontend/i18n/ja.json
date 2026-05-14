@@ -1312,6 +1312,7 @@
   "context_menu.image.inspect": "画像を表示",
   "context_menu.check_for_avatar": "アバターを検索",
   "context_menu.dash_layout": "ダッシュボードを編集",
+  "context_menu.nav_edit": "ナビゲーションを編集",
   "dashboard.edit.title": "ダッシュボードレイアウト",
   "dashboard.edit.hint": "セクションを並べ替え、表示/非表示にする。変更はすぐに保存されます。",
   "dashboard.edit.reset": "リセット",

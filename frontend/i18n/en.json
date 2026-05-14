@@ -1077,6 +1077,7 @@
   "dashboard.edit.show": "Show",
   "dashboard.edit.hide": "Hide",
   "context_menu.dash_layout": "Edit Dashboard",
+  "context_menu.nav_edit": "Edit Navigation",
   "dashboard.favworlds.login": "Login to see favorite worlds",
   "dashboard.favworlds.empty": "No favorite worlds yet",
   "dashboard.groups.login": "Login to see your groups",

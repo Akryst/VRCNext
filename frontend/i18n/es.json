@@ -1313,6 +1313,7 @@
   "context_menu.image.inspect": "Inspeccionar imagen",
   "context_menu.check_for_avatar": "Buscar avatar",
   "context_menu.dash_layout": "Editar dashboard",
+  "context_menu.nav_edit": "Editar navegación",
   "dashboard.edit.title": "Diseño del dashboard",
   "dashboard.edit.hint": "Reordena y muestra/oculta secciones. Los cambios se guardan de inmediato.",
   "dashboard.edit.reset": "Restablecer",

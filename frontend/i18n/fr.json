@@ -1313,6 +1313,7 @@
   "context_menu.image.inspect": "Inspecter l'image",
   "context_menu.check_for_avatar": "Rechercher un avatar",
   "context_menu.dash_layout": "Modifier le tableau de bord",
+  "context_menu.nav_edit": "Modifier la navigation",
   "dashboard.edit.title": "Mise en page du tableau de bord",
   "dashboard.edit.hint": "Réorganisez et affichez/masquez les sections. Les modifications sont enregistrées immédiatement.",
   "dashboard.edit.reset": "Réinitialiser",
