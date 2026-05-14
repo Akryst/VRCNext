@@ -2087,5 +2087,8 @@
   "keybinds.modal.reload": "Reload VRCN",
   "keybinds.modal.close_modals": "Close Modals",
   "keybinds.modal.launch_desktop": "Launch VRChat (Desktop)",
-  "keybinds.modal.launch_vr": "Launch VRChat (VR)"
+  "keybinds.modal.launch_vr": "Launch VRChat (VR)",
+  "keybinds.modal.nav_up": "Nav Up",
+  "keybinds.modal.nav_down": "Nav Down",
+  "keybinds.modal.find_in_page": "Search Visible Area"
 }

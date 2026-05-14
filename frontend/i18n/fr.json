@@ -2068,5 +2068,8 @@
   "keybinds.modal.reload": "Recharger VRCN",
   "keybinds.modal.close_modals": "Fermer les fenêtres",
   "keybinds.modal.launch_desktop": "Lancer VRChat (Bureau)",
-  "keybinds.modal.launch_vr": "Lancer VRChat (VR)"
+  "keybinds.modal.launch_vr": "Lancer VRChat (VR)",
+  "keybinds.modal.nav_up": "Nav haut",
+  "keybinds.modal.nav_down": "Nav bas",
+  "keybinds.modal.find_in_page": "Rechercher dans la zone visible"
 }

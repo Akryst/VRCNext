@@ -2067,5 +2067,8 @@
   "keybinds.modal.reload": "VRCNを再読込",
   "keybinds.modal.close_modals": "ウィンドウを閉じる",
   "keybinds.modal.launch_desktop": "VRChatを起動（デスクトップ）",
-  "keybinds.modal.launch_vr": "VRChatを起動（VR）"
+  "keybinds.modal.launch_vr": "VRChatを起動（VR）",
+  "keybinds.modal.nav_up": "ナビ上",
+  "keybinds.modal.nav_down": "ナビ下",
+  "keybinds.modal.find_in_page": "表示エリアを検索"
 }

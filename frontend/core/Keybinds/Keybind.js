@@ -63,6 +63,21 @@ const VrcnKeybinds = (() => {
         access.open(vrcData);
     }
 
+    function _navStep(direction) {
+        const all = [...document.querySelectorAll('#navEl .nav-btn[onclick]')].filter(btn => {
+            if (!btn.getAttribute('onclick')?.match(/showTab\(\d+\)/)) return false;
+            const group = btn.closest('.nav-group');
+            return !(group && group.classList.contains('collapsed'));
+        });
+        if (!all.length) return;
+        const activeBtn = document.querySelector('#navEl .nav-btn.active');
+        const currentIdx = activeBtn ? all.indexOf(activeBtn) : -1;
+        const nextIdx = direction === 'down'
+            ? Math.min(currentIdx + 1, all.length - 1)
+            : Math.max(currentIdx - 1, 0);
+        if (nextIdx !== currentIdx) all[nextIdx].click();
+    }
+
     function _closeTopModal() {
         const overlays = [...document.querySelectorAll('.modal-overlay')]
             .filter(el => el.style.display !== 'none' && el.style.display !== '');
@@ -108,6 +123,14 @@ const VrcnKeybinds = (() => {
             e.preventDefault();
             e.stopPropagation();
             location.reload();
+        } else if (e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && e.key === 'ArrowUp') {
+            e.preventDefault();
+            e.stopPropagation();
+            _navStep('up');
+        } else if (e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && e.key === 'ArrowDown') {
+            e.preventDefault();
+            e.stopPropagation();
+            _navStep('down');
         } else if (e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && e.key === 'ArrowLeft') {
             e.preventDefault();
             e.stopPropagation();

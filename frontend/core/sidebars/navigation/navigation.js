@@ -51,6 +51,16 @@ function navRender() {
         if (localStorage.getItem('vrcnext_navgroup_' + g.dataset.groupId) === '1')
             g.classList.add('collapsed');
     });
+
+    const activeTab = (typeof _prevTab !== 'undefined' && _prevTab >= 0) ? _prevTab : 0;
+    navEl.querySelectorAll('.nav-btn[onclick]').forEach(b => {
+        const match = b.getAttribute('onclick')?.match(/showTab\((\d+)\)/);
+        if (match && parseInt(match[1]) === activeTab) {
+            b.classList.add('active');
+            const parentGroup = b.closest('.nav-group');
+            if (parentGroup) { parentGroup.classList.add('has-active'); parentGroup.classList.remove('collapsed'); }
+        }
+    });
 }
 
 function _navMakeItemBtn(key, icon, tab, i18nKey, labelFallback) {

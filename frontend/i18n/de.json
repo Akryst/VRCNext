@@ -2070,5 +2070,8 @@
   "keybinds.modal.reload": "VRCN neu laden",
   "keybinds.modal.close_modals": "Fenster schließen",
   "keybinds.modal.launch_desktop": "VRChat starten (Desktop)",
-  "keybinds.modal.launch_vr": "VRChat starten (VR)"
+  "keybinds.modal.launch_vr": "VRChat starten (VR)",
+  "keybinds.modal.nav_up": "Nav hoch",
+  "keybinds.modal.nav_down": "Nav runter",
+  "keybinds.modal.find_in_page": "Sichtbaren Bereich durchsuchen"
 }

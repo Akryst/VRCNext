@@ -2068,5 +2068,8 @@
   "keybinds.modal.reload": "Recargar VRCN",
   "keybinds.modal.close_modals": "Cerrar ventanas",
   "keybinds.modal.launch_desktop": "Iniciar VRChat (Escritorio)",
-  "keybinds.modal.launch_vr": "Iniciar VRChat (VR)"
+  "keybinds.modal.launch_vr": "Iniciar VRChat (VR)",
+  "keybinds.modal.nav_up": "Nav arriba",
+  "keybinds.modal.nav_down": "Nav abajo",
+  "keybinds.modal.find_in_page": "Buscar en área visible"
 }

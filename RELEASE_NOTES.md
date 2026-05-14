@@ -14,6 +14,8 @@
 * Added `CTRL + T` to open the Timeline tab.
 * Added `ALT + V` to start VRChat in SteamVR Mode.
 * Added `ALT + D` to start VRChat in Desktop mode.
+* Added `CTRL + UP` to navigate between navbar tabs.
+* Added `CTRL + DOWN` to navigate between navbar tabs
 
 **Dashboard Editor**
 * Fixed several issues with the Dashboard Editor.

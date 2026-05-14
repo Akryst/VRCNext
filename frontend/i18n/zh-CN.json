@@ -2068,5 +2068,8 @@
   "keybinds.modal.reload": "重新加载 VRCN",
   "keybinds.modal.close_modals": "关闭窗口",
   "keybinds.modal.launch_desktop": "启动 VRChat（桌面）",
-  "keybinds.modal.launch_vr": "启动 VRChat（VR）"
+  "keybinds.modal.launch_vr": "启动 VRChat（VR）",
+  "keybinds.modal.nav_up": "向上导航",
+  "keybinds.modal.nav_down": "向下导航",
+  "keybinds.modal.find_in_page": "搜索可见区域"
 }
