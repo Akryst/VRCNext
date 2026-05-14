@@ -91,11 +91,12 @@ function navLoadLayout() {
         const raw = localStorage.getItem(_NAV_STORAGE_KEY);
         if (!raw) return { layout: _navClone(NAV_DEFAULT_LAYOUT), hidden: [] };
         const parsed = JSON.parse(raw);
-        return {
-            layout: navSanitizeLayout(parsed.layout || []),
-            hidden: Array.isArray(parsed.hidden)
+        const hidden = Array.isArray(parsed.hidden)
                 ? parsed.hidden.filter(k => k in NAV_ITEMS_DEF)
-                : [],
+                : [];
+        return {
+            layout: navSanitizeLayout(parsed.layout || [], hidden),
+            hidden,
         };
     } catch {
         return { layout: _navClone(NAV_DEFAULT_LAYOUT), hidden: [] };
@@ -106,8 +107,9 @@ function navSaveLayout(layout, hidden) {
     localStorage.setItem(_NAV_STORAGE_KEY, JSON.stringify({ layout, hidden }));
 }
 
-function navSanitizeLayout(layout) {
+function navSanitizeLayout(layout, hidden = []) {
     const allKeys = Object.keys(NAV_ITEMS_DEF);
+    const hiddenSet = new Set(hidden);
     const seen = new Set();
     const result = [];
 
@@ -133,7 +135,7 @@ function navSanitizeLayout(layout) {
     }
 
     for (const key of allKeys) {
-        if (!seen.has(key)) result.push({ type: 'item', key, icon: null });
+        if (!seen.has(key) && !hiddenSet.has(key)) result.push({ type: 'item', key, icon: null });
     }
     return result;
 }
