@@ -1,4 +1,4 @@
-**2026.25.5**
+**2026.25.6**
 
 **Taskbar**
 * Added "VRChat Data" to Tools > Shortcuts which opens the VRChat Data folder.

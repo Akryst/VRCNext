@@ -726,9 +726,21 @@ function renderFriendDetail(d) {
         <span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>
         <p style="margin:10px 0 0;font-size:12px;color:var(--tx3);line-height:1.45;">${t('profiles.trust.description', 'This user has a trusted user standing within the community.')}</p>` : '';
 
+    const _fdInstFriends = (_worldPartHtml && d.location && d.location !== 'private' && d.location !== 'traveling')
+        ? (typeof vrcFriendsData !== 'undefined' ? vrcFriendsData : []).filter(f =>
+            f.location === d.location &&
+            f.id !== d.id &&
+            !(currentVrcUser && f.id === currentVrcUser.id))
+        : [];
+    const _instFriendsHtml = _fdInstFriends.length > 0
+        ? `<div class="fd-group-rep-label" style="margin-top:10px;">${tf('instance.sections.friends_in_instance', { count: _fdInstFriends.length }, 'FRIENDS IN INSTANCE ({count})')}</div>
+           <div class="wd-friends-list" style="display:grid;grid-template-columns:1fr 1fr;max-height:none;">${_fdInstFriends.map(f => renderProfileItem(f, `navOpenModal('friend','${jsq(f.id || '')}','${jsq(f.displayName || '')}')`)).join('')}</div>`
+        : '';
+
     const _currentWorldCard = _worldPartHtml ? `<div class="fd-info-card fd-world-card">
         <div class="fd-group-rep-label">${t('profiles.meta.current_world', 'Current World')}</div>
         ${_worldPartHtml}
+        ${_instFriendsHtml}
     </div>` : '';
     const _ownerCard = _ownerPartHtml ? `<div class="fd-info-card fd-owner-card">
         <div class="fd-group-rep-label">${t('instance.owner', 'Instance Owner')}</div>
