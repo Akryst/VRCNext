@@ -40,7 +40,7 @@ const NAV_ICON_OPTIONS = [
     'handshake','supervisor_account','record_voice_over','diversity_3','diversity_1',
     // VR / Gaming
     'view_in_ar','vrpano','3d_rotation','videogame_asset','joystick','stadia_controller',
-    'headset','headset_mic','glasses','precision_manufacturing','gamepad',
+    'headset','headset_mic','precision_manufacturing','gamepad',
     // Media & Creative
     'palette','brush','photo_camera','movie','live_tv','radio','podcasts',
     'collections','camera_roll','draw','color_lens','theaters',
