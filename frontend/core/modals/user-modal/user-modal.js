@@ -759,17 +759,13 @@ function renderFriendDetail(d) {
     const _infosCard = `<div class="fd-info-card">${_aboutRowsHtml}</div>`;
     const _trustCard = trustSideHtml ? `<div class="fd-info-card">${trustSideHtml}</div>` : '';
     const _modCard = `<div class="fd-info-card" id="fdModerationCard">${_buildModCardInner(d.id)}</div>`;
-    const _topSection = (_currentWorldCard && _ownerCard)
-        ? `<div class="fd-info-top-row">${_currentWorldCard}${_ownerCard}</div>`
-        : (_currentWorldCard || '');
     const infoContent = `<div class="fd-info-wrap">
-        ${_topSection}
         <div class="fd-info-cols">
             <div class="fd-info-left">
-                ${_badgesCard}${avatarRowHtml}${_bioCard}${_noteCard}
+                ${_currentWorldCard}${_badgesCard}${avatarRowHtml}${_bioCard}${_noteCard}
             </div>
             <div class="fd-info-right">
-                ${_infosCard}${_trustCard}${_modCard}
+                ${_ownerCard}${_infosCard}${_trustCard}${_modCard}
             </div>
         </div>
         ${_tlCard}
