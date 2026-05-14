@@ -2063,5 +2063,14 @@
   "settings.accounts.signin_title": "Sign In",
   "settings.accounts.signin_prompt": "Sign in as <b>{name}</b>",
   "settings.accounts.signin_enter_password": "Enter password",
-  "tb.app.switch_accounts": "Switch Accounts"
+  "tb.app.switch_accounts": "Switch Accounts",
+  "nav.editor.title": "Edit Navigation",
+  "nav.editor.add_folder": "Add Folder",
+  "nav.editor.reset": "Reset",
+  "nav.editor.change_icon": "Change icon",
+  "nav.editor.hidden": "Hidden",
+  "nav.editor.hide": "Hide",
+  "nav.editor.show": "Show",
+  "nav.editor.delete_folder": "Delete folder",
+  "nav.editor.drop_here": "Drop items here"
 }

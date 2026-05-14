@@ -740,6 +740,7 @@
   "profiles.actions.unblock": "ブロック解除",
   "profiles.actions.unfriend": "フレンド解除",
   "profiles.actions.confirm": "確認しますか？",
+  "profiles.bio.title": "自己紹介",
   "profiles.badges.friend": "フレンド",
   "profiles.badges.mutual.one": "{count}人の共通フレンド",
   "profiles.badges.mutual.other": "{count}人の共通フレンド",
@@ -2042,5 +2043,14 @@
   "settings.accounts.signin_title": "サインイン",
   "settings.accounts.signin_prompt": "<b>{name}</b> としてサインイン",
   "settings.accounts.signin_enter_password": "パスワードを入力",
-  "tb.app.switch_accounts": "アカウント切り替え"
+  "tb.app.switch_accounts": "アカウント切り替え",
+  "nav.editor.title": "ナビゲーションを編集",
+  "nav.editor.add_folder": "フォルダを追加",
+  "nav.editor.reset": "リセット",
+  "nav.editor.change_icon": "アイコンを変更",
+  "nav.editor.hidden": "非表示",
+  "nav.editor.hide": "非表示にする",
+  "nav.editor.show": "表示する",
+  "nav.editor.delete_folder": "フォルダを削除",
+  "nav.editor.drop_here": "ここにドロップ"
 }

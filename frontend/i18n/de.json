@@ -740,6 +740,7 @@
   "profiles.actions.unblock": "Entblocken",
   "profiles.actions.unfriend": "Freund entfernen",
   "profiles.actions.confirm": "Bestaetigen?",
+  "profiles.bio.title": "Biografie",
   "profiles.badges.friend": "Freund",
   "profiles.badges.mutual.one": "{count} gemeinsamer Freund",
   "profiles.badges.mutual.other": "{count} gemeinsame Freunde",
@@ -2045,5 +2046,14 @@
   "settings.accounts.signin_title": "Einloggen",
   "settings.accounts.signin_prompt": "Als <b>{name}</b> einloggen",
   "settings.accounts.signin_enter_password": "Passwort eingeben",
-  "tb.app.switch_accounts": "Accounts wechseln"
+  "tb.app.switch_accounts": "Accounts wechseln",
+  "nav.editor.title": "Navigation bearbeiten",
+  "nav.editor.add_folder": "Ordner hinzufügen",
+  "nav.editor.reset": "Zurücksetzen",
+  "nav.editor.change_icon": "Symbol ändern",
+  "nav.editor.hidden": "Versteckt",
+  "nav.editor.hide": "Verbergen",
+  "nav.editor.show": "Anzeigen",
+  "nav.editor.delete_folder": "Ordner löschen",
+  "nav.editor.drop_here": "Elemente hier ablegen"
 }

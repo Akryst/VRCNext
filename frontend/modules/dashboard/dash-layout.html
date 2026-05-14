@@ -1,13 +1,10 @@
-        <div class="dash-layout-panel">
-            <div class="dash-layout-header">
-                <span class="msi" style="font-size:18px;color:var(--accent);">dashboard_customize</span>
-                <span data-i18n="dashboard.edit.title">Dashboard Layout</span>
-            </div>
-            <p class="dash-layout-hint" data-i18n="dashboard.edit.hint">Reorder and show/hide sections. Changes are saved immediately.</p>
-            <div class="dash-layout-list" id="dashLayoutList"></div>
-            <div class="dash-layout-footer">
-                <button class="vrcn-button-round" onclick="dashLayoutReset()" style="margin-right:auto;"><span class="msi">restart_alt</span><span data-i18n="dashboard.edit.reset">Reset</span></button>
-                <button class="vrcn-button-round vrcn-btn-primary" onclick="saveDashLayoutFromModal()"><span class="msi">check</span><span data-i18n="common.save">Save</span></button>
-                <button class="vrcn-button-round" onclick="closeDashLayoutEditor()" data-i18n="common.cancel">Cancel</button>
+        <div class="modal-box wide narrow">
+            <div class="modal-title" data-i18n="dashboard.edit.title">Dashboard Layout</div>
+            <div id="dashLayoutList" class="ne-list vrcn-scrollbar"></div>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <button class="vrcn-button" onclick="dashLayoutReset()"><span class="msi" style="font-size:16px;">restart_alt</span><span data-i18n="dashboard.edit.reset">Reset</span></button>
+                <span style="flex:1;"></span>
+                <button class="vrcn-button" onclick="closeDashLayoutEditor()"><span data-i18n="common.cancel">Cancel</span></button>
+                <button class="vrcn-button vrcn-btn-primary" onclick="saveDashLayoutFromModal()"><span class="msi" style="font-size:16px;">check</span><span data-i18n="common.save">Save</span></button>
             </div>
         </div>

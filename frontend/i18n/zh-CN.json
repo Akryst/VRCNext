@@ -740,6 +740,7 @@
   "profiles.actions.unblock": "取消屏蔽",
   "profiles.actions.unfriend": "删除好友",
   "profiles.actions.confirm": "确认？",
+  "profiles.bio.title": "个人简介",
   "profiles.badges.friend": "好友",
   "profiles.badges.mutual.one": "{count} 个共同好友",
   "profiles.badges.mutual.other": "{count} 个共同好友",
@@ -2043,5 +2044,14 @@
   "settings.accounts.signin_title": "登录",
   "settings.accounts.signin_prompt": "以 <b>{name}</b> 登录",
   "settings.accounts.signin_enter_password": "输入密码",
-  "tb.app.switch_accounts": "切换账户"
+  "tb.app.switch_accounts": "切换账户",
+  "nav.editor.title": "编辑导航",
+  "nav.editor.add_folder": "添加文件夹",
+  "nav.editor.reset": "重置",
+  "nav.editor.change_icon": "更改图标",
+  "nav.editor.hidden": "已隐藏",
+  "nav.editor.hide": "隐藏",
+  "nav.editor.show": "显示",
+  "nav.editor.delete_folder": "删除文件夹",
+  "nav.editor.drop_here": "将项目拖放到此处"
 }

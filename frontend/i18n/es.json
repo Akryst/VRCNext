@@ -740,6 +740,7 @@
   "profiles.actions.unblock": "Desbloquear",
   "profiles.actions.unfriend": "Eliminar amistad",
   "profiles.actions.confirm": "¿Confirmar?",
+  "profiles.bio.title": "Biografía",
   "profiles.badges.friend": "Amigo",
   "profiles.badges.mutual.one": "{count} mutuo",
   "profiles.badges.mutual.other": "{count} mutuos",
@@ -2043,5 +2044,14 @@
   "settings.accounts.signin_title": "Iniciar sesión",
   "settings.accounts.signin_prompt": "Iniciar sesión como <b>{name}</b>",
   "settings.accounts.signin_enter_password": "Introduce la contraseña",
-  "tb.app.switch_accounts": "Cambiar de cuenta"
+  "tb.app.switch_accounts": "Cambiar de cuenta",
+  "nav.editor.title": "Editar navegación",
+  "nav.editor.add_folder": "Añadir carpeta",
+  "nav.editor.reset": "Restablecer",
+  "nav.editor.change_icon": "Cambiar icono",
+  "nav.editor.hidden": "Oculto",
+  "nav.editor.hide": "Ocultar",
+  "nav.editor.show": "Mostrar",
+  "nav.editor.delete_folder": "Eliminar carpeta",
+  "nav.editor.drop_here": "Soltar elementos aquí"
 }

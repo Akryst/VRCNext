@@ -740,6 +740,7 @@
   "profiles.actions.unblock": "Débloquer",
   "profiles.actions.unfriend": "Retirer des amis",
   "profiles.actions.confirm": "Confirmer ?",
+  "profiles.bio.title": "Biographie",
   "profiles.badges.friend": "Ami",
   "profiles.badges.mutual.one": "{count} ami en commun",
   "profiles.badges.mutual.other": "{count} amis en commun",
@@ -2043,5 +2044,14 @@
   "settings.accounts.signin_title": "Se connecter",
   "settings.accounts.signin_prompt": "Se connecter en tant que <b>{name}</b>",
   "settings.accounts.signin_enter_password": "Entrer le mot de passe",
-  "tb.app.switch_accounts": "Changer de compte"
+  "tb.app.switch_accounts": "Changer de compte",
+  "nav.editor.title": "Modifier la navigation",
+  "nav.editor.add_folder": "Ajouter un dossier",
+  "nav.editor.reset": "Réinitialiser",
+  "nav.editor.change_icon": "Changer l'icône",
+  "nav.editor.hidden": "Masqué",
+  "nav.editor.hide": "Masquer",
+  "nav.editor.show": "Afficher",
+  "nav.editor.delete_folder": "Supprimer le dossier",
+  "nav.editor.drop_here": "Déposer les éléments ici"
 }

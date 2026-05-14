@@ -436,7 +436,10 @@
         }
 
         if (el.closest('.nav-btn[data-nav="dashboard"]')) {
-            return [{ icon: 'dashboard_customize', label: cm('dash_layout', 'Edit Dashboard'), action: () => openDashLayoutEditor() }];
+            return [
+                { icon: 'dashboard_customize', label: cm('dash_layout', 'Edit Dashboard'), action: () => openDashLayoutEditor() },
+                { icon: 'tune', label: cm('nav_edit', 'Edit Navigation'), action: () => openNavEditor() },
+            ];
         }
 
         if (el.closest('#vrcProfileArea') && (typeof currentVrcUser !== 'undefined') && currentVrcUser) {
@@ -550,6 +553,10 @@
         if (instanceCard) {
             const wid = (typeof currentInstanceData !== 'undefined') && currentInstanceData?.worldId;
             if (wid && !currentInstanceData.empty && !currentInstanceData.error) return buildWorldItems(wid);
+        }
+
+        if (el.closest('#sidebarEl')) {
+            return [{ icon: 'tune', label: cm('nav_edit', 'Edit Navigation'), action: () => openNavEditor() }];
         }
 
         return null;
