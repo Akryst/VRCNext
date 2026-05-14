@@ -18,6 +18,15 @@ const VrcnKeybinds = (() => {
             && (e.key || '').toLowerCase() === key;
     }
 
+    function _isAltChord(e, key) {
+        return e.altKey
+            && !e.ctrlKey
+            && !e.metaKey
+            && !e.shiftKey
+            && !e.isComposing
+            && (e.key || '').toLowerCase() === key;
+    }
+
     function _openSmartSearch() {
         if (window.SmartSearch && typeof window.SmartSearch.open === 'function') {
             window.SmartSearch.open();
@@ -87,10 +96,38 @@ const VrcnKeybinds = (() => {
             e.preventDefault();
             e.stopPropagation();
             if (typeof openMyProfileModal === 'function') openMyProfileModal();
+        } else if (_isCtrlChord(e, 'h')) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('modalKeybinds')?.style && (document.getElementById('modalKeybinds').style.display = 'flex');
+        } else if (_isCtrlChord(e, 't')) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof showTab === 'function') showTab(12);
+        } else if (_isCtrlChord(e, 'r')) {
+            e.preventDefault();
+            e.stopPropagation();
+            location.reload();
+        } else if (e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && e.key === 'ArrowLeft') {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof toggleSidebar === 'function') toggleSidebar();
+        } else if (e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && e.key === 'ArrowRight') {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof toggleRsidebar === 'function') toggleRsidebar();
         } else if (_isCtrlChord(e, 'd')) {
             e.preventDefault();
             e.stopPropagation();
             _openDirectAccess();
+        } else if (_isAltChord(e, 'd')) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof launchAndJoin === 'function') launchAndJoin('', false);
+        } else if (_isAltChord(e, 'v')) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof launchAndJoin === 'function') launchAndJoin('', true);
         }
     }
 

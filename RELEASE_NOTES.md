@@ -1,12 +1,19 @@
 **2026.25.3**
 
 **Keybinds**
-* Added CTRL + K Keybind to quickly open the Smart Search window global.
-* Added CTRL + D Keybind to use Direct Access for world, user, group, instance and avatar URLS/IDs
-* Added CTRL + R Keybind for hot-reload VRCNext.
-* Added CTRL + I Keybind to change your status text and online status quickly.
-* Added CTRL + P keybind to show your own user profile.
-* Added ESC Keybind to close any open modal that is currently displayed.
+* Added keybinds to VRCNext for power users. You now have a large set of useful shortcuts to do many things faster.
+* Added `CTRL + K` to quickly open the Smart Search window globally.
+* Added `CTRL + D` to use Direct Access for world, user, group, instance, and avatar URLs/IDs.
+* Added `CTRL + R` to hot-reload VRCNext.
+* Added `CTRL + I` to quickly change your status text and online status.
+* Added `CTRL + P` to show your own user profile.
+* Added `ESC` to close any currently open modal.
+* Added `CTRL + H` to display the keybind help modal.
+* Added `CTRL + LEFT` to open or collapse the navigation sidebar.
+* Added `CTRL + RIGHT` to open or collapse the friends sidebar.
+* Added `CTRL + T` to open the Timeline tab.
+* Added `ALT + V` to start VRChat in SteamVR Mode.
+* Added `ALT + D` to start VRChat in Desktop mode.
 
 **Dashboard Editor**
 * Fixed several issues with the Dashboard Editor.
@@ -35,4 +42,3 @@
 * Fixed a Media Library issue where new images added during runtime could show the wrong metadata.
 * Fixed an issue where Smart Search could render behind other modals.
 * Fixed several z-ordering values for all modals to prevent overlap issues.
-

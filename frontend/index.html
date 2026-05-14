@@ -338,6 +338,9 @@
     <!-- Status Change Modal -->
     <div class="modal-overlay" id="modalStatus" style="display:none;" onclick="if(event.target===this)this.style.display='none'"></div>
 
+    <!-- Keybind Help Modal -->
+    <div class="modal-overlay" id="modalKeybinds" style="display:none;" onclick="if(event.target===this)this.style.display='none'"></div>
+
     <!-- Friend Detail Modal -->
     <div class="modal-overlay" id="modalFriendDetail" style="display:none;" onclick="if(event.target===this)closeFriendDetail()"></div>
 
@@ -483,6 +486,7 @@
         const modalFragments = {
             modal2FA:            'core/modals/auth-modal/auth-modal.html',
             modalStatus:         'core/modals/my-profile-modal/status-modal.html',
+            modalKeybinds:       'core/keybinds/keybind-modal.html',
             modalFriendDetail:   'core/modals/user-modal/user-modal.html',
             modalWorldDetail:    'core/modals/world-modal/world-modal.html',
             modalInstanceInfo:   'core/modals/instance-modal/instance-modal.html',
