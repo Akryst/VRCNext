@@ -1,5 +1,10 @@
 **2026.25.5**
 
+**Taskbar**
+* Added "VRChat Data" to Tools > Shortcuts which opens the VRChat Data folder.
+* Added "VRChat Crash Dump" to Tools > Shortcuts which opens the VRChat Crash Dump folder.
+* Added "VRCN Data" to Tools > Shortcuts which opens the VRCNext Data folder.
+
 **Keybinds**
 * Added keybinds to VRCNext for power users. You now have a large set of useful shortcuts to do many things faster.
 * Added `CTRL + K` to quickly open the Smart Search window globally.
