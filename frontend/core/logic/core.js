@@ -68,7 +68,9 @@ function fmtTimeSeconds(d) {
 
 let relayOn = false, settings = { webhooks: [{}, {}, {}, {}], folders: [], extraExe: [] }, postedFiles = [], selectedFolderIdx = -1;
 let favorites = new Set(), showFavOnly = false, libraryFiles = [];
-let _prevTab = -1;
+let _prevTab = 0;
+let _lazyUnloadDelay = 0; // Lazy Unload Timer. not tested yet
+let _lazyUnloadTimer = null;
 let hiddenMedia = new Set();
 try { hiddenMedia = new Set(JSON.parse(localStorage.getItem('vrcnext_hidden') || '[]')); } catch {}
 const thumbCache = {};
@@ -1093,7 +1095,50 @@ function toggleNavGroup(id) {
     localStorage.setItem('vrcnext_navgroup_' + id, group.classList.contains('collapsed') ? '1' : '0');
 }
 
+const _LAZY_PH = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+function _unloadTabImages(tabEl) {
+    let count = 0;
+    tabEl.querySelectorAll('img').forEach(img => {
+        const s = img.src;
+        if (!s || s === _LAZY_PH || img.dataset.lazySrc) return;
+        img.dataset.lazySrc = s;
+        img.src = _LAZY_PH;
+        count++;
+    });
+    tabEl.querySelectorAll('[style*="background-image"]').forEach(el => {
+        const bg = el.style.backgroundImage;
+        if (!bg || bg === 'none' || el.dataset.lazyBg) return;
+        el.dataset.lazyBg = bg;
+        el.style.backgroundImage = `url('${_LAZY_PH}')`;
+        count++;
+    });
+    if (count > 0) {
+        const tabIdx = Array.from(document.querySelectorAll('.tab')).indexOf(tabEl);
+        addLog(`[Unload] Unloaded ${count} image${count !== 1 ? 's' : ''} from Tab ${tabIdx} from memory.`, 'info');
+    }
+}
+
+function _reloadTabImages(tabEl) {
+    tabEl.querySelectorAll('img[data-lazy-src]').forEach(img => {
+        img.src = img.dataset.lazySrc;
+        delete img.dataset.lazySrc;
+    });
+    tabEl.querySelectorAll('[data-lazy-bg]').forEach(el => {
+        el.style.backgroundImage = el.dataset.lazyBg;
+        delete el.dataset.lazyBg;
+    });
+}
+
 function showTab(i) {
+    clearTimeout(_lazyUnloadTimer);
+
+    const _tabs = document.querySelectorAll('.tab');
+    const _prevTabEl = (_prevTab >= 0 && _prevTab !== i) ? _tabs[_prevTab] : null;
+    const _nextTabEl = _tabs[i];
+
+    if (_nextTabEl) _reloadTabImages(_nextTabEl);
+
     if (_prevTab === 7 && i !== 7) destroyLibrary();
     _prevTab = i;
     document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', j === i));
@@ -1141,6 +1186,15 @@ function showTab(i) {
     if (i === 18) vfOnTabOpen();
     if (i === 21) onPerminiTabOpen();
     if (i === 22) { kxdInitLangSelects(); kxdOnTabOpen(); }
+
+    if (_prevTabEl) {
+        if (_lazyUnloadDelay === 0) {
+            _unloadTabImages(_prevTabEl);
+        } else {
+            _lazyUnloadTimer = setTimeout(() => _unloadTabImages(_prevTabEl), _lazyUnloadDelay);
+        }
+    }
+
     document.documentElement.dispatchEvent(new Event('tabchange'));
 }
 
