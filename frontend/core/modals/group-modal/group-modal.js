@@ -438,7 +438,7 @@ function renderGroupDetail(g) {
         ${g.canManageRoles ? `<div id="gdTabRoles" style="display:none;">${rolesTab}</div>` : ''}
         ${g.canBan ? `<div id="gdTabBanned" style="display:none;">${bannedTab}</div>` : ''}
         <div id="gdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((g.id && _gdRawJsonCache[g.id]) || {})}</div></div>
-        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;gap:8px;">${inviteBtn}${createPostBtn}${createEventBtn}${leaveJoinBtn}</div><button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${t('common.close', 'Close')}</button></div>
+        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;gap:8px;">${inviteBtn}${createPostBtn}${createEventBtn}${leaveJoinBtn}</div><button class="vrcn-button-round" onclick="closeGroupDetail()">${t('common.close', 'Close')}</button></div>
     </div>`;
     applyGroupDetailTranslations(g);
 }
