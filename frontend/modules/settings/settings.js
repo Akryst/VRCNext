@@ -222,6 +222,8 @@ function saveSettings() {
             gpuShaderCache:     document.getElementById('setPerfShaderCache')?.checked  ?? false,
             v8Heap128:          document.getElementById('setPerfV8Heap')?.checked       ?? false,
             twoRenderProcesses: document.getElementById('setPerfRenderProc')?.checked   ?? false,
+            animationsEnabled:  document.getElementById('setPerfAnimations')?.checked   ?? true,
+            blurEnabled:        document.getElementById('setPerfBlur')?.checked         ?? true,
             avtrdbReportDeleted: document.getElementById('setAvtrdbReport').checked,
             avtrdbSubmitAvatars: document.getElementById('setAvtrdbSubmit').checked,
             avtrIcuReportDeleted: document.getElementById('setAvtrIcuReport').checked,
@@ -272,7 +274,8 @@ function initAutoSave() {
         'setVfAutoStartVR','setVfAutoStartDesktop',
         'setDpAutoStartVR','setDpAutoStartDesktop',
         'setImgCacheEnabled','setImgCacheLimit','setImgCacheOptimizeEnabled','setMemoryTrimEnabled','setSendCrashData','setRestartAfterCrash',
-        'setPerfGpuAccel','setPerfShaderCache','setPerfV8Heap','setPerfRenderProc'];
+        'setPerfGpuAccel','setPerfShaderCache','setPerfV8Heap','setPerfRenderProc',
+        'setPerfAnimations','setPerfBlur'];
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -558,6 +561,12 @@ function loadSettingsToUI(s) {
     _perfSet('setPerfShaderCache', s.GpuShaderCache     ?? s.gpuShaderCache     ?? false);
     _perfSet('setPerfV8Heap',      s.V8Heap128          ?? s.v8Heap128          ?? false);
     _perfSet('setPerfRenderProc',  s.TwoRenderProcesses ?? s.twoRenderProcesses ?? false);
+    const animationsEnabled = s.AnimationsEnabled ?? s.animationsEnabled ?? true;
+    const blurEnabled       = s.BlurEnabled       ?? s.blurEnabled       ?? true;
+    _perfSet('setPerfAnimations', animationsEnabled);
+    _perfSet('setPerfBlur',       blurEnabled);
+    applyAnimationsSetting(animationsEnabled);
+    applyBlurSetting(blurEnabled);
     const perfHint = document.getElementById('perfRestartHint');
     if (perfHint) perfHint.style.display = 'none';
 
@@ -636,6 +645,27 @@ function onSearchDebounceMsChange() {
     if (typeof rebuildSearchDebouncers === 'function') rebuildSearchDebouncers(ms);
     autoSave();
 }
+
+function applyAnimationsSetting(enabled) {
+    document.documentElement.classList.toggle('no-animations', !enabled);
+}
+
+function applyBlurSetting(enabled) {
+    document.documentElement.classList.toggle('no-blur', !enabled);
+}
+
+// Intercept Web Animations API (.animate()) to respect the no-animations setting.
+// CSS rules cannot control el.animate() calls (drag FLIP, ghost-snap, etc.).
+(function() {
+    const _origAnimate = Element.prototype.animate;
+    Element.prototype.animate = function(keyframes, options) {
+        if (document.documentElement.classList.contains('no-animations')) {
+            if (typeof options === 'number') options = 0;
+            else options = Object.assign({}, options || {}, { duration: 0 });
+        }
+        return _origAnimate.call(this, keyframes, options);
+    };
+})();
 
 // Text Tools (Debugging).
 let _textToolsEnabled = false;

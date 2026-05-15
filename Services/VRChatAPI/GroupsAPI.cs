@@ -241,6 +241,31 @@ public class GroupsAPI(VRChatApiService ctx)
         return new JArray();
     }
 
+    public async Task<JObject?> FindGroupMemberByDisplayNameAsync(string groupId, string displayName, string userId)
+    {
+        if (!ctx.IsLoggedIn || string.IsNullOrEmpty(userId)) return null;
+        const int pageSize = 100;
+        const int maxPages = 10;
+        try
+        {
+            for (int page = 0; page < maxPages; page++)
+            {
+                var resp = await ctx._http.GetAsync($"{VRChatApiService.BASE}/groups/{groupId}/members?n={pageSize}&offset={page * pageSize}&sort=joinedAt:desc");
+                if (!resp.IsSuccessStatusCode)
+                {
+                    ctx.Log($"FindGroupMember({groupId}/{displayName}): {(int)resp.StatusCode}");
+                    break;
+                }
+                var arr = JArray.Parse(await resp.Content.ReadAsStringAsync());
+                var match = arr.FirstOrDefault(m => m["userId"]?.ToString() == userId) as JObject;
+                if (match != null) return match;
+                if (arr.Count < pageSize) break;
+            }
+        }
+        catch (Exception ex) { ctx.Log($"FindGroupMember exception: {ex.Message}"); }
+        return null;
+    }
+
     public async Task<JArray> SearchGroupMembersAsync(string groupId, string query)
     {
         if (!ctx.IsLoggedIn) return new JArray();

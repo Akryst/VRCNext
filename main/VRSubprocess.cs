@@ -6,6 +6,7 @@ using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using VRCNext.Services;
+using VRCNext.Services.Helpers;
 
 namespace VRCNext;
 
@@ -37,10 +38,11 @@ static class VRSubprocess
         var http = new HttpClient(httpHandler);
         http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", AppInfo.UserAgent);
 
+        ImageCacheHelper.Initialize(http);
+
         void Log(string s) => SendLine(new JObject { ["t"] = "log", ["text"] = s });
 
         var vro = new VROverlayService(Log);
-        vro.SetAuthHttpClient(http);
 
         var sf = new SteamVRService(Log);
 
@@ -287,8 +289,25 @@ static class VRSubprocess
             case "sf_reset":
                 sf.ResetOffset();
                 break;
+
+            case "trim":
+                _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        System.Runtime.GCSettings.LargeObjectHeapCompactionMode =
+                            System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+                        GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+                        EmptyWorkingSet(System.Diagnostics.Process.GetCurrentProcess().Handle);
+                    }
+                    catch { }
+                });
+                break;
         }
     }
+
+    [System.Runtime.InteropServices.DllImport("psapi.dll")]
+    private static extern bool EmptyWorkingSet(nint hProcess);
 
     private static readonly object _writeLock = new();
 

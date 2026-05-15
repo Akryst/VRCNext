@@ -438,7 +438,7 @@ function renderGroupDetail(g) {
         ${g.canManageRoles ? `<div id="gdTabRoles" style="display:none;">${rolesTab}</div>` : ''}
         ${g.canBan ? `<div id="gdTabBanned" style="display:none;">${bannedTab}</div>` : ''}
         <div id="gdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((g.id && _gdRawJsonCache[g.id]) || {})}</div></div>
-        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;gap:8px;">${inviteBtn}${createPostBtn}${createEventBtn}${leaveJoinBtn}</div><button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${t('common.close', 'Close')}</button></div>
+        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;gap:8px;">${inviteBtn}${createPostBtn}${createEventBtn}${leaveJoinBtn}</div><button class="vrcn-button-round" onclick="closeGroupDetail()">${t('common.close', 'Close')}</button></div>
     </div>`;
     applyGroupDetailTranslations(g);
 }
@@ -602,7 +602,10 @@ function renderGroupMemberCard(m) {
         if (!window._gdMemberRoleIds) window._gdMemberRoleIds = {};
         window._gdMemberRoleIds[m.id] = m.roleIds;
     }
-    return renderProfileItem(m, `navOpenModal('friend','${jsq(m.id || '')}','${jsq(m.displayName || '')}')`);
+    const html = renderProfileItem(m, `navOpenModal('friend','${jsq(m.id || '')}','${jsq(m.displayName || '')}')`);
+    const thumbUrl = m.currentAvatarThumbnailImageUrl || '';
+    if (!thumbUrl) return html;
+    return html.replace('<div class="vrcn-profile-item"', `<div class="vrcn-profile-item" data-avatar-thumb="${esc(thumbUrl)}"`);
 }
 
 const _grpFieldIds = {

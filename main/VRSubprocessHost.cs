@@ -318,6 +318,8 @@ public sealed class VRSubprocessHost : IDisposable
 
     public void SfReset() => Send("sf_reset");
 
+    public void TrimMemory() => Send("trim");
+
     public void Dispose()
     {
         if (_disposed) return;
@@ -363,6 +365,7 @@ public sealed class VRSubprocessHost : IDisposable
     public void SfDisconnect() { }
     public void SfConfig(float a, bool b, bool c, bool d, bool e, bool f, bool g) { }
     public void SfReset() { }
+    public void TrimMemory() { }
     public void VroWaterConfig(bool enabled, int intervalSec) { }
     public void VroScaleConfig(bool a0, bool a, bool b, System.Collections.Generic.List<uint> c, int d, float e, int f = 25) { }
     public void VroScaleUpdate(float scale) { }

@@ -227,29 +227,17 @@ public partial class AppShell
     private void QueueAvtrIcuReport(List<string> ids)
     {
         if (!_settings.AvtrIcuReportDeleted) return;
-        _ = Task.Run(async () =>
+        int added = 0;
+        lock (_avtrIcuReportQueue)
         {
-            int added = 0;
             foreach (var id in ids)
-            {
-                try
-                {
-                    bool exists = await _core.Avatars.CheckAvatarExistsAvtrIcuAsync(id);
-                    if (!exists) continue;
-                    lock (_avtrIcuReportQueue)
-                    {
-                        if (_reportedToAvtrIcu.Add(id)) { _avtrIcuReportQueue.Add(id); added++; }
-                    }
-                }
-                catch { }
-                await Task.Delay(500);
-            }
-            if (added > 0)
-            {
-                _avtrIcuReportTimer?.Dispose();
-                _avtrIcuReportTimer = new System.Threading.Timer(_ => _ = Task.Run(FlushAvtrIcuReportQueue), null, 60_000, Timeout.Infinite);
-            }
-        });
+                if (_reportedToAvtrIcu.Add(id)) { _avtrIcuReportQueue.Add(id); added++; }
+        }
+        if (added > 0)
+        {
+            _avtrIcuReportTimer?.Dispose();
+            _avtrIcuReportTimer = new System.Threading.Timer(_ => _ = Task.Run(FlushAvtrIcuReportQueue), null, 60_000, Timeout.Infinite);
+        }
     }
 
     private async Task FlushAvtrIcuReportQueue()
@@ -272,21 +260,8 @@ public partial class AppShell
             if (!_avtrIcuSubmittedIds.Add(avatarId)) return;
             _avtrIcuSubmitQueue.Add(avatarId);
         }
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                bool exists = await _core.Avatars.CheckAvatarExistsAvtrIcuAsync(avatarId);
-                if (exists)
-                {
-                    lock (_avtrIcuSubmitQueue) _avtrIcuSubmitQueue.Remove(avatarId);
-                    return;
-                }
-                _avtrIcuSubmitTimer?.Dispose();
-                _avtrIcuSubmitTimer = new System.Threading.Timer(_ => _ = Task.Run(FlushAvtrIcuSubmitQueue), null, 60_000, Timeout.Infinite);
-            }
-            catch { }
-        });
+        _avtrIcuSubmitTimer?.Dispose();
+        _avtrIcuSubmitTimer = new System.Threading.Timer(_ => _ = Task.Run(FlushAvtrIcuSubmitQueue), null, 60_000, Timeout.Infinite);
     }
 
     private async Task FlushAvtrIcuSubmitQueue()
@@ -707,11 +682,12 @@ public partial class AppShell
                         {
                             try
                             {
-                                const int avLimit = 20;
+                                int avLimit;
                                 List<object> list;
 
                                 if (avSearchDb == "avtricu")
                                 {
+                                    avLimit = 100;
                                     var similarMatch = System.Text.RegularExpressions.Regex.Match(avSearchQuery, @"^similar:\s*(avtr_[\w-]+)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                                     var raw = similarMatch.Success
                                         ? await _core.Avatars.SearchSimilarAvatarsAvtrIcuAsync(similarMatch.Groups[1].Value, avLimit)
@@ -733,6 +709,7 @@ public partial class AppShell
                                 }
                                 else if (avSearchDb == "all")
                                 {
+                                    avLimit = 20;
                                     var similarMatch = System.Text.RegularExpressions.Regex.Match(avSearchQuery, @"^similar:\s*(avtr_[\w-]+)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
                                     Task<JArray> avtrdbTask, avtrIcuTask;
@@ -793,6 +770,7 @@ public partial class AppShell
                                 }
                                 else
                                 {
+                                    avLimit = 20;
                                     var raw = await _core.Avatars.SearchAvatarsAsync(avSearchQuery, avLimit, avSearchPage);
                                     list = raw.Cast<JObject>().Select(a => (object)new
                                     {

@@ -2,6 +2,9 @@
 let _avFavRefreshTimer = null;
 let _avEditMode = false;
 let _avEditSelected = new Set();
+let _avIcuBuffer = [];
+let _avIcuBufferCursor = 0;
+let _avIcuFetchHasMore = false;
 function avatarEmptyMessage(key, fallback) {
     return `<div class="empty-msg">${t(key, fallback)}</div>`;
 }
@@ -298,6 +301,9 @@ function setAvatarSearchDb(db) {
     avatarSearchResults = [];
     avatarSearchQuery = '';
     avatarSearchHasMore = false;
+    _avIcuBuffer = [];
+    _avIcuBufferCursor = 0;
+    _avIcuFetchHasMore = false;
     const grid = document.getElementById('avatarSearchGrid');
     if (grid) grid.innerHTML = avatarEmptyMessage('avatars.search.empty_prompt', 'Search for public avatars');
     document.getElementById('avatarCount').textContent = '';
@@ -310,7 +316,18 @@ function doAvatarSearch(loadMore) {
         avatarSearchPage = 0;
         avatarSearchResults = [];
         avatarSearchQuery = q;
+        avatarSearchHasMore = false;
+        _avIcuBuffer = [];
+        _avIcuBufferCursor = 0;
+        _avIcuFetchHasMore = false;
         document.getElementById('avatarSearchGrid').innerHTML = sk('avatar', 6);
+    } else if (avatarSearchDb === 'avtricu' && _avIcuBufferCursor < _avIcuBuffer.length) {
+        const slice = _avIcuBuffer.slice(_avIcuBufferCursor, _avIcuBufferCursor + 20);
+        _avIcuBufferCursor += slice.length;
+        avatarSearchResults = [...avatarSearchResults, ...slice];
+        avatarSearchHasMore = _avIcuBufferCursor < _avIcuBuffer.length || _avIcuFetchHasMore;
+        renderSearchGrid();
+        return;
     } else {
         avatarSearchPage++;
     }
