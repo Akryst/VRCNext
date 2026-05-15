@@ -541,9 +541,19 @@ window.external.receiveMessage(rawMsg => {
                 renderDashOwnAvatars();
                 break;
             case 'vrcAvatarSearchResults':
-                if (payload.page === 0) avatarSearchResults = payload.results || [];
-                else avatarSearchResults = [...avatarSearchResults, ...(payload.results || [])];
-                avatarSearchHasMore = payload.hasMore || false;
+                if (avatarSearchDb === 'avtricu') {
+                    _avIcuBuffer = payload.results || [];
+                    _avIcuFetchHasMore = payload.hasMore || false;
+                    const _icuSlice = _avIcuBuffer.slice(0, 20);
+                    _avIcuBufferCursor = _icuSlice.length;
+                    if (payload.page === 0) avatarSearchResults = _icuSlice;
+                    else avatarSearchResults = [...avatarSearchResults, ..._icuSlice];
+                    avatarSearchHasMore = _avIcuBufferCursor < _avIcuBuffer.length || _avIcuFetchHasMore;
+                } else {
+                    if (payload.page === 0) avatarSearchResults = payload.results || [];
+                    else avatarSearchResults = [...avatarSearchResults, ...(payload.results || [])];
+                    avatarSearchHasMore = payload.hasMore || false;
+                }
                 renderSearchGrid();
                 break;
             case 'vrcAvatarBatchCached':
