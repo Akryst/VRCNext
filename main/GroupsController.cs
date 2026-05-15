@@ -9,6 +9,7 @@ namespace VRCNext;
 public class GroupsController
 {
     private readonly CoreLibrary _core;
+    private readonly FriendsController _friends;
     private int _groupsInFlight = 0;
     private Dictionary<string, GroupMemberPerms> _memberPerms = new();
 
@@ -17,9 +18,10 @@ public class GroupsController
         bool CanKick, bool CanBan, bool CanManageRoles, bool CanAssignRoles,
         string Visibility);
 
-    public GroupsController(CoreLibrary core)
+    public GroupsController(CoreLibrary core, FriendsController friends)
     {
         _core = core;
+        _friends = friends;
     }
 
     // Represented group
@@ -415,7 +417,7 @@ public class GroupsController
                                     id = m["userId"]?.ToString() ?? "",
                                     displayName = m["user"]?["displayName"]?.ToString() ?? m["displayName"]?.ToString() ?? "",
                                     image = m["user"] is JObject gmu
-                                        ? ImageCacheHelper.GetUserUrl(m["userId"]?.ToString(), VRChatApiService.GetUserImage(gmu))
+                                        ? ImageCacheHelper.GetUserUrl(m["userId"]?.ToString(), _friends.GetNameImage(m["userId"]?.ToString() ?? "").image is string fi && !string.IsNullOrEmpty(fi) ? fi : VRChatApiService.GetUserImage(gmu))
                                         : "",
                                     status = m["user"]?["status"]?.ToString() ?? "",
                                     statusDescription = m["user"]?["statusDescription"]?.ToString() ?? "",
@@ -460,7 +462,7 @@ public class GroupsController
                             id = m["userId"]?.ToString() ?? "",
                             displayName = m["user"]?["displayName"]?.ToString() ?? m["displayName"]?.ToString() ?? "",
                             image = m["user"] is JObject gmu2
-                                ? ImageCacheHelper.GetUserUrl(m["userId"]?.ToString(), VRChatApiService.GetUserImage(gmu2))
+                                ? ImageCacheHelper.GetUserUrl(m["userId"]?.ToString(), _friends.GetNameImage(m["userId"]?.ToString() ?? "").image is string fi2 && !string.IsNullOrEmpty(fi2) ? fi2 : VRChatApiService.GetUserImage(gmu2))
                                 : "",
                             status = m["user"]?["status"]?.ToString() ?? "",
                             statusDescription = m["user"]?["statusDescription"]?.ToString() ?? "",
@@ -488,7 +490,7 @@ public class GroupsController
                             id = m["userId"]?.ToString() ?? "",
                             displayName = m["user"]?["displayName"]?.ToString() ?? m["displayName"]?.ToString() ?? "",
                             image = m["user"] is JObject sgmu
-                                ? ImageCacheHelper.GetUserUrl(m["userId"]?.ToString(), VRChatApiService.GetUserImage(sgmu))
+                                ? ImageCacheHelper.GetUserUrl(m["userId"]?.ToString(), _friends.GetNameImage(m["userId"]?.ToString() ?? "").image is string sfi && !string.IsNullOrEmpty(sfi) ? sfi : VRChatApiService.GetUserImage(sgmu))
                                 : "",
                             status = m["user"]?["status"]?.ToString() ?? "",
                             statusDescription = m["user"]?["statusDescription"]?.ToString() ?? "",
@@ -775,7 +777,7 @@ public class GroupsController
                         var list = bans.Select(b => new {
                             id          = b["userId"]?.ToString() ?? "",
                             displayName = b["user"]?["displayName"]?.ToString() ?? b["displayName"]?.ToString() ?? "",
-                            image       = ImageCacheHelper.GetUserUrl(b["userId"]?.ToString(), b["user"] is JObject gu ? VRChatApiService.GetUserImage(gu) : ""),
+                            image       = ImageCacheHelper.GetUserUrl(b["userId"]?.ToString(), _friends.GetNameImage(b["userId"]?.ToString() ?? "").image is string bfi && !string.IsNullOrEmpty(bfi) ? bfi : (b["user"] is JObject gu ? VRChatApiService.GetUserImage(gu) : "")),
                             bannedAt    = b["bannedAt"]?.ToString() ?? b["createdAt"]?.ToString() ?? "",
                         }).ToList();
                         _core.SendToJS("vrcGroupBans", new { groupId = gbId, bans = list });

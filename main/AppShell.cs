@@ -167,7 +167,7 @@ public partial class AppShell
         _friends = new FriendsController(_core);
         _instance = new InstanceController(_core, _friends);
         _notifications = new NotificationsController(_core, _friends, _instance);
-        _groups = new GroupsController(_core);
+        _groups = new GroupsController(_core, _friends);
         _photos = new PhotosController(_core, _friends, _instance);
         _timelineCtrl = new TimelineController(_core, _friends, _instance, _photos);
         _vroCtrl = new VROverlayController(_core, _friends);
