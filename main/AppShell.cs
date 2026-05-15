@@ -163,7 +163,7 @@ public partial class AppShell
         _core.AvtrdbSubmit        = id => { QueueAvtrdbSubmit(id); QueueAvtrIcuSubmit(id); };
         _core.PrefetchSharedContent = () => PrefetchSharedContentAsync();
         _core.LoadPage = path => _window.Load(path);
-        _memTrim.OnTrim = () => _core.TrimCaches();
+        _memTrim.OnTrim = () => { _core.TrimCaches(); _core.VrOverlay?.TrimMemory(); };
         _friends = new FriendsController(_core);
         _instance = new InstanceController(_core, _friends);
         _notifications = new NotificationsController(_core, _friends, _instance);

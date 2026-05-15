@@ -289,8 +289,25 @@ static class VRSubprocess
             case "sf_reset":
                 sf.ResetOffset();
                 break;
+
+            case "trim":
+                _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        System.Runtime.GCSettings.LargeObjectHeapCompactionMode =
+                            System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+                        GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+                        EmptyWorkingSet(System.Diagnostics.Process.GetCurrentProcess().Handle);
+                    }
+                    catch { }
+                });
+                break;
         }
     }
+
+    [System.Runtime.InteropServices.DllImport("psapi.dll")]
+    private static extern bool EmptyWorkingSet(nint hProcess);
 
     private static readonly object _writeLock = new();
 
