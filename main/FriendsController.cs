@@ -1591,6 +1591,7 @@ public class FriendsController
                 _core.SendToJS("vrcFriendDetailError", new { error = "Could not load user profile" });
                 return;
             }
+            ModalCacheHelper.Mark(userId);
             _core.TimeEngine.SaveUserProfileCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(payload));
             _core.SendToJS("vrcFriendDetail", payload);
         }
