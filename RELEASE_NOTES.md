@@ -3,6 +3,11 @@
 **Avatar Search Imrpvoements**
 * Avtr.icu will now work properly instead of not showing any search result because of 429 (too many request issues) instead of loading 20 avatars at a time we pre load 300 of them.
 
+**Avatar Lookup**
+* Avatar Lookup finds now Avatars of an user even if the user has VRChat+ and a Custom profile image.
+* This doesn't mean it will work in every single case! it uses the Represented Group response or Mutual response from VRChats API 
+as these contain an Avatar Image URL.
+
 **Improved Caching**
 * Reduced API Calls to VRChats API Servers when using the breadcrumb navigation.
 * It will use a 5 minute cooldown which just blocks API requests during this short session.
@@ -25,3 +30,4 @@
 
 **Fixes**
 * Fixed an race condition between mutuals and group members trying to re-download profile icons
+* Fixed an issue that showed the "Backdrop" filter even when the modal was closed.

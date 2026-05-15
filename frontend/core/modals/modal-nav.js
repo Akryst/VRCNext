@@ -70,6 +70,10 @@ function navClear() {
     document.documentElement.classList.remove('modal-nav-instant');
     document.documentElement.classList.remove('modal-nav-active');
     _navHideBackdrop();
+        ['modalFriendDetail','modalWorldDetail','modalDetail','modalAvatarDetail','modalMyInstance'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
     _navRender();
 }
 
