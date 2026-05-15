@@ -1,5 +1,10 @@
 **2026.25.7**
 
+**Performance Settings**
+* Animation Settings: Disables all animations and transitions in VRCNext. This can speed up opening dialogs and switching between them, and may also save a little bit of CPU costs.
+* Blur Settings: Disables blur filters on modals and overlays. Instead of a blurred background, a dark overlay (75%) is shown. Especially useful when GPU acceleration is disabled, as blur effects are CPU-intensive. It is recommended to disable Blur Filters when using the app without GPU acceleration.
+* Both are ON by default and can be turned off.
+
 **VR Overlay Memory Leak**
 
 * Fixed a memory leak in the VR Overlay where images and events were not properly disposed from memory.
