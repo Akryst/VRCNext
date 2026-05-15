@@ -554,7 +554,8 @@
             const id = extractFriendId(memberCard);
             if (id) {
                 const memberRoleIds = (window._gdMemberRoleIds && window._gdMemberRoleIds[id]) || [];
-                return buildGroupMemberItems(id, window._currentGroupDetail, memberRoleIds);
+                const avatarThumb = memberCard.dataset.avatarThumb || '';
+                return buildGroupMemberItems(id, window._currentGroupDetail, memberRoleIds, avatarThumb);
             }
         }
 
@@ -563,11 +564,14 @@
             const id = extractFriendId(friendCard);
             if (id) {
                 const items = buildFriendItems(id, friendCard);
-                const isInstanceRow = friendCard.classList.contains('iim-user-tr') || friendCard.classList.contains('inst-user-row');
-                if (isInstanceRow) {
-                    items.unshift('sep');
-                    items.unshift({ icon: 'checkroom', label: cm('check_for_avatar', 'Check for Avatar'), action: () => ctxCheckAvatar(id) });
-                }
+                const isMutualCard = !!friendCard.closest('#fdMutualsGrid');
+                const avatarThumb = isMutualCard ? (friendCard.dataset.avatarThumb || '') : '';
+                const fileId = avatarThumb.match(/file_[a-f0-9-]{36}/i)?.[0] || '';
+                const checkAction = fileId
+                    ? () => sendToCS({ action: 'vrcLookupAvatarByFileId', fileId, userId: id, openModal: true })
+                    : () => ctxCheckAvatar(id);
+                items.unshift('sep');
+                items.unshift({ icon: 'checkroom', label: cm('check_for_avatar', 'Check for Avatar'), action: checkAction });
                 return items;
             }
         }
@@ -803,7 +807,8 @@
         positionSubmenu(parentBtn);
     }
 
-    function buildGroupMemberItems(userId, grpCtx, memberRoleIds = []) {
+    function buildGroupMemberItems(userId, grpCtx, memberRoleIds = [], avatarThumb = '') {
+        const fileId = avatarThumb.match(/file_[a-f0-9-]{36}/i)?.[0] || '';
         const modItems = [];
         if (grpCtx.canKick) {
             modItems.push({
@@ -834,8 +839,14 @@
             }
         }
         const friendItems = buildFriendItems(userId);
-        if (modItems.length > 0) return [...modItems, 'sep', ...friendItems];
-        return friendItems;
+        let items;
+        if (modItems.length > 0) items = [...modItems, 'sep', ...friendItems];
+        else items = friendItems;
+        if (fileId) {
+            items.unshift('sep');
+            items.unshift({ icon: 'checkroom', label: cm('check_for_avatar', 'Check for Avatar'), action: () => sendToCS({ action: 'vrcLookupAvatarByFileId', fileId, userId, openModal: true }) });
+        }
+        return items;
     }
 
     function showRoleAssignSubmenu(userId, grpCtx, memberRoleIds, parentBtn) {

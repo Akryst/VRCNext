@@ -276,15 +276,34 @@ public class FriendsController
                         {
                             try
                             {
+                                const string RobotFileId = "file_0e8c4e32-7444-44ea-ade4-313c010d4bae";
                                 string fileId = "";
                                 JObject? stored = GetStoreValue(uid);
                                 if (stored != null)
                                     fileId = ExtractAvatarFileId(stored);
+                                if (fileId == RobotFileId) fileId = "";
 
+                                JObject? userObj = null;
                                 if (string.IsNullOrEmpty(fileId))
                                 {
-                                    var user = await _core.Users.GetUserAsync(uid);
-                                    if (user != null) fileId = ExtractAvatarFileId(user);
+                                    userObj = await _core.Users.GetUserAsync(uid);
+                                    if (userObj != null) fileId = ExtractAvatarFileId(userObj);
+                                    if (fileId == RobotFileId) fileId = "";
+                                }
+
+                                // Fallback: represented group → members/search endpoint (exposes real avatar URL)
+                                if (string.IsNullOrEmpty(fileId))
+                                {
+                                    var displayName = stored?["displayName"]?.ToString()
+                                                   ?? userObj?["displayName"]?.ToString() ?? "";
+                                    var repGroup = await _core.Users.GetUserRepresentedGroupAsync(uid);
+                                    var groupId = repGroup?["groupId"]?.ToString() ?? repGroup?["id"]?.ToString() ?? "";
+                                    if (!string.IsNullOrEmpty(groupId) && !string.IsNullOrEmpty(displayName))
+                                    {
+                                        var member = await _core.Groups.FindGroupMemberByDisplayNameAsync(groupId, displayName, uid);
+                                        if (member != null)
+                                            fileId = ExtractAvatarFileId(member["user"] as JObject ?? member);
+                                    }
                                 }
 
                                 string avtrId = "";
@@ -1715,6 +1734,7 @@ public class FriendsController
                 image = muImage, status = muStatus,
                 statusDescription = muObj["statusDescription"]?.ToString() ?? "",
                 presence = muIsOffline ? "offline" : muIsInGame ? "game" : "web",
+                currentAvatarThumbnailImageUrl = muObj["currentAvatarThumbnailImageUrl"]?.ToString() ?? "",
             });
         }
         return list;

@@ -602,7 +602,10 @@ function renderGroupMemberCard(m) {
         if (!window._gdMemberRoleIds) window._gdMemberRoleIds = {};
         window._gdMemberRoleIds[m.id] = m.roleIds;
     }
-    return renderProfileItem(m, `navOpenModal('friend','${jsq(m.id || '')}','${jsq(m.displayName || '')}')`);
+    const html = renderProfileItem(m, `navOpenModal('friend','${jsq(m.id || '')}','${jsq(m.displayName || '')}')`);
+    const thumbUrl = m.currentAvatarThumbnailImageUrl || '';
+    if (!thumbUrl) return html;
+    return html.replace('<div class="vrcn-profile-item"', `<div class="vrcn-profile-item" data-avatar-thumb="${esc(thumbUrl)}"`);
 }
 
 const _grpFieldIds = {

@@ -71,7 +71,10 @@ function _applyAvatarSection(payload) {
 }
 
 function handleAvatarByFileId(payload) {
-    if (!payload.avatarId) return;
+    if (!payload.avatarId) {
+        if (payload.openModal) showToast(false, t('context_menu.avatar_not_found', 'No public avatar found'));
+        return;
+    }
     _fdLastAvatarPayload = payload;
     _applyAvatarSection(payload);
     if (payload.openModal) navOpenModal('avatar', payload.avatarId, payload.avatarName || '');
@@ -191,7 +194,12 @@ function filterFdMutuals() {
     const page = window._fdMutualsPage || 0;
     const slice = filtered.slice(page * MINI_PG_SIZE, (page + 1) * MINI_PG_SIZE);
     grid.innerHTML = slice.length
-        ? slice.map(mu => renderProfileItem(mu, `navOpenModal('friend','${jsq(mu.id)}','${jsq(mu.displayName || '')}')`)).join('')
+        ? slice.map(mu => {
+            const html = renderProfileItem(mu, `navOpenModal('friend','${jsq(mu.id)}','${jsq(mu.displayName || '')}')`);
+            const thumbUrl = mu.currentAvatarThumbnailImageUrl || '';
+            if (!thumbUrl) return html;
+            return html.replace('<div class="vrcn-profile-item"', `<div class="vrcn-profile-item" data-avatar-thumb="${esc(thumbUrl)}"`);
+        }).join('')
         : `<div style="padding:12px;grid-column:1/-1;text-align:center;font-size:12px;color:var(--tx3);">${t('profiles.mutuals.no_results', 'No results')}</div>`;
     setMiniPaginator('fdMutualsPageBar', buildMiniPaginator(page, totalPages, 'fdMutualsGoPage'));
 }
