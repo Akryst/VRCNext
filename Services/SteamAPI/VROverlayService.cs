@@ -15,6 +15,7 @@ using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
 using Windows.Media.Control;
+using VRCNext.Services.Helpers;
 
 namespace VRCNext.Services
 {
@@ -113,7 +114,6 @@ namespace VRCNext.Services
 
         // Profile image cache (notification avatars)
         private readonly Dictionary<string, Bitmap?> _notifImgCache = new();
-        private HttpClient? _authHttpClient;
 
         // Join button cooldowns (friendId → click time)
         private readonly Dictionary<string, DateTime> _joinCooldowns = new();
@@ -593,9 +593,6 @@ namespace VRCNext.Services
 
         public VROverlayService(Action<string> log) => _log = log;
 
-        /// <summary>Authenticated VRChat HTTP client for direct image downloads in the overlay.</summary>
-        public void SetAuthHttpClient(HttpClient? client) => _authHttpClient = client;
-
         // Public API
 
         public bool Connect()
@@ -961,19 +958,24 @@ namespace VRCNext.Services
                 while (_notifications.Count > 4) _notifications.RemoveAt(_notifications.Count - 1);
             }
             if (!string.IsNullOrEmpty(imageUrl))
-                _ = Task.Run(() => EnsureNotifImageAsync(imageUrl));
+            {
+                var fid = friendId;
+                _ = Task.Run(() => EnsureNotifImageAsync(imageUrl, fid));
+            }
             _dirty = true;
         }
 
         public void UpdateNotification(string notifId, string? newText = null, string? newImageUrl = null, string? newFriendName = null)
         {
             if (string.IsNullOrEmpty(notifId)) return;
+            string? notifFriendId = null;
             lock (_notifications)
             {
                 for (int i = 0; i < _notifications.Count; i++)
                 {
                     if (_notifications[i].NotifId != notifId) continue;
                     var e = _notifications[i];
+                    notifFriendId = e.FriendId;
                     _notifications[i] = e with
                     {
                         EvText     = newText       ?? e.EvText,
@@ -984,49 +986,50 @@ namespace VRCNext.Services
                 }
             }
             if (!string.IsNullOrEmpty(newImageUrl))
-                _ = Task.Run(() => EnsureNotifImageAsync(newImageUrl));
+            {
+                var fid = notifFriendId ?? "";
+                _ = Task.Run(() => EnsureNotifImageAsync(newImageUrl!, fid));
+            }
             _dirty = true;
         }
 
-        private async Task EnsureNotifImageAsync(string url)
+        private async Task EnsureNotifImageAsync(string url, string friendId)
         {
             lock (_notifImgCache) { if (_notifImgCache.TryGetValue(url, out var existing) && existing != null) return; }
-            var bmp = await DownloadOverlayImageAsync(url);
+            var bmp = await LoadImageFromCacheAsync(url, friendId, "Users");
             if (bmp == null) return;
             lock (_notifImgCache) { _notifImgCache[url] = bmp; }
             _dirty = true;
         }
 
-        /// <summary>
-        /// Downloads an image for overlay rendering. Priority:
-        /// 1. Localhost URL → read bytes directly from ImageCacheService disk cache.
-        /// 2. Original VRChat URL → download directly with the authenticated HTTP client.
-        /// Returns null on failure. All errors are swallowed — caller retries on next update.
-        /// </summary>
-        private async Task<Bitmap?> DownloadOverlayImageAsync(string url)
+        private async Task EnsureLocationImageAsync(string url, string entityId, string subdir)
         {
-            if (string.IsNullOrEmpty(url) || !url.StartsWith("http")) return null;
+            lock (_locationImgCache) { if (_locationImgCache.TryGetValue(url, out var b) && b != null) return; }
+            var bmp = await LoadImageFromCacheAsync(url, entityId, subdir);
+            if (bmp == null) return;
+            lock (_locationImgCache) { _locationImgCache[url] = bmp; }
+            _dirty = true;
+        }
+
+        private async Task<Bitmap?> LoadImageFromCacheAsync(string url, string entityId, string subdir)
+        {
+            if (string.IsNullOrEmpty(url) || string.IsNullOrEmpty(entityId)) return null;
             try
             {
-                byte[]? bytes = null;
-
-                // Download with authenticated HTTP client
-                if (_authHttpClient != null)
+                string? localPath = subdir switch
                 {
-                    using var resp = await _authHttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-                    if (resp.IsSuccessStatusCode)
-                        bytes = await resp.Content.ReadAsByteArrayAsync();
-                    else
-                        _log($"[VRO-IMG] {(int)resp.StatusCode} for {url[..Math.Min(80, url.Length)]}");
-                }
-
-                if (bytes == null || bytes.Length == 0) return null;
-                using var ms = new System.IO.MemoryStream(bytes);
-                return new Bitmap(ms);
+                    "Worlds" => ImageCacheHelper.GetWorldCached(entityId)
+                                ?? await ImageCacheHelper.CacheWorldAsync(entityId, url),
+                    "Users"  => ImageCacheHelper.GetUserCached(entityId)
+                                ?? await ImageCacheHelper.CacheUserAsync(entityId, url),
+                    _        => null,
+                };
+                if (string.IsNullOrEmpty(localPath)) return null;
+                return new Bitmap(localPath);
             }
             catch (Exception ex)
             {
-                _log($"[VRO-IMG] Exception loading {url[..Math.Min(60, url.Length)]}: {ex.Message}");
+                _log($"[VRO-IMG] {subdir}/{entityId}: {ex.Message}");
                 return null;
             }
         }
@@ -1048,30 +1051,25 @@ namespace VRCNext.Services
             {
                 var wurl = e.worldImageUrl;
                 var furl = e.friendImageUrl;
+                var wid  = e.worldId;
+                var fid  = e.friendId;
                 if (!string.IsNullOrEmpty(wurl))
                 {
                     bool needed;
                     lock (_locationImgCache) needed = !_locationImgCache.TryGetValue(wurl, out var b) || b == null;
-                    if (needed) _ = Task.Run(() => EnsureLocationImageAsync(wurl));
+                    if (needed) _ = Task.Run(() => EnsureLocationImageAsync(wurl, wid, "Worlds"));
                 }
                 if (!string.IsNullOrEmpty(furl))
                 {
                     bool needed;
                     lock (_locationImgCache) needed = !_locationImgCache.TryGetValue(furl, out var b) || b == null;
-                    if (needed) _ = Task.Run(() => EnsureLocationImageAsync(furl));
+                    if (needed) _ = Task.Run(() => EnsureLocationImageAsync(furl, fid, "Users"));
                 }
             }
+            PruneLocationImageCache();
             _dirty = true;
         }
 
-        private async Task EnsureLocationImageAsync(string url)
-        {
-            lock (_locationImgCache) { if (_locationImgCache.TryGetValue(url, out var b) && b != null) return; }
-            var bmp = await DownloadOverlayImageAsync(url);
-            if (bmp == null) return;
-            lock (_locationImgCache) { _locationImgCache[url] = bmp; }
-            _dirty = true;
-        }
 
         // Online friends list (Friends tab)
 
@@ -1088,14 +1086,45 @@ namespace VRCNext.Services
             foreach (var e in entries)
             {
                 var furl = e.friendImageUrl;
+                var fid  = e.friendId;
                 if (!string.IsNullOrEmpty(furl))
                 {
                     bool needed;
                     lock (_locationImgCache) needed = !_locationImgCache.TryGetValue(furl, out var b) || b == null;
-                    if (needed) _ = Task.Run(() => EnsureLocationImageAsync(furl));
+                    if (needed) _ = Task.Run(() => EnsureLocationImageAsync(furl, fid, "Users"));
                 }
             }
+            PruneLocationImageCache();
             _dirty = true;
+        }
+
+        private void PruneLocationImageCache()
+        {
+            // Collect all URLs currently referenced by both location and friends lists
+            var active = new HashSet<string>();
+            lock (_friendLocations)
+            {
+                foreach (var e in _friendLocations)
+                {
+                    if (!string.IsNullOrEmpty(e.WorldImageUrl))  active.Add(e.WorldImageUrl);
+                    if (!string.IsNullOrEmpty(e.FriendImageUrl)) active.Add(e.FriendImageUrl);
+                }
+            }
+            lock (_onlineFriends)
+            {
+                foreach (var e in _onlineFriends)
+                    if (!string.IsNullOrEmpty(e.FriendImageUrl)) active.Add(e.FriendImageUrl);
+            }
+
+            lock (_locationImgCache)
+            {
+                var stale = _locationImgCache.Keys.Where(k => !active.Contains(k)).ToList();
+                foreach (var k in stale)
+                {
+                    _locationImgCache[k]?.Dispose();
+                    _locationImgCache.Remove(k);
+                }
+            }
         }
 
         public void UpdateMediaInfo(string title, string artist, double position, double duration, bool playing)
@@ -2558,7 +2587,7 @@ namespace VRCNext.Services
                 // Music tab: blurred art fills entire card
                 // Clip drawing to rounded card shape
                 using var cardClip = RoundedRectPath(0, 0, W, H, r);
-                var oldClip = g.Clip;
+                using var oldClip = g.Clip;
                 g.SetClip(cardClip);
 
                 // Downscale → upscale = cheap blur

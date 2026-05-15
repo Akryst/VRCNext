@@ -6,6 +6,7 @@ using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using VRCNext.Services;
+using VRCNext.Services.Helpers;
 
 namespace VRCNext;
 
@@ -37,10 +38,11 @@ static class VRSubprocess
         var http = new HttpClient(httpHandler);
         http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", AppInfo.UserAgent);
 
+        ImageCacheHelper.Initialize(http);
+
         void Log(string s) => SendLine(new JObject { ["t"] = "log", ["text"] = s });
 
         var vro = new VROverlayService(Log);
-        vro.SetAuthHttpClient(http);
 
         var sf = new SteamVRService(Log);
 
