@@ -225,7 +225,7 @@ public class FriendsController
                 }
                 break;
             }
-
+            // Refactor later for new group-mutual endpoint parsing
             case "vrcLookupAvatarByFileId":
             {
                 var fileId = msg["fileId"]?.ToString() ?? "";

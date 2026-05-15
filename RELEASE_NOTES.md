@@ -1,4 +1,7 @@
-**2026.25.7**
+**2026.25.8**
+
+**HOTFIX**
+* Forgot to register new perf settings in C# savehandler.
 
 **Avatar Search Imrpvoements**
 * Avtr.icu will now work properly instead of not showing any search result because of 429 (too many request issues) instead of loading 20 avatars at a time we pre load 300 of them.

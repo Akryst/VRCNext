@@ -485,6 +485,8 @@ public class AppSettings
     public bool GpuShaderCache      { get; set; } = false;
     public bool V8Heap128           { get; set; } = false;
     public bool TwoRenderProcesses  { get; set; } = false;
+    public bool AnimationsEnabled   { get; set; } = true;
+    public bool BlurEnabled         { get; set; } = true;
     public int  SearchDebounceMs    { get; set; } = 500;
 
     // Avatar Scaling
