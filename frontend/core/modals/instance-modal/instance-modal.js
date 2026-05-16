@@ -54,19 +54,18 @@ function openInstanceInfoModal() {
         return formatInstanceTimer(joinedAt, now);
     }
 
-    const timerTh = hasTimers ? `<th style="text-align:right;padding-right:10px;">${t('instance.table.timer', 'Timer')}</th>` : '';
-    const thead = `<thead><tr>
-        <th style="width:40px;">${t('instance.table.profile', 'Profile')}</th>
-        ${timerTh}
-        <th style="text-align:right;white-space:nowrap;">${t('instance.table.from', 'From')}</th>
-        <th style="text-align:right;white-space:nowrap;">${t('instance.table.to', 'To')}</th>
-        <th>${t('instance.table.display_name', 'Display Name')}</th>
-        <th style="width:110px;">${t('instance.table.rank', 'Rank')}</th>
-        <th>${t('instance.table.status', 'Status')}</th>
-        <th style="width:46px;text-align:center;">18+</th>
-        <th style="width:60px;text-align:center;">${t('instance.table.platform', 'Platform')}</th>
-        <th style="min-width:70px;">${t('instance.table.language', 'Language')}</th>
-    </tr></thead>`;
+    const timerHead = hasTimers ? `<div class="iim-head-cell iim-cell-right">${t('instance.table.timer', 'Timer')}</div>` : '';
+    const listHead = `<div class="iim-list-head">
+        <div class="iim-head-cell">${t('instance.table.profile', 'Profile')}</div>
+        ${timerHead}
+        <div class="iim-head-cell iim-cell-right">${t('timeline.detail.from', 'From')}</div>
+        <div class="iim-head-cell">${t('instance.table.display_name', 'Display Name')}</div>
+        <div class="iim-head-cell">${t('instance.table.rank', 'Rank')}</div>
+        <div class="iim-head-cell">${t('instance.table.status', 'Status')}</div>
+        <div class="iim-head-cell iim-cell-center">18+</div>
+        <div class="iim-head-cell iim-cell-center">${t('instance.table.platform', 'Platform')}</div>
+        <div class="iim-head-cell">${t('instance.table.language', 'Language')}</div>
+    </div>`;
 
     const copyBadge = instNum
         ? `<span class="vrcn-id-clip" onclick="copyInstanceLink('${jsq(data.location || '')}')"><span class="msi" style="font-size:12px;">content_copy</span>#${esc(instNum)}</span>`
@@ -92,52 +91,63 @@ function openInstanceInfoModal() {
         const avHtml = image
             ? `<div class="iim-av" style="background-image:url('${cssUrl(image)}')"></div>`
             : `<div class="iim-av iim-av-letter">${esc(displayName[0].toUpperCase())}</div>`;
-        const timerTd = hasTimers
-            ? `<td style="text-align:right;font-size:11px;color:var(--tx3);padding-right:10px;">${esc(fmtTimer(u.joinedAt))}</td>`
+        const timerCell = hasTimers
+            ? `<div class="iim-cell iim-cell-right iim-muted-cell">${esc(fmtTimer(u.joinedAt))}</div>`
             : '';
         const trust = getTrustRank(tags);
-        const rankTd = `<td>${trust ? `<span class="vrcn-badge" style="color:${trust.color};border-color:${trust.color}20;background:${trust.color}18;font-size:10px;">${esc(trust.label)}</span>` : ''}</td>`;
+        const rankCell = `<div class="iim-cell">${trust ? `<span class="vrcn-badge" style="color:${trust.color};border-color:${trust.color}20;background:${trust.color}18;font-size:10px;">${esc(trust.label)}</span>` : ''}</div>`;
         const dotCls = statusDotClass(status);
-        const statusTd = `<td><div class="iim-status-cell">
+        const statusCell = `<div class="iim-cell"><div class="iim-status-cell">
             ${status ? `<span class="vrc-status-dot ${dotCls}" style="width:7px;height:7px;flex-shrink:0;"></span>` : ''}
             <span style="font-size:11px;">${esc(statusDesc || statusLabel(status))}</span>
-        </div></td>`;
+        </div></div>`;
         let platIcon = '';
         if      (platform === 'standalonewindows') platIcon = `<span class="msi" title="${t('instance.platform.pc', 'PC')}" style="font-size:16px;color:var(--tx2);">computer</span>`;
         else if (platform === 'android')           platIcon = `<span class="msi" title="${t('instance.platform.quest', 'Quest')}" style="font-size:16px;color:var(--tx2);">view_in_ar</span>`;
-        const platformTd = `<td style="text-align:center;">${platIcon}</td>`;
+        const platformCell = `<div class="iim-cell iim-cell-center">${platIcon}</div>`;
         const langTags  = tags.filter(t => t.startsWith('language_'));
         const langsHtml = langTags.map(t =>
             `<span class="vrcn-badge">${esc(LANG_MAP[t] || t.replace('language_', '').toUpperCase())}</span>`
         ).join('');
-        const langTd  = `<td><div class="iim-lang-cell">${langsHtml}</div></td>`;
-        const nameTd  = `<td><span class="iim-name">${esc(displayName)}</span></td>`;
-        const ageTd   = `<td style="text-align:center;">${ageVerified ? `<span class="vrcn-badge" style="font-size:10px;color:#3ba55d;border-color:#3ba55d30;background:#3ba55d18;">18+</span>` : ''}</td>`;
-        const fromTd  = `<td style="text-align:right;font-size:11px;color:var(--tx3);white-space:nowrap;">${u.joinedAt ? esc(fmtTime(new Date(u.joinedAt))) : '—'}</td>`;
-        const toTd    = `<td style="text-align:right;font-size:11px;color:var(--tx3);white-space:nowrap;">${u.leftAt   ? esc(fmtTime(new Date(u.leftAt)))   : '—'}</td>`;
-        let barRow = '';
+        const langCell  = `<div class="iim-cell"><div class="iim-lang-cell">${langsHtml}</div></div>`;
+        const nameCell  = `<div class="iim-cell"><span class="iim-name">${esc(displayName)}</span></div>`;
+        const ageCell   = `<div class="iim-cell iim-cell-center">${ageVerified ? `<span class="vrcn-badge" style="font-size:10px;color:#3ba55d;border-color:#3ba55d30;background:#3ba55d18;">18+</span>` : ''}</div>`;
+        const fromCell  = `<div class="iim-cell iim-cell-right iim-muted-cell">${u.joinedAt ? esc(fmtTime(new Date(u.joinedAt))) : '&mdash;'}</div>`;
+        let barHtml = '';
         if (iTotal > 0 && u.joinedAt) {
             const pStart   = u.joinedAt;
             const pEnd     = u.leftAt || now;
             const leftPct  = Math.max(0, Math.min(100, (pStart - iStart) / iTotal * 100));
             const widthPct = Math.max(0, Math.min(100 - leftPct, (pEnd - pStart) / iTotal * 100));
             const barCls   = (u._friend || (currentVrcUser && u.id === currentVrcUser.id)) ? ' friend' : '';
-            const bCols    = hasTimers ? 10 : 9;
-            barRow = `<tr><td colspan="${bCols}" style="padding:0 10px 5px;"><div class="tl-player-bar-wrap" style="margin-top:0;"><div class="tl-player-bar${barCls}" style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%"></div></div></td></tr>`;
+            barHtml = `<div class="iim-user-bar"><div class="tl-player-bar-wrap"><div class="tl-player-bar${barCls}" style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%"></div></div></div>`;
         }
-        const rowClick = id ? ` style="cursor:pointer;" onclick="openFriendDetail('${jsq(id)}')"` : '';
-        return `<tr class="iim-user-tr"${rowClick}><td style="width:40px;padding:5px 6px 5px 10px;">${avHtml}</td>${timerTd}${fromTd}${toTd}${nameTd}${rankTd}${statusTd}${ageTd}${platformTd}${langTd}</tr>${barRow}`;
+        const itemClick = id ? ` onclick="openFriendDetail('${jsq(id)}')"` : '';
+        const clickableCls = id ? ' clickable' : '';
+        return `<div class="iim-user-item${clickableCls}"${itemClick}>
+            <div class="iim-user-row">
+                <div class="iim-cell iim-profile-cell">${avHtml}</div>
+                ${timerCell}
+                ${fromCell}
+                ${nameCell}
+                ${rankCell}
+                ${statusCell}
+                ${ageCell}
+                ${platformCell}
+                ${langCell}
+            </div>
+            ${barHtml}
+        </div>`;
     }
 
-    const colSpan = hasTimers ? 10 : 9;
     let bodyRows = '';
     if (friendsEnriched.length > 0)
-        bodyRows += `<tr><td colspan="${colSpan}" style="padding:10px 14px 4px;"><div class="fd-group-rep-label" style="margin:0;">${tf('instance.sections.friends_in_instance', { count: friendsEnriched.length }, 'FRIENDS IN INSTANCE ({count})')}</div></td></tr>` + friendsEnriched.map(makeRow).join('');
+        bodyRows += `<div class="iim-section-label"><div class="fd-group-rep-label" style="margin:0;">${tf('instance.sections.friends_in_instance', { count: friendsEnriched.length }, 'FRIENDS IN INSTANCE ({count})')}</div></div>` + friendsEnriched.map(makeRow).join('');
     if (othersEnriched.length > 0)
-        bodyRows += `<tr><td colspan="${colSpan}" style="padding:10px 14px 4px;"><div class="fd-group-rep-label" style="margin:0;">${tf('instance.sections.players_in_instance', { count: othersEnriched.length }, 'PLAYERS IN INSTANCE ({count})')}</div></td></tr>` + othersEnriched.map(makeRow).join('');
+        bodyRows += `<div class="iim-section-label"><div class="fd-group-rep-label" style="margin:0;">${tf('instance.sections.players_in_instance', { count: othersEnriched.length }, 'PLAYERS IN INSTANCE ({count})')}</div></div>` + othersEnriched.map(makeRow).join('');
 
     const tableHtml = enriched.length > 0
-        ? `<div class="iim-scroll"><table class="iim-table">${thead}<tbody>${bodyRows}</tbody></table></div>`
+        ? `<div class="iim-scroll"><div class="iim-list${hasTimers ? ' has-timers' : ''}">${listHead}<div class="iim-list-body">${bodyRows}</div></div></div>`
         : `<div style="padding:14px 0;color:var(--tx3);font-size:12px;">${t('instance.no_player_data_available', 'No player data available.')}</div>`;
 
     const prevIimScroller = c.querySelector('.iim-scroll');
