@@ -26,7 +26,6 @@ public class InstanceController
     private readonly Dictionary<string, string> _playerLeftTimes = new();
     private readonly HashSet<string> _meetAgainThisInstance = new();
     private string? _pendingInstanceEventId;
-    private string  _pendingInstanceStart  = "";
     private System.Threading.Timer? _instanceSnapshotTimer;
     private bool _logWatcherBootstrapped;
     private string _lastTrackedWorldId = "";
@@ -1061,7 +1060,7 @@ public class InstanceController
                 UserId      = kv.Key,
                 DisplayName = kv.Value.displayName,
                 Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
-                JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : _pendingInstanceStart,
+                JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
                 LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : now,
             }).ToList();
             var prevId = _pendingInstanceEventId;
@@ -1090,7 +1089,6 @@ public class InstanceController
 
         var evId  = Guid.NewGuid().ToString("N")[..8];
         _pendingInstanceEventId = evId;
-        _pendingInstanceStart   = DateTime.UtcNow.ToString("o");
 
         var instEv = new TimelineService.TimelineEvent
         {
@@ -1148,7 +1146,7 @@ public class InstanceController
                             UserId      = kv.Key,
                             DisplayName = kv.Value.displayName,
                             Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
-                            JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : _pendingInstanceStart,
+                            JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
                             LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : "",
                         }).ToList();
 
@@ -1218,7 +1216,7 @@ public class InstanceController
                     UserId      = kv.Key,
                     DisplayName = kv.Value.displayName,
                     Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
-                    JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : _pendingInstanceStart,
+                    JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
                     LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : "",
                 }).ToList();
                 _core.Timeline.UpdateEvent(evId, ev => ev.Players = snap);
@@ -1402,7 +1400,7 @@ public class InstanceController
                                 UserId      = kv.Key,
                                 DisplayName = kv.Value.displayName,
                                 Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
-                                JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : _pendingInstanceStart,
+                                JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
                                 LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : "",
                             }).ToList();
                             _core.Timeline.UpdateEvent(evId, ev => ev.Players = snap);
@@ -1427,7 +1425,7 @@ public class InstanceController
                 UserId      = kv.Key,
                 DisplayName = kv.Value.displayName,
                 Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
-                JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : _pendingInstanceStart,
+                JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
                 LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : "",
             }).ToList();
             _core.Timeline.UpdateEvent(evId, ev => ev.Players = snap);
