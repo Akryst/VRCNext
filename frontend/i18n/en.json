@@ -2026,6 +2026,8 @@
   "tb.app.restart": "Restart",
   "tb.app.exit": "Exit",
   "tb.help": "Help",
+  "tb.help.show_keybinds": "Show Keybinds",
+  "tb.help.explain_tab": "Explain this Tab",
   "tb.help.join_discord": "Join Discord",
   "tb.help.report_bug": "Report Bug",
   "tb.help.feature_request": "Feature Request",

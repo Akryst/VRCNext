@@ -2006,6 +2006,8 @@
   "tb.app.restart": "再起動",
   "tb.app.exit": "終了",
   "tb.help": "ヘルプ",
+  "tb.help.show_keybinds": "キーバインドを表示",
+  "tb.help.explain_tab": "このタブを説明",
   "tb.help.join_discord": "Discordに参加",
   "tb.help.report_bug": "バグを報告",
   "tb.help.feature_request": "機能をリクエスト",

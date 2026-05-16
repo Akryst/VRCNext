@@ -2007,6 +2007,8 @@
   "tb.app.restart": "Reiniciar",
   "tb.app.exit": "Salir",
   "tb.help": "Ayuda",
+  "tb.help.show_keybinds": "Mostrar atajos",
+  "tb.help.explain_tab": "Explicar esta pestaña",
   "tb.help.join_discord": "Unirse a Discord",
   "tb.help.report_bug": "Reportar error",
   "tb.help.feature_request": "Solicitar función",

@@ -2007,6 +2007,8 @@
   "tb.app.restart": "Redémarrer",
   "tb.app.exit": "Quitter",
   "tb.help": "Aide",
+  "tb.help.show_keybinds": "Afficher les raccourcis",
+  "tb.help.explain_tab": "Expliquer cet onglet",
   "tb.help.join_discord": "Rejoindre Discord",
   "tb.help.report_bug": "Signaler un bug",
   "tb.help.feature_request": "Demander une fonctionnalité",

@@ -2009,6 +2009,8 @@
   "tb.app.restart": "Neu starten",
   "tb.app.exit": "Beenden",
   "tb.help": "Hilfe",
+  "tb.help.show_keybinds": "Tastenkürzel anzeigen",
+  "tb.help.explain_tab": "Diesen Tab erklären",
   "tb.help.join_discord": "Discord beitreten",
   "tb.help.report_bug": "Fehler melden",
   "tb.help.feature_request": "Feature anfragen",

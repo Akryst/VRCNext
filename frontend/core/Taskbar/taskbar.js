@@ -104,10 +104,12 @@ function tbToggleTools() {
     document.querySelectorAll('.tb-dd-item').forEach(function (ddItem) {
         ddItem.addEventListener('click', function () {
             closeMenus();
-            document.querySelectorAll('.modal-overlay').forEach(function (ov) {
-                if (ov.style.display && ov.style.display !== 'none') ov.style.display = 'none';
-            });
-            if (typeof navClear === 'function') navClear();
+            if (!ddItem.hasAttribute('data-keep-modal')) {
+                document.querySelectorAll('.modal-overlay').forEach(function (ov) {
+                    if (ov.style.display && ov.style.display !== 'none') ov.style.display = 'none';
+                });
+                if (typeof navClear === 'function') navClear();
+            }
         });
     });
 
