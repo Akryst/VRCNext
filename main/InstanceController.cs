@@ -898,6 +898,7 @@ public class InstanceController
                                 var img = VRChatApiService.GetUserImage(profile);
                                 _core.PlayerAgeVerifiedCache[p.UserId] = profile["ageVerified"]?.Value<bool>() ?? false;
                                 _core.PlayerProfileCache[p.UserId] = profile;
+                                _core.TimeEngine.SaveUserProfileCache(p.UserId, profile.ToString(Newtonsoft.Json.Formatting.None));
                                 lock (userProfiles)
                                     userProfiles[p.UserId] = profile;
                             }
@@ -1364,6 +1365,7 @@ public class InstanceController
                     var img = VRChatApiService.GetUserImage(profile);
                     _core.PlayerAgeVerifiedCache[userId] = profile["ageVerified"]?.Value<bool>() ?? false;
                     _core.PlayerProfileCache[userId] = profile;
+                    _core.TimeEngine.SaveUserProfileCache(userId, profile.ToString(Newtonsoft.Json.Formatting.None));
 
                     // Also enrich the cumulative instance player record with the resolved image
                     if (_cumulativeInstancePlayers.TryGetValue(userId, out var existing) && string.IsNullOrEmpty(existing.image))
