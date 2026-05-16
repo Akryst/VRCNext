@@ -1355,6 +1355,7 @@
   "instance.table.status": "Status",
   "instance.table.platform": "Platform",
   "instance.table.language": "Language",
+  "instance.table.joined": "Joined",
   "instance.table.avatar": "Avatar",
   "instance.platform.pc": "PC",
   "instance.platform.quest": "Quest",

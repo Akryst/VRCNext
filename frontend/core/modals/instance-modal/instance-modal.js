@@ -58,7 +58,7 @@ function openInstanceInfoModal() {
     const listHead = `<div class="iim-list-head">
         <div class="iim-head-cell">${t('instance.table.profile', 'Profile')}</div>
         ${timerHead}
-        <div class="iim-head-cell iim-cell-right">${t('timeline.detail.from', 'From')}</div>
+        <div class="iim-head-cell iim-cell-right">${t('instance.table.joined', 'Joined')}</div>
         <div class="iim-head-cell">${t('instance.table.display_name', 'Display Name')}</div>
         <div class="iim-head-cell">${t('instance.table.rank', 'Rank')}</div>
         <div class="iim-head-cell">${t('instance.table.status', 'Status')}</div>

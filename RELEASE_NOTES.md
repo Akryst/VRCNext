@@ -1,5 +1,9 @@
 **2026.25.9**
 
+**Instance List**
+* The instance list has been refactored and now shows an "Joined" section.
+* Added "Time Bar"
+
 **Timeline**
 * Added more detailed information to the Instance Info tab.
 * Added **From** and **Until** entries for each player seen in that instance.

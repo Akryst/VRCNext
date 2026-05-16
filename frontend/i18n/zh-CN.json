@@ -1338,6 +1338,7 @@
   "instance.table.status": "状态",
   "instance.table.platform": "平台",
   "instance.table.language": "语言",
+  "instance.table.joined": "加入时间",
   "instance.platform.pc": "PC",
   "instance.platform.quest": "Quest",
   "instance.owner": "实例房主",

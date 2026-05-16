@@ -1337,6 +1337,7 @@
   "instance.table.status": "ステータス",
   "instance.table.platform": "プラットフォーム",
   "instance.table.language": "言語",
+  "instance.table.joined": "参加時刻",
   "instance.platform.pc": "PC",
   "instance.platform.quest": "Quest",
   "instance.owner": "インスタンスオーナー",

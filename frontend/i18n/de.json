@@ -1340,6 +1340,7 @@
   "instance.table.status": "Status",
   "instance.table.platform": "Plattform",
   "instance.table.language": "Sprache",
+  "instance.table.joined": "Beigetreten",
   "instance.platform.pc": "PC",
   "instance.platform.quest": "Quest",
   "instance.owner": "Instanz-Besitzer",
