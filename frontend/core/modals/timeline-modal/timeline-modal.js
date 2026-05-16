@@ -134,9 +134,13 @@ function renderTlDetailJoin(ev, el) {
     let playersHtml = '';
     if (players.length > 0) {
         const instEnd = ev.leftAt || new Date().toISOString();
-        playersHtml = `<div class="fd-group-rep-label" style="margin:14px 0 4px;">${esc(tf('timeline.detail.players_in_instance', { count: players.length }, `Players in instance (${players.length})`))}</div><div style="font-size:10.5px;color:var(--tx3);margin-bottom:8px;line-height:1.4;">${esc(t('timeline.detail.players_disclaimer', 'Shows when each player was tracked while you were in the instance. This does not mean they joined or left at those exact times.'))}</div><div class="tl-players-grid">`;
-        players.forEach(p => { playersHtml += _tlPlayerCard(p, ev.timestamp, instEnd); });
-        playersHtml += '</div>';
+        let grid = '';
+        players.forEach(p => { grid += _tlPlayerCard(p, ev.timestamp, instEnd); });
+        playersHtml = `<div class="fd-info-card tl-players-card">
+            <div class="fd-group-rep-label">${esc(tf('timeline.detail.players_in_instance', { count: players.length }, `Players in instance (${players.length})`))}</div>
+            <div style="font-size:10.5px;color:var(--tx3);margin-bottom:8px;line-height:1.4;">${esc(t('timeline.detail.players_disclaimer', 'Shows when each player was tracked while you were in the instance. This does not mean they joined or left at those exact times.'))}</div>
+            <div class="tl-players-grid">${grid}</div>
+        </div>`;
     }
 
     const dateStr = tlFormatLongDate(ev.timestamp);

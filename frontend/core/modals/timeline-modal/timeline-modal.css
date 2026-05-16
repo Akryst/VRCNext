@@ -92,6 +92,12 @@
     margin-top: 8px;
 }
 
+.tl-players-card {
+    margin-top: 14px;
+    overflow-y: auto;
+    max-height: 420px;
+}
+
 .tl-player-bar-wrap {
     height: 4px;
     background: var(--bg-hover);
