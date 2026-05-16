@@ -265,7 +265,7 @@ public class TimelineService : IDisposable
             var optPlayerMap = new Dictionary<string, List<PlayerSnap>>();
             using (var cmd = _db.CreateCommand())
             {
-                cmd.CommandText = @"SELECT ep.event_id,ep.user_id,ep.display_name,ep.image
+                cmd.CommandText = @"SELECT ep.event_id,ep.user_id,ep.display_name,ep.image,ep.joined_at,ep.left_at
                     FROM event_players ep
                     WHERE ep.event_id IN (SELECT id FROM events ORDER BY timestamp DESC LIMIT $n)";
                 cmd.Parameters.AddWithValue("$n", _maxN);
@@ -274,7 +274,7 @@ public class TimelineService : IDisposable
                 {
                     var eid = r.GetString(0);
                     if (!optPlayerMap.TryGetValue(eid, out var list)) optPlayerMap[eid] = list = new();
-                    list.Add(new PlayerSnap { UserId = r.GetString(1), DisplayName = r.GetString(2), Image = r.GetString(3) });
+                    list.Add(new PlayerSnap { UserId = r.GetString(1), DisplayName = r.GetString(2), Image = r.GetString(3), JoinedAt = r.IsDBNull(4) ? "" : r.GetString(4), LeftAt = r.IsDBNull(5) ? "" : r.GetString(5) });
                 }
             }
 
@@ -1788,6 +1788,19 @@ public class TimelineService : IDisposable
             cmd.Parameters.AddWithValue("$id",  ev.Id);
             cmd.ExecuteNonQuery();
 
+            // Read existing joined_at values before deleting so they can be preserved
+            // if the new PlayerSnap has an empty JoinedAt (e.g. stale in-memory state).
+            var savedJoinTimes = new Dictionary<string, string>();
+            using (var readCmd = _db.CreateCommand())
+            {
+                readCmd.Transaction = tx;
+                readCmd.CommandText = "SELECT user_id, joined_at FROM event_players WHERE event_id=$eid AND joined_at != ''";
+                readCmd.Parameters.AddWithValue("$eid", ev.Id);
+                using var rdr = readCmd.ExecuteReader();
+                while (rdr.Read())
+                    savedJoinTimes[rdr.GetString(0)] = rdr.GetString(1);
+            }
+
             using var del = _db.CreateCommand();
             del.Transaction = tx;
             del.CommandText = "DELETE FROM event_players WHERE event_id=$eid";
@@ -1812,7 +1825,7 @@ public class TimelineService : IDisposable
                     pUid.Value = p.UserId;
                     pDn.Value  = p.DisplayName;
                     pImg.Value = p.Image;
-                    pJa.Value  = p.JoinedAt;
+                    pJa.Value  = string.IsNullOrEmpty(p.JoinedAt) && savedJoinTimes.TryGetValue(p.UserId, out var saved) ? saved : p.JoinedAt;
                     pLa.Value  = p.LeftAt;
                     pcmd.ExecuteNonQuery();
                 }

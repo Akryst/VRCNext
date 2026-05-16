@@ -38,6 +38,7 @@ public class InstanceController
     public int    CachedInstCapacity   => _cachedInstCapacity;
     public string CachedInstType       => _cachedInstType;
     public Dictionary<string, (string displayName, string image)> CumulativeInstancePlayers => _cumulativeInstancePlayers;
+    public Dictionary<string, string> PlayerJoinTimes => _playerJoinTimes;
     public string? PendingInstanceEventId { get => _pendingInstanceEventId; set => _pendingInstanceEventId = value; }
     public bool LogWatcherBootstrapped { get => _logWatcherBootstrapped; set => _logWatcherBootstrapped = value; }
     public string LastTrackedWorldId { get => _lastTrackedWorldId; set => _lastTrackedWorldId = value; }
@@ -1081,9 +1082,15 @@ public class InstanceController
         var selfId   = _core.VrcApi.CurrentUserId ?? "";
         var selfName = selfRaw?["displayName"]?.ToString() ?? "";
         var selfImg  = selfRaw != null ? ImageCacheHelper.GetUserUrl(selfId, VRChatApiService.GetUserImage(selfRaw)) : "";
-        if (!string.IsNullOrEmpty(selfId) && !string.IsNullOrEmpty(selfName))
+        if (!string.IsNullOrEmpty(selfId))
         {
-            _cumulativeInstancePlayers[selfId] = (selfName, selfImg);
+            // HandlePlayerJoinedOnUiThread skips self, so this is the only place where the
+            // local user is recorded. Use fallbacks so selfId is never absent from tracking
+            // even if CurrentUserRaw["displayName"] isn't available yet.
+            var resolvedName = !string.IsNullOrEmpty(selfName) ? selfName
+                : !string.IsNullOrEmpty(_core.Settings.ActiveAccount?.DisplayName) ? _core.Settings.ActiveAccount.DisplayName
+                : selfId;
+            _cumulativeInstancePlayers[selfId] = (resolvedName, selfImg);
             _playerJoinTimes[selfId] = DateTime.UtcNow.ToString("o");
         }
 

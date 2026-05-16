@@ -947,7 +947,11 @@ public class AuthController
                         foreach (var p in lastJoin.Players)
                         {
                             if (!string.IsNullOrEmpty(p.UserId))
+                            {
                                 _instance.CumulativeInstancePlayers[p.UserId] = (p.DisplayName, p.Image ?? "");
+                                if (!string.IsNullOrEmpty(p.JoinedAt))
+                                    _instance.PlayerJoinTimes[p.UserId] = p.JoinedAt;
+                            }
                         }
                     }
                     _core.TimeEngine.OnWorldResumed(_core.LogWatcher.CurrentWorldId, loc);
@@ -967,6 +971,8 @@ public class AuthController
                     if (!string.IsNullOrEmpty(_core.CurrentVrcUserId) && p.UserId == _core.CurrentVrcUserId) continue;
                     if (!_instance.CumulativeInstancePlayers.ContainsKey(p.UserId))
                         _instance.CumulativeInstancePlayers[p.UserId] = (p.DisplayName, "");
+                    if (!_instance.PlayerJoinTimes.ContainsKey(p.UserId))
+                        _instance.PlayerJoinTimes[p.UserId] = p.JoinedAt.ToUniversalTime().ToString("o");
                     if (!string.IsNullOrEmpty(p.DisplayName))
                         _core.TimeEngine.UpdateUserInfo(p.UserId, p.DisplayName, "");
                     // Register catch-up players in the engine with their real log timestamp.
