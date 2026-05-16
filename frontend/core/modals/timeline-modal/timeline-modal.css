@@ -22,3 +22,90 @@
     text-transform: uppercase;
     margin: 16px 0 8px;
 }
+
+.tl-player-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    background: var(--bg-input);
+    border-radius: 10px;
+    transition: background .1s;
+    cursor: default;
+}
+
+.tl-player-card:hover {
+    background: var(--bg-hover);
+}
+
+.tl-player-card.clickable {
+    cursor: pointer;
+}
+
+.tl-player-card-av {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-card) center/cover no-repeat;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--tx3);
+}
+
+.tl-player-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.tl-player-card-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--tx0);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tl-player-card-times {
+    font-size: 11px;
+    color: var(--tx3);
+    margin-top: 2px;
+}
+
+.tl-player-card-badge {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--ok);
+    flex-shrink: 0;
+}
+
+.tl-players-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.tl-player-bar-wrap {
+    height: 4px;
+    background: var(--bg-hover);
+    border-radius: 2px;
+    position: relative;
+    margin-top: 5px;
+    overflow: hidden;
+}
+
+.tl-player-bar {
+    position: absolute;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+}
+
+.tl-player-bar.friend {
+    background: var(--ok);
+}

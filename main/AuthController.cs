@@ -605,6 +605,7 @@ public class AuthController
             {
                 // End the player's time session immediately on leave
                 if (!string.IsNullOrEmpty(uid)) _core.TimeEngine.OnPlayerLeft(uid);
+                if (!string.IsNullOrEmpty(uid)) _instance.HandlePlayerLeftOnUiThread(uid);
                 _instance.PushCurrentInstanceFromCache();
             }
             catch { }
