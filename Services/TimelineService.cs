@@ -178,6 +178,18 @@ public class TimelineService : IDisposable
         try { using var mc = _db.CreateCommand(); mc.CommandText = "ALTER TABLE friend_events ADD COLUMN tracked  INTEGER NOT NULL DEFAULT 0"; mc.ExecuteNonQuery(); } catch { }
         try { using var mc = _db.CreateCommand(); mc.CommandText = "ALTER TABLE event_players ADD COLUMN joined_at TEXT DEFAULT ''"; mc.ExecuteNonQuery(); } catch { }
         try { using var mc = _db.CreateCommand(); mc.CommandText = "ALTER TABLE event_players ADD COLUMN left_at   TEXT DEFAULT ''"; mc.ExecuteNonQuery(); } catch { }
+        // Backfill event_players.left_at for rows that are empty but whose parent event is already closed
+        try
+        {
+            using var mc = _db.CreateCommand();
+            mc.CommandText = @"
+                UPDATE event_players
+                SET left_at = (SELECT left_at FROM events WHERE events.id = event_players.event_id)
+                WHERE (left_at IS NULL OR left_at = '')
+                  AND event_id IN (SELECT id FROM events WHERE left_at IS NOT NULL AND left_at != '')";
+            mc.ExecuteNonQuery();
+        }
+        catch { }
         // Colocated friends per GPS event
         try
         {

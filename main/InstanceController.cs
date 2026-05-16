@@ -56,6 +56,15 @@ public class InstanceController
             var id = _pendingInstanceEventId;
             _pendingInstanceEventId = null;
             var now = DateTime.UtcNow.ToString("o");
+            var finalPlayers = _cumulativeInstancePlayers.Select(kv => new TimelineService.PlayerSnap
+            {
+                UserId      = kv.Key,
+                DisplayName = kv.Value.displayName,
+                Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
+                JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
+                LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : now,
+            }).ToList();
+            _core.Timeline.UpdateEvent(id, ev => ev.Players = finalPlayers);
             _core.Timeline.SetInstanceEventLeftAt(id, now);
             var closed = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == id);
             if (closed != null) _core.SendToJS("timelineEvent", BuildTimelinePayload(closed));

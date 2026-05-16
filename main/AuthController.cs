@@ -961,7 +961,16 @@ public class AuthController
                 {
                     // Close any open tracked instance_join event from a previous session
                     if (lastJoin != null && lastJoin.Tracked == 1 && string.IsNullOrEmpty(lastJoin.LeftAt))
-                        _core.Timeline.SetInstanceEventLeftAt(lastJoin.Id, DateTime.UtcNow.ToString("o"));
+                    {
+                        var nowStr = DateTime.UtcNow.ToString("o");
+                        _core.Timeline.UpdateEvent(lastJoin.Id, ev =>
+                        {
+                            if (ev.Players == null) return;
+                            foreach (var p in ev.Players.Where(p => string.IsNullOrEmpty(p.LeftAt)))
+                                p.LeftAt = nowStr;
+                        });
+                        _core.Timeline.SetInstanceEventLeftAt(lastJoin.Id, nowStr);
+                    }
                     _instance.HandleWorldChangedOnUiThread(_core.LogWatcher.CurrentWorldId, loc);
                 }
                 var currentPlayers = _core.LogWatcher.GetCurrentPlayers();
@@ -994,7 +1003,14 @@ public class AuthController
                     .FirstOrDefault(e => e.Type == "instance_join" && e.Tracked == 1 && string.IsNullOrEmpty(e.LeftAt));
                 if (openJoin != null)
                 {
-                    _core.Timeline.SetInstanceEventLeftAt(openJoin.Id, DateTime.UtcNow.ToString("o"));
+                    var nowStr = DateTime.UtcNow.ToString("o");
+                    _core.Timeline.UpdateEvent(openJoin.Id, ev =>
+                    {
+                        if (ev.Players == null) return;
+                        foreach (var p in ev.Players.Where(p => string.IsNullOrEmpty(p.LeftAt)))
+                            p.LeftAt = nowStr;
+                    });
+                    _core.Timeline.SetInstanceEventLeftAt(openJoin.Id, nowStr);
                     var closed = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == openJoin.Id);
                     if (closed != null) _core.SendToJS("timelineEvent", _instance.BuildTimelinePayload(closed));
                 }
