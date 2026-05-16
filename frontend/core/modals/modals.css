@@ -2,7 +2,10 @@
 
 .modal-overlay {
     position: fixed;
-    inset: 0;
+    top: var(--tb-h);
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(0,0,0,.65);
     z-index: 10000;
     animation: fadeIn .10s ease forwards;
@@ -32,7 +35,7 @@
     padding: 28px 32px 22px;
     width: 460px;
     max-width: 90%;
-    max-height: calc((100vh / var(--gui-zoom, 1)) - 40px);
+    max-height: calc((100vh - var(--tb-h)) / var(--gui-zoom, 1) - 40px);
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-gutter: stable;
@@ -99,7 +102,10 @@
 #modalNavBackdrop {
     display: none;
     position: fixed;
-    inset: 0;
+    top: var(--tb-h);
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(0,0,0,.65);
     backdrop-filter: blur(4px);
     z-index: 9999;

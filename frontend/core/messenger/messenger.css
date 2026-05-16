@@ -12,7 +12,7 @@
     flex-direction: column;
     overflow: hidden;
     box-shadow: 0 20px 60px rgba(0,0,0,.65), 0 4px 20px rgba(0,0,0,.3);
-    z-index: 3000;
+    z-index: 20001;
     animation: msgrSlideIn .22s cubic-bezier(.34,1.2,.64,1);
 }
 @keyframes msgrSlideIn {
