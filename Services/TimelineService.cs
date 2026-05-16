@@ -1800,17 +1800,24 @@ public class TimelineService : IDisposable
             cmd.Parameters.AddWithValue("$id",  ev.Id);
             cmd.ExecuteNonQuery();
 
-            // Read existing joined_at values before deleting so they can be preserved
-            // if the new PlayerSnap has an empty JoinedAt (e.g. stale in-memory state).
+            // Read existing joined_at + left_at before deleting so they can be preserved
+            // if the new PlayerSnap has empty values (e.g. stale in-memory state).
             var savedJoinTimes = new Dictionary<string, string>();
+            var savedLeftTimes = new Dictionary<string, string>();
             using (var readCmd = _db.CreateCommand())
             {
                 readCmd.Transaction = tx;
-                readCmd.CommandText = "SELECT user_id, joined_at FROM event_players WHERE event_id=$eid AND joined_at != ''";
+                readCmd.CommandText = "SELECT user_id, joined_at, left_at FROM event_players WHERE event_id=$eid AND (joined_at != '' OR left_at != '')";
                 readCmd.Parameters.AddWithValue("$eid", ev.Id);
                 using var rdr = readCmd.ExecuteReader();
                 while (rdr.Read())
-                    savedJoinTimes[rdr.GetString(0)] = rdr.GetString(1);
+                {
+                    var uid = rdr.GetString(0);
+                    var ja  = rdr.IsDBNull(1) ? "" : rdr.GetString(1);
+                    var la  = rdr.IsDBNull(2) ? "" : rdr.GetString(2);
+                    if (ja != "") savedJoinTimes[uid] = ja;
+                    if (la != "") savedLeftTimes[uid] = la;
+                }
             }
 
             using var del = _db.CreateCommand();
@@ -1837,8 +1844,8 @@ public class TimelineService : IDisposable
                     pUid.Value = p.UserId;
                     pDn.Value  = p.DisplayName;
                     pImg.Value = p.Image;
-                    pJa.Value  = string.IsNullOrEmpty(p.JoinedAt) && savedJoinTimes.TryGetValue(p.UserId, out var saved) ? saved : p.JoinedAt;
-                    pLa.Value  = p.LeftAt;
+                    pJa.Value  = string.IsNullOrEmpty(p.JoinedAt) && savedJoinTimes.TryGetValue(p.UserId, out var savedJa) ? savedJa : p.JoinedAt;
+                    pLa.Value  = string.IsNullOrEmpty(p.LeftAt)   && savedLeftTimes.TryGetValue(p.UserId, out var savedLa) ? savedLa : p.LeftAt;
                     pcmd.ExecuteNonQuery();
                 }
             }
