@@ -939,7 +939,8 @@ public class AuthController
             {
                 var loc = _core.LogWatcher.CurrentLocation ?? _core.LogWatcher.CurrentWorldId;
                 var lastJoin = _core.Timeline.GetEvents().FirstOrDefault(e => e.Type == "instance_join");
-                if (lastJoin != null && lastJoin.Location == loc)
+                var lastJoinFinalised = lastJoin != null && !string.IsNullOrEmpty(lastJoin.LeftAt);
+                if (lastJoin != null && lastJoin.Location == loc && !lastJoinFinalised)
                 {
                     _instance.PendingInstanceEventId = lastJoin.Id;
                     if (lastJoin.Players != null)
@@ -956,6 +957,10 @@ public class AuthController
                     }
                     _core.TimeEngine.OnWorldResumed(_core.LogWatcher.CurrentWorldId, loc);
                     _instance.LastTrackedWorldId = _core.LogWatcher.CurrentWorldId;
+                }
+                else if (lastJoin != null && lastJoin.Location == loc && lastJoinFinalised)
+                {
+
                 }
                 else
                 {
