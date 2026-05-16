@@ -817,6 +817,83 @@ html.text-tools-active * { user-select: text !important; }
     background: var(--bg-input);
     margin-bottom: 14px;
 }
+.iim-list {
+    --iim-grid-cols: 40px 70px minmax(130px, 1.2fr) 110px minmax(120px, 170px) 46px 62px minmax(82px, .8fr);
+    min-width: 860px;
+    width: 100%;
+}
+.iim-list.has-timers {
+    --iim-grid-cols: 40px 72px 70px minmax(130px, 1.2fr) 110px minmax(120px, 170px) 46px 62px minmax(82px, .8fr);
+    min-width: 940px;
+}
+.iim-list-head,
+.iim-user-row {
+    display: grid;
+    grid-template-columns: var(--iim-grid-cols);
+    align-items: center;
+}
+.iim-list-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--bg-input);
+    border-bottom: 1px solid var(--bg-line);
+}
+.iim-head-cell {
+    padding: 6px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--tx3);
+    letter-spacing: .05em;
+    text-align: left;
+    white-space: nowrap;
+    font-family: inherit;
+    box-sizing: border-box;
+    min-width: 0;
+}
+.iim-section-label {
+    padding: 10px 14px 4px;
+}
+.iim-user-item {
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    transition: background .1s;
+}
+.iim-list-body > .iim-user-item:last-child {
+    border-bottom: none;
+}
+.iim-user-item.clickable {
+    cursor: pointer;
+}
+.iim-user-item:hover {
+    background: var(--bg-hover);
+}
+.iim-cell {
+    padding: 5px 8px;
+    font-size: 12px;
+    color: var(--tx1);
+    white-space: nowrap;
+    box-sizing: border-box;
+    min-width: 0;
+}
+.iim-profile-cell {
+    padding: 5px 6px 5px 10px;
+}
+.iim-cell-right {
+    text-align: right;
+}
+.iim-cell-center {
+    text-align: center;
+}
+.iim-muted-cell {
+    font-size: 11px;
+    color: var(--tx3);
+}
+.iim-user-bar {
+    padding: 0 10px 7px;
+}
+.iim-user-bar .tl-player-bar-wrap {
+    margin-top: 0;
+}
 .iim-table {
     width: max-content;
     min-width: 100%;
@@ -868,7 +945,7 @@ html.text-tools-active * { user-select: text !important; }
 .iim-name {
     color: var(--tx0);
     font-weight: 500;
-    max-width: 180px;
+    max-width: 153px;
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;

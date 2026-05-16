@@ -11,7 +11,7 @@
     background: transparent;
     display: flex;
     align-items: stretch;
-    z-index: 100;
+    z-index: 20000;
     user-select: none;
     -webkit-user-select: none;
 }
@@ -26,6 +26,21 @@
     z-index: -1;
 }
 
+#taskbar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0);
+    pointer-events: none;
+    z-index: 0;
+    transition: background .15s ease;
+}
+
+body:has(.modal-overlay[style*="flex"]) #taskbar::before {
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+}
+
 /* Force opaque taskbar when at least one sidebar is open */
 body:has(#sidebarEl:not(.collapsed)) #taskbar::after,
 body:has(#rsidebar:not(.collapsed)) #taskbar::after {
@@ -37,6 +52,8 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
     display: flex;
     align-items: stretch;
     flex-shrink: 0;
+    position: relative;
+    z-index: 1;
 }
 
 .tb-brand {
@@ -238,6 +255,8 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
     padding: 0 8px;
     min-width: 0;
     overflow: hidden;
+    position: relative;
+    z-index: 1;
 }
 
 /* Active state for tool icon buttons */
@@ -295,6 +314,8 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
     display: flex;
     align-items: stretch;
     flex-shrink: 0;
+    position: relative;
+    z-index: 1;
 }
 
 .tb-sidebar-btn {

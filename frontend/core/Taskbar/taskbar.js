@@ -102,7 +102,15 @@ function tbToggleTools() {
 
     // Close menu after a dropdown item is clicked (fires after onclick)
     document.querySelectorAll('.tb-dd-item').forEach(function (ddItem) {
-        ddItem.addEventListener('click', closeMenus);
+        ddItem.addEventListener('click', function () {
+            closeMenus();
+            if (!ddItem.hasAttribute('data-keep-modal')) {
+                document.querySelectorAll('.modal-overlay').forEach(function (ov) {
+                    if (ov.style.display && ov.style.display !== 'none') ov.style.display = 'none';
+                });
+                if (typeof navClear === 'function') navClear();
+            }
+        });
     });
 
     // Close on click anywhere outside a menu

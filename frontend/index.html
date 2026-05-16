@@ -68,7 +68,7 @@
 <body>
     <div class="app-body">
     <div class="sidebar" id="sidebarEl">
-        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.25.7</div></div></div>
+        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.25.8</div></div></div>
         <div class="nav vrcn-scrollbar" id="navEl"></div>
         <div class="clock-area"><div class="clock-time" id="clock">00:00:00</div><div class="clock-date" id="clockDate"></div></div>
         <div class="play-area"><button class="btn-play" onclick="playVRChat()"><span class="msi play-icon">play_arrow</span><span class="pl" data-i18n="sidebar.play_vrchat">Play VRChat</span></button></div>
@@ -144,6 +144,9 @@
                     </div>
                     <div class="tb-menu-item" id="tbMenuHelp"><span data-i18n="tb.help">Help</span>
                         <div class="tb-dropdown">
+                            <div class="tb-dd-item" data-keep-modal onclick="document.getElementById('modalKeybinds').style.display='flex'"><span class="msi">keyboard</span><span data-i18n="tb.help.show_keybinds">Show Keybinds</span></div>
+                            <div class="tb-dd-item" onclick="toggleHelpPanel()"><span class="msi">info</span><span data-i18n="tb.help.explain_tab">Explain this Tab</span></div>
+                            <div class="tb-dd-sep"></div>
                             <div class="tb-dd-item" onclick="sendToCS({action:'openUrl',url:'https://discord.gg/dHsrWJzNS9'})"><span class="msi">forum</span><span data-i18n="tb.help.join_discord">Join Discord</span></div>
                             <div class="tb-dd-sep"></div>
                             <div class="tb-dd-item" onclick="sendToCS({action:'openUrl',url:'https://github.com/shinyflvre/VRCNext/issues/new?template=bug_report.yml'})"><span class="msi">bug_report</span><span data-i18n="tb.help.report_bug">Report Bug</span></div>

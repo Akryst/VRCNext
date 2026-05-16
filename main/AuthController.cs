@@ -605,6 +605,7 @@ public class AuthController
             {
                 // End the player's time session immediately on leave
                 if (!string.IsNullOrEmpty(uid)) _core.TimeEngine.OnPlayerLeft(uid);
+                if (!string.IsNullOrEmpty(uid)) _instance.HandlePlayerLeftOnUiThread(uid);
                 _instance.PushCurrentInstanceFromCache();
             }
             catch { }
@@ -946,7 +947,11 @@ public class AuthController
                         foreach (var p in lastJoin.Players)
                         {
                             if (!string.IsNullOrEmpty(p.UserId))
+                            {
                                 _instance.CumulativeInstancePlayers[p.UserId] = (p.DisplayName, p.Image ?? "");
+                                if (!string.IsNullOrEmpty(p.JoinedAt))
+                                    _instance.PlayerJoinTimes[p.UserId] = p.JoinedAt;
+                            }
                         }
                     }
                     _core.TimeEngine.OnWorldResumed(_core.LogWatcher.CurrentWorldId, loc);
@@ -956,7 +961,16 @@ public class AuthController
                 {
                     // Close any open tracked instance_join event from a previous session
                     if (lastJoin != null && lastJoin.Tracked == 1 && string.IsNullOrEmpty(lastJoin.LeftAt))
-                        _core.Timeline.SetInstanceEventLeftAt(lastJoin.Id, DateTime.UtcNow.ToString("o"));
+                    {
+                        var nowStr = DateTime.UtcNow.ToString("o");
+                        _core.Timeline.UpdateEvent(lastJoin.Id, ev =>
+                        {
+                            if (ev.Players == null) return;
+                            foreach (var p in ev.Players.Where(p => string.IsNullOrEmpty(p.LeftAt)))
+                                p.LeftAt = nowStr;
+                        });
+                        _core.Timeline.SetInstanceEventLeftAt(lastJoin.Id, nowStr);
+                    }
                     _instance.HandleWorldChangedOnUiThread(_core.LogWatcher.CurrentWorldId, loc);
                 }
                 var currentPlayers = _core.LogWatcher.GetCurrentPlayers();
@@ -966,6 +980,8 @@ public class AuthController
                     if (!string.IsNullOrEmpty(_core.CurrentVrcUserId) && p.UserId == _core.CurrentVrcUserId) continue;
                     if (!_instance.CumulativeInstancePlayers.ContainsKey(p.UserId))
                         _instance.CumulativeInstancePlayers[p.UserId] = (p.DisplayName, "");
+                    if (!_instance.PlayerJoinTimes.ContainsKey(p.UserId))
+                        _instance.PlayerJoinTimes[p.UserId] = p.JoinedAt.ToUniversalTime().ToString("o");
                     if (!string.IsNullOrEmpty(p.DisplayName))
                         _core.TimeEngine.UpdateUserInfo(p.UserId, p.DisplayName, "");
                     // Register catch-up players in the engine with their real log timestamp.
@@ -987,7 +1003,14 @@ public class AuthController
                     .FirstOrDefault(e => e.Type == "instance_join" && e.Tracked == 1 && string.IsNullOrEmpty(e.LeftAt));
                 if (openJoin != null)
                 {
-                    _core.Timeline.SetInstanceEventLeftAt(openJoin.Id, DateTime.UtcNow.ToString("o"));
+                    var nowStr = DateTime.UtcNow.ToString("o");
+                    _core.Timeline.UpdateEvent(openJoin.Id, ev =>
+                    {
+                        if (ev.Players == null) return;
+                        foreach (var p in ev.Players.Where(p => string.IsNullOrEmpty(p.LeftAt)))
+                            p.LeftAt = nowStr;
+                    });
+                    _core.Timeline.SetInstanceEventLeftAt(openJoin.Id, nowStr);
                     var closed = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == openJoin.Id);
                     if (closed != null) _core.SendToJS("timelineEvent", _instance.BuildTimelinePayload(closed));
                 }

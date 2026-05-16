@@ -358,7 +358,7 @@ public class GroupsController
                                 id = g["id"]?.ToString() ?? "", name = g["name"]?.ToString() ?? "",
                                 shortCode = g["shortCode"]?.ToString() ?? "", description = g["description"]?.ToString() ?? "",
                                 iconUrl = ImageCacheHelper.GetGroupUrl(g["id"]?.ToString(), g["iconUrl"]?.ToString()), bannerUrl = ImageCacheHelper.GetGroupBannerUrl(g["id"]?.ToString(), g["bannerUrl"]?.ToString()),
-                                memberCount = g["memberCount"]?.Value<int>() ?? 0, privacy = g["privacy"]?.ToString() ?? "",
+                                memberCount = g["memberCount"]?.Value<int>() ?? 0, onlineMemberCount = g["onlineMemberCount"]?.Value<int>() ?? 0, privacy = g["privacy"]?.ToString() ?? "",
                                 joinState = g["joinState"]?.ToString() ?? "",
                                 createdAt    = g["createdAt"]?.ToString() ?? "",
                                 isVerified   = g["isVerified"]?.Value<bool>() ?? false,

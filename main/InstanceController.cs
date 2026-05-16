@@ -22,6 +22,8 @@ public class InstanceController
     private string _cachedInstOwnerGroup = "";
 
     private readonly Dictionary<string, (string displayName, string image)> _cumulativeInstancePlayers = new();
+    private readonly Dictionary<string, string> _playerJoinTimes = new();
+    private readonly Dictionary<string, string> _playerLeftTimes = new();
     private readonly HashSet<string> _meetAgainThisInstance = new();
     private string? _pendingInstanceEventId;
     private System.Threading.Timer? _instanceSnapshotTimer;
@@ -36,6 +38,7 @@ public class InstanceController
     public int    CachedInstCapacity   => _cachedInstCapacity;
     public string CachedInstType       => _cachedInstType;
     public Dictionary<string, (string displayName, string image)> CumulativeInstancePlayers => _cumulativeInstancePlayers;
+    public Dictionary<string, string> PlayerJoinTimes => _playerJoinTimes;
     public string? PendingInstanceEventId { get => _pendingInstanceEventId; set => _pendingInstanceEventId = value; }
     public bool LogWatcherBootstrapped { get => _logWatcherBootstrapped; set => _logWatcherBootstrapped = value; }
     public string LastTrackedWorldId { get => _lastTrackedWorldId; set => _lastTrackedWorldId = value; }
@@ -53,6 +56,15 @@ public class InstanceController
             var id = _pendingInstanceEventId;
             _pendingInstanceEventId = null;
             var now = DateTime.UtcNow.ToString("o");
+            var finalPlayers = _cumulativeInstancePlayers.Select(kv => new TimelineService.PlayerSnap
+            {
+                UserId      = kv.Key,
+                DisplayName = kv.Value.displayName,
+                Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
+                JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
+                LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : now,
+            }).ToList();
+            _core.Timeline.UpdateEvent(id, ev => ev.Players = finalPlayers);
             _core.Timeline.SetInstanceEventLeftAt(id, now);
             var closed = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == id);
             if (closed != null) _core.SendToJS("timelineEvent", BuildTimelinePayload(closed));
@@ -898,6 +910,7 @@ public class InstanceController
                                 var img = VRChatApiService.GetUserImage(profile);
                                 _core.PlayerAgeVerifiedCache[p.UserId] = profile["ageVerified"]?.Value<bool>() ?? false;
                                 _core.PlayerProfileCache[p.UserId] = profile;
+                                _core.TimeEngine.SaveUserProfileCache(p.UserId, profile.ToString(Newtonsoft.Json.Formatting.None));
                                 lock (userProfiles)
                                     userProfiles[p.UserId] = profile;
                             }
@@ -1051,14 +1064,16 @@ public class InstanceController
         // Finalise previous instance event
         if (_pendingInstanceEventId != null)
         {
+            var now = DateTime.UtcNow.ToString("o");
             var finalPlayers = _cumulativeInstancePlayers.Select(kv => new TimelineService.PlayerSnap
             {
                 UserId      = kv.Key,
                 DisplayName = kv.Value.displayName,
-                Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image)
+                Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
+                JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
+                LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : now,
             }).ToList();
             var prevId = _pendingInstanceEventId;
-            var now    = DateTime.UtcNow.ToString("o");
             _core.Timeline.UpdateEvent(prevId, ev => ev.Players = finalPlayers);
             _core.Timeline.SetInstanceEventLeftAt(prevId, now);
             var finalEv = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == prevId);
@@ -1066,6 +1081,8 @@ public class InstanceController
         }
 
         _cumulativeInstancePlayers.Clear();
+        _playerJoinTimes.Clear();
+        _playerLeftTimes.Clear();
         _meetAgainThisInstance.Clear();
         _instanceSnapshotTimer?.Dispose();
         _instanceSnapshotTimer = null;
@@ -1074,8 +1091,17 @@ public class InstanceController
         var selfId   = _core.VrcApi.CurrentUserId ?? "";
         var selfName = selfRaw?["displayName"]?.ToString() ?? "";
         var selfImg  = selfRaw != null ? ImageCacheHelper.GetUserUrl(selfId, VRChatApiService.GetUserImage(selfRaw)) : "";
-        if (!string.IsNullOrEmpty(selfId) && !string.IsNullOrEmpty(selfName))
-            _cumulativeInstancePlayers[selfId] = (selfName, selfImg);
+        if (!string.IsNullOrEmpty(selfId))
+        {
+            // HandlePlayerJoinedOnUiThread skips self, so this is the only place where the
+            // local user is recorded. Use fallbacks so selfId is never absent from tracking
+            // even if CurrentUserRaw["displayName"] isn't available yet.
+            var resolvedName = !string.IsNullOrEmpty(selfName) ? selfName
+                : !string.IsNullOrEmpty(_core.Settings.ActiveAccount?.DisplayName) ? _core.Settings.ActiveAccount.DisplayName
+                : selfId;
+            _cumulativeInstancePlayers[selfId] = (resolvedName, selfImg);
+            _playerJoinTimes[selfId] = DateTime.UtcNow.ToString("o");
+        }
 
         var evId  = Guid.NewGuid().ToString("N")[..8];
         _pendingInstanceEventId = evId;
@@ -1135,7 +1161,9 @@ public class InstanceController
                         {
                             UserId      = kv.Key,
                             DisplayName = kv.Value.displayName,
-                            Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image)
+                            Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
+                            JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
+                            LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : "",
                         }).ToList();
 
                         // Resolve world name: DB cache first, API fallback
@@ -1192,6 +1220,7 @@ public class InstanceController
             // This ensures Time Together uses the exact same start time as Instance Info.
             var logPlayer = _core.LogWatcher.GetCurrentPlayers().FirstOrDefault(p => p.UserId == userId);
             var joinedAtUtc = logPlayer != null ? logPlayer.JoinedAt.ToUniversalTime() : DateTime.UtcNow;
+            _playerJoinTimes[userId] = joinedAtUtc.ToString("o");
             _core.TimeEngine.OnPlayerJoined(userId, joinedAtUtc);
 
             // Live-update the instance_join timeline event so the UI shows players immediately
@@ -1202,7 +1231,9 @@ public class InstanceController
                 {
                     UserId      = kv.Key,
                     DisplayName = kv.Value.displayName,
-                    Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image)
+                    Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
+                    JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
+                    LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : "",
                 }).ToList();
                 _core.Timeline.UpdateEvent(evId, ev => ev.Players = snap);
                 var updated = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == evId);
@@ -1364,6 +1395,7 @@ public class InstanceController
                     var img = VRChatApiService.GetUserImage(profile);
                     _core.PlayerAgeVerifiedCache[userId] = profile["ageVerified"]?.Value<bool>() ?? false;
                     _core.PlayerProfileCache[userId] = profile;
+                    _core.TimeEngine.SaveUserProfileCache(userId, profile.ToString(Newtonsoft.Json.Formatting.None));
 
                     // Also enrich the cumulative instance player record with the resolved image
                     if (_cumulativeInstancePlayers.TryGetValue(userId, out var existing) && string.IsNullOrEmpty(existing.image))
@@ -1383,7 +1415,9 @@ public class InstanceController
                             {
                                 UserId      = kv.Key,
                                 DisplayName = kv.Value.displayName,
-                                Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image)
+                                Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
+                                JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
+                                LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : "",
                             }).ToList();
                             _core.Timeline.UpdateEvent(evId, ev => ev.Players = snap);
                         }
@@ -1391,6 +1425,28 @@ public class InstanceController
                 }
                 catch { }
             });
+        }
+    }
+
+    public void HandlePlayerLeftOnUiThread(string userId)
+    {
+        if (string.IsNullOrEmpty(userId)) return;
+        _playerLeftTimes[userId] = DateTime.UtcNow.ToString("o");
+
+        if (_pendingInstanceEventId != null)
+        {
+            var evId = _pendingInstanceEventId;
+            var snap = _cumulativeInstancePlayers.Select(kv => new TimelineService.PlayerSnap
+            {
+                UserId      = kv.Key,
+                DisplayName = kv.Value.displayName,
+                Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
+                JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
+                LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : "",
+            }).ToList();
+            _core.Timeline.UpdateEvent(evId, ev => ev.Players = snap);
+            var updated = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == evId);
+            if (updated != null) _core.SendToJS("timelineEvent", BuildTimelinePayload(updated));
         }
     }
 
@@ -1456,7 +1512,7 @@ public class InstanceController
         worldName   = ev.WorldName,
         worldThumb  = wThumb,
         location    = ev.Location,
-        players     = ev.Players.Select(p => new { userId = p.UserId, displayName = p.DisplayName, image = ResolveWithDiskFallback(p.UserId, p.Image) }).ToList(),
+        players     = ev.Players.Select(p => new { userId = p.UserId, displayName = p.DisplayName, image = ResolveWithDiskFallback(p.UserId, p.Image), joinedAt = p.JoinedAt, leftAt = p.LeftAt }).ToList(),
         photoPath   = ev.PhotoPath,
         photoUrl    = !string.IsNullOrEmpty(ev.PhotoPath) ? (_core.GetVirtualMediaUrl?.Invoke(ev.PhotoPath) ?? "") : _core.FixLocalUrl(ev.PhotoUrl),
         userId      = ev.UserId,

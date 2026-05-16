@@ -29,6 +29,8 @@ public class TimelineService : IDisposable
         public string UserId      { get; set; } = "";
         public string DisplayName { get; set; } = "";
         public string Image       { get; set; } = "";
+        public string JoinedAt    { get; set; } = "";
+        public string LeftAt      { get; set; } = "";
     }
 
     public class TimelineEvent
@@ -135,6 +137,8 @@ public class TimelineService : IDisposable
                 user_id      TEXT NOT NULL,
                 display_name TEXT DEFAULT '',
                 image        TEXT DEFAULT '',
+                joined_at    TEXT DEFAULT '',
+                left_at      TEXT DEFAULT '',
                 PRIMARY KEY (event_id, user_id)
             );
             CREATE TABLE IF NOT EXISTS known_users (
@@ -172,6 +176,20 @@ public class TimelineService : IDisposable
         try { using var mc = _db.CreateCommand(); mc.CommandText = "ALTER TABLE events ADD COLUMN tracked  INTEGER NOT NULL DEFAULT 0"; mc.ExecuteNonQuery(); } catch { }
         try { using var mc = _db.CreateCommand(); mc.CommandText = "ALTER TABLE friend_events ADD COLUMN left_at  TEXT    DEFAULT NULL"; mc.ExecuteNonQuery(); } catch { }
         try { using var mc = _db.CreateCommand(); mc.CommandText = "ALTER TABLE friend_events ADD COLUMN tracked  INTEGER NOT NULL DEFAULT 0"; mc.ExecuteNonQuery(); } catch { }
+        try { using var mc = _db.CreateCommand(); mc.CommandText = "ALTER TABLE event_players ADD COLUMN joined_at TEXT DEFAULT ''"; mc.ExecuteNonQuery(); } catch { }
+        try { using var mc = _db.CreateCommand(); mc.CommandText = "ALTER TABLE event_players ADD COLUMN left_at   TEXT DEFAULT ''"; mc.ExecuteNonQuery(); } catch { }
+        // Backfill event_players.left_at for rows that are empty but whose parent event is already closed
+        try
+        {
+            using var mc = _db.CreateCommand();
+            mc.CommandText = @"
+                UPDATE event_players
+                SET left_at = (SELECT left_at FROM events WHERE events.id = event_players.event_id)
+                WHERE (left_at IS NULL OR left_at = '')
+                  AND event_id IN (SELECT id FROM events WHERE left_at IS NOT NULL AND left_at != '')";
+            mc.ExecuteNonQuery();
+        }
+        catch { }
         // Colocated friends per GPS event
         try
         {
@@ -259,7 +277,7 @@ public class TimelineService : IDisposable
             var optPlayerMap = new Dictionary<string, List<PlayerSnap>>();
             using (var cmd = _db.CreateCommand())
             {
-                cmd.CommandText = @"SELECT ep.event_id,ep.user_id,ep.display_name,ep.image
+                cmd.CommandText = @"SELECT ep.event_id,ep.user_id,ep.display_name,ep.image,ep.joined_at,ep.left_at
                     FROM event_players ep
                     WHERE ep.event_id IN (SELECT id FROM events ORDER BY timestamp DESC LIMIT $n)";
                 cmd.Parameters.AddWithValue("$n", _maxN);
@@ -268,7 +286,7 @@ public class TimelineService : IDisposable
                 {
                     var eid = r.GetString(0);
                     if (!optPlayerMap.TryGetValue(eid, out var list)) optPlayerMap[eid] = list = new();
-                    list.Add(new PlayerSnap { UserId = r.GetString(1), DisplayName = r.GetString(2), Image = r.GetString(3) });
+                    list.Add(new PlayerSnap { UserId = r.GetString(1), DisplayName = r.GetString(2), Image = r.GetString(3), JoinedAt = r.IsDBNull(4) ? "" : r.GetString(4), LeftAt = r.IsDBNull(5) ? "" : r.GetString(5) });
                 }
             }
 
@@ -367,7 +385,7 @@ public class TimelineService : IDisposable
         var playerMap = new Dictionary<string, List<PlayerSnap>>();
         using (var cmd = _db.CreateCommand())
         {
-            cmd.CommandText = "SELECT event_id, user_id, display_name, image FROM event_players";
+            cmd.CommandText = "SELECT event_id, user_id, display_name, image, joined_at, left_at FROM event_players";
             using var r = cmd.ExecuteReader();
             while (r.Read())
             {
@@ -379,6 +397,8 @@ public class TimelineService : IDisposable
                     UserId      = r.GetString(1),
                     DisplayName = r.GetString(2),
                     Image       = r.GetString(3),
+                    JoinedAt    = r.IsDBNull(4) ? "" : r.GetString(4),
+                    LeftAt      = r.IsDBNull(5) ? "" : r.GetString(5),
                 });
             }
         }
@@ -847,14 +867,14 @@ public class TimelineService : IDisposable
         {
             var inP = string.Join(",", ids.Select((_, i) => $"$p{i}"));
             using var pcmd = _db.CreateCommand();
-            pcmd.CommandText = $"SELECT event_id,user_id,display_name,image FROM event_players WHERE event_id IN ({inP})";
+            pcmd.CommandText = $"SELECT event_id,user_id,display_name,image,joined_at,left_at FROM event_players WHERE event_id IN ({inP})";
             for (int i = 0; i < ids.Count; i++) pcmd.Parameters.AddWithValue($"$p{i}", ids[i]);
             using var pr = pcmd.ExecuteReader();
             while (pr.Read())
             {
                 var eid = pr.GetString(0);
                 if (!playerMap.TryGetValue(eid, out var list)) playerMap[eid] = list = new();
-                list.Add(new PlayerSnap { UserId = pr.GetString(1), DisplayName = pr.GetString(2), Image = pr.GetString(3) });
+                list.Add(new PlayerSnap { UserId = pr.GetString(1), DisplayName = pr.GetString(2), Image = pr.GetString(3), JoinedAt = pr.IsDBNull(4) ? "" : pr.GetString(4), LeftAt = pr.IsDBNull(5) ? "" : pr.GetString(5) });
             }
         }
         catch { }
@@ -941,14 +961,14 @@ public class TimelineService : IDisposable
         {
             var inP = string.Join(",", ids.Select((_, i) => $"$p{i}"));
             using var pcmd = _db.CreateCommand();
-            pcmd.CommandText = $"SELECT event_id,user_id,display_name,image FROM event_players WHERE event_id IN ({inP})";
+            pcmd.CommandText = $"SELECT event_id,user_id,display_name,image,joined_at,left_at FROM event_players WHERE event_id IN ({inP})";
             for (int i = 0; i < ids.Count; i++) pcmd.Parameters.AddWithValue($"$p{i}", ids[i]);
             using var pr = pcmd.ExecuteReader();
             while (pr.Read())
             {
                 var eid = pr.GetString(0);
                 if (!playerMap.TryGetValue(eid, out var list)) playerMap[eid] = list = new();
-                list.Add(new PlayerSnap { UserId = pr.GetString(1), DisplayName = pr.GetString(2), Image = pr.GetString(3) });
+                list.Add(new PlayerSnap { UserId = pr.GetString(1), DisplayName = pr.GetString(2), Image = pr.GetString(3), JoinedAt = pr.IsDBNull(4) ? "" : pr.GetString(4), LeftAt = pr.IsDBNull(5) ? "" : pr.GetString(5) });
             }
         }
         catch { }
@@ -1065,14 +1085,14 @@ public class TimelineService : IDisposable
         {
             var inP = string.Join(",", ids.Select((_, i) => $"$p{i}"));
             using var pcmd = _db.CreateCommand();
-            pcmd.CommandText = $"SELECT event_id,user_id,display_name,image FROM event_players WHERE event_id IN ({inP})";
+            pcmd.CommandText = $"SELECT event_id,user_id,display_name,image,joined_at,left_at FROM event_players WHERE event_id IN ({inP})";
             for (int i = 0; i < ids.Count; i++) pcmd.Parameters.AddWithValue($"$p{i}", ids[i]);
             using var pr = pcmd.ExecuteReader();
             while (pr.Read())
             {
                 var eid = pr.GetString(0);
                 if (!playerMap.TryGetValue(eid, out var list)) playerMap[eid] = list = new();
-                list.Add(new PlayerSnap { UserId = pr.GetString(1), DisplayName = pr.GetString(2), Image = pr.GetString(3) });
+                list.Add(new PlayerSnap { UserId = pr.GetString(1), DisplayName = pr.GetString(2), Image = pr.GetString(3), JoinedAt = pr.IsDBNull(4) ? "" : pr.GetString(4), LeftAt = pr.IsDBNull(5) ? "" : pr.GetString(5) });
             }
         }
         catch { }
@@ -1147,14 +1167,14 @@ public class TimelineService : IDisposable
         {
             var inP = string.Join(",", ids.Select((_, i) => $"$p{i}"));
             using var pcmd = _db.CreateCommand();
-            pcmd.CommandText = $"SELECT event_id,user_id,display_name,image FROM event_players WHERE event_id IN ({inP})";
+            pcmd.CommandText = $"SELECT event_id,user_id,display_name,image,joined_at,left_at FROM event_players WHERE event_id IN ({inP})";
             for (int i = 0; i < ids.Count; i++) pcmd.Parameters.AddWithValue($"$p{i}", ids[i]);
             using var pr = pcmd.ExecuteReader();
             while (pr.Read())
             {
                 var eid = pr.GetString(0);
                 if (!playerMap.TryGetValue(eid, out var list)) playerMap[eid] = list = new();
-                list.Add(new PlayerSnap { UserId = pr.GetString(1), DisplayName = pr.GetString(2), Image = pr.GetString(3) });
+                list.Add(new PlayerSnap { UserId = pr.GetString(1), DisplayName = pr.GetString(2), Image = pr.GetString(3), JoinedAt = pr.IsDBNull(4) ? "" : pr.GetString(4), LeftAt = pr.IsDBNull(5) ? "" : pr.GetString(5) });
             }
         }
         catch { }
@@ -1735,17 +1755,21 @@ public class TimelineService : IDisposable
                 using var pcmd = _db.CreateCommand();
                 if (tx != null) pcmd.Transaction = tx;
                 pcmd.CommandText = @"INSERT OR REPLACE INTO event_players
-                    (event_id,user_id,display_name,image) VALUES($eid,$uid,$dn,$img)";
+                    (event_id,user_id,display_name,image,joined_at,left_at) VALUES($eid,$uid,$dn,$img,$ja,$la)";
                 var pEid = pcmd.Parameters.Add("$eid", SqliteType.Text);
                 var pUid = pcmd.Parameters.Add("$uid", SqliteType.Text);
                 var pDn  = pcmd.Parameters.Add("$dn",  SqliteType.Text);
                 var pImg = pcmd.Parameters.Add("$img", SqliteType.Text);
+                var pJa  = pcmd.Parameters.Add("$ja",  SqliteType.Text);
+                var pLa  = pcmd.Parameters.Add("$la",  SqliteType.Text);
                 pEid.Value = ev.Id;
                 foreach (var p in ev.Players)
                 {
                     pUid.Value = p.UserId;
                     pDn.Value  = p.DisplayName;
                     pImg.Value = p.Image;
+                    pJa.Value  = p.JoinedAt;
+                    pLa.Value  = p.LeftAt;
                     pcmd.ExecuteNonQuery();
                 }
             }
@@ -1776,6 +1800,26 @@ public class TimelineService : IDisposable
             cmd.Parameters.AddWithValue("$id",  ev.Id);
             cmd.ExecuteNonQuery();
 
+            // Read existing joined_at + left_at before deleting so they can be preserved
+            // if the new PlayerSnap has empty values (e.g. stale in-memory state).
+            var savedJoinTimes = new Dictionary<string, string>();
+            var savedLeftTimes = new Dictionary<string, string>();
+            using (var readCmd = _db.CreateCommand())
+            {
+                readCmd.Transaction = tx;
+                readCmd.CommandText = "SELECT user_id, joined_at, left_at FROM event_players WHERE event_id=$eid AND (joined_at != '' OR left_at != '')";
+                readCmd.Parameters.AddWithValue("$eid", ev.Id);
+                using var rdr = readCmd.ExecuteReader();
+                while (rdr.Read())
+                {
+                    var uid = rdr.GetString(0);
+                    var ja  = rdr.IsDBNull(1) ? "" : rdr.GetString(1);
+                    var la  = rdr.IsDBNull(2) ? "" : rdr.GetString(2);
+                    if (ja != "") savedJoinTimes[uid] = ja;
+                    if (la != "") savedLeftTimes[uid] = la;
+                }
+            }
+
             using var del = _db.CreateCommand();
             del.Transaction = tx;
             del.CommandText = "DELETE FROM event_players WHERE event_id=$eid";
@@ -1787,17 +1831,21 @@ public class TimelineService : IDisposable
                 using var pcmd = _db.CreateCommand();
                 pcmd.Transaction = tx;
                 pcmd.CommandText = @"INSERT INTO event_players
-                    (event_id,user_id,display_name,image) VALUES($eid,$uid,$dn,$img)";
+                    (event_id,user_id,display_name,image,joined_at,left_at) VALUES($eid,$uid,$dn,$img,$ja,$la)";
                 var pEid = pcmd.Parameters.Add("$eid", SqliteType.Text);
                 var pUid = pcmd.Parameters.Add("$uid", SqliteType.Text);
                 var pDn  = pcmd.Parameters.Add("$dn",  SqliteType.Text);
                 var pImg = pcmd.Parameters.Add("$img", SqliteType.Text);
+                var pJa  = pcmd.Parameters.Add("$ja",  SqliteType.Text);
+                var pLa  = pcmd.Parameters.Add("$la",  SqliteType.Text);
                 pEid.Value = ev.Id;
                 foreach (var p in ev.Players)
                 {
                     pUid.Value = p.UserId;
                     pDn.Value  = p.DisplayName;
                     pImg.Value = p.Image;
+                    pJa.Value  = string.IsNullOrEmpty(p.JoinedAt) && savedJoinTimes.TryGetValue(p.UserId, out var savedJa) ? savedJa : p.JoinedAt;
+                    pLa.Value  = string.IsNullOrEmpty(p.LeftAt)   && savedLeftTimes.TryGetValue(p.UserId, out var savedLa) ? savedLa : p.LeftAt;
                     pcmd.ExecuteNonQuery();
                 }
             }
@@ -1879,17 +1927,21 @@ public class TimelineService : IDisposable
             {
                 using var pcmd = _db.CreateCommand();
                 pcmd.Transaction = tx;
-                pcmd.CommandText = "INSERT OR IGNORE INTO event_players (event_id,user_id,display_name,image) VALUES($eid,$uid,$dn,$img)";
+                pcmd.CommandText = "INSERT OR IGNORE INTO event_players (event_id,user_id,display_name,image,joined_at,left_at) VALUES($eid,$uid,$dn,$img,$ja,$la)";
                 var pEid = pcmd.Parameters.Add("$eid", SqliteType.Text);
                 var pUid = pcmd.Parameters.Add("$uid", SqliteType.Text);
                 var pDn  = pcmd.Parameters.Add("$dn",  SqliteType.Text);
                 var pImg = pcmd.Parameters.Add("$img", SqliteType.Text);
+                var pJa  = pcmd.Parameters.Add("$ja",  SqliteType.Text);
+                var pLa  = pcmd.Parameters.Add("$la",  SqliteType.Text);
                 pEid.Value = ev.Id;
                 foreach (var p in ev.Players)
                 {
                     pUid.Value = p.UserId;
                     pDn.Value  = p.DisplayName;
                     pImg.Value = p.Image;
+                    pJa.Value  = p.JoinedAt;
+                    pLa.Value  = p.LeftAt;
                     pcmd.ExecuteNonQuery();
                 }
             }

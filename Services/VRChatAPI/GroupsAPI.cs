@@ -74,7 +74,11 @@ public class GroupsAPI(VRChatApiService ctx)
         try
         {
             var resp = await ctx._http.GetAsync($"{VRChatApiService.BASE}/groups/{groupId}?includeRoles=true");
-            if (resp.IsSuccessStatusCode) return JObject.Parse(await resp.Content.ReadAsStringAsync());
+            if (resp.IsSuccessStatusCode)
+            {
+                using var reader = new Newtonsoft.Json.JsonTextReader(new System.IO.StringReader(await resp.Content.ReadAsStringAsync())) { DateParseHandling = Newtonsoft.Json.DateParseHandling.None };
+                return JObject.Load(reader);
+            }
         }
         catch (Exception ex) { ctx.Log($"GetGroup exception: {ex.Message}"); }
         return null;

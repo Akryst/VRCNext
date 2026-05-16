@@ -1,36 +1,50 @@
-**2026.25.8**
+**2026.25.9**
 
-**HOTFIX**
-* Forgot to register new perf settings in C# savehandler.
+**Instance List**
 
-**Avatar Search Imrpvoements**
-* Avtr.icu will now work properly instead of not showing any search result because of 429 (too many request issues) instead of loading 20 avatars at a time we pre load 300 of them.
+* Refactored the Instance List.
+* Added a new `Joined` section.
+* Added a `Time Bar` that shows when someone was tracked in the instance.
+* Changed the list view to use proper table-style alignment.
 
-**Avatar Lookup**
-* Avatar Lookup finds now Avatars of an user even if the user has VRChat+ and a Custom profile image.
-* This doesn't mean it will work in every single case! it uses the Represented Group response or Mutual response from VRChats API 
-as these contain an Avatar Image URL.
+**Timeline**
 
-**Improved Caching**
-* Reduced API Calls to VRChats API Servers when using the breadcrumb navigation.
-* It will use a 5 minute cooldown which just blocks API requests during this short session.
+* Added more detailed information to the Instance Info tab.
+* Added **From** and **Until** entries for each player seen in that instance.
+* Added a visual bar that shows how long each player was tracked until their **Until** state.
+* Redesigned the **Instance Info Modal** in **Personal > Instances**. It now shows **Info** on the right and **Players in Instance** on the left.
+* Changed the Instance Info modal to be more wide.
+* 
 
-**Performance Settings**
-* Animation Settings: Disables all animations and transitions in VRCNext. This can speed up opening dialogs and switching between them, and may also save a little bit of CPU costs.
-* Blur Settings: Disables blur filters on modals and overlays. Instead of a blurred background, a dark overlay (75%) is shown. Especially useful when GPU acceleration is disabled, as blur effects are CPU-intensive. It is recommended to disable Blur Filters when using the app without GPU acceleration.
-* Both are ON by default and can be turned off.
+In **Personal > Instances > Instance Info Modal**, **From** and **Until** are now shown for each player you saw in that instance.
 
-**VR Overlay Memory Leak**
+This shows when they were tracked during your session. It does not always mean they joined or left at those exact times, since VRCNext cannot know when they joined before you or when they left after you.
 
-* Fixed a memory leak in the VR Overlay where images and events were not properly disposed from memory.
-* The VR Overlay now uses Gen 1 and Gen 2 GC cleanup as a backup in case something is not disposed correctly.
+**Taskbar**
 
-**GC Gen 1 and Gen 2 Cleanups**
+* Added `Show Keybinds` to the `Help` dropdown.
+* Added `Explain This Tab` to the `Help` dropdown.
+* The Taskbar is no longer part of the modal overlay layer, so the window can still be moved while a modal is open.
 
-* Gen 1 and Gen 2 GC cleanups now also run for the SteamVR Overlay subprocess of VRCNext.
-* Using `/trim` or **Settings > Advanced > Force Memory Trim** now also applies to the subprocess.
-* This means **Memory Trim** now covers subprocesses too, so keeping it enabled is recommended.
+**i18n**
+
+* Added missing localization entries for group modals.
+
+**Groups**
+
+* Added an `Online` count for group members who are currently online.
+
+**Improvements**
+
+* Stored player information from the instance list directly in SQLite to improve profile opening speed.
+
+**Changes**
+
+* Changed the `Friend` badge from plain text to a `vrcn-badge`.
 
 **Fixes**
-* Fixed an race condition between mutuals and group members trying to re-download profile icons
-* Fixed an issue that showed the "Backdrop" filter even when the modal was closed.
+
+* Fixed the Group Modal not showing the group creation date.
+* Fixed the Group Modal not showing the member join date.
+* Fixed an issue that caused to show the old Location modal when opened
+through an user profile in "Last Activity"

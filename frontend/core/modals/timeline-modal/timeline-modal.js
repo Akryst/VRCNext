@@ -82,18 +82,65 @@ function _tlAvRow(image, name, label, labelColor) {
 
 // Detail: instance join
 
+function _tlPlayerCard(p, instanceStart, instanceEnd) {
+    const name   = p.displayName || '?';
+    const live   = p.userId ? vrcFriendsData.find(f => f.id === p.userId) : null;
+    const image  = live?.image || p.image || '';
+    const av     = image
+        ? `<div class="tl-player-card-av" style="background-image:url('${cssUrl(image)}')"></div>`
+        : `<div class="tl-player-card-av">${esc(name[0].toUpperCase())}</div>`;
+    const badge  = live ? `<span class="vrcn-badge ok"><span class="msi" style="font-size:10px;">check_circle</span>${t('profiles.badges.friend', 'Friend')}</span>` : '';
+    const onclick = p.userId ? `onclick="document.getElementById('modalDetail').style.display='none';openFriendDetail('${jsq(p.userId)}')"` : '';
+    const clickCls = p.userId ? ' clickable' : '';
+
+    let timesHtml;
+    if (!p.joinedAt && !p.leftAt) {
+        timesHtml = `${esc(t('timeline.detail.from', 'From'))}: ${esc(t('timeline.detail.none', 'None'))} &nbsp;·&nbsp; ${esc(t('timeline.detail.until', 'Until'))}: ${esc(t('timeline.detail.none', 'None'))}`;
+    } else {
+        const joinStr = p.joinedAt ? tlFormatTime(p.joinedAt) : t('timeline.detail.none', 'None');
+        const leftPart = p.leftAt
+            ? esc(tlFormatTime(p.leftAt))
+            : `<span style="color:var(--ok);">&#9679;&nbsp;${esc(t('timeline.detail.ongoing', 'Ongoing'))}</span>`;
+        let spentPart = '';
+        if (p.joinedAt) {
+            const endMs = p.leftAt ? new Date(p.leftAt).getTime() : Date.now();
+            const secs  = Math.floor((endMs - new Date(p.joinedAt).getTime()) / 1000);
+            if (secs > 0) spentPart = ` &nbsp;·&nbsp; ${esc(t('nav.time_spent', 'Time Spent'))} ${esc(formatDuration(secs))}`;
+        }
+        timesHtml = `${esc(t('timeline.detail.from', 'From'))} ${esc(joinStr)} &nbsp;·&nbsp; ${esc(t('timeline.detail.until', 'Until'))} ${leftPart}${spentPart}`;
+    }
+
+    let barHtml = '';
+    const toMin = ms => Math.floor(ms / 60000) * 60000;
+    const iStart = toMin(instanceStart ? new Date(instanceStart).getTime() : 0);
+    const iEnd   = toMin(instanceEnd   ? new Date(instanceEnd).getTime()   : Date.now());
+    const total  = iEnd - iStart;
+    if (total > 0 && (p.joinedAt || p.leftAt)) {
+        const pStart   = toMin(p.joinedAt ? new Date(p.joinedAt).getTime() : iStart);
+        const pEnd     = toMin(p.leftAt   ? new Date(p.leftAt).getTime()   : iEnd);
+        const leftPct  = Math.max(0, Math.min(100, (pStart - iStart) / total * 100));
+        const widthPct = Math.max(0, Math.min(100 - leftPct, (pEnd - pStart) / total * 100));
+        const barCls   = live ? ' friend' : '';
+        barHtml = `<div class="tl-player-bar-wrap"><div class="tl-player-bar${barCls}" style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%"></div></div>`;
+    }
+
+    return `<div class="tl-player-card${clickCls}" ${onclick} style="flex-wrap:wrap;">${av}<div class="tl-player-card-info"><div class="tl-player-card-name"><span>${esc(name)}</span>${badge}</div><div class="tl-player-card-times">${timesHtml}</div></div>${barHtml ? `<div style="flex-basis:100%;padding:0 2px;">${barHtml}</div>` : ''}</div>`;
+}
+
 function renderTlDetailJoin(ev, el) {
     const banner  = _tlBanner(!!ev.worldThumb);
     const players = ev.players || [];
 
     let playersHtml = '';
     if (players.length > 0) {
-        playersHtml = `<div class="fd-group-rep-label" style="margin:14px 0 8px;">${esc(tf('timeline.detail.players_in_instance', { count: players.length }, `Players in instance (${players.length})`))}</div><div class="photo-players-list">`;
-        players.forEach(p => {
-            const onclick = p.userId ? `document.getElementById('modalDetail').style.display='none';openFriendDetail('${jsq(p.userId)}')` : '';
-            playersHtml += renderProfileItemSmall({ id: p.userId, displayName: p.displayName, image: p.image }, onclick);
-        });
-        playersHtml += '</div>';
+        const instEnd = ev.leftAt || new Date().toISOString();
+        let grid = '';
+        players.forEach(p => { grid += _tlPlayerCard(p, ev.timestamp, instEnd); });
+        playersHtml = `<div class="fd-info-card tl-players-card">
+            <div class="fd-group-rep-label">${esc(tf('timeline.detail.players_in_instance', { count: players.length }, `Players in instance (${players.length})`))}</div>
+            <div style="font-size:10.5px;color:var(--tx3);margin-bottom:8px;line-height:1.4;">${esc(t('timeline.detail.players_disclaimer', 'Shows when each player was tracked while you were in the instance. This does not mean they joined or left at those exact times.'))}</div>
+            <div class="tl-players-grid">${grid}</div>
+        </div>`;
     }
 
     const dateStr = tlFormatLongDate(ev.timestamp);
@@ -343,6 +390,7 @@ function renderFtGpsDetailModal(ev) {
     const banner = _tlBanner(!!ev.worldThumb);
     const el = document.getElementById('ftGpsDetailContent');
     el.innerHTML = `${banner}<div class="fd-content${banner ? ' fd-has-banner' : ''}" style="padding:16px 0;">
+        ${ftDetailAvRow(ev)}
         <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(worldName)}</h2>
         <div style="margin-bottom:12px;">${idBadge(ev.worldId || '')}</div>
         <div class="fd-tabs" style="margin-bottom:14px;">
@@ -410,10 +458,16 @@ function openFtDetail(id) {
 function openFdActivityDetail(id) {
     const ev = _fdUserActivityEvents.find(e => e.id === id);
     if (!ev) return;
+    if (ev.type === 'friend_gps') {
+        renderFtGpsDetailModal(ev);
+        const _ftMb = document.getElementById('ftGpsDetailContent');
+        if (_ftMb) _ftMb.classList.add('narrow');
+        document.getElementById('modalFtGpsDetail').style.display = 'flex';
+        return;
+    }
     const el = document.getElementById('detailModalContent');
     if (!el) return;
     switch (ev.type) {
-        case 'friend_gps':        renderFtDetailGps(ev, el);        break;
         case 'friend_status':     renderFtDetailStatus(ev, el);     break;
         case 'friend_statusdesc': renderFtDetailStatusDesc(ev, el); break;
         case 'friend_online':      renderFtDetailOnline(ev, el);     break;

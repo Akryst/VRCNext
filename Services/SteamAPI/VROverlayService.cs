@@ -1025,7 +1025,8 @@ namespace VRCNext.Services
                     _        => null,
                 };
                 if (string.IsNullOrEmpty(localPath)) return null;
-                return new Bitmap(localPath);
+                using var tmp = new Bitmap(localPath);
+                return new Bitmap(tmp);
             }
             catch (Exception ex)
             {

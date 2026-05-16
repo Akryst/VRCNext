@@ -68,7 +68,8 @@ function renderGroupDetail(g) {
     const iconHtml = g.iconUrl
         ? `<div style="position:relative;display:inline-block;flex-shrink:0;"><img class="fd-avatar" src="${g.iconUrl}" onerror="this.style.display='none'">${iconEditBtn}</div>`
         : (canEdit ? `<div style="position:relative;display:inline-block;flex-shrink:0;"><div class="fd-avatar" style="display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--tx3);">${esc((g.name||'?')[0])}</div>${iconEditBtn}</div>` : '');
-    const headerMeta = [g.shortCode ? esc(g.shortCode) : '', esc(getGroupMembersText(g.memberCount || 0))].filter(Boolean).join(' &middot; ');
+    const membersPart = esc(getGroupMembersText(g.memberCount || 0)) + (g.onlineMemberCount > 0 ? ` &middot; ${g.onlineMemberCount} ${esc(t('status.online', 'Online'))}` : '');
+    const headerMeta = [g.shortCode ? esc(g.shortCode) : '', membersPart].filter(Boolean).join(' &middot; ');
     const ownerLabel = g.ownerDisplayName || '';
     const ownerHtml = (g.ownerId && ownerLabel)
         ? `<div style="font-size:12px;color:var(--tx3);margin-top:2px;margin-bottom:4px;">${t('worlds.meta.by', 'by')} <span onclick="navOpenModal('friend','${jsq(g.ownerId)}','${jsq(ownerLabel)}')" style="display:inline-flex;align-items:center;padding:1px 8px;border-radius:20px;background:var(--bg-hover);font-size:11px;font-weight:600;color:var(--tx1);cursor:pointer;line-height:1.8;">${esc(ownerLabel)}</span></div>`
@@ -463,7 +464,7 @@ function applyGroupDetailTranslations(g) {
     if (statusEl) {
         const parts = [];
         if (g.shortCode) parts.push(g.shortCode);
-        parts.push(getGroupMembersText(g.memberCount || 0));
+        parts.push(getGroupMembersText(g.memberCount || 0) + (g.onlineMemberCount > 0 ? ` · ${g.onlineMemberCount} ${t('status.online', 'Online')}` : ''));
         statusEl.textContent = parts.join(' - ');
     }
 
