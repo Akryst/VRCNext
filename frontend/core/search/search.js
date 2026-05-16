@@ -14,10 +14,7 @@ function searchUserStatusText(user) {
     const statusKey = user.status || 'offline';
     const statusText = user.statusDescription
         || (typeof statusLabel === 'function' ? statusLabel(statusKey) : (statusKey || t('status.offline', 'Offline')));
-    const friendBadge = user.isFriend
-        ? ` | <span style="color:var(--ok)">${esc(t('profiles.badges.friend', 'Friend'))}</span>`
-        : '';
-    return `<span class="vrc-status-dot ${statusDotClass(statusKey)}" style="width:8px;height:8px;display:inline-block;vertical-align:middle;margin-right:2px;"></span> ${esc(statusText)}${friendBadge}`;
+    return `<span class="vrc-status-dot ${statusDotClass(statusKey)}" style="width:8px;height:8px;display:inline-block;vertical-align:middle;margin-right:2px;"></span> ${esc(statusText)}`;
 }
 
 function searchGroupMembersText(count) {
@@ -106,10 +103,13 @@ function renderSearchResults(type, results, offset, hasMore) {
             const img = u.image
                 ? `<div class="fav-friend-av" style="background-image:url('${cssUrl(u.image)}')"></div>`
                 : `<div class="fav-friend-av fav-friend-av-letter">${esc((u.displayName || '?')[0].toUpperCase())}</div>`;
+            const friendBadge = u.isFriend
+                ? `<span class="vrcn-badge ok"><span class="msi" style="font-size:10px;">check_circle</span>${esc(t('profiles.badges.friend', 'Friend'))}</span>`
+                : '';
             return `<div class="fav-friend-card" onclick="openFriendDetail('${esc(u.id)}')">
                 ${img}
                 <div class="fav-friend-info">
-                    <div class="fav-friend-name">${esc(u.displayName)}</div>
+                    <div class="fav-friend-name" style="display:flex;align-items:center;gap:6px;white-space:normal;overflow:visible;text-overflow:unset;"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">${esc(u.displayName)}</span>${friendBadge}</div>
                     <div class="fav-friend-status">${searchUserStatusText(u)}</div>
                 </div>
             </div>`;
