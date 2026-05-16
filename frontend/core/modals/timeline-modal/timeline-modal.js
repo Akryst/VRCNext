@@ -390,6 +390,7 @@ function renderFtGpsDetailModal(ev) {
     const banner = _tlBanner(!!ev.worldThumb);
     const el = document.getElementById('ftGpsDetailContent');
     el.innerHTML = `${banner}<div class="fd-content${banner ? ' fd-has-banner' : ''}" style="padding:16px 0;">
+        ${ftDetailAvRow(ev)}
         <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(worldName)}</h2>
         <div style="margin-bottom:12px;">${idBadge(ev.worldId || '')}</div>
         <div class="fd-tabs" style="margin-bottom:14px;">
@@ -457,10 +458,16 @@ function openFtDetail(id) {
 function openFdActivityDetail(id) {
     const ev = _fdUserActivityEvents.find(e => e.id === id);
     if (!ev) return;
+    if (ev.type === 'friend_gps') {
+        renderFtGpsDetailModal(ev);
+        const _ftMb = document.getElementById('ftGpsDetailContent');
+        if (_ftMb) _ftMb.classList.add('narrow');
+        document.getElementById('modalFtGpsDetail').style.display = 'flex';
+        return;
+    }
     const el = document.getElementById('detailModalContent');
     if (!el) return;
     switch (ev.type) {
-        case 'friend_gps':        renderFtDetailGps(ev, el);        break;
         case 'friend_status':     renderFtDetailStatus(ev, el);     break;
         case 'friend_statusdesc': renderFtDetailStatusDesc(ev, el); break;
         case 'friend_online':      renderFtDetailOnline(ev, el);     break;

@@ -16,6 +16,7 @@
 }
 
 #modalFriendDetail { z-index: 10001; }
+#modalFtGpsDetail  { z-index: 10002; }
 
 .modal-nav-instant .modal-overlay,
 .modal-nav-instant .modal-box { animation: none !important; }

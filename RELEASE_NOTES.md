@@ -46,3 +46,5 @@ This shows when they were tracked during your session. It does not always mean t
 
 * Fixed the Group Modal not showing the group creation date.
 * Fixed the Group Modal not showing the member join date.
+* Fixed an issue that caused to show the old Location modal when opened
+through an user profile in "Last Activity"
