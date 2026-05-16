@@ -89,7 +89,7 @@ function _tlPlayerCard(p, instanceStart, instanceEnd) {
     const av     = image
         ? `<div class="tl-player-card-av" style="background-image:url('${cssUrl(image)}')"></div>`
         : `<div class="tl-player-card-av">${esc(name[0].toUpperCase())}</div>`;
-    const badge  = live ? `<span class="tl-player-card-badge">${t('profiles.badges.friend', 'Friend')}</span>` : '';
+    const badge  = live ? `<span class="vrcn-badge ok"><span class="msi" style="font-size:10px;">check_circle</span>${t('profiles.badges.friend', 'Friend')}</span>` : '';
     const onclick = p.userId ? `onclick="document.getElementById('modalDetail').style.display='none';openFriendDetail('${jsq(p.userId)}')"` : '';
     const clickCls = p.userId ? ' clickable' : '';
 
@@ -111,20 +111,19 @@ function _tlPlayerCard(p, instanceStart, instanceEnd) {
     }
 
     let barHtml = '';
-    const toMin  = ms => Math.floor(ms / 60000) * 60000;
-    const iStart = toMin(instanceStart ? new Date(instanceStart).getTime() : 0);
-    const iEnd   = toMin(instanceEnd   ? new Date(instanceEnd).getTime()   : Date.now());
+    const iStart = instanceStart ? new Date(instanceStart).getTime() : 0;
+    const iEnd   = instanceEnd   ? new Date(instanceEnd).getTime()   : Date.now();
     const total  = iEnd - iStart;
     if (total > 0 && (p.joinedAt || p.leftAt)) {
-        const pStart   = toMin(p.joinedAt ? new Date(p.joinedAt).getTime() : iStart);
-        const pEnd     = toMin(p.leftAt   ? new Date(p.leftAt).getTime()   : iEnd);
+        const pStart   = p.joinedAt ? new Date(p.joinedAt).getTime() : iStart;
+        const pEnd     = p.leftAt   ? new Date(p.leftAt).getTime()   : iEnd;
         const leftPct  = Math.max(0, Math.min(100, (pStart - iStart) / total * 100));
         const widthPct = Math.max(0, Math.min(100 - leftPct, (pEnd - pStart) / total * 100));
         const barCls   = live ? ' friend' : '';
         barHtml = `<div class="tl-player-bar-wrap"><div class="tl-player-bar${barCls}" style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%"></div></div>`;
     }
 
-    return `<div class="tl-player-card${clickCls}" ${onclick}>${av}<div class="tl-player-card-info"><div class="tl-player-card-name">${esc(name)}</div><div class="tl-player-card-times">${timesHtml}</div>${barHtml}</div>${badge}</div>`;
+    return `<div class="tl-player-card${clickCls}" ${onclick} style="flex-wrap:wrap;">${av}<div class="tl-player-card-info"><div class="tl-player-card-name"><span>${esc(name)}</span>${badge}</div><div class="tl-player-card-times">${timesHtml}</div></div>${barHtml ? `<div style="flex-basis:100%;padding:0 2px;">${barHtml}</div>` : ''}</div>`;
 }
 
 function renderTlDetailJoin(ev, el) {
