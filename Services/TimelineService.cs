@@ -265,7 +265,7 @@ public class TimelineService : IDisposable
             var optPlayerMap = new Dictionary<string, List<PlayerSnap>>();
             using (var cmd = _db.CreateCommand())
             {
-                cmd.CommandText = @"SELECT ep.event_id,ep.user_id,ep.display_name,ep.image
+                cmd.CommandText = @"SELECT ep.event_id,ep.user_id,ep.display_name,ep.image,ep.joined_at,ep.left_at
                     FROM event_players ep
                     WHERE ep.event_id IN (SELECT id FROM events ORDER BY timestamp DESC LIMIT $n)";
                 cmd.Parameters.AddWithValue("$n", _maxN);
@@ -274,7 +274,7 @@ public class TimelineService : IDisposable
                 {
                     var eid = r.GetString(0);
                     if (!optPlayerMap.TryGetValue(eid, out var list)) optPlayerMap[eid] = list = new();
-                    list.Add(new PlayerSnap { UserId = r.GetString(1), DisplayName = r.GetString(2), Image = r.GetString(3) });
+                    list.Add(new PlayerSnap { UserId = r.GetString(1), DisplayName = r.GetString(2), Image = r.GetString(3), JoinedAt = r.IsDBNull(4) ? "" : r.GetString(4), LeftAt = r.IsDBNull(5) ? "" : r.GetString(5) });
                 }
             }
 
