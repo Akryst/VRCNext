@@ -47,16 +47,19 @@ function openInstanceInfoModal() {
 
     const now = Date.now();
     const hasTimers = enriched.some(u => u.joinedAt);
+    const iStart = enriched.reduce((min, u) => (u.joinedAt && u.joinedAt < min) ? u.joinedAt : min, now);
+    const iTotal = now - iStart;
 
     function fmtTimer(joinedAt) {
         return formatInstanceTimer(joinedAt, now);
     }
 
-
     const timerTh = hasTimers ? `<th style="text-align:right;padding-right:10px;">${t('instance.table.timer', 'Timer')}</th>` : '';
     const thead = `<thead><tr>
         <th style="width:40px;">${t('instance.table.profile', 'Profile')}</th>
         ${timerTh}
+        <th style="text-align:right;white-space:nowrap;">${t('instance.table.from', 'From')}</th>
+        <th style="text-align:right;white-space:nowrap;">${t('instance.table.to', 'To')}</th>
         <th>${t('instance.table.display_name', 'Display Name')}</th>
         <th style="width:110px;">${t('instance.table.rank', 'Rank')}</th>
         <th>${t('instance.table.status', 'Status')}</th>
@@ -110,11 +113,23 @@ function openInstanceInfoModal() {
         const langTd  = `<td><div class="iim-lang-cell">${langsHtml}</div></td>`;
         const nameTd  = `<td><span class="iim-name">${esc(displayName)}</span></td>`;
         const ageTd   = `<td style="text-align:center;">${ageVerified ? `<span class="vrcn-badge" style="font-size:10px;color:#3ba55d;border-color:#3ba55d30;background:#3ba55d18;">18+</span>` : ''}</td>`;
+        const fromTd  = `<td style="text-align:right;font-size:11px;color:var(--tx3);white-space:nowrap;">${u.joinedAt ? esc(fmtTime(new Date(u.joinedAt))) : '—'}</td>`;
+        const toTd    = `<td style="text-align:right;font-size:11px;color:var(--tx3);white-space:nowrap;">${u.leftAt   ? esc(fmtTime(new Date(u.leftAt)))   : '—'}</td>`;
+        let barRow = '';
+        if (iTotal > 0 && u.joinedAt) {
+            const pStart   = u.joinedAt;
+            const pEnd     = u.leftAt || now;
+            const leftPct  = Math.max(0, Math.min(100, (pStart - iStart) / iTotal * 100));
+            const widthPct = Math.max(0, Math.min(100 - leftPct, (pEnd - pStart) / iTotal * 100));
+            const barCls   = (u._friend || (currentVrcUser && u.id === currentVrcUser.id)) ? ' friend' : '';
+            const bCols    = hasTimers ? 10 : 9;
+            barRow = `<tr><td colspan="${bCols}" style="padding:0 10px 5px;"><div class="tl-player-bar-wrap" style="margin-top:0;"><div class="tl-player-bar${barCls}" style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%"></div></div></td></tr>`;
+        }
         const rowClick = id ? ` style="cursor:pointer;" onclick="openFriendDetail('${jsq(id)}')"` : '';
-        return `<tr class="iim-user-tr"${rowClick}><td style="width:40px;padding:5px 6px 5px 10px;">${avHtml}</td>${timerTd}${nameTd}${rankTd}${statusTd}${ageTd}${platformTd}${langTd}</tr>`;
+        return `<tr class="iim-user-tr"${rowClick}><td style="width:40px;padding:5px 6px 5px 10px;">${avHtml}</td>${timerTd}${fromTd}${toTd}${nameTd}${rankTd}${statusTd}${ageTd}${platformTd}${langTd}</tr>${barRow}`;
     }
 
-    const colSpan = hasTimers ? 8 : 7;
+    const colSpan = hasTimers ? 10 : 9;
     let bodyRows = '';
     if (friendsEnriched.length > 0)
         bodyRows += `<tr><td colspan="${colSpan}" style="padding:10px 14px 4px;"><div class="fd-group-rep-label" style="margin:0;">${tf('instance.sections.friends_in_instance', { count: friendsEnriched.length }, 'FRIENDS IN INSTANCE ({count})')}</div></td></tr>` + friendsEnriched.map(makeRow).join('');
