@@ -111,12 +111,13 @@ function _tlPlayerCard(p, instanceStart, instanceEnd) {
     }
 
     let barHtml = '';
-    const iStart = instanceStart ? new Date(instanceStart).getTime() : 0;
-    const iEnd   = instanceEnd   ? new Date(instanceEnd).getTime()   : Date.now();
+    const toMin = ms => Math.floor(ms / 60000) * 60000;
+    const iStart = toMin(instanceStart ? new Date(instanceStart).getTime() : 0);
+    const iEnd   = toMin(instanceEnd   ? new Date(instanceEnd).getTime()   : Date.now());
     const total  = iEnd - iStart;
     if (total > 0 && (p.joinedAt || p.leftAt)) {
-        const pStart   = p.joinedAt ? new Date(p.joinedAt).getTime() : iStart;
-        const pEnd     = p.leftAt   ? new Date(p.leftAt).getTime()   : iEnd;
+        const pStart   = toMin(p.joinedAt ? new Date(p.joinedAt).getTime() : iStart);
+        const pEnd     = toMin(p.leftAt   ? new Date(p.leftAt).getTime()   : iEnd);
         const leftPct  = Math.max(0, Math.min(100, (pStart - iStart) / total * 100));
         const widthPct = Math.max(0, Math.min(100 - leftPct, (pEnd - pStart) / total * 100));
         const barCls   = live ? ' friend' : '';
