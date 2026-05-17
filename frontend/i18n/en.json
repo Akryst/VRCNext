@@ -2104,5 +2104,22 @@
   "keybinds.modal.launch_vr": "Launch VRChat (VR)",
   "keybinds.modal.nav_up": "Nav Up",
   "keybinds.modal.nav_down": "Nav Down",
-  "keybinds.modal.find_in_page": "Search Visible Area"
+  "keybinds.modal.find_in_page": "Search Visible Area",
+  "nav.action_flow": "Action Flow",
+  "page.action_flow": "Action Flow",
+  "action_flow.new": "New",
+  "action_flow.rename": "Rename",
+  "action_flow.delete": "Delete",
+  "action_flow.save": "Save",
+  "action_flow.enabled": "Enabled",
+  "action_flow.enabled_tooltip": "When enabled, this flow is evaluated on every tick.",
+  "action_flow.run_now": "Run Now",
+  "action_flow.run_now_tooltip": "Evaluate this flow once, right now (ignores edge state).",
+  "action_flow.status.idle": "Idle",
+  "action_flow.status.running": "Running",
+  "action_flow.empty.title": "No flow selected",
+  "action_flow.empty.hint": "Create a new flow with the New button above.",
+  "action_flow.loading": "Loading Blockly...",
+  "action_flow.execution_log": "Execution Log",
+  "action_flow.log_empty": "No events yet. Save and enable a flow to see execution traces."
 }

@@ -1186,6 +1186,7 @@ function showTab(i) {
     if (i === 18) vfOnTabOpen();
     if (i === 21) onPerminiTabOpen();
     if (i === 22) { kxdInitLangSelects(); kxdOnTabOpen(); }
+    if (i === 25) { if (typeof afOnTabOpen === 'function') afOnTabOpen(); }
 
     if (_prevTabEl) {
         if (_lazyUnloadDelay === 0) {

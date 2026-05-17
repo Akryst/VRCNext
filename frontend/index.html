@@ -40,6 +40,7 @@
     <link rel="stylesheet" href="modules/tools/discord-presence/discord-presence.css">
     <link rel="stylesheet" href="modules/tools/vr-overlay/vr-overlay.css">
     <link rel="stylesheet" href="modules/tools/permini/permini.css">
+    <link rel="stylesheet" href="modules/tools/action-flow/action-flow.css">
     <link rel="stylesheet" href="modules/settings/settings.css">
     <link rel="stylesheet" href="core/modals/modals.css">
     <link rel="stylesheet" href="core/modals/invite-modal/invite-modal.css">
@@ -68,7 +69,7 @@
 <body>
     <div class="app-body">
     <div class="sidebar" id="sidebarEl">
-        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.25.8</div></div></div>
+        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.25.10</div></div></div>
         <div class="nav vrcn-scrollbar" id="navEl"></div>
         <div class="clock-area"><div class="clock-time" id="clock">00:00:00</div><div class="clock-date" id="clockDate"></div></div>
         <div class="play-area"><button class="btn-play" onclick="playVRChat()"><span class="msi play-icon">play_arrow</span><span class="pl" data-i18n="sidebar.play_vrchat">Play VRChat</span></button></div>
@@ -140,6 +141,7 @@
                             <div class="tb-dd-item" onclick="showTab(21)"><span class="msi">lock</span><span data-i18n="nav.permini">Permini</span></div>
                             <div class="tb-dd-item" onclick="showTab(22)"><span class="msi">translate</span><span data-i18n="nav.kikitan_xd">Kikitan XD</span></div>
                             <div class="tb-dd-item" onclick="showTab(24)"><span class="msi">height</span><span data-i18n="nav.avatar_scaling">Avatar Scaling</span></div>
+                            <div class="tb-dd-item" onclick="showTab(25)"><span class="msi">account_tree</span><span data-i18n="nav.action_flow">Action Flow</span></div>
                         </div>
                     </div>
                     <div class="tb-menu-item" id="tbMenuHelp"><span data-i18n="tb.help">Help</span>
@@ -319,6 +321,9 @@
             <!-- Tab 24: Avatar Scaling -->
             <div class="tab" id="tab24" data-windows-only></div>
 
+            <!-- Tab 25: Action Flow -->
+            <div class="tab" id="tab25"></div>
+
         </div>
     </div>
 
@@ -493,6 +498,7 @@
             tab22: 'modules/tools/kikitan-xd/kikitan-xd.html',
             tab23: 'modules/tools/event-snipe/event-snipe.html',
             tab24: 'modules/tools/avatar-scaling/avatar-scaling.html',
+            tab25: 'modules/tools/action-flow/action-flow.html',
         };
 
         const modalFragments = {
@@ -581,6 +587,7 @@
             'modules/tools/kikitan-xd/kikitan-xd.js',
             'modules/tools/event-snipe/event-snipe.js',
             'modules/tools/avatar-scaling/avatar-scaling.js',
+            'modules/tools/action-flow/action-flow.js',
             'core/logic/init.js',
             'core/debounce/debounce.js',
             'core/SmartSearch/smart-search.js',

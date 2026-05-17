@@ -1,6 +1,11 @@
 /* === Photino message handler === */
 window.external.receiveMessage(rawMsg => {
     const { type, payload } = JSON.parse(rawMsg);
+    // Forward every incoming event to Action Flow's websocket-trigger router.
+    // Fire-and-forget; any errors must not break the main handler.
+    if (typeof window.__afOnWebsocketEvent === 'function') {
+        try { window.__afOnWebsocketEvent(type, payload); } catch (e) { console.error('[ActionFlow] ws hook', e); }
+    }
     switch (type) {
             case 'translationData': handleTranslationData(payload); break;
             case 'loadSettings': loadSettingsToUI(payload); if (typeof requestAccountsList === 'function') requestAccountsList(); break;
@@ -1010,6 +1015,10 @@ case 'vrcNews':
             break;
         case 'vroStopWaterSound':
             if (waterAudio) { waterAudio.loop = false; waterAudio.pause(); waterAudio.currentTime = 0; }
+            break;
+        case 'afFlows':
+        case 'afSaveResult':
+            if (typeof window.__afHandleMessage === 'function') window.__afHandleMessage(type, payload);
             break;
     }
 });

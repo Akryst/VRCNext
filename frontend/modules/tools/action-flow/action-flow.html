@@ -1,0 +1,55 @@
+                <div class="af-layout">
+                    <div class="vrcn-panel-card af-toolbar-card">
+                        <div class="af-toolbar">
+                            <div class="af-toolbar-left">
+                                <span class="msi" style="font-size:18px;color:var(--accent);">account_tree</span>
+                                <select id="afFlowSelect" class="vrcn-input af-flow-select" onchange="afSelectFlow(this.value)"></select>
+                                <button class="vrcn-button" onclick="afNewFlow()" data-i18n-title="action_flow.new"><span class="msi" style="font-size:16px;">add</span><span data-i18n="action_flow.new">New</span></button>
+                                <button class="vrcn-button" onclick="afRenameFlow()" data-i18n-title="action_flow.rename"><span class="msi" style="font-size:16px;">edit</span><span data-i18n="action_flow.rename">Rename</span></button>
+                                <button class="vrcn-button" onclick="afDeleteFlow()" data-i18n-title="action_flow.delete"><span class="msi" style="font-size:16px;">delete</span><span data-i18n="action_flow.delete">Delete</span></button>
+                            </div>
+                            <div class="af-toolbar-right">
+                                <button class="vrcn-button" onclick="afRunNow()" data-i18n-title="action_flow.run_now_tooltip" title="Evaluate this flow once, right now (ignores edge state)"><span class="msi" style="font-size:16px;">play_arrow</span><span data-i18n="action_flow.run_now">Run Now</span></button>
+                                <label class="af-toggle" title="" data-i18n-title="action_flow.enabled_tooltip">
+                                    <input type="checkbox" id="afFlowEnabled" onchange="afToggleEnabled(this.checked)">
+                                    <span class="af-toggle-slider"></span>
+                                    <span class="af-toggle-label" data-i18n="action_flow.enabled">Enabled</span>
+                                </label>
+                                <div class="af-status" id="afRunStatus">
+                                    <span class="af-dot" id="afRunDot"></span>
+                                    <span id="afRunText" data-i18n="action_flow.status.idle">Idle</span>
+                                </div>
+                                <button class="vrcn-button vrcn-btn-primary" onclick="afSaveCurrentFlow()" data-i18n-title="action_flow.save"><span class="msi" style="font-size:16px;">save</span><span data-i18n="common.save">Save</span></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="vrcn-panel-card af-editor-card">
+                        <div id="afBlocklyHost" class="af-blockly-host"></div>
+                        <div class="af-zoom-controls">
+                            <button class="af-zoom-btn" onclick="afZoom(1)" title="Zoom in"><span class="msi">add</span></button>
+                            <button class="af-zoom-btn" onclick="afZoom(-1)" title="Zoom out"><span class="msi">remove</span></button>
+                            <button class="af-zoom-btn" onclick="afZoomReset()" title="Reset / center"><span class="msi">filter_center_focus</span></button>
+                            <button class="af-zoom-btn af-zoom-btn-danger" onclick="afDeleteSelected()" title="Delete selected block"><span class="msi">delete</span></button>
+                        </div>
+                        <div id="afEmptyHint" class="af-empty-hint" style="display:none;">
+                            <span class="msi" style="font-size:36px;color:var(--tx3);">account_tree</span>
+                            <div style="font-size:14px;color:var(--tx2);margin-top:8px;font-weight:600;" data-i18n="action_flow.empty.title">No flow selected</div>
+                            <div style="font-size:12px;color:var(--tx3);margin-top:4px;" data-i18n="action_flow.empty.hint">Create a new flow with the New button above.</div>
+                        </div>
+                        <div id="afLoadingHint" class="af-empty-hint">
+                            <span class="msi af-spinner" style="font-size:32px;color:var(--accent);">sync</span>
+                            <div style="font-size:13px;color:var(--tx2);margin-top:8px;" data-i18n="action_flow.loading">Loading Blockly...</div>
+                        </div>
+                    </div>
+
+                    <div class="vrcn-panel-card af-log-card">
+                        <div class="vrcn-panel-card-header" style="display:flex;align-items:center;justify-content:space-between;">
+                            <span style="display:inline-flex;align-items:center;gap:6px;"><span class="msi">terminal</span> <span data-i18n="action_flow.execution_log">Execution Log</span></span>
+                            <button class="vrcn-button" onclick="afClearLog()" style="padding:2px 8px;font-size:10px;"><span class="msi" style="font-size:14px;">clear_all</span><span data-i18n="common.clear">Clear</span></button>
+                        </div>
+                        <div id="afLogList" class="af-log-list">
+                            <div class="af-log-empty" data-i18n="action_flow.log_empty">No events yet. Save and enable a flow to see execution traces.</div>
+                        </div>
+                    </div>
+                </div>

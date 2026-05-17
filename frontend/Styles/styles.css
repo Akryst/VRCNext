@@ -216,7 +216,8 @@ body:has(.rsidebar.collapsed) .content  { padding-right: calc(var(--rsidebar-c) 
 
 #tab8.active,
 #tab9.active,
-#tab16.active {
+#tab16.active,
+#tab25.active {
     display: flex;
     flex-direction: column;
     height: 100%;

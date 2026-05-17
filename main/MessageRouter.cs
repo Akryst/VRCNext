@@ -1873,6 +1873,13 @@ public partial class AppShell
                     await _snipeCtrl.HandleMessage(action, msg);
                     break;
 
+                // Action Flow
+                case "afLoadFlows":
+                case "afSaveFlows":
+                case "afTrayNotify":
+                    _afCtrl.HandleMessage(action, msg);
+                    break;
+
                 // Avatar Scaling
                 case "asConnect":
                 case "asDisconnect":
