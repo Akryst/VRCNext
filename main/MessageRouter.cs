@@ -574,6 +574,36 @@ public partial class AppShell
                         _core.MemTrim.TrimNow();
                     else if (result.Extra == "forceTrimAll")
                         _core.TrimCaches(force: true);
+                    else if (result.Extra == "vrcMsgList" && result.ExtraPayload != null)
+                    {
+                        var msgType = JObject.FromObject(result.ExtraPayload)["msgType"]?.ToString() ?? "message";
+                        _ = Task.Run(async () =>
+                        {
+                            var uid = _core.VrcApi.CurrentUserId;
+                            if (string.IsNullOrEmpty(uid))
+                            {
+                                SendToJS("consoleOutput", new { text = "/msg: not logged in", color = "err" });
+                                return;
+                            }
+                            var arr = await _core.Invite.GetInviteMessagesAsync(uid, msgType);
+                            if (arr == null)
+                            {
+                                SendToJS("consoleOutput", new { text = $"/msg {(msgType == "requestResponse" ? "request" : "invite")}: API call failed", color = "err" });
+                                return;
+                            }
+                            var label = msgType == "requestResponse" ? "Invite Request Responses" : "Invite Messages";
+                            var lines = new List<string> { $"{label} ({arr.Count}):" };
+                            foreach (JObject m in arr.Cast<JObject>().OrderBy(x => x["slot"]?.Value<int>() ?? 0))
+                            {
+                                var slot     = m["slot"]?.Value<int>() ?? -1;
+                                var text     = m["message"]?.ToString() ?? "";
+                                var cd       = m["remainingCooldownMinutes"]?.Value<int>() ?? 0;
+                                var cdNote   = cd > 0 ? $" [cooldown {cd}m]" : "";
+                                lines.Add($"  Slot {slot}: \"{text}\"{cdNote}");
+                            }
+                            SendToJS("consoleOutput", new { text = string.Join("\n", lines), color = "info" });
+                        });
+                    }
                     else if (result.Extra != null && result.ExtraPayload != null)
                         SendToJS(result.Extra, result.ExtraPayload);
                     break;
@@ -1879,6 +1909,7 @@ public partial class AppShell
                 case "afSaveConditions":
                 case "afTrayNotify":
                 case "afGetGameRunning":
+                case "afSendChatMessage":
                     _afCtrl.HandleMessage(action, msg);
                     break;
 
@@ -2011,6 +2042,10 @@ public partial class AppShell
                 case "vrcAcceptNotification":
                 case "vrcMarkNotifRead":
                 case "vrcHideNotification":
+                case "vrcGetRespondMessages":
+                case "vrcUpdateRespondMessage":
+                case "vrcRespondToNotification":
+                case "vrcRespondToNotificationWithPhoto":
                     await _notifications.HandleMessage(action, msg);
                     break;
 

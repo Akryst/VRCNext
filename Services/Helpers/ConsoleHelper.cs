@@ -22,6 +22,17 @@ public static class ConsoleHelper
                     return new("Triggering force trim...", "sec", "forceTrimAll", new { });
                 return new("Usage: /force trim", "err");
 
+            case "/msg":
+                if (parts.Length >= 2)
+                {
+                    var sub = parts[1].ToLowerInvariant();
+                    if (sub == "invite")
+                        return new("Fetching invite messages...", "info", "vrcMsgList", new { msgType = "message" });
+                    if (sub == "request")
+                        return new("Fetching invite request responses...", "info", "vrcMsgList", new { msgType = "requestResponse" });
+                }
+                return new("Usage: /msg invite | /msg request", "err");
+
             case "/debug":
                 if (parts.Length >= 4
                     && parts[1].Equals("img",   StringComparison.OrdinalIgnoreCase)
@@ -56,6 +67,13 @@ public static class ConsoleHelper
         "\n" +
         "  /force trim\n" +
         "  Same as /trim but skips all thresholds — always trims all caches.\n" +
+        "\n" +
+        "Invite Messages:\n" +
+        "  /msg invite\n" +
+        "  Lists all invite message slots (the messages you send with invites).\n" +
+        "\n" +
+        "  /msg request\n" +
+        "  Lists all invite-request response slots (the replies you send when someone requests an invite).\n" +
         "\n" +
         "Debugging:\n" +
         "  /debug img cache <true/false>\n" +

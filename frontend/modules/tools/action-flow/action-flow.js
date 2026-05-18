@@ -70,7 +70,7 @@ let afTaskHistory = [];   /* timestamps (ms) of dispatched API-calling actions, 
 let afConditions = {};         /* name -> current boolean value, persisted via backend */
 let afVrcGameRunning = false;  /* mirrored from backend every tick via afGetGameRunning IPC */
 let afConditionsSaveTimer = null;
-let afContext = { triggeringUser: null, triggerKind: null };
+let afContext = { triggeringUser: null, triggerKind: null, notificationId: null };
 
 function afEnsureBlockly() {
     if (afBlocklyLoaded) return Promise.resolve();
@@ -1289,7 +1289,7 @@ function afEvalTrigger(flow, block, obs) {
     }
 }
 
-function afFireTrigger(flow, block, reason, triggeringUser) {
+function afFireTrigger(flow, block, reason, triggeringUser, notificationId) {
     const actionCount = afCountActionsInWorkspace(flow.workspace);
     if (actionCount > FLOW_ACTION_LIMIT) {
         afLog('err', '[' + flow.name + '] ' + aftf('log.over_action_limit', { count: actionCount, limit: FLOW_ACTION_LIMIT }, 'over action limit (' + actionCount + '/' + FLOW_ACTION_LIMIT + '). Flow disabled until trimmed.'));
@@ -1304,7 +1304,7 @@ function afFireTrigger(flow, block, reason, triggeringUser) {
     const triggerKind =
         block.type === 'af_trigger_invite_received'         ? 'invite' :
         block.type === 'af_trigger_invite_request_received' ? 'requestInvite' : null;
-    afContext = { triggeringUser: triggeringUser || null, triggerKind };
+    afContext = { triggeringUser: triggeringUser || null, triggerKind, notificationId: notificationId || null };
     try {
         afLog('info', '[' + flow.name + '] ' + aftf('log.trigger_fired', { reason }, 'trigger fired (' + reason + ')'));
         afExecStatements(flow, afInputStatement(block, 'DO'));
@@ -1340,6 +1340,7 @@ window.__afOnWebsocketEvent = function (type, payload) {
     if (type === 'vrcNotificationPrepend' && payload && typeof payload === 'object') {
         const notifType = payload.type;
         const senderId  = payload.senderUserId || null;
+        const notifId   = payload.id || null;
         const sender    = senderId ? afLookupUser(senderId) : null;
         const targetTrigger =
             notifType === 'invite'        ? 'af_trigger_invite_received' :
@@ -1349,7 +1350,7 @@ window.__afOnWebsocketEvent = function (type, payload) {
                 if (!flow.enabled || !flow.workspace?.blocks?.blocks) continue;
                 for (const root of flow.workspace.blocks.blocks) {
                     if (root.type === targetTrigger) {
-                        afFireTrigger(flow, root, notifType + ' from ' + (senderId || 'unknown'), sender);
+                        afFireTrigger(flow, root, notifType + ' from ' + (senderId || 'unknown'), sender, notifId);
                     }
                 }
             }
@@ -1479,12 +1480,14 @@ function afExecAction(flow, block) {
         case 'af_answer_invite_request': {
             const text = f.TEXT || '';
             const target = afContext.triggeringUser;
-            if (!target || !target.id) {
-                afLog('err', '[' + flow.name + '] ' + aftf('log.reply_skipped', { action: block.type }, block.type + ' skipped: no triggering user (use inside a "when someone invites me" or "requests invite" trigger)'));
+            const notifId = afContext.notificationId;
+            const notifType = afContext.triggerKind;
+            if (!target || !target.id || !notifId || !notifType) {
+                afLog('err', '[' + flow.name + '] ' + aftf('log.reply_skipped', { action: block.type }, block.type + ' skipped: no triggering notification (use inside a "when someone invites me" or "requests invite" trigger)'));
                 break;
             }
             if (!afTryDispatch(flow)) break;
-            if (typeof sendToCS === 'function') sendToCS({ action: 'vrcSendChatMessage', userId: target.id, text });
+            if (typeof sendToCS === 'function') sendToCS({ action: 'afSendChatMessage', userId: target.id, text, notificationId: notifId, notifType });
             afRecordTask();
             afLog('ok', '[' + flow.name + '] ' + aftf('log.reply_sent', { target: target.displayName || target.id, text }, 'reply to ' + (target.displayName || target.id) + ': "' + text + '"'));
             break;

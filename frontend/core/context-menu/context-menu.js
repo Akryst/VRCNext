@@ -85,9 +85,6 @@
         },
     };
 
-    /* Callers that want to suppress the global contextmenu dispatch and show
-       their own menu (e.g. inside Blockly where we need to block Blockly's
-       native menu first) can call this directly. */
     window.VrcnShowContextMenu = (x, y, items) => {
         if (items && items.length) showMenu(x, y, items);
     };

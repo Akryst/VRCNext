@@ -1637,8 +1637,6 @@ function initVnSelect(el) {
         return m ? { name: m[1], count: m[2] } : { name: text, count: '' };
     }
 
-    // Optional dot indicator: <option data-vn-dot="online|offline|error|..."> adds
-    // a colored .sf-dot prefix to both the option in the panel and the trigger.
     function makeDot(state) {
         const d = document.createElement('span');
         d.className = 'sf-dot ' + state;

@@ -854,6 +854,12 @@ case 'vrcNews':
             case 'vrcInviteMessageUpdateFailed':
                 handleVrcInviteMessageUpdateFailed(payload);
                 break;
+            case 'vrcRespondMessages':
+                if (typeof handleVrcRespondMessages === 'function') handleVrcRespondMessages(payload);
+                break;
+            case 'vrcRespondMessageUpdateFailed':
+                if (typeof handleVrcRespondMessageUpdateFailed === 'function') handleVrcRespondMessageUpdateFailed(payload);
+                break;
             case 'updateAvailable':      showUpdateAvailable(payload.version); break;
             case 'updateProgress':       onUpdateProgress(payload); break;
             case 'updateReady':          onUpdateReady(); break;
@@ -956,6 +962,8 @@ case 'vrcNews':
                         onImagePickerFilesLoaded(payload.files || [], payload.tag);
                     if (payload.tag === 'gallery' && typeof _invModalOnGalleryLoaded === 'function')
                         _invModalOnGalleryLoaded(payload.files || []);
+                    if (payload.tag === 'gallery' && typeof _nrModalOnGalleryLoaded === 'function')
+                        _nrModalOnGalleryLoaded(payload.files || []);
                 } else {
                     renderInvFetchError(payload.error, 'inventory.error.requires_login');
                 }

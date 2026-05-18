@@ -110,6 +110,29 @@ public class ActionFlowController : IDisposable
                 _core.SendToJS("afGameRunning", new { running });
                 break;
             }
+
+            case "afSendChatMessage":
+            {
+                var uid       = msg["userId"]?.ToString();
+                var text      = msg["text"]?.ToString();
+                var notifId   = msg["notificationId"]?.ToString();
+                var notifType = msg["notifType"]?.ToString();
+                if (string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(text)) break;
+                _ = Task.Run(async () =>
+                {
+                    if (!string.IsNullOrEmpty(notifId) && !string.IsNullOrEmpty(notifType))
+                    {
+                        var (ok, err) = await _core.Invite.RespondToNotificationAsync(notifId, notifType, text);
+                        if (!ok) _core.SendToJS("log", new { msg = "[ActionFlow] reply failed → " + uid + ": " + err, color = "err" });
+                    }
+                    else
+                    {
+                        var (ok, err, _) = await _core.Invite.SendChatMessageDedupedAsync(uid, text);
+                        if (!ok) _core.SendToJS("log", new { msg = "[ActionFlow] chat send failed → " + uid + ": " + err, color = "err" });
+                    }
+                });
+                break;
+            }
         }
     }
 
