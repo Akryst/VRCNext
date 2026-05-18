@@ -116,6 +116,16 @@
 .af-blockly-host pattern line {
     stroke: var(--brd) !important;
 }
+.af-blockly-host .blocklyScrollbarBackground { display: none; }
+.af-blockly-host .blocklyScrollbarHandle {
+    fill: var(--brd);
+    rx: 3;
+    ry: 3;
+    transition: fill .12s;
+}
+.af-blockly-host .blocklyScrollbarHandle:hover { fill: var(--accent); }
+.af-blockly-host .blocklyScrollbarVertical   .blocklyScrollbarHandle { transform: scaleX(0.35); transform-origin: right;  }
+.af-blockly-host .blocklyScrollbarHorizontal .blocklyScrollbarHandle { transform: scaleY(0.35); transform-origin: bottom; }
 .af-blockly-host .blocklyToolboxDiv {
     background: var(--bg-card) !important;
     border-right: 1px solid var(--brd-lt) !important;
