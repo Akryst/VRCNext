@@ -139,7 +139,7 @@ function openInvUploadModal(tabOverride, callback) {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.id = 'invUploadModal';
-    overlay.style.zIndex = '10010';
+    overlay.style.zIndex = '20010';
     overlay.onclick = event => { if (event.target === overlay) closeInvUploadModal(); };
     overlay.innerHTML = _iuBuildHTML(tab);
     document.body.appendChild(overlay);

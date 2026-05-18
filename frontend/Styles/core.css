@@ -17,7 +17,7 @@
     border-radius: 7px;
     white-space: nowrap;
     pointer-events: none;
-    z-index: 10100;
+    z-index: 30000;
     transition: opacity .15s ease, visibility .15s ease;
 }
 

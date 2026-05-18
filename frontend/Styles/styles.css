@@ -776,7 +776,8 @@ html.text-tools-active * { user-select: text !important; }
 }
 
 .inv-action-full { width: 100%; flex: none; }
-#invMsgList {
+#invMsgList,
+#nrMsgList {
     display: flex; flex-direction: column; gap: 4px;
     max-height: 190px; overflow-y: auto;
 }
