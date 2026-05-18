@@ -2238,5 +2238,9 @@
   "action_flow.action.no_avatars": "(keine Avatare geladen)",
   "action_flow.action.no_favorite_avatars": "(keine Lieblings-Avatare geladen)",
   "action_flow.log.switch_avatar_skipped": "Avatar-Wechsel übersprungen: kein Avatar gewählt",
-  "action_flow.log.switch_avatar": "Avatar gewechselt zu {name}"
+  "action_flow.log.switch_avatar": "Avatar gewechselt zu {name}",
+  "action_flow.tasks": "Tasks",
+  "action_flow.tasks_tooltip": "API-aufrufende Aktionen der letzten 10 Minuten / Maximum",
+  "action_flow.warning.task_rate": "API-Ratenlimit erreicht ({count} Tasks in 10min). Alle Flows pausiert bis der Zähler unter {limit} fällt.",
+  "action_flow.log.task_rate_limited": "ratenlimitiert ({count}/{limit} Tasks in 10min). Übersprungen bis Fenster sich leert."
 }

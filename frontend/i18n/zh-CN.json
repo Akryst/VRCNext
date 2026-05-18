@@ -2236,5 +2236,9 @@
   "action_flow.action.no_avatars": "（未加载模型）",
   "action_flow.action.no_favorite_avatars": "（未加载收藏模型）",
   "action_flow.log.switch_avatar_skipped": "切换模型跳过：未选择模型",
-  "action_flow.log.switch_avatar": "模型切换到 {name}"
+  "action_flow.log.switch_avatar": "模型切换到 {name}",
+  "action_flow.tasks": "任务",
+  "action_flow.tasks_tooltip": "最近 10 分钟内派发的 API 调用动作数 / 最大",
+  "action_flow.warning.task_rate": "API 速率上限达到（10 分钟内 {count} 个任务）。所有流程暂停，直到降至 {limit} 以下。",
+  "action_flow.log.task_rate_limited": "受速率限制（10 分钟内 {count}/{limit} 个任务）。在窗口空出前跳过。"
 }

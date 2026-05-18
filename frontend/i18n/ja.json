@@ -2235,5 +2235,9 @@
   "action_flow.action.no_avatars": "（アバター未読み込み）",
   "action_flow.action.no_favorite_avatars": "（お気に入りアバター未読み込み）",
   "action_flow.log.switch_avatar_skipped": "アバター切替スキップ: アバターが選択されていません",
-  "action_flow.log.switch_avatar": "アバターを {name} に切替"
+  "action_flow.log.switch_avatar": "アバターを {name} に切替",
+  "action_flow.tasks": "タスク",
+  "action_flow.tasks_tooltip": "過去10分間に発行されたAPI呼び出しアクション数 / 最大数",
+  "action_flow.warning.task_rate": "APIレート上限に達しました（10分間で {count} タスク）。{limit} 未満に下がるまで全フローを一時停止。",
+  "action_flow.log.task_rate_limited": "レート制限（10分間で {count}/{limit} タスク）。ウィンドウが空くまでスキップ。"
 }

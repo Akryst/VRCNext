@@ -17,6 +17,10 @@ const EVENT_TICK_MS = 5 * 1000;
 const FLOW_ACTION_LIMIT = 10;
 const FLOW_LIMIT = 4;
 const TRIGGER_LIMIT = 16;
+const TASK_WINDOW_MS = 10 * 60 * 1000;
+const TASK_SOFT_LIMIT = 20;
+const TASK_HARD_LIMIT = 25;
+const TASK_EXEMPT_TYPES = new Set(['af_send_notification']);
 const ACTION_TYPES = new Set([
     'af_set_status',
     'af_set_bio_text',
@@ -61,6 +65,7 @@ let afWatchState = {
     lastInstanceUserIds: null,
     lastStatus:          null,
 };
+let afTaskHistory = [];   /* timestamps (ms) of dispatched API-calling actions, last TASK_WINDOW_MS only */
 let afContext = { triggeringUser: null, triggerKind: null };
 
 function afEnsureBlockly() {
@@ -646,6 +651,9 @@ function afApplyActionLockState() {
     if (!afWorkspace) return;
     const overAction  = afCountActions() > FLOW_ACTION_LIMIT;
     const overTrigger = afCountGlobalTriggers() > TRIGGER_LIMIT;
+    /* Task rate visual lock turns EVERY block (action + trigger) red across the
+       displayed flow as a global "back off" indicator. */
+    const overTaskRate = afTaskCount() >= TASK_SOFT_LIMIT;
     for (const b of afWorkspace.getAllBlocks(false)) {
         if (typeof b.getSvgRoot !== 'function') continue;
         const isAction  = ACTION_TYPES.has(b.type);
@@ -653,13 +661,15 @@ function afApplyActionLockState() {
         if (!isAction && !isTrigger) continue;
         const svg = b.getSvgRoot();
         if (!svg) continue;
-        const locked = (isAction && overAction) || (isTrigger && overTrigger);
+        const locked = overTaskRate || (isAction && overAction) || (isTrigger && overTrigger);
         svg.classList.toggle('af-action-locked', locked);
         try {
             if (locked) {
-                const msg = isAction
-                    ? aftf('warning.action_limit',  { limit: FLOW_ACTION_LIMIT }, 'Flow is over the ' + FLOW_ACTION_LIMIT + '-action limit. Disabled until you delete blocks.')
-                    : aftf('warning.trigger_limit', { limit: TRIGGER_LIMIT },     'Over the global trigger limit (' + TRIGGER_LIMIT + '). Disabled until you delete blocks across flows.');
+                const msg = overTaskRate
+                    ? aftf('warning.task_rate', { count: afTaskCount(), limit: TASK_SOFT_LIMIT }, 'API rate cap hit: ' + afTaskCount() + ' tasks in last 10min. All flows paused until the count drops below ' + TASK_SOFT_LIMIT + '.')
+                    : isAction
+                        ? aftf('warning.action_limit',  { limit: FLOW_ACTION_LIMIT }, 'Flow is over the ' + FLOW_ACTION_LIMIT + '-action limit. Disabled until you delete blocks.')
+                        : aftf('warning.trigger_limit', { limit: TRIGGER_LIMIT },     'Over the global trigger limit (' + TRIGGER_LIMIT + '). Disabled until you delete blocks across flows.');
                 b.setWarningText(msg);
             } else {
                 b.setWarningText(null);
@@ -675,6 +685,28 @@ function afCountActions() {
         if (ACTION_TYPES.has(b.type)) n++;
     }
     return n;
+}
+
+/* Rolling-window rate limit on API-calling actions. send_notification is
+   excluded because it never issues a VRChat GET request. Soft limit shown
+   in the badge is 20; we silently grant a 5-task grace before truly stopping. */
+function afPruneTaskHistory() {
+    const cutoff = Date.now() - TASK_WINDOW_MS;
+    while (afTaskHistory.length && afTaskHistory[0] < cutoff) afTaskHistory.shift();
+}
+function afTaskCount() { afPruneTaskHistory(); return afTaskHistory.length; }
+function afTryDispatch(flow) {
+    afPruneTaskHistory();
+    if (afTaskHistory.length >= TASK_HARD_LIMIT) {
+        afLog('err', '[' + flow.name + '] ' + aftf('log.task_rate_limited', { count: afTaskHistory.length, limit: TASK_HARD_LIMIT }, 'rate limited: ' + afTaskHistory.length + '/' + TASK_HARD_LIMIT + ' tasks in last 10min'));
+        return false;
+    }
+    return true;
+}
+function afRecordTask() {
+    afTaskHistory.push(Date.now());
+    afUpdateActionCounter();
+    afApplyActionLockState();
 }
 
 function afCountActionsInWorkspace(ws) {
@@ -723,6 +755,14 @@ function afUpdateActionCounter() {
         const g = afCountGlobalTriggers();
         tEl.textContent = g + '/' + TRIGGER_LIMIT;
         tWrap.classList.toggle('at-limit', g >= TRIGGER_LIMIT);
+    }
+    const kEl  = document.getElementById('afTaskCounterValue');
+    const kWrap = document.getElementById('afTaskCounter');
+    if (kEl && kWrap) {
+        const k = afTaskCount();
+        /* Show the soft limit in the badge; grace zone (21..25) is silent. */
+        kEl.textContent = Math.min(k, TASK_SOFT_LIMIT) + '/' + TASK_SOFT_LIMIT;
+        kWrap.classList.toggle('at-limit', k >= TASK_SOFT_LIMIT);
     }
 }
 
@@ -974,6 +1014,10 @@ function afTick() {
     if (obs.myStatus) afWatchState.lastStatus          = obs.myStatus;
 
     afUpdateRunIndicator();
+    /* Refresh Tasks badge + lock visuals so the rolling-window count drops
+       back below the soft limit on its own as old timestamps expire. */
+    afUpdateActionCounter();
+    afApplyActionLockState();
 }
 
 function afObservedInstanceUserIds() {
@@ -1193,36 +1237,45 @@ function afExecAction(flow, block) {
             return;
         }
         case 'af_set_status': {
+            if (!afTryDispatch(flow)) break;
             const status = f.STATUS || 'active';
             const text   = String(f.TEXT || '');
             const desc = text || ((typeof currentVrcUser !== 'undefined' && currentVrcUser?.statusDescription) || '');
             if (typeof sendToCS === 'function') sendToCS({ action: 'vrcUpdateStatus', status, statusDescription: desc });
+            afRecordTask();
             afLog('ok', '[' + flow.name + '] ' + (text
                 ? aftf('log.set_status_with_text', { status: vrcStatusLabel(status), text }, 'set status to ' + vrcStatusLabel(status) + ' / "' + text + '"')
                 : aftf('log.set_status',           { status: vrcStatusLabel(status) },       'set status to ' + vrcStatusLabel(status))));
             break;
         }
         case 'af_set_bio_text': {
+            if (!afTryDispatch(flow)) break;
             const text = f.TEXT || '';
             if (typeof sendToCS === 'function') sendToCS({ action: 'vrcUpdateProfile', bio: text });
+            afRecordTask();
             afLog('ok', '[' + flow.name + '] ' + aftf('log.set_bio', { text }, 'set bio to "' + text + '"'));
             break;
         }
         case 'af_invite_friend': {
             const user = afEvalUser(afInput(block, 'USER'));
             if (!user || !user.id) { afLog('err', '[' + flow.name + '] ' + aft('log.invite_skipped', 'invite skipped: missing user')); break; }
+            if (!afTryDispatch(flow)) break;
             if (typeof sendToCS === 'function') sendToCS({ action: 'vrcInviteFriend', userId: user.id });
+            afRecordTask();
             afLog('ok', '[' + flow.name + '] ' + aftf('log.invite_sent', { target: user.displayName || user.id }, 'invite sent to ' + (user.displayName || user.id)));
             break;
         }
         case 'af_request_invite': {
             const user = afEvalUser(afInput(block, 'USER'));
             if (!user || !user.id) { afLog('err', '[' + flow.name + '] ' + aft('log.request_invite_skipped', 'request invite skipped: missing user')); break; }
+            if (!afTryDispatch(flow)) break;
             if (typeof sendToCS === 'function') sendToCS({ action: 'vrcRequestInvite', userId: user.id });
+            afRecordTask();
             afLog('ok', '[' + flow.name + '] ' + aftf('log.request_invite_sent', { target: user.displayName || user.id }, 'request invite from ' + (user.displayName || user.id)));
             break;
         }
         case 'af_send_notification': {
+            /* Exempt from rate limit: no VRChat API call, just local UI + tray. */
             const text = f.TEXT || '';
             afShowFlowNotificationCard(flow.name, text);
             const ntitle = aft('notification_title', 'Action Flow');
@@ -1234,12 +1287,14 @@ function afExecAction(flow, block) {
         case 'af_switch_favorite_avatar': {
             const avatarId = f.AVATAR_ID;
             if (!avatarId) { afLog('err', '[' + flow.name + '] ' + aft('log.switch_avatar_skipped', 'switch avatar skipped: no avatar selected')); break; }
+            if (!afTryDispatch(flow)) break;
             const pool = block.type === 'af_switch_favorite_avatar'
                 ? (typeof favAvatarsData !== 'undefined' ? favAvatarsData : [])
                 : (typeof avatarsData    !== 'undefined' ? avatarsData    : []);
             const meta = pool.find(a => a.id === avatarId);
             const label = (meta && meta.name) || avatarId;
             if (typeof sendToCS === 'function') sendToCS({ action: 'vrcSelectAvatar', avatarId });
+            afRecordTask();
             afLog('ok', '[' + flow.name + '] ' + aftf('log.switch_avatar', { name: label }, 'switch avatar to ' + label));
             break;
         }
@@ -1251,7 +1306,9 @@ function afExecAction(flow, block) {
                 afLog('err', '[' + flow.name + '] ' + aftf('log.reply_skipped', { action: block.type }, block.type + ' skipped: no triggering user (use inside a "when someone invites me" or "requests invite" trigger)'));
                 break;
             }
+            if (!afTryDispatch(flow)) break;
             if (typeof sendToCS === 'function') sendToCS({ action: 'vrcSendChatMessage', userId: target.id, text });
+            afRecordTask();
             afLog('ok', '[' + flow.name + '] ' + aftf('log.reply_sent', { target: target.displayName || target.id, text }, 'reply to ' + (target.displayName || target.id) + ': "' + text + '"'));
             break;
         }

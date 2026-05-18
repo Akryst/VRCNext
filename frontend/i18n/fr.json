@@ -2236,5 +2236,9 @@
   "action_flow.action.no_avatars": "(aucun avatar chargé)",
   "action_flow.action.no_favorite_avatars": "(aucun avatar favori chargé)",
   "action_flow.log.switch_avatar_skipped": "changement d'avatar ignoré : aucun avatar sélectionné",
-  "action_flow.log.switch_avatar": "avatar changé pour {name}"
+  "action_flow.log.switch_avatar": "avatar changé pour {name}",
+  "action_flow.tasks": "Tâches",
+  "action_flow.tasks_tooltip": "Actions avec appel API envoyées dans les 10 dernières minutes / maximum",
+  "action_flow.warning.task_rate": "Limite de taux API atteinte ({count} tâches en 10min). Tous les flux en pause jusqu'à descendre sous {limit}.",
+  "action_flow.log.task_rate_limited": "limité par le taux ({count}/{limit} tâches en 10min). Ignoré jusqu'à libération de la fenêtre."
 }

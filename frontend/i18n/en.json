@@ -2255,5 +2255,9 @@
   "action_flow.action.no_avatars": "(no avatars loaded)",
   "action_flow.action.no_favorite_avatars": "(no favorite avatars loaded)",
   "action_flow.log.switch_avatar_skipped": "switch avatar skipped: no avatar selected",
-  "action_flow.log.switch_avatar": "switch avatar to {name}"
+  "action_flow.log.switch_avatar": "switch avatar to {name}",
+  "action_flow.tasks": "Tasks",
+  "action_flow.tasks_tooltip": "API-calling actions dispatched in the last 10 minutes / max",
+  "action_flow.warning.task_rate": "API rate cap hit ({count} tasks in last 10min). All flows paused until the count drops below {limit}.",
+  "action_flow.log.task_rate_limited": "rate limited ({count}/{limit} tasks in last 10min). Skipping until window clears."
 }
