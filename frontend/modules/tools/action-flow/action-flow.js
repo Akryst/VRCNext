@@ -1719,7 +1719,7 @@ function afShowFlowNotificationCard(flowName, text) {
     card.className = 'nc-card';
     card.innerHTML =
         '<div class="nc-inner">' +
-            '<span class="msi nc-icon" style="color:var(--accent);">account_tree</span>' +
+            '<span class="msi nc-icon" style="color:var(--accent);">auto_awesome</span>' +
             '<div class="nc-body">' +
                 '<div class="nc-title"><strong>' + afEsc(flowName) + '</strong></div>' +
                 (text ? '<div class="nc-sub">' + afEsc(text) + '</div>' : '') +
