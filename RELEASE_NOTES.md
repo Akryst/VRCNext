@@ -1,12 +1,37 @@
 **2026.26.0**
 
+**VRChat Configs**
+In **Taskbar > Tools > VRChat > VRChat Config**:
+
+* View the cache size in GB.
+* Refresh the cache.
+* Delete the cache.
+* Set the max cache size.
+* Set the cache expiry in days.
+* Set the First Person Steadycam FOV.
+
+**VRChat Launch Arguments**
+In **Taskbar > Tools > VRChat > VRChat Launch Options**:
+
+* Added support for running launch arguments when starting VRChat through VRCNext.
+
 **Action Flow**
 
-* Added Action Flow to **Tools**.
+* Added **Action Flow** to **Tools**.
 * Action Flow is an automation system inspired by **Google Blockly**, similar to Scratch.
 * It lets you build custom automation flows with visual blocks such as **IF**, **IF-DO**, **IF-ELSE**, conditions, time checks, event checks, and action blocks.
 * You can automate VRChat account actions such as changing your online status, bio, status text, avatar, or sending invites based on time, events, and custom conditions.
 * Action Flow includes more than **40 different action blocks**, making it a powerful tool for advanced users who want to create fully automated workflows.
+* Added triggers such as **Every 30 Seconds**, **Every X Minutes**, **At XX:XX**, **When Switching World**, **When Someone Joins**, **When Someone Leaves**, **When Someone Joins or Leaves**, **When My Status Changes**, **On Any WebSocket Event**, **On Specific WebSocket Event**, **When Someone Invites Me**, **When Someone Requests an Invite**, and **Manual Only**.
+* Added logic blocks such as **IF-DO**, **IF-DO-ELSE**, **Equals**, **Bigger Than**, **Smaller Than**, **AND**, **OR**, and **TRUE/FALSE**.
+* Added condition blocks for custom conditions that can default to **TRUE** or **FALSE** and can be checked or changed inside a flow.
+* Added time blocks such as **Is Date**, **Is Time**, and **Is Between XX:XX and XX:XX**.
+* Added friend and user blocks such as **Friend Object**, **User Object**, **Self Object**, **Is Friend**, **Invite From X**, and **Invite Request From X**.
+* Added status and bio blocks such as **Has Status X**, **Own Status X**, **Has Status Text X**, **Own Status Text X**, **Has Bio Text X**, and **Own Bio Text X**.
+* Added world blocks such as **World Object**, **Current World Of**, and **Is In Same Instance As Me**.
+* Added action blocks such as **Set Status**, **Set Bio**, **Switch Avatar**, **Switch Favorite Avatar**, **Invite X to My Instance**, **Request Invite From X**, **Answer Invite**, **Answer Invite Request**, and **Send Notification**.
+* Added custom **TRUE/FALSE** conditions.
+* Added **Is Game Running** check blocks.
 
 **Image Preview**
 
@@ -28,5 +53,4 @@
 * Fixed an issue where extra hours or minutes could be added to a Timeline event when a player rejoined your instance.
 * Fixed an edge case where time spent did not update after VRCNext was restarted while the instance event was still active.
 * Fixed the right-click context menu not working in the instance player list.
-* Fixed some Z Ordering layer issues with the right-click context menu.
-* Fixed Context menu not working in the new Instance Player list.
+* Fixed Z-ordering issues with the right-click context menu.

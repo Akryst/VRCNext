@@ -90,6 +90,12 @@ window.external.receiveMessage(rawMsg => {
                 if (typeof setImgCacheDebug === 'function') setImgCacheDebug(payload.enabled);
                 break;
             case 'toast': showToast(payload.ok, payload.msg); break;
+            case 'vrcConfigData':
+                if (typeof _vrcCfgApplyData === 'function') _vrcCfgApplyData(payload || {});
+                break;
+            case 'vrcLaunchOptionsData':
+                if (typeof _vrcLaApplyData === 'function') _vrcLaApplyData(payload || {});
+                break;
             case 'showCrashModal': showCrashModal(payload); break;
             case 'wsStatus': {
                 const badge = document.getElementById('wsBadge');
@@ -140,7 +146,13 @@ window.external.receiveMessage(rawMsg => {
                 break;
             case 'exeAdded':
                 if (payload.target === 'vrchat') {
-                    document.getElementById('setVrcPath').value = payload.path;
+                    var _setVrcPathEl = document.getElementById('setVrcPath');
+                    if (_setVrcPathEl) _setVrcPathEl.value = payload.path;
+                    var _vrcLaPathEl = document.getElementById('vrcLaPath');
+                    var _laModal = document.getElementById('modalVrcLaunchOptions');
+                    if (_vrcLaPathEl && _laModal && _laModal.style.display !== 'none') {
+                        _vrcLaPathEl.value = payload.path;
+                    }
                 } else if (payload.target === 'extra-desktop') {
                     if (!settings.extraExeDesktop) settings.extraExeDesktop = [];
                     settings.extraExeDesktop.push(payload.path);
@@ -1018,6 +1030,7 @@ case 'vrcNews':
             break;
         case 'afFlows':
         case 'afSaveResult':
+        case 'afGameRunning':
             if (typeof window.__afHandleMessage === 'function') window.__afHandleMessage(type, payload);
             break;
     }

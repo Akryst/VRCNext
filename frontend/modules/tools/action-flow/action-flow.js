@@ -10,7 +10,8 @@ const COLOR_LOGIC   = '#7784ed';
 const COLOR_TIME    = '#7dd1ff';
 const COLOR_PARAM   = '#cb71ff';
 const COLOR_ACTION  = '#937dff';
-const COLOR_TRIGGER = '#c27dff'; 
+const COLOR_TRIGGER = '#c27dff';
+const COLOR_GAME    = '#2c4e8a'; 
 
 const WORLD_CHANGE_DELAY_MS = 15 * 1000;
 const EVENT_TICK_MS = 5 * 1000;
@@ -66,6 +67,9 @@ let afWatchState = {
     lastStatus:          null,
 };
 let afTaskHistory = [];   /* timestamps (ms) of dispatched API-calling actions, last TASK_WINDOW_MS only */
+let afConditions = {};         /* name -> current boolean value, persisted via backend */
+let afVrcGameRunning = false;  /* mirrored from backend every tick via afGetGameRunning IPC */
+let afConditionsSaveTimer = null;
 let afContext = { triggeringUser: null, triggerKind: null };
 
 function afEnsureBlockly() {
@@ -220,6 +224,38 @@ function afDefineBlocks() {
         this.setColour(COLOR_LOGIC);
     } };
 
+    /* Conditions: persistent named boolean flags managed via the sidebar.
+       Both blocks use a dynamic dropdown of currently-defined condition names. */
+    const conditionDropdown = () => {
+        const names = Object.keys(afConditions).sort();
+        if (!names.length) return [[aft('condition.no_conditions', '(no conditions defined)'), '']];
+        return names.map(n => [n, n]);
+    };
+
+    B.Blocks['af_get_condition'] = { init() {
+        this.appendDummyInput()
+            .appendField(aft('condition.get', 'condition'))
+            .appendField(new B.FieldDropdown(conditionDropdown), 'NAME');
+        this.setOutput(true, 'Boolean');
+        this.setColour(COLOR_LOGIC);
+        this.setTooltip(aft('condition.get_tooltip', 'Returns the current value of a named condition. Define conditions in the Conditions toolbox category.'));
+    } };
+
+    B.Blocks['af_set_condition'] = { init() {
+        this.appendDummyInput()
+            .appendField(aft('condition.set', 'set condition'))
+            .appendField(new B.FieldDropdown(conditionDropdown), 'NAME')
+            .appendField('=')
+            .appendField(new B.FieldDropdown([
+                [aft('block.true',  'true'),  'TRUE'],
+                [aft('block.false', 'false'), 'FALSE'],
+            ]), 'VALUE');
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COLOR_LOGIC);
+        this.setTooltip(aft('condition.set_tooltip', 'Sets a named condition to true or false. The value persists across app restarts.'));
+    } };
+
     B.Blocks['af_is_date'] = { init() {
         this.appendDummyInput()
             .appendField(aft('time.is_date', 'is date'))
@@ -253,6 +289,30 @@ function afDefineBlocks() {
         this.setOutput(true, 'Boolean');
         this.setColour(COLOR_TIME);
         this.setTooltip(aft('time.between_tooltip', 'True while the current time is between the two times. Handles ranges that cross midnight.'));
+    } };
+
+    /* Day-of-week filter. Empty selection = "everyday" (always true). */
+    B.Blocks['af_on_days'] = { init() {
+        this.appendDummyInput()
+            .appendField(aft('time.on_days', 'on days'))
+            .appendField(aft('day.mo', 'Mo')).appendField(new B.FieldCheckbox('FALSE'), 'DAY_MO')
+            .appendField(aft('day.tu', 'Tu')).appendField(new B.FieldCheckbox('FALSE'), 'DAY_TU')
+            .appendField(aft('day.we', 'We')).appendField(new B.FieldCheckbox('FALSE'), 'DAY_WE')
+            .appendField(aft('day.th', 'Th')).appendField(new B.FieldCheckbox('FALSE'), 'DAY_TH')
+            .appendField(aft('day.fr', 'Fr')).appendField(new B.FieldCheckbox('FALSE'), 'DAY_FR')
+            .appendField(aft('day.sa', 'Sa')).appendField(new B.FieldCheckbox('FALSE'), 'DAY_SA')
+            .appendField(aft('day.su', 'Su')).appendField(new B.FieldCheckbox('FALSE'), 'DAY_SU');
+        this.setOutput(true, 'Boolean');
+        this.setColour(COLOR_TIME);
+        this.setTooltip(aft('time.on_days_tooltip', 'True on any of the checked weekdays. If none are checked, true every day.'));
+    } };
+
+    /* Returns whether VRChat.exe is currently running. Backend-polled. */
+    B.Blocks['af_is_game_running'] = { init() {
+        this.appendDummyInput().appendField(aft('game.is_running', 'is game running'));
+        this.setOutput(true, 'Boolean');
+        this.setColour(COLOR_GAME);
+        this.setTooltip(aft('game.is_running_tooltip', 'True while VRChat.exe is running on this machine. Polled every 5 seconds.'));
     } };
 
     B.Blocks['af_is_friend'] = { init() {
@@ -500,11 +560,18 @@ function afToolbox() {
                 { kind: 'block', type: 'af_and' },
                 { kind: 'block', type: 'af_or' },
                 { kind: 'block', type: 'af_bool' },
+                { kind: 'sep' },
+                { kind: 'block', type: 'af_get_condition' },
+                { kind: 'block', type: 'af_set_condition' },
             ]},
             { kind: 'category', name: aft('toolbox.time', 'Time'), colour: COLOR_TIME, contents: [
                 { kind: 'block', type: 'af_is_date' },
                 { kind: 'block', type: 'af_is_time' },
                 { kind: 'block', type: 'af_between_time' },
+                { kind: 'block', type: 'af_on_days' },
+            ]},
+            { kind: 'category', name: aft('toolbox.game', 'Game'), colour: COLOR_GAME, contents: [
+                { kind: 'block', type: 'af_is_game_running' },
             ]},
             { kind: 'category', name: aft('toolbox.friends', 'Friends'), colour: COLOR_PARAM, contents: [
                 { kind: 'block', type: 'af_friend_obj' },
@@ -606,6 +673,95 @@ async function afInitWorkspace() {
     if (loading) loading.style.display = 'none';
     document.documentElement.addEventListener('themechange', afOnThemeChange);
 }
+
+/* ===========================================================================
+   Conditions sidebar panel — renders below the Blockly toolbox.
+   Each condition has an editable name, a value toggle, and a remove button.
+   The Get/Set blocks pull their dropdown options from these names live.
+   =========================================================================== */
+function afRenderConditionsPanel() {
+    const list = document.getElementById('afConditionsList');
+    if (!list) return;
+    const names = Object.keys(afConditions).sort();
+    if (!names.length) {
+        list.innerHTML = '<div class="af-cond-empty">' + afEsc(aft('condition.empty', 'No conditions yet. Click + to add one.')) + '</div>';
+        return;
+    }
+    list.innerHTML = names.map(name => {
+        const checked = afConditions[name] ? 'checked' : '';
+        const safe    = afEsc(name);
+        return ''
+            + '<div class="af-cond-row" data-name="' + safe + '">'
+                + '<input class="af-cond-name vrcn-input" type="text" value="' + safe + '" '
+                    + 'onblur="afRenameConditionFromInput(this, \'' + jsq(name) + '\')" '
+                    + 'onkeydown="if (event.key === &quot;Enter&quot;) this.blur();">'
+                + '<label class="toggle af-inline-toggle">'
+                    + '<input type="checkbox" ' + checked + ' onchange="afToggleConditionValue(\'' + jsq(name) + '\', this.checked)">'
+                    + '<div class="toggle-track"><div class="toggle-knob"></div></div>'
+                + '</label>'
+                + '<button class="vrcn-button af-icon-btn af-cond-remove" onclick="afRemoveCondition(\'' + jsq(name) + '\')" title="' + afEsc(aft('common.remove', 'Remove')) + '">'
+                    + '<span class="msi" style="font-size:14px;">close</span>'
+                + '</button>'
+            + '</div>';
+    }).join('');
+}
+
+function afAddConditionPrompt() {
+    const raw = prompt(aft('condition.prompt.name', 'Condition name:'));
+    if (!raw) return;
+    const name = String(raw).trim();
+    if (!name) return;
+    if (Object.prototype.hasOwnProperty.call(afConditions, name)) {
+        if (typeof showToast === 'function') showToast(false, aftf('condition.toast.already_exists', { name }, 'Condition "' + name + '" already exists'));
+        return;
+    }
+    afConditions[name] = false;
+    afScheduleConditionsSave();
+    afRenderConditionsPanel();
+}
+
+function afRemoveCondition(name) {
+    if (!confirm(aftf('condition.confirm.remove', { name }, 'Remove condition "' + name + '"?'))) return;
+    delete afConditions[name];
+    afScheduleConditionsSave();
+    afRenderConditionsPanel();
+}
+
+function afToggleConditionValue(name, value) {
+    if (!Object.prototype.hasOwnProperty.call(afConditions, name)) return;
+    afConditions[name] = !!value;
+    afScheduleConditionsSave();
+}
+
+function afRenameConditionFromInput(inputEl, oldName) {
+    const newName = String(inputEl.value || '').trim();
+    if (!newName || newName === oldName) { inputEl.value = oldName; return; }
+    if (Object.prototype.hasOwnProperty.call(afConditions, newName)) {
+        if (typeof showToast === 'function') showToast(false, aftf('condition.toast.already_exists', { name: newName }, 'Condition "' + newName + '" already exists'));
+        inputEl.value = oldName;
+        return;
+    }
+    afConditions[newName] = afConditions[oldName];
+    delete afConditions[oldName];
+    afScheduleConditionsSave();
+    afRenderConditionsPanel();
+}
+
+function afScheduleConditionsSave() {
+    if (afConditionsSaveTimer) clearTimeout(afConditionsSaveTimer);
+    afConditionsSaveTimer = setTimeout(() => {
+        afConditionsSaveTimer = null;
+        if (typeof sendToCS === 'function') sendToCS({
+            action: 'afSaveConditions',
+            conditions: afConditions,
+        });
+    }, 400);
+}
+
+window.afAddConditionPrompt        = afAddConditionPrompt;
+window.afRemoveCondition           = afRemoveCondition;
+window.afToggleConditionValue      = afToggleConditionValue;
+window.afRenameConditionFromInput  = afRenameConditionFromInput;
 
 function afOnThemeChange() {
     if (!afWorkspace || !window.Blockly) return;
@@ -1023,6 +1179,8 @@ function afTick() {
        back below the soft limit on its own as old timestamps expire. */
     afUpdateActionCounter();
     afApplyActionLockState();
+    /* Poll backend for VRChat process state — drives af_is_game_running. */
+    if (typeof sendToCS === 'function') sendToCS({ action: 'afGetGameRunning' });
 }
 
 function afObservedInstanceUserIds() {
@@ -1241,6 +1399,20 @@ function afExecAction(flow, block) {
             afExecStatements(flow, afInputStatement(block, branch));
             return;
         }
+        case 'af_set_condition': {
+            const name  = f.NAME;
+            const value = f.VALUE === 'TRUE';
+            if (!name) { afLog('err', '[' + flow.name + '] ' + aft('log.set_condition_skipped', 'set condition skipped: no name')); return; }
+            if (!Object.prototype.hasOwnProperty.call(afConditions, name)) {
+                afLog('err', '[' + flow.name + '] ' + aftf('log.set_condition_unknown', { name }, 'set condition skipped: "' + name + '" not defined (add it in the Conditions sidebar)'));
+                return;
+            }
+            afConditions[name] = value;
+            afScheduleConditionsSave();
+            afRenderConditionsPanel();
+            afLog('ok', '[' + flow.name + '] ' + aftf('log.set_condition', { name, value: value ? 'true' : 'false' }, 'set condition "' + name + '" = ' + value));
+            return;
+        }
         case 'af_set_status': {
             if (!afTryDispatch(flow)) break;
             const status = f.STATUS || 'active';
@@ -1334,6 +1506,11 @@ function afEvalValue(block) {
     const f = block.fields || {};
     switch (block.type) {
         case 'af_bool':   return f.BOOL === 'TRUE';
+        case 'af_get_condition': {
+            const name = f.NAME;
+            if (!name) return false;
+            return !!afConditions[name];
+        }
         case 'af_and':    return !!afEvalValue(afInput(block, 'A')) && !!afEvalValue(afInput(block, 'B'));
         case 'af_or':     return !!afEvalValue(afInput(block, 'A')) || !!afEvalValue(afInput(block, 'B'));
         case 'af_compare': {
@@ -1370,6 +1547,15 @@ function afEvalValue(block) {
             const cur   = now.getHours() * 60 + now.getMinutes();
             return start <= end ? (cur >= start && cur <= end) : (cur >= start || cur <= end);
         }
+        case 'af_on_days': {
+            /* getDay(): 0=Sun, 1=Mon, ..., 6=Sat */
+            const slots = ['DAY_SU', 'DAY_MO', 'DAY_TU', 'DAY_WE', 'DAY_TH', 'DAY_FR', 'DAY_SA'];
+            const checked = slots.filter(k => f[k] === 'TRUE' || f[k] === true);
+            if (!checked.length) return true; /* empty = everyday */
+            return checked.includes(slots[new Date().getDay()]);
+        }
+        case 'af_is_game_running':
+            return !!afVrcGameRunning;
         case 'af_is_friend': {
             const u = afEvalUser(afInput(block, 'USER'));
             if (!u || !u.id) return false;
@@ -1494,6 +1680,7 @@ window.afOnTabOpen = async function afOnTabOpen() {
         if (hint) hint.innerHTML = '<span class="msi" style="font-size:32px;color:var(--err);">error</span><div style="font-size:13px;color:var(--err);margin-top:8px;">Failed to load Blockly: ' + afEsc(e.message || e) + '</div>';
         return;
     }
+    afRenderConditionsPanel();
     if (typeof sendToCS === 'function') sendToCS({ action: 'afLoadFlows' });
 };
 
@@ -1616,6 +1803,7 @@ window.__afHandleMessage = function (action, payload) {
                 if (!f.id) f.id = afNewId();
                 if (typeof f.enabled !== 'boolean') f.enabled = false;
             }
+            afConditions = (payload && payload.conditions && typeof payload.conditions === 'object') ? payload.conditions : {};
             afRenderFlowSelect();
             if (afFlows.length && !afCurrentFlowId) afCurrentFlowId = afFlows[0].id;
             if (afWorkspace) afLoadFlowIntoWorkspace(afCurrentFlowId);
@@ -1623,12 +1811,16 @@ window.__afHandleMessage = function (action, payload) {
             const cur = afFlows.find(f => f.id === afCurrentFlowId);
             if (en) en.checked = !!(cur && cur.enabled);
             afUpdateRunIndicator();
+            afRenderConditionsPanel();
             break;
         case 'afSaveResult':
             if (payload && payload.ok === false) {
                 afLog('err', aftf('toast.save_failed', { error: payload.error || 'unknown' }, 'Flow save failed: ' + (payload.error || 'unknown')));
                 if (typeof showToast === 'function') showToast(false, aftf('toast.save_failed', { error: payload.error || 'unknown' }, 'Flow save failed: ' + (payload.error || 'unknown')));
             }
+            break;
+        case 'afGameRunning':
+            afVrcGameRunning = !!(payload && payload.running);
             break;
     }
 };

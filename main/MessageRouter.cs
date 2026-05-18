@@ -1876,7 +1876,9 @@ public partial class AppShell
                 // Action Flow
                 case "afLoadFlows":
                 case "afSaveFlows":
+                case "afSaveConditions":
                 case "afTrayNotify":
+                case "afGetGameRunning":
                     _afCtrl.HandleMessage(action, msg);
                     break;
 
@@ -2452,6 +2454,95 @@ public partial class AppShell
                     };
                     if (!string.IsNullOrEmpty(dir))
                         Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true });
+                    break;
+                }
+
+                // VRChat Tools — config.json + cache management + launch options
+                case "vrcConfigGet":
+                {
+                    _ = Task.Run(() =>
+                    {
+                        var (cfgJson, cacheBytes) = VrcConfigHelper.ReadConfigAndCacheSize();
+                        Invoke(() => SendToJS("vrcConfigData", new { config = cfgJson, cacheBytes }));
+                    });
+                    break;
+                }
+                case "vrcCacheRefresh":
+                {
+                    _ = Task.Run(() =>
+                    {
+                        var bytes = VrcConfigHelper.GetCacheSize();
+                        Invoke(() => SendToJS("vrcConfigData", new { cacheBytes = bytes }));
+                    });
+                    break;
+                }
+                case "vrcCacheDeleteAll":
+                {
+                    _ = Task.Run(() =>
+                    {
+                        bool ok = VrcConfigHelper.DeleteAllCache(out var err);
+                        var bytes = VrcConfigHelper.GetCacheSize();
+                        Invoke(() =>
+                        {
+                            SendToJS("vrcConfigData", new { cacheBytes = bytes });
+                            SendToJS("toast", new { ok, msg = ok ? "VRChat cache deleted" : ("Cache delete failed: " + err) });
+                        });
+                    });
+                    break;
+                }
+                case "vrcCacheSweep":
+                {
+                    _ = Task.Run(() =>
+                    {
+                        var removed = VrcConfigHelper.SweepCache(out var err);
+                        var bytes = VrcConfigHelper.GetCacheSize();
+                        Invoke(() =>
+                        {
+                            SendToJS("vrcConfigData", new { cacheBytes = bytes });
+                            SendToJS("toast", new { ok = err == null, msg = err ?? $"Swept {removed} cache entries" });
+                        });
+                    });
+                    break;
+                }
+                case "vrcConfigSave":
+                {
+                    var cfg = msg["config"] as JObject;
+                    if (cfg != null)
+                    {
+                        _ = Task.Run(() =>
+                        {
+                            bool ok = VrcConfigHelper.WriteConfig(cfg, out var err);
+                            Invoke(() => SendToJS("toast", new { ok, msg = ok ? "VRChat config saved" : ("Config save failed: " + err) }));
+                        });
+                    }
+                    break;
+                }
+                case "vrcLaunchOptionsGet":
+                {
+                    Invoke(() => SendToJS("vrcLaunchOptionsData", new
+                    {
+                        path = _core.Settings.VrcPath ?? "",
+                        args = _core.Settings.VrcLaunchArgs ?? ""
+                    }));
+                    break;
+                }
+                case "vrcLaunchOptionsSave":
+                {
+                    var newPath = msg["path"]?.ToString() ?? "";
+                    var newArgs = (msg["args"]?.ToString() ?? "").Trim();
+                    // Validate path override the way VRCX-0 does (must end in launch.exe if .exe).
+                    if (!string.IsNullOrEmpty(newPath) && newPath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                        && !newPath.EndsWith("launch.exe", StringComparison.OrdinalIgnoreCase)
+                        && !newPath.EndsWith("VRChat.exe", StringComparison.OrdinalIgnoreCase))
+                    {
+                        SendToJS("toast", new { ok = false, msg = "Invalid VRChat path (must end with launch.exe or VRChat.exe)" });
+                        break;
+                    }
+                    _core.Settings.VrcPath = newPath;
+                    _core.Settings.VrcLaunchArgs = newArgs;
+                    try { _core.Settings.Save(); } catch { }
+                    SendToJS("toast", new { ok = true, msg = "Launch options saved" });
+                    SendToJS("vrcLaunchOptionsData", new { path = newPath, args = newArgs });
                     break;
                 }
 

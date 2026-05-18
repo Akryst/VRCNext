@@ -116,6 +116,13 @@
                     <div class="tb-menu-item" id="tbMenuTools"><span data-i18n="nav.tools">Tools</span>
                         <div class="tb-dropdown">
                             <div class="tb-dd-submenu">
+                                <button class="tb-dd-item"><span class="msi">videogame_asset</span><span data-i18n="tb.tools.vrchat">VRChat</span><span class="msi tb-dd-arrow">chevron_right</span></button>
+                                <div class="tb-dd-sub-drop">
+                                    <button class="tb-dd-item" data-keep-modal onclick="openVrcConfigModal()"><span class="msi">tune</span><span data-i18n="tb.vrchat.config">VRChat Config</span></button>
+                                    <button class="tb-dd-item" data-keep-modal onclick="openVrcLaunchOptionsModal()"><span class="msi">terminal</span><span data-i18n="tb.vrchat.launch_options">VRChat Launch Options</span></button>
+                                </div>
+                            </div>
+                            <div class="tb-dd-submenu">
                                 <button class="tb-dd-item"><span class="msi">link</span><span data-i18n="tb.tools.shortcuts">Shortcuts</span><span class="msi tb-dd-arrow">chevron_right</span></button>
                                 <div class="tb-dd-sub-drop">
                                     <button class="tb-dd-item" onclick="sendToCS({action:'openShortcutFolder',folder:'vrchat_data'})"><span class="msi">folder</span><span data-i18n="tb.shortcuts.vrchat_data">VRChat Data</span></button>
@@ -407,6 +414,12 @@
 
     <div class="modal-overlay" id="modalPerminiPicker" style="display:none;" onclick="if(event.target===this)closePerminiPicker()"></div>
 
+    <!-- VRChat Config Modal -->
+    <div class="modal-overlay" id="modalVrcConfig" style="display:none;" onclick="if(event.target===this)this.style.display='none'"></div>
+
+    <!-- VRChat Launch Options Modal -->
+    <div class="modal-overlay" id="modalVrcLaunchOptions" style="display:none;" onclick="if(event.target===this)this.style.display='none'"></div>
+
     <!-- Notification Toast (top-right, action feedback) -->
     <div id="notifToastArea" class="notif-toast-area"></div>
     <!-- Notification Cards (bottom-right, incoming VRChat notifications) -->
@@ -516,6 +529,8 @@
             modalCreateInstance: 'core/modals/create-instance-modal/create-instance-modal.html',
             modalVfBlock:       'modules/tools/voice-fight/voice-fight-block.html',
             modalPerminiPicker: 'modules/tools/permini/permini-picker.html',
+            modalVrcConfig:        'core/modals/vrc-tools-modal/vrc-config-modal.html',
+            modalVrcLaunchOptions: 'core/modals/vrc-tools-modal/vrc-launch-options-modal.html',
             dashLayoutModal:    'modules/dashboard/dash-layout.html',
             avFavPickerPanel:   'modules/avatars/fav-picker.html',
             themeEditorPanel:   'modules/settings/theme-editor.html',
@@ -593,6 +608,7 @@
             'core/SmartSearch/smart-search.js',
             'core/Keybinds/Keybind.js',
             'core/Taskbar/taskbar.js',
+            'core/modals/vrc-tools-modal/vrc-tools-modal.js',
         ];
 
         try {

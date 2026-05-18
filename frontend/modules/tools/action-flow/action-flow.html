@@ -23,6 +23,13 @@
 
                     <div class="vrcn-panel-card af-editor-card">
                         <div id="afBlocklyHost" class="af-blockly-host"></div>
+                        <div class="af-cond-panel" id="afConditionsPanel">
+                            <div class="af-cond-header">
+                                <span class="af-cond-title"><span class="msi" style="font-size:14px;">tune</span> <span data-i18n="action_flow.conditions">Conditions</span></span>
+                                <button class="vrcn-button af-icon-btn" onclick="afAddConditionPrompt()" title="Add condition" data-i18n-title="action_flow.condition.add_button"><span class="msi" style="font-size:16px;">add</span></button>
+                            </div>
+                            <div class="af-cond-list" id="afConditionsList"></div>
+                        </div>
                         <div class="af-zoom-controls">
                             <button class="af-zoom-btn" onclick="afZoom(1)" title="Zoom in"><span class="msi">add</span></button>
                             <button class="af-zoom-btn" onclick="afZoom(-1)" title="Zoom out"><span class="msi">remove</span></button>

@@ -8,6 +8,12 @@ namespace VRCNext.Services;
 public class ActionFlowSettings
 {
     public List<ActionFlow> Flows { get; set; } = new();
+    // Named boolean conditions used by af_get_condition / af_set_condition blocks.
+    // Persisted across restarts so "run only once" style flags survive.
+    public Dictionary<string, bool> Conditions { get; set; } = new();
+    // Initial value captured the first time each condition was written. Shown in
+    // the toolbox sidebar so the user can see "default vs current" at a glance.
+    public Dictionary<string, bool> ConditionDefaults { get; set; } = new();
 
     public class ActionFlow
     {

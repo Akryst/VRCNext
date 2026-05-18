@@ -210,6 +210,7 @@ public class AppSettings
     public List<string> MyInstances { get; set; } = new();
     public List<string> Favorites { get; set; } = new();
     public string VrcPath { get; set; } = "";
+    public string VrcLaunchArgs { get; set; } = "";
     public List<string> ExtraExe { get; set; } = new(); // legacy — kept for JSON compat / migration
     public List<string> ExtraExeDesktop { get; set; } = new();
     public List<string> ExtraExeVR { get; set; } = new();

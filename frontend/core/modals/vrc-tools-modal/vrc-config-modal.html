@@ -1,0 +1,30 @@
+        <div class="modal-box" style="width:560px;max-width:90%;">
+            <div class="modal-title" style="margin-bottom:4px;" data-i18n="vrc_config.title">VRChat Config</div>
+            <div class="modal-msg" style="margin-bottom:18px;" data-i18n="vrc_config.desc">Edit VRChat's config.json directly. Changes are written to VRChat's own data folder.</div>
+
+            <!-- Cache row -->
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--bg-input);border-radius:8px;padding:10px 12px;margin-bottom:18px;">
+                <span style="font-size:12px;color:var(--tx2);"><span data-i18n="vrc_config.cache_size">Cache Size</span>: <strong id="vrcCfgCacheSize" style="color:var(--tx0);">—</strong></span>
+                <span style="flex:1;"></span>
+                <button class="vrcn-button" onclick="vrcCfgRefreshCache()"><span class="msi" style="font-size:14px;">refresh</span> <span data-i18n="vrc_config.refresh">Refresh</span></button>
+                <button class="vrcn-button" onclick="vrcCfgDeleteCache()"><span class="msi" style="font-size:14px;">delete</span> <span data-i18n="vrc_config.delete_cache">Delete Cache</span></button>
+                <button class="vrcn-button" onclick="vrcCfgSweepCache()"><span class="msi" style="font-size:14px;">cleaning_services</span> <span data-i18n="vrc_config.sweep_cache">Sweep Cache</span></button>
+            </div>
+
+            <div class="sf-section-label" style="margin-bottom:6px;" data-i18n="vrc_config.max_cache_size">Max Cache Size [GB] (min 30)</div>
+            <input type="number" id="vrcCfgMaxCacheSize" class="vrcn-edit-field" placeholder="30" style="width:100%;margin-bottom:14px;">
+
+            <div class="sf-section-label" style="margin-bottom:6px;" data-i18n="vrc_config.cache_expiry">Cache Expiry [Days]</div>
+            <input type="number" id="vrcCfgCacheExpiry" class="vrcn-edit-field" placeholder="30" style="width:100%;margin-bottom:14px;">
+
+            <div class="sf-section-label" style="margin-bottom:6px;" data-i18n="vrc_config.steadycam_fov">First-Person Steadycam FOV</div>
+            <input type="number" id="vrcCfgSteadycamFov" class="vrcn-edit-field" placeholder="50" style="width:100%;margin-bottom:6px;">
+
+            <div class="modal-btns" style="margin-top:22px;justify-content:space-between;">
+                <button class="vrcn-button-round" onclick="sendToCS({action:'openUrl',url:'https://docs.vrchat.com/docs/configuration-file'})"><span class="msi">open_in_new</span> <span data-i18n="vrc_config.docs">VRChat Docs</span></button>
+                <div style="display:flex;gap:8px;">
+                    <button class="vrcn-button-round" onclick="document.getElementById('modalVrcConfig').style.display='none'" data-i18n="common.close">Close</button>
+                    <button class="vrcn-button-round vrcn-btn-join" onclick="vrcCfgSave()" data-i18n="common.save">Save</button>
+                </div>
+            </div>
+        </div>

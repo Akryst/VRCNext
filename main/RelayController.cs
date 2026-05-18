@@ -140,9 +140,10 @@ public class RelayController : IDisposable
                     var llLoc = msg["location"]?.ToString() ?? "";
                     var llVr  = msg["vr"]?.Value<bool>() ?? false;
 #if WINDOWS
-                    // Build args: --no-vr for Desktop mode, optional join URI
+                    // Build args: --no-vr for Desktop mode, optional join URI, plus user-configured launch args
                     var joinUri2 = !string.IsNullOrEmpty(llLoc) ? VRChatApiService.BuildLaunchUri(llLoc) : "";
                     var noVrFlag = llVr ? "" : "--no-vr";
+                    var llExtraArgs = (_core.Settings.VrcLaunchArgs ?? "").Trim();
 
                     // Always prefer steam.exe -applaunch so --no-vr is passed correctly.
                     // steam:// URL does NOT forward args to VRChat, causing SteamVR to open in Desktop mode.
@@ -151,8 +152,9 @@ public class RelayController : IDisposable
                     if (steamExe != null)
                     {
                         var applaunchArgs = string.IsNullOrEmpty(joinUri2)
-                            ? $"-applaunch 438100 {noVrFlag}".Trim()
-                            : $"-applaunch 438100 {noVrFlag} \"{joinUri2}\"".Trim();
+                            ? $"-applaunch 438100 {noVrFlag} {llExtraArgs}".Trim()
+                            : $"-applaunch 438100 {noVrFlag} {llExtraArgs} \"{joinUri2}\"".Trim();
+                        applaunchArgs = System.Text.RegularExpressions.Regex.Replace(applaunchArgs, "\\s+", " ");
                         try
                         {
                             Process.Start(new ProcessStartInfo
@@ -171,8 +173,9 @@ public class RelayController : IDisposable
                         if (!string.IsNullOrWhiteSpace(vrcExe) && File.Exists(vrcExe))
                         {
                             var llArgs = string.IsNullOrEmpty(joinUri2)
-                                ? noVrFlag
-                                : $"{noVrFlag} \"{joinUri2}\"".Trim();
+                                ? $"{noVrFlag} {llExtraArgs}".Trim()
+                                : $"{noVrFlag} {llExtraArgs} \"{joinUri2}\"".Trim();
+                            llArgs = System.Text.RegularExpressions.Regex.Replace(llArgs, "\\s+", " ");
                             Process.Start(new ProcessStartInfo
                             {
                                 FileName = vrcExe, Arguments = llArgs,
@@ -407,15 +410,19 @@ public class RelayController : IDisposable
         try
         {
 #if WINDOWS
+            var extraLaunchArgs = (_core.Settings.VrcLaunchArgs ?? "").Trim();
             var lvSteamExe = FindSteamExe();
             bool launched = false;
             if (lvSteamExe != null)
             {
                 try
                 {
+                    var steamArgs = string.IsNullOrEmpty(extraLaunchArgs)
+                        ? "-applaunch 438100 --no-vr"
+                        : $"-applaunch 438100 --no-vr {extraLaunchArgs}";
                     Process.Start(new ProcessStartInfo
                     {
-                        FileName = lvSteamExe, Arguments = "-applaunch 438100 --no-vr",
+                        FileName = lvSteamExe, Arguments = steamArgs,
                         UseShellExecute = false
                     });
                     launched = true;
@@ -430,9 +437,10 @@ public class RelayController : IDisposable
                     _core.SendToJS("log", new { msg = "Could not launch VRChat: Steam not found and no exe path configured.", color = "err" });
                     return;
                 }
+                var exeArgs = string.IsNullOrEmpty(extraLaunchArgs) ? "--no-vr" : $"--no-vr {extraLaunchArgs}";
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName = vrcPath, Arguments = "--no-vr",
+                    FileName = vrcPath, Arguments = exeArgs,
                     WorkingDirectory = Path.GetDirectoryName(vrcPath) ?? "",
                     UseShellExecute = false
                 });

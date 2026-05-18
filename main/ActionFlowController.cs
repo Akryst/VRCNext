@@ -37,7 +37,23 @@ public class ActionFlowController : IDisposable
                         ["updatedAt"] = f.UpdatedAt,
                     });
                 }
-                _core.SendToJS("afFlows", new { flows = arr });
+                _core.SendToJS("afFlows", new {
+                    flows             = arr,
+                    conditions        = _settings.Conditions,
+                    conditionDefaults = _settings.ConditionDefaults,
+                });
+                break;
+            }
+
+            case "afSaveConditions":
+            {
+                var conds  = msg["conditions"]?.ToObject<Dictionary<string, bool>>();
+                var defs   = msg["defaults"]?.ToObject<Dictionary<string, bool>>();
+                if (conds != null) _settings.Conditions = conds;
+                if (defs  != null) _settings.ConditionDefaults = defs;
+                _settings.Save();
+                if (_settings.LastSaveError != null)
+                    _core.SendToJS("log", new { msg = "[ActionFlow] conditions save failed: " + _settings.LastSaveError, color = "err" });
                 break;
             }
 
@@ -85,6 +101,13 @@ public class ActionFlowController : IDisposable
                 var tray = TrayServiceProvider?.Invoke();
                 tray?.ShowNotification(title, subtitle, "", accent);
 #endif
+                break;
+            }
+
+            case "afGetGameRunning":
+            {
+                var running = _core.IsVrcRunning?.Invoke() ?? false;
+                _core.SendToJS("afGameRunning", new { running });
                 break;
             }
         }
