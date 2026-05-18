@@ -431,6 +431,31 @@ function afDefineBlocks() {
         this.setColour(COLOR_PARAM);
     } };
 
+    B.Blocks['af_get_my_avatar'] = { init() {
+        this.appendDummyInput().appendField(aft('avatar_block.my_current', 'my current avatar'));
+        this.setOutput(true, 'String');
+        this.setColour(COLOR_PARAM);
+        this.setTooltip(aft('avatar_block.my_current_tooltip', 'Returns the ID of the avatar I am currently wearing.'));
+    } };
+
+    B.Blocks['af_avatar_obj'] = { init() {
+        this.appendDummyInput()
+            .appendField(aft('avatar_block.avatar', 'avatar'))
+            .appendField(new B.FieldTextInput('avtr_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'), 'AVATAR_ID');
+        this.setOutput(true, 'String');
+        this.setColour(COLOR_PARAM);
+        this.setTooltip(aft('avatar_block.avatar_tooltip', 'A literal avatar ID — use on the right side of "= my current avatar" to compare.'));
+    } };
+
+    B.Blocks['af_is_my_avatar'] = { init() {
+        this.appendDummyInput()
+            .appendField(aft('avatar_block.is_my_current', 'is my current avatar'))
+            .appendField(new B.FieldTextInput('avtr_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'), 'AVATAR_ID');
+        this.setOutput(true, 'Boolean');
+        this.setColour(COLOR_PARAM);
+        this.setTooltip(aft('avatar_block.is_my_current_tooltip', 'True if the given avatar ID matches my currently worn avatar.'));
+    } };
+
     B.Blocks['af_set_status'] = { init() {
         this.appendDummyInput()
             .appendField(aft('action.set_status', 'set status')).appendField(new B.FieldDropdown(STATUS_DROPDOWN_FACTORY()), 'STATUS')
@@ -593,6 +618,11 @@ function afToolbox() {
                 { kind: 'block', type: 'af_world_obj' },
                 { kind: 'block', type: 'af_get_current_world' },
                 { kind: 'block', type: 'af_in_same_instance' },
+            ]},
+            { kind: 'category', name: aft('toolbox.avatar', 'Avatar'), colour: COLOR_PARAM, contents: [
+                { kind: 'block', type: 'af_get_my_avatar' },
+                { kind: 'block', type: 'af_avatar_obj' },
+                { kind: 'block', type: 'af_is_my_avatar' },
             ]},
             { kind: 'category', name: aft('toolbox.actions', 'Actions'), colour: COLOR_ACTION, contents: [
                 { kind: 'block', type: 'af_set_status' },
@@ -1165,6 +1195,10 @@ function afTick() {
         myStatus:  (typeof currentVrcUser !== 'undefined' && currentVrcUser?.status) || null,
     };
 
+    // Refresh public async Tasks by evaluating the Async Tasks of GetAvatarAsync and GetInstanceAsync
+    // Mark ---- Build GET Current Avatar, GET Current InstanceOwner to validate IF/DO/ELSE/AND/OR Statements inside an Loop.
+    // Mark ---- Do at 19.05.2026
+
     for (const flow of afFlows) {
         if (!flow.enabled || !flow.workspace) continue;
         try { afEvalFlow(flow, obs); }
@@ -1608,6 +1642,17 @@ function afEvalValue(block) {
             }
             if (!loc) return null;
             return { id: String(loc).split(':')[0], kind: 'world' };
+        }
+        case 'af_get_my_avatar': {
+            return typeof currentAvatarId !== 'undefined' ? (currentAvatarId || '') : '';
+        }
+        case 'af_avatar_obj': {
+            return (f.AVATAR_ID || '').trim();
+        }
+        case 'af_is_my_avatar': {
+            const want = (f.AVATAR_ID || '').trim();
+            const cur  = typeof currentAvatarId !== 'undefined' ? (currentAvatarId || '') : '';
+            return !!want && want === cur;
         }
         case 'af_in_same_instance': {
             const u = afEvalUser(afInput(block, 'USER'));

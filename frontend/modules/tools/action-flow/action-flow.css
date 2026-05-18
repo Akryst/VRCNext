@@ -206,7 +206,7 @@
 .af-cond-panel {
     position: absolute;
     left: 0;
-    top: 290px;               /* sits right below the 8 toolbox categories */
+    top: 320px;               /* sits right below the 9 toolbox categories */
     bottom: 0;
     width: 175px;
     display: flex;
