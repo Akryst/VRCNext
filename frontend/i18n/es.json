@@ -2228,5 +2228,13 @@
   "action_flow.ctx.disable": "Deshabilitar bloque",
   "action_flow.ctx.enable": "Habilitar bloque",
   "action_flow.ctx.delete_one": "Eliminar bloque",
-  "action_flow.ctx.delete_n": "Eliminar {count} bloques"
+  "action_flow.ctx.delete_n": "Eliminar {count} bloques",
+  "action_flow.action.switch_own_avatar": "cambiar a mi avatar",
+  "action_flow.action.switch_own_avatar_tooltip": "Cambia a uno de tus avatares subidos.",
+  "action_flow.action.switch_favorite_avatar": "cambiar a avatar favorito",
+  "action_flow.action.switch_favorite_avatar_tooltip": "Cambia a uno de tus avatares favoritos.",
+  "action_flow.action.no_avatars": "(sin avatares cargados)",
+  "action_flow.action.no_favorite_avatars": "(sin avatares favoritos cargados)",
+  "action_flow.log.switch_avatar_skipped": "cambio de avatar omitido: ningún avatar seleccionado",
+  "action_flow.log.switch_avatar": "avatar cambiado a {name}"
 }

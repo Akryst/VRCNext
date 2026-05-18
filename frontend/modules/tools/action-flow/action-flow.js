@@ -25,6 +25,8 @@ const ACTION_TYPES = new Set([
     'af_answer_invite',
     'af_answer_invite_request',
     'af_send_notification',
+    'af_switch_own_avatar',
+    'af_switch_favorite_avatar',
 ]);
 
 const aft  = (k, f) => (typeof t  === 'function' ? t ('action_flow.' + k, f)        : f);
@@ -420,6 +422,49 @@ function afDefineBlocks() {
         this.setColour(COLOR_ACTION);
         this.setTooltip(aft('action.answer_invite_request_tooltip', 'Send a chat message back to the user who requested an invite. Use inside a "when someone requests an invite" trigger.'));
     } };
+
+    const ownAvatarDropdown = () => {
+        try {
+            if (typeof avatarsData !== 'undefined' && Array.isArray(avatarsData) && avatarsData.length) {
+                return avatarsData
+                    .slice()
+                    .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+                    .map(a => [a.name || a.id, a.id]);
+            }
+        } catch {}
+        return [[aft('action.no_avatars', '(no avatars loaded)'), '']];
+    };
+    const favoriteAvatarDropdown = () => {
+        try {
+            if (typeof favAvatarsData !== 'undefined' && Array.isArray(favAvatarsData) && favAvatarsData.length) {
+                return favAvatarsData
+                    .slice()
+                    .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+                    .map(a => [a.name || a.id, a.id]);
+            }
+        } catch {}
+        return [[aft('action.no_favorite_avatars', '(no favorite avatars loaded)'), '']];
+    };
+
+    B.Blocks['af_switch_own_avatar'] = { init() {
+        this.appendDummyInput()
+            .appendField(aft('action.switch_own_avatar', 'switch to my avatar'))
+            .appendField(new B.FieldDropdown(ownAvatarDropdown), 'AVATAR_ID');
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COLOR_ACTION);
+        this.setTooltip(aft('action.switch_own_avatar_tooltip', 'Switch to one of your own uploaded avatars.'));
+    } };
+
+    B.Blocks['af_switch_favorite_avatar'] = { init() {
+        this.appendDummyInput()
+            .appendField(aft('action.switch_favorite_avatar', 'switch to favorite avatar'))
+            .appendField(new B.FieldDropdown(favoriteAvatarDropdown), 'AVATAR_ID');
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COLOR_ACTION);
+        this.setTooltip(aft('action.switch_favorite_avatar_tooltip', 'Switch to one of your favorited avatars.'));
+    } };
 }
 
 function afToolbox() {
@@ -480,6 +525,8 @@ function afToolbox() {
             { kind: 'category', name: aft('toolbox.actions', 'Actions'), colour: COLOR_ACTION, contents: [
                 { kind: 'block', type: 'af_set_status' },
                 { kind: 'block', type: 'af_set_bio_text' },
+                { kind: 'block', type: 'af_switch_own_avatar' },
+                { kind: 'block', type: 'af_switch_favorite_avatar' },
                 { kind: 'block', type: 'af_invite_friend' },
                 { kind: 'block', type: 'af_request_invite' },
                 { kind: 'block', type: 'af_answer_invite' },
@@ -1181,6 +1228,19 @@ function afExecAction(flow, block) {
             const ntitle = aft('notification_title', 'Action Flow');
             if (typeof sendToCS === 'function') sendToCS({ action: 'afTrayNotify', title: ntitle, subtitle: text, accent: 'info' });
             afLog('ok', '[' + flow.name + '] ' + aftf('log.notify', { text }, 'notify "' + text + '"'));
+            break;
+        }
+        case 'af_switch_own_avatar':
+        case 'af_switch_favorite_avatar': {
+            const avatarId = f.AVATAR_ID;
+            if (!avatarId) { afLog('err', '[' + flow.name + '] ' + aft('log.switch_avatar_skipped', 'switch avatar skipped: no avatar selected')); break; }
+            const pool = block.type === 'af_switch_favorite_avatar'
+                ? (typeof favAvatarsData !== 'undefined' ? favAvatarsData : [])
+                : (typeof avatarsData    !== 'undefined' ? avatarsData    : []);
+            const meta = pool.find(a => a.id === avatarId);
+            const label = (meta && meta.name) || avatarId;
+            if (typeof sendToCS === 'function') sendToCS({ action: 'vrcSelectAvatar', avatarId });
+            afLog('ok', '[' + flow.name + '] ' + aftf('log.switch_avatar', { name: label }, 'switch avatar to ' + label));
             break;
         }
         case 'af_answer_invite':

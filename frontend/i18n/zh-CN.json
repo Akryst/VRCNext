@@ -2228,5 +2228,13 @@
   "action_flow.ctx.disable": "禁用积木",
   "action_flow.ctx.enable": "启用积木",
   "action_flow.ctx.delete_one": "删除积木",
-  "action_flow.ctx.delete_n": "删除 {count} 个积木"
+  "action_flow.ctx.delete_n": "删除 {count} 个积木",
+  "action_flow.action.switch_own_avatar": "切换到我的模型",
+  "action_flow.action.switch_own_avatar_tooltip": "切换到你上传过的某个模型。",
+  "action_flow.action.switch_favorite_avatar": "切换到收藏模型",
+  "action_flow.action.switch_favorite_avatar_tooltip": "切换到你收藏的某个模型。",
+  "action_flow.action.no_avatars": "（未加载模型）",
+  "action_flow.action.no_favorite_avatars": "（未加载收藏模型）",
+  "action_flow.log.switch_avatar_skipped": "切换模型跳过：未选择模型",
+  "action_flow.log.switch_avatar": "模型切换到 {name}"
 }

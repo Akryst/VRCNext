@@ -2247,5 +2247,13 @@
   "action_flow.ctx.disable": "Disable Block",
   "action_flow.ctx.enable": "Enable Block",
   "action_flow.ctx.delete_one": "Delete Block",
-  "action_flow.ctx.delete_n": "Delete {count} Blocks"
+  "action_flow.ctx.delete_n": "Delete {count} Blocks",
+  "action_flow.action.switch_own_avatar": "switch to my avatar",
+  "action_flow.action.switch_own_avatar_tooltip": "Switch to one of your own uploaded avatars.",
+  "action_flow.action.switch_favorite_avatar": "switch to favorite avatar",
+  "action_flow.action.switch_favorite_avatar_tooltip": "Switch to one of your favorited avatars.",
+  "action_flow.action.no_avatars": "(no avatars loaded)",
+  "action_flow.action.no_favorite_avatars": "(no favorite avatars loaded)",
+  "action_flow.log.switch_avatar_skipped": "switch avatar skipped: no avatar selected",
+  "action_flow.log.switch_avatar": "switch avatar to {name}"
 }

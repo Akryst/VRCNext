@@ -2230,5 +2230,13 @@
   "action_flow.ctx.disable": "Block deaktivieren",
   "action_flow.ctx.enable": "Block aktivieren",
   "action_flow.ctx.delete_one": "Block löschen",
-  "action_flow.ctx.delete_n": "{count} Blöcke löschen"
+  "action_flow.ctx.delete_n": "{count} Blöcke löschen",
+  "action_flow.action.switch_own_avatar": "wechsle zu meinem Avatar",
+  "action_flow.action.switch_own_avatar_tooltip": "Zu einem deiner eigenen hochgeladenen Avatare wechseln.",
+  "action_flow.action.switch_favorite_avatar": "wechsle zu Lieblings-Avatar",
+  "action_flow.action.switch_favorite_avatar_tooltip": "Zu einem deiner favorisierten Avatare wechseln.",
+  "action_flow.action.no_avatars": "(keine Avatare geladen)",
+  "action_flow.action.no_favorite_avatars": "(keine Lieblings-Avatare geladen)",
+  "action_flow.log.switch_avatar_skipped": "Avatar-Wechsel übersprungen: kein Avatar gewählt",
+  "action_flow.log.switch_avatar": "Avatar gewechselt zu {name}"
 }

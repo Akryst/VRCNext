@@ -2227,5 +2227,13 @@
   "action_flow.ctx.disable": "ブロックを無効化",
   "action_flow.ctx.enable": "ブロックを有効化",
   "action_flow.ctx.delete_one": "ブロック削除",
-  "action_flow.ctx.delete_n": "{count} ブロック削除"
+  "action_flow.ctx.delete_n": "{count} ブロック削除",
+  "action_flow.action.switch_own_avatar": "自分のアバターに切替",
+  "action_flow.action.switch_own_avatar_tooltip": "自分でアップロードしたアバターに切り替えます。",
+  "action_flow.action.switch_favorite_avatar": "お気に入りアバターに切替",
+  "action_flow.action.switch_favorite_avatar_tooltip": "お気に入りに登録したアバターに切り替えます。",
+  "action_flow.action.no_avatars": "（アバター未読み込み）",
+  "action_flow.action.no_favorite_avatars": "（お気に入りアバター未読み込み）",
+  "action_flow.log.switch_avatar_skipped": "アバター切替スキップ: アバターが選択されていません",
+  "action_flow.log.switch_avatar": "アバターを {name} に切替"
 }
