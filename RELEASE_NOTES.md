@@ -1,5 +1,7 @@
 **2026.26.0**
 
+Very Big Update!
+
 **Answer Invite Requests and Invites**
 * You can now answer invites and invite requests with a message, or with an image and a message.
 * When you open the Notification Center, you will now see **Accept**, **Answer**, and **X**.
