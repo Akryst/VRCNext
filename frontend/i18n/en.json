@@ -2022,6 +2022,7 @@
   "page.help.22": "Real-time in-game translation using AI. Translates chat messages and text from other players into your language as they appear.\n\nRequirement: OSC must be enabled in VRChat under Options → OSC. An API key may be required depending on your configuration.",
   "page.help.23": "Automatically joins a VRChat event instance the moment it becomes available. Configure your target event and VRCNext will monitor it and join as soon as the instance opens.",
   "page.help.24": "Adjust your avatar's scale in real-time using VRChat's OSC system. Use the slider or enter a precise value to change your height in-game.\n\nRequirement: OSC must be enabled in VRChat under Options → OSC.",
+  "page.help.25": "Visual automation editor for VRChat. Build flows by snapping blocks together: pick a Trigger (every 30 seconds, when someone joins your instance, when someone invites you, at a specific time, when your status changes, and more), then drop in conditions and actions to react.\n\nActions can set your status, set your bio, send invites, request invites, reply to invites, and push notifications. Conditions check things like friend status, current world, who triggered the event, and time of day.\n\nFlows save automatically and run in the background while VRCNext is open. Limits keep things safe: max 4 flows, 16 triggers across all flows, and 10 actions per flow.",
   "tb.app": "App",
   "tb.app.view": "View",
   "tb.app.view.toggle_left": "Toggle Left Sidebar",

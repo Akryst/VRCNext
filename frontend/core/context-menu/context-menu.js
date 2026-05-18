@@ -85,6 +85,14 @@
         },
     };
 
+    /* Callers that want to suppress the global contextmenu dispatch and show
+       their own menu (e.g. inside Blockly where we need to block Blockly's
+       native menu first) can call this directly. */
+    window.VrcnShowContextMenu = (x, y, items) => {
+        if (items && items.length) showMenu(x, y, items);
+    };
+    window.VrcnHideContextMenu = () => hideMenu();
+
     /* Main listener */
     document.addEventListener('contextmenu', async e => {
         e.preventDefault();
@@ -445,6 +453,10 @@
     /* Entity detection */
     function getMenuConfig(e) {
         const el = e.target;
+
+        if (el.closest('.af-blockly-host') && typeof window.afBuildBlockContextMenu === 'function') {
+            return window.afBuildBlockContextMenu(el);
+        }
 
         if (el.id === 'netCanvas' && typeof _netGraph !== 'undefined' && _netGraph) {
             const rect = el.getBoundingClientRect();

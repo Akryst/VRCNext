@@ -1,102 +1,61 @@
 /* === Action Flow Editor === */
 
+/* Extends .sf-layout (already display:flex column with gap:16px from space-flight.css)
+   so we only add the bits Blockly needs: fill vertical, no overflow. Padding comes
+   from .content like every other tool. */
 .af-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
     height: 100%;
     min-height: 0;
-    padding: 10px;
 }
 
-.af-toolbar-card { padding: 10px 12px; }
-
-.af-toolbar {
+.af-toolbar-row {
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.af-toolbar-group {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
 }
 
-.af-toolbar-left,
-.af-toolbar-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
+/* Flow dropdown reuses the shared vn-select. .af-flow-select gives it a fixed
+   width (30% narrower than the old default). */
+.af-flow-select.vn-select { width: 170px; }
+.af-flow-select.vn-select .vn-select-trigger { width: 170px; }
 
-.af-flow-select {
-    min-width: 220px;
-    max-width: 320px;
-    height: 28px;
-    font-size: 12px;
-    font-weight: 600;
-}
+/* Log toggle button keeps an "active" state when the log panel is visible. */
+#afLogToggleBtn.active { background: var(--bg-input); border-color: var(--accent); color: var(--accent); }
 
-.af-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    user-select: none;
-    padding: 4px 10px;
-    border: 1px solid var(--brd-lt);
-    border-radius: 999px;
-    background: var(--bg-input);
-    transition: background .15s, border-color .15s;
-}
-.af-toggle:hover { border-color: var(--brd); }
-.af-toggle input { display: none; }
-.af-toggle-slider {
-    width: 28px;
-    height: 14px;
-    background: var(--brd);
-    border-radius: 999px;
-    position: relative;
-    transition: background .15s;
-}
-.af-toggle-slider::after {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 10px;
-    height: 10px;
-    background: #fff;
-    border-radius: 50%;
-    transition: left .15s;
-}
-.af-toggle input:checked + .af-toggle-slider { background: var(--accent); }
-.af-toggle input:checked + .af-toggle-slider::after { left: 16px; }
-.af-toggle-label { font-size: 12px; font-weight: 600; color: var(--tx1); }
+/* Compact icon-only buttons (New / Rename / Delete) — square, no text. */
+.af-icon-btn { padding: 4px 8px; }
 
-.af-status {
+/* Inline use of the standard .toggle — override its default margin-left:auto. */
+.af-inline-toggle { margin-left: 0 !important; }
+.af-toggle-label  { font-size: 12px; color: var(--tx2); }
+
+/* Counter badges — visible accent treatment using theme variables. */
+.af-badge {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 10px;
-    border: 1px solid var(--brd-lt);
+    padding: 3px 9px;
     border-radius: 999px;
-    background: var(--bg-input);
+    background: var(--accent-soft, rgba(123, 138, 255, 0.12));
+    border: 1px solid var(--accent);
+    color: var(--accent);
     font-size: 11px;
-    color: var(--tx2);
     font-weight: 600;
+    white-space: nowrap;
 }
-.af-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--brd);
-    transition: background .15s;
+.af-badge .msi   { font-size: 13px; opacity: 0.85; }
+.af-badge.at-limit {
+    background: rgba(224, 108, 117, 0.12);
+    border-color: var(--err);
+    color: var(--err);
 }
-.af-dot.running { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
-.af-dot.error   { background: var(--err); }
 
-.af-action-counter .msi { color: var(--tx3); }
-.af-action-counter.at-limit { color: var(--err); border-color: var(--err); }
-.af-action-counter.at-limit .msi { color: var(--err); }
-
+/* ---- Editor card (Blockly host) ---- */
 .af-editor-card {
     flex: 1;
     min-height: 0;
@@ -125,12 +84,12 @@
 .af-spinner { animation: af-spin 1s linear infinite; }
 @keyframes af-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
+/* ---- Log card ---- */
 .af-log-card {
     flex: 0 0 auto;
     max-height: 180px;
     display: flex;
     flex-direction: column;
-    padding: 8px 10px;
 }
 .af-log-list {
     flex: 1;
@@ -142,6 +101,7 @@
     border-radius: 6px;
     padding: 6px 8px;
     min-height: 60px;
+    margin-top: 8px;
 }
 .af-log-list .af-log-empty {
     color: var(--tx3);
@@ -163,10 +123,15 @@
 .af-log-entry.err .af-log-msg { color: var(--err); }
 .af-log-entry.info .af-log-msg { color: var(--tx1); }
 
-/* Re-skin Blockly to match VRCNext palette */
+/* ---- Blockly skin ---- */
 .af-blockly-host .blocklyMainBackground {
     stroke: none;
     fill: var(--bg-input);
+}
+/* Grid pattern lines — Blockly bakes the stroke as an inline attribute at
+   inject time, so we override here with !important to keep live theme updates. */
+.af-blockly-host pattern line {
+    stroke: var(--brd) !important;
 }
 .af-blockly-host .blocklyToolboxDiv {
     background: var(--bg-card) !important;
@@ -182,9 +147,9 @@
     margin: 1px 4px !important;
     border-radius: 6px !important;
 }
-.af-blockly-host .blocklyTreeRow:hover { background: var(--bg-input) !important; }
-.af-blockly-host .blocklyTreeSelected   { background: var(--bg-input) !important; }
-.af-blockly-host .blocklyTreeLabel      { color: var(--tx1) !important; font-family: 'Google Sans', sans-serif !important; font-weight: 600 !important; font-size: 12px !important; }
+.af-blockly-host .blocklyTreeRow:hover    { background: var(--bg-input) !important; }
+.af-blockly-host .blocklyTreeSelected     { background: var(--bg-input) !important; }
+.af-blockly-host .blocklyTreeLabel        { color: var(--tx1) !important; font-family: 'Google Sans', sans-serif !important; font-weight: 600 !important; font-size: 12px !important; }
 .af-blockly-host .blocklyFlyoutBackground { fill: var(--bg-card); fill-opacity: 0.96; }
 .af-blockly-host .blocklyText             { font-family: 'Google Sans', sans-serif !important; font-weight: 500 !important; }
 
@@ -193,25 +158,7 @@
     font-family: 'Google Sans Mono', monospace !important;
 }
 
-/* Slim Blockly's SVG scrollbars to match .vrcn-scrollbar styling.
-   Blockly renders these as <rect> elements, so we control width via rx + transform. */
-.af-blockly-host .blocklyScrollbarBackground { display: none; } /* transparent track */
-.af-blockly-host .blocklyScrollbarHandle {
-    fill: var(--brd);
-    rx: 3;
-    ry: 3;
-    transition: fill .1s;
-}
-.af-blockly-host .blocklyScrollbarHandle:hover,
-.af-blockly-host .blocklyScrollbarHandle.blocklyScrollbarActive {
-    fill: var(--accent);
-}
-/* Blockly draws horizontal + vertical scrollbars as <g> with width/height attrs.
-   We can't change them via CSS height/width, but we can squash via transform. */
-.af-blockly-host .blocklyScrollbarVertical   .blocklyScrollbarHandle { transform: scaleX(0.42); transform-origin: right; }
-.af-blockly-host .blocklyScrollbarHorizontal .blocklyScrollbarHandle { transform: scaleY(0.42); transform-origin: bottom; }
-
-/* Overlay zoom + delete buttons (replace Blockly's built-ins). */
+/* ---- Overlay zoom + delete buttons ---- */
 .af-zoom-controls {
     position: absolute;
     right: 12px;
@@ -239,9 +186,25 @@
 .af-zoom-btn .msi  { font-size: 18px; line-height: 1; }
 .af-zoom-btn-danger:hover { color: var(--err); border-color: var(--err); }
 
-/* Over-limit lockout: when the flow has more than FLOW_ACTION_LIMIT action
-   blocks, every action block gets the .af-action-locked class. We repaint the
-   path red and dim the rest so the user sees at a glance that nothing will run. */
+/* ---- Selection outline: light blue instead of Blockly's default yellow. ----
+   Zelos renderer paints a "selected glow" via a filter applied to the block path.
+   The glow color is set via theme component `selectedGlowColour`. We also override
+   the raw path stroke for older / non-Zelos renderers. */
+.af-blockly-host .blocklySelected > .blocklyPath,
+.af-blockly-host .blocklyDraggable.blocklySelected > .blocklyPath {
+    stroke: #7dd1ff !important;
+    stroke-width: 3px !important;
+}
+.af-blockly-host .blocklySelected > .blocklyPathLight {
+    stroke: #7dd1ff !important;
+}
+/* Zelos's selected-glow filter is generated as <feFlood flood-color="..."> inside
+   <defs>. Setting flood-color via CSS overrides the inline attribute. */
+.af-blockly-host filter[id*="blocklySelectedGlowFilter"] feFlood {
+    flood-color: #7dd1ff !important;
+}
+
+/* ---- Over-limit lockout: action / trigger blocks get repainted red. ---- */
 .af-blockly-host .af-action-locked > .blocklyPath {
     fill: #cc2a2a !important;
     stroke: #ff5555 !important;

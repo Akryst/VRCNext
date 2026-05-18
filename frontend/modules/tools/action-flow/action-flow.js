@@ -7,8 +7,6 @@ const LOG_MAX_ENTRIES  = 60;
 const AUTOSAVE_DEBOUNCE_MS = 600;
 
 const COLOR_LOGIC   = '#7784ed';
-const COLOR_LOOP    = '#c27dff';
-const COLOR_MATH    = '#7784ed'; 
 const COLOR_TIME    = '#7dd1ff';
 const COLOR_PARAM   = '#cb71ff';
 const COLOR_ACTION  = '#937dff';
@@ -202,26 +200,6 @@ function afDefineBlocks() {
         this.appendDummyInput().appendField(new B.FieldDropdown([['true','TRUE'],['false','FALSE']]), 'BOOL');
         this.setOutput(true, 'Boolean');
         this.setColour(COLOR_LOGIC);
-    } };
-
-    B.Blocks['af_repeat'] = { init() {
-        this.appendDummyInput().appendField('repeat').appendField(new B.FieldNumber(3, 1, 100, 1), 'TIMES').appendField('times');
-        this.appendStatementInput('DO').appendField('do');
-        this.setPreviousStatement(true, null);
-        this.setNextStatement(true, null);
-        this.setColour(COLOR_LOOP);
-    } };
-
-    B.Blocks['af_number'] = { init() {
-        this.appendDummyInput().appendField(new B.FieldNumber(0), 'NUM');
-        this.setOutput(true, 'Number');
-        this.setColour(COLOR_MATH);
-    } };
-
-    B.Blocks['af_text'] = { init() {
-        this.appendDummyInput().appendField('"').appendField(new B.FieldTextInput(''), 'TEXT').appendField('"');
-        this.setOutput(true, 'String');
-        this.setColour(COLOR_MATH);
     } };
 
     B.Blocks['af_is_date'] = { init() {
@@ -462,13 +440,6 @@ function afToolbox() {
                 { kind: 'block', type: 'af_or' },
                 { kind: 'block', type: 'af_bool' },
             ]},
-            { kind: 'category', name: 'Loops', colour: COLOR_LOOP, contents: [
-                { kind: 'block', type: 'af_repeat' },
-            ]},
-            { kind: 'category', name: 'Math', colour: COLOR_MATH, contents: [
-                { kind: 'block', type: 'af_number' },
-                { kind: 'block', type: 'af_text' },
-            ]},
             { kind: 'category', name: 'Time', colour: COLOR_TIME, contents: [
                 { kind: 'block', type: 'af_is_date' },
                 { kind: 'block', type: 'af_is_time' },
@@ -514,31 +485,87 @@ async function afInitWorkspace() {
     afDefineBlocks();
     const host = document.getElementById('afBlocklyHost');
     if (!host) return;
+    const cssVar = (name, fallback) =>
+        getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
     afWorkspace = window.Blockly.inject(host, {
         toolbox:   afToolbox(),
         trashcan:  false,
         sounds:    false,
         zoom:      { controls: false, wheel: true, startScale: 0.95, maxScale: 2, minScale: 0.5, scaleSpeed: 1.1 },
         move:      { scrollbars: true, drag: true, wheel: false },
-        grid:      { spacing: 24, length: 3, colour: 'rgba(255,255,255,0.06)', snap: true },
+        grid:      { spacing: 24, length: 3, colour: cssVar('--brd', '#3a3f4a'), snap: true },
         renderer:  'zelos',
         theme: window.Blockly.Theme.defineTheme('vrcnext', {
             base: window.Blockly.Themes.Classic,
             componentStyles: {
-                workspaceBackgroundColour: getComputedStyle(document.documentElement).getPropertyValue('--bg-input').trim() || '#1f2330',
-                toolboxBackgroundColour:   getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim()  || '#2a2e3a',
-                flyoutBackgroundColour:    getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim()  || '#2a2e3a',
-                flyoutForegroundColour:    '#ffffff',
-                scrollbarColour:           '#666',
-                insertionMarkerColour:     '#ffffff',
-                insertionMarkerOpacity:    0.35,
-                cursorColour:              '#ffffff',
+                workspaceBackgroundColour: cssVar('--bg-input', '#1f2330'),
+                toolboxBackgroundColour:   cssVar('--bg-card',  '#2a2e3a'),
+                flyoutBackgroundColour:    cssVar('--bg-card',  '#2a2e3a'),
+                flyoutForegroundColour:    cssVar('--tx0',      '#ffffff'),
+                scrollbarColour:           cssVar('--brd',      '#666'),
+                insertionMarkerColour:     cssVar('--accent',   '#ffffff'),
+                insertionMarkerOpacity:    0.5,
+                cursorColour:              cssVar('--accent',   '#ffffff'),
+                selectedGlowColour:        '#7dd1ff',
+                selectedGlowSize:          0.8,
+                replacementGlowColour:     '#7dd1ff',
+                replacementGlowSize:       2,
             },
         }),
     });
     afWorkspace.addChangeListener(afOnWorkspaceChange);
+    afWorkspace.configureContextMenu = (menuOptions) => { menuOptions.length = 0; };
+    // Blockly's native menu is shown directly by BlockSvg.showContextMenu /
+    // WorkspaceSvg.showContextMenu (called from its gesture system, not via the
+    // contextmenu event). Override both to a no-op so no Blockly menu ever appears.
+    const B = window.Blockly;
+    if (B.BlockSvg     && !B.BlockSvg.prototype._afCtxKilled)     { B.BlockSvg.prototype.showContextMenu     = function () {}; B.BlockSvg.prototype._afCtxKilled = true; }
+    if (B.WorkspaceSvg && !B.WorkspaceSvg.prototype._afCtxKilled) { B.WorkspaceSvg.prototype.showContextMenu = function () {}; B.WorkspaceSvg.prototype._afCtxKilled = true; }
+    if (B.ContextMenu  && !B.ContextMenu._afCtxKilled)            { B.ContextMenu.show = function () {};                       B.ContextMenu._afCtxKilled = true; }
+    // Capture-phase contextmenu listener: intercept BEFORE the global VRCNext
+    // dispatcher in context-menu.js so we can show our own block-specific menu.
+    host.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const items = typeof window.afBuildBlockContextMenu === 'function'
+            ? window.afBuildBlockContextMenu(e.target) : null;
+        if (typeof window.VrcnHideContextMenu === 'function') window.VrcnHideContextMenu();
+        if (items && items.length && typeof window.VrcnShowContextMenu === 'function') {
+            window.VrcnShowContextMenu(e.clientX, e.clientY, items);
+        }
+    }, true);
     const loading = document.getElementById('afLoadingHint');
     if (loading) loading.style.display = 'none';
+    document.documentElement.addEventListener('themechange', afOnThemeChange);
+}
+
+function afOnThemeChange() {
+    if (!afWorkspace || !window.Blockly) return;
+    const cssVar = (n, f) => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || f;
+    try {
+        const newTheme = window.Blockly.Theme.defineTheme('vrcnext-' + Date.now(), {
+            base: window.Blockly.Themes.Classic,
+            componentStyles: {
+                workspaceBackgroundColour: cssVar('--bg-input', '#1f2330'),
+                toolboxBackgroundColour:   cssVar('--bg-card',  '#2a2e3a'),
+                flyoutBackgroundColour:    cssVar('--bg-card',  '#2a2e3a'),
+                flyoutForegroundColour:    cssVar('--tx0',      '#ffffff'),
+                scrollbarColour:           cssVar('--brd',      '#666'),
+                insertionMarkerColour:     cssVar('--accent',   '#ffffff'),
+                insertionMarkerOpacity:    0.5,
+                cursorColour:              cssVar('--accent',   '#ffffff'),
+                selectedGlowColour:        '#7dd1ff',
+                selectedGlowSize:          0.8,
+                replacementGlowColour:     '#7dd1ff',
+                replacementGlowSize:       2,
+            },
+        });
+        afWorkspace.setTheme(newTheme);
+    } catch {}
+    const host = document.getElementById('afBlocklyHost');
+    if (!host) return;
+    const brd = cssVar('--brd', '#3a3f4a');
+    host.querySelectorAll('pattern line').forEach(line => line.setAttribute('stroke', brd));
 }
 
 function afOnWorkspaceChange(ev) {
@@ -697,7 +724,10 @@ function afSelectFlow(id) {
     afCurrentFlowId = id;
     afLoadFlowIntoWorkspace(id);
     const sel = document.getElementById('afFlowSelect');
-    if (sel) sel.value = id || '';
+    if (sel) {
+        sel.value = id || '';
+        if (typeof sel._vnRefresh === 'function') sel._vnRefresh();
+    }
     const cur = afFlows.find(f => f.id === id);
     const en = document.getElementById('afFlowEnabled');
     if (en) en.checked = !!(cur && cur.enabled);
@@ -712,6 +742,15 @@ function afToggleEnabled(checked) {
     afPersistFlows();
     afUpdateRunIndicator();
     if (flow.enabled) setTimeout(afTick, 0);
+}
+
+function afToggleLogPanel() {
+    const card = document.getElementById('afLogCard');
+    const btn  = document.getElementById('afLogToggleBtn');
+    if (!card) return;
+    const visible = card.style.display !== 'none';
+    card.style.display = visible ? 'none' : '';
+    if (btn) btn.classList.toggle('active', !visible);
 }
 
 function afRunNow() {
@@ -758,15 +797,18 @@ function afRenderFlowSelect() {
         opt.value = '';
         opt.textContent = '(no flows)';
         sel.appendChild(opt);
-        return;
+    } else {
+        afFlows.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f.id;
+            opt.textContent = f.name;
+            opt.dataset.vnDot = f.enabled ? 'online' : 'offline';
+            sel.appendChild(opt);
+        });
+        if (afCurrentFlowId) sel.value = afCurrentFlowId;
     }
-    afFlows.forEach(f => {
-        const opt = document.createElement('option');
-        opt.value = f.id;
-        opt.textContent = (f.enabled ? '● ' : '○ ') + f.name;
-        sel.appendChild(opt);
-    });
-    if (afCurrentFlowId) sel.value = afCurrentFlowId;
+    if (typeof initVnSelect === 'function') initVnSelect(sel);
+    if (typeof sel._vnRefresh === 'function') sel._vnRefresh();
 }
 
 function afLoadFlowIntoWorkspace(id) {
@@ -888,8 +930,8 @@ function afUpdateRunIndicator() {
     const txt = document.getElementById('afRunText');
     if (!dot || !txt) return;
     const anyEnabled = afFlows.some(f => f.enabled);
-    if (anyEnabled) { dot.className = 'af-dot running'; txt.textContent = 'Running'; }
-    else            { dot.className = 'af-dot';         txt.textContent = 'Idle';    }
+    if (anyEnabled) { dot.className = 'sf-dot online';  txt.textContent = 'Running'; }
+    else            { dot.className = 'sf-dot offline'; txt.textContent = 'Idle';    }
 }
 
 function afEvalFlow(flow, obs) {
@@ -1092,11 +1134,6 @@ function afExecAction(flow, block) {
             afExecStatements(flow, afInputStatement(block, branch));
             return;
         }
-        case 'af_repeat': {
-            const times = Number(block.fields?.TIMES ?? 1) | 0;
-            for (let i = 0; i < times; i++) afExecStatements(flow, afInputStatement(block, 'DO'));
-            return;
-        }
         case 'af_set_status': {
             const status = f.STATUS || 'active';
             const text   = String(f.TEXT || '');
@@ -1127,7 +1164,7 @@ function afExecAction(flow, block) {
         }
         case 'af_send_notification': {
             const text = f.TEXT || '';
-            if (typeof showToast === 'function') showToast(true, text);
+            afShowFlowNotificationCard(flow.name, text);
             if (typeof sendToCS === 'function') sendToCS({ action: 'afTrayNotify', title: 'Action Flow', subtitle: text, accent: 'info' });
             afLog('ok', '[' + flow.name + '] notify → "' + text + '"');
             break;
@@ -1161,8 +1198,6 @@ function afEvalValue(block) {
     const f = block.fields || {};
     switch (block.type) {
         case 'af_bool':   return f.BOOL === 'TRUE';
-        case 'af_number': return Number(f.NUM);
-        case 'af_text':   return String(f.TEXT ?? '');
         case 'af_and':    return !!afEvalValue(afInput(block, 'A')) && !!afEvalValue(afInput(block, 'B'));
         case 'af_or':     return !!afEvalValue(afInput(block, 'A')) || !!afEvalValue(afInput(block, 'B'));
         case 'af_compare': {
@@ -1334,6 +1369,7 @@ window.afToggleEnabled      = afToggleEnabled;
 window.afSaveCurrentFlow    = afSaveCurrentFlow;
 window.afRunNow             = afRunNow;
 window.afClearLog           = afClearLog;
+window.afToggleLogPanel     = afToggleLogPanel;
 
 window.afZoom = function (dir) {
     if (!afWorkspace) return;
@@ -1348,6 +1384,92 @@ window.afDeleteSelected = function () {
     if (!afWorkspace) return;
     const sel = window.Blockly.getSelected && window.Blockly.getSelected();
     if (sel && typeof sel.dispose === 'function') sel.dispose(true);
+};
+
+function afShowFlowNotificationCard(flowName, text) {
+    const area = document.getElementById('notifCardArea');
+    if (!area) return;
+    const card = document.createElement('div');
+    card.className = 'nc-card';
+    card.innerHTML =
+        '<div class="nc-inner">' +
+            '<span class="msi nc-icon" style="color:var(--accent);">account_tree</span>' +
+            '<div class="nc-body">' +
+                '<div class="nc-title"><strong>' + afEsc(flowName) + '</strong></div>' +
+                (text ? '<div class="nc-sub">' + afEsc(text) + '</div>' : '') +
+            '</div>' +
+            '<button class="nc-close-btn" title="Close"><span class="msi" style="font-size:15px;">close</span></button>' +
+        '</div>' +
+        '<div class="nc-timer"><div class="nc-timer-bar" style="background:var(--accent);"></div></div>';
+    area.appendChild(card);
+    const close = () => { if (card.parentNode) { card.classList.remove('nc-visible'); setTimeout(() => card.remove(), 350); } };
+    card.querySelector('.nc-close-btn').addEventListener('click', close);
+    requestAnimationFrame(() => {
+        card.classList.add('nc-visible');
+        const bar = card.querySelector('.nc-timer-bar');
+        if (bar) {
+            bar.style.transition = 'transform 8s linear';
+            requestAnimationFrame(() => { bar.style.transform = 'scaleX(0)'; });
+        }
+    });
+    setTimeout(close, 8200);
+}
+
+window.afBuildBlockContextMenu = function (target) {
+    if (!afWorkspace || !window.Blockly || !target) return null;
+    const blockEl = target.closest('.blocklyDraggable');
+    if (!blockEl) return null;
+    const id = blockEl.getAttribute('data-id');
+    if (!id) return null;
+    const block = afWorkspace.getBlockById(id);
+    if (!block) return null;
+
+    const items = [];
+    if (typeof block.isDeletable === 'function' && block.isDeletable()) {
+        items.push({ icon: 'content_copy', label: 'Duplicate', action: () => {
+            try {
+                const json = window.Blockly.serialization.blocks.save(block);
+                const dup = window.Blockly.serialization.blocks.append(json, afWorkspace);
+                const xy = block.getRelativeToSurfaceXY();
+                if (dup && dup.moveBy) dup.moveBy(20, 20);
+                if (dup && dup.select) dup.select();
+            } catch (e) { afLog('err', 'Duplicate failed: ' + (e.message || e)); }
+        }});
+    }
+    if (typeof block.setCommentText === 'function') {
+        const hasComment = !!block.getCommentText?.();
+        items.push({
+            icon: hasComment ? 'speaker_notes_off' : 'add_comment',
+            label: hasComment ? 'Remove Comment' : 'Add Comment',
+            action: () => block.setCommentText(hasComment ? null : ''),
+        });
+    }
+    if (typeof block.setCollapsed === 'function') {
+        const collapsed = block.isCollapsed();
+        items.push({
+            icon: collapsed ? 'unfold_more' : 'unfold_less',
+            label: collapsed ? 'Expand Block' : 'Collapse Block',
+            action: () => block.setCollapsed(!collapsed),
+        });
+    }
+    if (typeof block.setEnabled === 'function') {
+        const enabled = block.isEnabled();
+        items.push({
+            icon: enabled ? 'block' : 'check_circle',
+            label: enabled ? 'Disable Block' : 'Enable Block',
+            action: () => block.setEnabled(!enabled),
+        });
+    }
+    if (typeof block.isDeletable === 'function' && block.isDeletable()) {
+        const count = block.getDescendants ? block.getDescendants(true).length : 1;
+        items.push('sep');
+        items.push({
+            icon: 'delete',
+            label: count > 1 ? ('Delete ' + count + ' Blocks') : 'Delete Block',
+            action: () => block.dispose(true),
+        });
+    }
+    return items.length ? items : null;
 };
 
 window.__afHandleMessage = function (action, payload) {
