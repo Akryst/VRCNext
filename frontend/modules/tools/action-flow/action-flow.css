@@ -93,6 +93,10 @@
 .af-dot.running { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
 .af-dot.error   { background: var(--err); }
 
+.af-action-counter .msi { color: var(--tx3); }
+.af-action-counter.at-limit { color: var(--err); border-color: var(--err); }
+.af-action-counter.at-limit .msi { color: var(--err); }
+
 .af-editor-card {
     flex: 1;
     min-height: 0;
@@ -234,3 +238,15 @@
 .af-zoom-btn:hover { background: var(--bg-input); color: var(--tx0); border-color: var(--brd); }
 .af-zoom-btn .msi  { font-size: 18px; line-height: 1; }
 .af-zoom-btn-danger:hover { color: var(--err); border-color: var(--err); }
+
+/* Over-limit lockout: when the flow has more than FLOW_ACTION_LIMIT action
+   blocks, every action block gets the .af-action-locked class. We repaint the
+   path red and dim the rest so the user sees at a glance that nothing will run. */
+.af-blockly-host .af-action-locked > .blocklyPath {
+    fill: #cc2a2a !important;
+    stroke: #ff5555 !important;
+    stroke-width: 2px !important;
+}
+.af-blockly-host .af-action-locked .blocklyText {
+    fill: #ffe5e5 !important;
+}

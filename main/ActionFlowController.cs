@@ -3,9 +3,6 @@ using VRCNext.Services;
 
 namespace VRCNext;
 
-// Action Flow - persists user-defined Blockly flows and relays "Send Notification"
-// blocks to the system tray. Flow execution itself lives in the JS layer so that
-// it has direct access to the live friend/instance state held in the frontend.
 public class ActionFlowController : IDisposable
 {
     private readonly CoreLibrary _core;
@@ -27,8 +24,7 @@ public class ActionFlowController : IDisposable
         {
             case "afLoadFlows":
             {
-                // Send with explicit lowercase keys — SendToJS uses default Newtonsoft
-                // serialization which keeps PascalCase, but the JS side reads `id` etc.
+
                 var arr = new JArray();
                 foreach (var f in _settings.Flows)
                 {

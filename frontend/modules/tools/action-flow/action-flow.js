@@ -1,10 +1,3 @@
-/* === Action Flow ===
- * Google-Blockly-based visual automation editor.
- * Flows are persisted via the C# backend (actionflow_settings.json) and
- * evaluated client-side every tick so they react to the live friend /
- * instance state already held in the renderer.
- */
-
 (function () {
 'use strict';
 
@@ -15,16 +8,26 @@ const AUTOSAVE_DEBOUNCE_MS = 600;
 
 const COLOR_LOGIC   = '#7784ed';
 const COLOR_LOOP    = '#c27dff';
-const COLOR_MATH    = '#7784ed'; // share logic palette (no dedicated math color provided)
+const COLOR_MATH    = '#7784ed'; 
 const COLOR_TIME    = '#7dd1ff';
 const COLOR_PARAM   = '#cb71ff';
 const COLOR_ACTION  = '#937dff';
-const COLOR_TRIGGER = '#c27dff'; // hat blocks — Scratch-style event color
+const COLOR_TRIGGER = '#c27dff'; 
 
-// World-change trigger waits this long after detecting a world switch before firing.
 const WORLD_CHANGE_DELAY_MS = 15 * 1000;
-// Base tick for diff-based triggers (joins/leaves, world change, status, time).
 const EVENT_TICK_MS = 5 * 1000;
+const FLOW_ACTION_LIMIT = 10;
+const FLOW_LIMIT = 4;
+const TRIGGER_LIMIT = 16;
+const ACTION_TYPES = new Set([
+    'af_set_status',
+    'af_set_bio_text',
+    'af_invite_friend',
+    'af_request_invite',
+    'af_answer_invite',
+    'af_answer_invite_request',
+    'af_send_notification',
+]);
 
 const STATUS_DROPDOWN = [
     ['Online',         'active'],
@@ -35,30 +38,23 @@ const STATUS_DROPDOWN = [
 
 const VRC_STATUS_LABELS = { active: 'Online', 'ask me': 'Ask Me', busy: 'Do Not Disturb', 'join me': 'Join Me' };
 
-// State
-let afFlows           = [];      // [{id,name,enabled,workspace,...}]
+let afFlows           = [];
 let afCurrentFlowId   = null;
-let afWorkspace       = null;    // Blockly workspace instance
+let afWorkspace       = null;
 let afBlocklyLoading  = false;
 let afBlocklyLoaded   = false;
 let afTickTimer       = null;
 let afLogEntries      = [];
 let afTabInitialized  = false;
 let afAutoSaveTimer   = null;
-let afAutoSaveSuppressed = false; // true while we're loading a workspace, so we don't auto-save the load-event
+let afAutoSaveSuppressed = false;
 
-// Trigger system state.
-let afTriggerState = {};         // flowId -> blockId -> { lastFiredMs, lastFiredDay, ... }
-let afWatchState = {             // global observations diffed each tick
-    lastInstanceUserIds: null,   // Set<string> or null = unknown
-    lastStatus:          null,   // 'active'/'busy'/'ask me'/'join me' or null
+let afTriggerState = {};
+let afWatchState = {
+    lastInstanceUserIds: null,
+    lastStatus:          null,
 };
-// Current trigger context — what fired the current execution, set by afFireTrigger.
-let afContext = { triggeringUser: null };
-
-// ============================================================================
-// Lazy-load Blockly
-// ============================================================================
+let afContext = { triggeringUser: null, triggerKind: null };
 
 function afEnsureBlockly() {
     if (afBlocklyLoaded) return Promise.resolve();
@@ -74,16 +70,8 @@ function afEnsureBlockly() {
     return afBlocklyLoading;
 }
 
-// ============================================================================
-// Block definitions
-// ============================================================================
-
 function afDefineBlocks() {
     const B = window.Blockly;
-
-    // -------- Triggers --------
-    // All trigger blocks are "hat" blocks: no previous statement, no next statement,
-    // single 'do' statement input. They're the entry points for a flow.
 
     const friendDropdown = () => {
         try {
@@ -106,8 +94,6 @@ function afDefineBlocks() {
         } };
     }
 
-    // Hat trigger with a checkbox that, when checked, reveals a user-id text field.
-    // The trigger only fires for users matching that id (or all users when unchecked).
     function makeUserPresenceTriggerHat(typeName, headLabel) {
         B.Blocks[typeName] = {
             init() {
@@ -121,7 +107,6 @@ function afDefineBlocks() {
             },
             _onFilterChange(newVal) {
                 const enabled = (newVal === 'TRUE' || newVal === true);
-                // Defer so Blockly finishes the field-set transaction before we mutate inputs.
                 setTimeout(() => this._setFilterInput(enabled), 0);
                 return newVal;
             },
@@ -135,7 +120,6 @@ function afDefineBlocks() {
                     this.removeInput('USERID_INPUT');
                 }
             },
-            // Blockly v10 JSON-mutator hooks — persist whether the filter input is present.
             saveExtraState() {
                 return { filterEnabled: this.getFieldValue('FILTER') === 'TRUE' };
             },
@@ -162,8 +146,6 @@ function afDefineBlocks() {
     makeTriggerHat('af_trigger_invite_received',         b => b.appendDummyInput().appendField('when someone invites me'));
     makeTriggerHat('af_trigger_invite_request_received', b => b.appendDummyInput().appendField('when someone requests an invite from me'));
 
-    // Context block: returns the User that caused the current trigger to fire.
-    // Only meaningful inside a join/leave/websocket-friend trigger's do branch.
     B.Blocks['af_triggering_user'] = { init() {
         this.appendDummyInput().appendField('triggering user');
         this.setOutput(true, 'User');
@@ -171,7 +153,6 @@ function afDefineBlocks() {
         this.setTooltip('The user that caused the current trigger to fire.');
     } };
 
-    // -------- Logic --------
     B.Blocks['af_if'] = { init() {
         this.appendValueInput('IF0').setCheck('Boolean').appendField('if');
         this.appendStatementInput('DO0').appendField('do');
@@ -223,7 +204,6 @@ function afDefineBlocks() {
         this.setColour(COLOR_LOGIC);
     } };
 
-    // -------- Loop --------
     B.Blocks['af_repeat'] = { init() {
         this.appendDummyInput().appendField('repeat').appendField(new B.FieldNumber(3, 1, 100, 1), 'TIMES').appendField('times');
         this.appendStatementInput('DO').appendField('do');
@@ -232,7 +212,6 @@ function afDefineBlocks() {
         this.setColour(COLOR_LOOP);
     } };
 
-    // -------- Math --------
     B.Blocks['af_number'] = { init() {
         this.appendDummyInput().appendField(new B.FieldNumber(0), 'NUM');
         this.setOutput(true, 'Number');
@@ -245,7 +224,6 @@ function afDefineBlocks() {
         this.setColour(COLOR_MATH);
     } };
 
-    // -------- Time --------
     B.Blocks['af_is_date'] = { init() {
         this.appendDummyInput()
             .appendField('is date')
@@ -266,12 +244,44 @@ function afDefineBlocks() {
         this.setColour(COLOR_TIME);
     } };
 
-    // -------- Parameter: Friend / User --------
+    B.Blocks['af_between_time'] = { init() {
+        this.appendDummyInput()
+            .appendField('between')
+            .appendField(new B.FieldNumber(12, 0, 23, 1), 'HH1').appendField(':')
+            .appendField(new B.FieldNumber(0, 0, 59, 1), 'MM1')
+            .appendField(new B.FieldDropdown([['24h','24'],['AM','AM'],['PM','PM']]), 'AMPM1')
+            .appendField('and')
+            .appendField(new B.FieldNumber(13, 0, 23, 1), 'HH2').appendField(':')
+            .appendField(new B.FieldNumber(0, 0, 59, 1), 'MM2')
+            .appendField(new B.FieldDropdown([['24h','24'],['AM','AM'],['PM','PM']]), 'AMPM2');
+        this.setOutput(true, 'Boolean');
+        this.setColour(COLOR_TIME);
+        this.setTooltip('True while the current time is between the two times. Handles ranges that cross midnight.');
+    } };
+
     B.Blocks['af_is_friend'] = { init() {
         this.appendValueInput('USER').setCheck('User').appendField('is friend');
         this.setOutput(true, 'Boolean');
         this.setInputsInline(true);
         this.setColour(COLOR_PARAM);
+    } };
+
+    B.Blocks['af_invite_from_friend'] = { init() {
+        this.appendDummyInput()
+            .appendField('invite from')
+            .appendField(new B.FieldDropdown(friendDropdown), 'FRIEND_ID');
+        this.setOutput(true, 'Boolean');
+        this.setColour(COLOR_PARAM);
+        this.setTooltip('True inside a "when someone invites me" trigger if the inviter matches this friend.');
+    } };
+
+    B.Blocks['af_invite_request_from_friend'] = { init() {
+        this.appendDummyInput()
+            .appendField('invite request from')
+            .appendField(new B.FieldDropdown(friendDropdown), 'FRIEND_ID');
+        this.setOutput(true, 'Boolean');
+        this.setColour(COLOR_PARAM);
+        this.setTooltip('True inside a "when someone requests an invite from me" trigger if the requester matches this friend.');
     } };
 
     B.Blocks['af_friend_obj'] = { init() {
@@ -309,7 +319,6 @@ function afDefineBlocks() {
         this.setColour(COLOR_PARAM);
     } };
 
-    // -------- Parameter: Status / Bio --------
     B.Blocks['af_has_status'] = { init() {
         this.appendValueInput('USER').setCheck('User').appendField('has status');
         this.appendDummyInput().appendField(new B.FieldDropdown(STATUS_DROPDOWN), 'STATUS');
@@ -352,7 +361,6 @@ function afDefineBlocks() {
         this.setColour(COLOR_PARAM);
     } };
 
-    // -------- Parameter: World / Instance --------
     B.Blocks['af_get_current_world'] = { init() {
         this.appendValueInput('USER').setCheck('User').appendField('current world of');
         this.setOutput(true, 'World');
@@ -367,19 +375,14 @@ function afDefineBlocks() {
         this.setColour(COLOR_PARAM);
     } };
 
-    // -------- Action --------
     B.Blocks['af_set_status'] = { init() {
-        this.appendDummyInput().appendField('set status').appendField(new B.FieldDropdown(STATUS_DROPDOWN), 'STATUS');
+        this.appendDummyInput()
+            .appendField('set status').appendField(new B.FieldDropdown(STATUS_DROPDOWN), 'STATUS')
+            .appendField('text').appendField('"').appendField(new B.FieldTextInput(''), 'TEXT').appendField('"');
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour(COLOR_ACTION);
-    } };
-
-    B.Blocks['af_set_status_text'] = { init() {
-        this.appendDummyInput().appendField('set status text').appendField('"').appendField(new B.FieldTextInput(''), 'TEXT').appendField('"');
-        this.setPreviousStatement(true, null);
-        this.setNextStatement(true, null);
-        this.setColour(COLOR_ACTION);
+        this.setTooltip('Sets your VRChat status (and status text if non-empty). Empty text keeps the existing status text.');
     } };
 
     B.Blocks['af_set_bio_text'] = { init() {
@@ -413,8 +416,6 @@ function afDefineBlocks() {
         this.setColour(COLOR_ACTION);
     } };
 
-    // Reply to whoever invited me / requested an invite from me. Both use the
-    // VRChat chat-message endpoint and target the trigger's sender.
     B.Blocks['af_answer_invite'] = { init() {
         this.appendDummyInput().appendField('answer invite').appendField('"').appendField(new B.FieldTextInput('Sorry, can\'t right now!'), 'TEXT').appendField('"');
         this.setPreviousStatement(true, null);
@@ -431,10 +432,6 @@ function afDefineBlocks() {
         this.setTooltip('Send a chat message back to the user who requested an invite. Use inside a "when someone requests an invite" trigger.');
     } };
 }
-
-// ============================================================================
-// Toolbox
-// ============================================================================
 
 function afToolbox() {
     return {
@@ -475,12 +472,15 @@ function afToolbox() {
             { kind: 'category', name: 'Time', colour: COLOR_TIME, contents: [
                 { kind: 'block', type: 'af_is_date' },
                 { kind: 'block', type: 'af_is_time' },
+                { kind: 'block', type: 'af_between_time' },
             ]},
             { kind: 'category', name: 'Friends', colour: COLOR_PARAM, contents: [
                 { kind: 'block', type: 'af_friend_obj' },
                 { kind: 'block', type: 'af_user_obj' },
                 { kind: 'block', type: 'af_own_user' },
                 { kind: 'block', type: 'af_is_friend' },
+                { kind: 'block', type: 'af_invite_from_friend' },
+                { kind: 'block', type: 'af_invite_request_from_friend' },
             ]},
             { kind: 'category', name: 'Status & Bio', colour: COLOR_PARAM, contents: [
                 { kind: 'block', type: 'af_has_status' },
@@ -497,7 +497,6 @@ function afToolbox() {
             ]},
             { kind: 'category', name: 'Actions', colour: COLOR_ACTION, contents: [
                 { kind: 'block', type: 'af_set_status' },
-                { kind: 'block', type: 'af_set_status_text' },
                 { kind: 'block', type: 'af_set_bio_text' },
                 { kind: 'block', type: 'af_invite_friend' },
                 { kind: 'block', type: 'af_request_invite' },
@@ -509,10 +508,6 @@ function afToolbox() {
     };
 }
 
-// ============================================================================
-// Workspace setup
-// ============================================================================
-
 async function afInitWorkspace() {
     if (afWorkspace) return;
     await afEnsureBlockly();
@@ -521,7 +516,7 @@ async function afInitWorkspace() {
     if (!host) return;
     afWorkspace = window.Blockly.inject(host, {
         toolbox:   afToolbox(),
-        trashcan:  false, // replaced with our own delete button (see overlay in action-flow.html)
+        trashcan:  false,
         sounds:    false,
         zoom:      { controls: false, wheel: true, startScale: 0.95, maxScale: 2, minScale: 0.5, scaleSpeed: 1.1 },
         move:      { scrollbars: true, drag: true, wheel: false },
@@ -549,12 +544,101 @@ async function afInitWorkspace() {
 function afOnWorkspaceChange(ev) {
     if (!afCurrentFlowId) return;
     if (ev.isUiEvent) return;
-    if (ev.type === window.Blockly.Events.FINISHED_LOADING) return;
+    if (ev.type === window.Blockly.Events.FINISHED_LOADING) {
+        afUpdateActionCounter();
+        return;
+    }
     if (afAutoSaveSuppressed) return;
-    // Persist working state on the in-memory flow so unsaved edits survive flow switches.
+
     const flow = afFlows.find(f => f.id === afCurrentFlowId);
     if (flow && afWorkspace) flow.workspace = window.Blockly.serialization.workspaces.save(afWorkspace);
+    afUpdateActionCounter();
+    afApplyActionLockState();
     afScheduleAutoSave();
+}
+
+function afApplyActionLockState() {
+    if (!afWorkspace) return;
+    const overAction  = afCountActions() > FLOW_ACTION_LIMIT;
+    const overTrigger = afCountGlobalTriggers() > TRIGGER_LIMIT;
+    for (const b of afWorkspace.getAllBlocks(false)) {
+        if (typeof b.getSvgRoot !== 'function') continue;
+        const isAction  = ACTION_TYPES.has(b.type);
+        const isTrigger = TRIGGER_TYPES.has(b.type);
+        if (!isAction && !isTrigger) continue;
+        const svg = b.getSvgRoot();
+        if (!svg) continue;
+        const locked = (isAction && overAction) || (isTrigger && overTrigger);
+        svg.classList.toggle('af-action-locked', locked);
+        try {
+            if (locked) {
+                const msg = isAction
+                    ? 'Flow is over the ' + FLOW_ACTION_LIMIT + '-action limit — disabled until you delete blocks'
+                    : 'Over the global trigger limit (' + TRIGGER_LIMIT + ') — disabled until you delete blocks across flows';
+                b.setWarningText(msg);
+            } else {
+                b.setWarningText(null);
+            }
+        } catch {}
+    }
+}
+
+function afCountActions() {
+    if (!afWorkspace) return 0;
+    let n = 0;
+    for (const b of afWorkspace.getAllBlocks(false)) {
+        if (ACTION_TYPES.has(b.type)) n++;
+    }
+    return n;
+}
+
+function afCountActionsInWorkspace(ws) {
+    if (!ws || !ws.blocks || !ws.blocks.blocks) return 0;
+    let n = 0;
+    const walk = (b) => {
+        if (!b) return;
+        if (ACTION_TYPES.has(b.type)) n++;
+        if (b.inputs) for (const k in b.inputs) walk(b.inputs[k].block);
+        if (b.next)   walk(b.next.block);
+    };
+    for (const root of ws.blocks.blocks) walk(root);
+    return n;
+}
+
+function afCountTriggersInWorkspace(ws) {
+    if (!ws || !ws.blocks || !ws.blocks.blocks) return 0;
+    let n = 0;
+    const walk = (b) => {
+        if (!b) return;
+        if (TRIGGER_TYPES.has(b.type)) n++;
+        if (b.inputs) for (const k in b.inputs) walk(b.inputs[k].block);
+        if (b.next)   walk(b.next.block);
+    };
+    for (const root of ws.blocks.blocks) walk(root);
+    return n;
+}
+
+function afCountGlobalTriggers() {
+    let n = 0;
+    for (const flow of afFlows) n += afCountTriggersInWorkspace(flow.workspace);
+    return n;
+}
+
+function afUpdateActionCounter() {
+    const el  = document.getElementById('afActionCounterValue');
+    const wrap = document.getElementById('afActionCounter');
+    if (el && wrap) {
+        const n = afCountActions();
+        el.textContent = n + '/' + FLOW_ACTION_LIMIT;
+        wrap.classList.toggle('at-limit', n >= FLOW_ACTION_LIMIT);
+    }
+    const tEl  = document.getElementById('afTriggerCounterValue');
+    const tWrap = document.getElementById('afTriggerCounter');
+    if (tEl && tWrap) {
+        const g = afCountGlobalTriggers();
+        tEl.textContent = g + '/' + TRIGGER_LIMIT;
+        tWrap.classList.toggle('at-limit', g >= TRIGGER_LIMIT);
+    }
 }
 
 function afScheduleAutoSave() {
@@ -565,13 +649,13 @@ function afScheduleAutoSave() {
     }, AUTOSAVE_DEBOUNCE_MS);
 }
 
-// ============================================================================
-// Flow CRUD
-// ============================================================================
-
 function afNewId() { return 'flow_' + Math.random().toString(36).slice(2, 10); }
 
 function afNewFlow() {
+    if (afFlows.length >= FLOW_LIMIT) {
+        if (typeof showToast === 'function') showToast(false, 'Flow limit reached (' + FLOW_LIMIT + ' max) — delete one to create another');
+        return;
+    }
     const name = prompt('Flow name:', 'New Flow');
     if (!name) return;
     const id = afNewId();
@@ -606,7 +690,6 @@ function afDeleteFlow() {
 }
 
 function afSelectFlow(id) {
-    // Snapshot current workspace before switching.
     if (afCurrentFlowId && afWorkspace) {
         const cur = afFlows.find(f => f.id === afCurrentFlowId);
         if (cur) cur.workspace = window.Blockly.serialization.workspaces.save(afWorkspace);
@@ -625,19 +708,15 @@ function afToggleEnabled(checked) {
     if (!flow) return;
     flow.enabled = !!checked;
     flow.updatedAt = Date.now();
-    // Reset state so interval triggers fire immediately and diff state starts fresh.
     delete afTriggerState[flow.id];
     afPersistFlows();
     afUpdateRunIndicator();
     if (flow.enabled) setTimeout(afTick, 0);
 }
 
-// Manually evaluate the current flow once, ignoring its previous edge state.
-// Useful for testing without waiting for the next tick or toggling enabled.
 function afRunNow() {
     const flow = afFlows.find(f => f.id === afCurrentFlowId);
     if (!flow) { if (typeof showToast === 'function') showToast(false, 'No flow selected'); return; }
-    // Capture latest workspace edits even if not yet saved.
     if (afWorkspace) flow.workspace = window.Blockly.serialization.workspaces.save(afWorkspace);
     delete afTriggerState[flow.id];
     afLog('info', '[' + flow.name + '] manual run — firing all triggers');
@@ -707,24 +786,20 @@ function afLoadFlowIntoWorkspace(id) {
             catch (e) { console.error('[ActionFlow] load failed', e); afLog('err', 'Workspace load failed: ' + (e.message || e)); }
         }
     } finally {
-        // Re-enable autosave after the load events have flushed.
-        setTimeout(() => { afAutoSaveSuppressed = false; }, 50);
+        setTimeout(() => { afAutoSaveSuppressed = false; afUpdateActionCounter(); afApplyActionLockState(); }, 50);
     }
 }
 
 function afPersistFlows() {
-    // Make sure current workspace is captured before sending to backend.
     if (afCurrentFlowId && afWorkspace) {
         const cur = afFlows.find(f => f.id === afCurrentFlowId);
         if (cur) cur.workspace = window.Blockly.serialization.workspaces.save(afWorkspace);
     }
     afRenderFlowSelect();
+    afUpdateActionCounter();
+    afApplyActionLockState();
     if (typeof sendToCS === 'function') sendToCS({ action: 'afSaveFlows', flows: afFlows });
 }
-
-// ============================================================================
-// Execution log
-// ============================================================================
 
 function afLog(level, msg) {
     afLogEntries.push({ time: new Date(), level, msg });
@@ -753,14 +828,10 @@ function afRenderLog() {
 
 function afEsc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
 
-// ============================================================================
-// Runtime — evaluate flows on a tick
-// ============================================================================
-
 function afStartTicker() {
     if (afTickTimer) return;
     afTickTimer = setInterval(afTick, EVENT_TICK_MS);
-    setTimeout(afTick, 2000); // run shortly after startup too
+    setTimeout(afTick, 2000);
 }
 
 const TRIGGER_TYPES = new Set([
@@ -782,7 +853,6 @@ const TRIGGER_TYPES = new Set([
 function afIsTriggerBlock(type) { return TRIGGER_TYPES.has(type); }
 
 function afTick() {
-    // Snapshot live state once per tick so every trigger sees the same data.
     const now      = Date.now();
     const today    = new Date(now);
     const obs = {
@@ -794,14 +864,12 @@ function afTick() {
         myStatus:  (typeof currentVrcUser !== 'undefined' && currentVrcUser?.status) || null,
     };
 
-    // Per-flow eval — for every enabled flow walk its root blocks.
     for (const flow of afFlows) {
         if (!flow.enabled || !flow.workspace) continue;
         try { afEvalFlow(flow, obs); }
         catch (e) { afLog('err', '[' + flow.name + '] ' + (e.message || e)); }
     }
 
-    // Persist global diff baselines for the next tick.
     if (obs.userIds)  afWatchState.lastInstanceUserIds = obs.userIds;
     if (obs.myStatus) afWatchState.lastStatus          = obs.myStatus;
 
@@ -835,11 +903,9 @@ function afEvalFlow(flow, obs) {
 function afExecRootBlock(flow, block, obs) {
     if (!block) return;
     if (afIsTriggerBlock(block.type)) afEvalTrigger(flow, block, obs);
-    // Non-trigger root blocks do nothing — every flow must start with a Trigger.
     if (block.next && block.next.block) afExecRootBlock(flow, block.next.block, obs);
 }
 
-// Evaluate a single trigger block; fire (run its DO branch) when its condition is met.
 function afEvalTrigger(flow, block, obs) {
     const state = afTriggerState[flow.id] = afTriggerState[flow.id] || {};
     const ts    = state[block.id] = state[block.id] || {};
@@ -874,7 +940,7 @@ function afEvalTrigger(flow, block, obs) {
             return;
         }
         case 'af_trigger_world_change':
-            return; // event-driven via vrcWorldJoined (see __afOnWebsocketEvent)
+            return;
         case 'af_trigger_user_joins':
         case 'af_trigger_user_leaves':
         case 'af_trigger_user_joins_or_leaves': {
@@ -912,14 +978,26 @@ function afEvalTrigger(flow, block, obs) {
         case 'af_trigger_invite_received':
         case 'af_trigger_invite_request_received':
         case 'af_trigger_manual':
-            return; // event-driven, handled elsewhere
+            return;
     }
 }
 
-// Run a trigger's DO branch, with optional user context for triggering-user resolution.
 function afFireTrigger(flow, block, reason, triggeringUser) {
+    const actionCount = afCountActionsInWorkspace(flow.workspace);
+    if (actionCount > FLOW_ACTION_LIMIT) {
+        afLog('err', '[' + flow.name + '] over action limit (' + actionCount + '/' + FLOW_ACTION_LIMIT + ') — flow disabled until trimmed');
+        return;
+    }
+    const triggerCount = afCountGlobalTriggers();
+    if (triggerCount > TRIGGER_LIMIT) {
+        afLog('err', '[' + flow.name + '] over global trigger limit (' + triggerCount + '/' + TRIGGER_LIMIT + ') — all triggers disabled until trimmed');
+        return;
+    }
     const prevCtx = afContext;
-    afContext = { triggeringUser: triggeringUser || null };
+    const triggerKind =
+        block.type === 'af_trigger_invite_received'         ? 'invite' :
+        block.type === 'af_trigger_invite_request_received' ? 'requestInvite' : null;
+    afContext = { triggeringUser: triggeringUser || null, triggerKind };
     try {
         afLog('info', '[' + flow.name + '] trigger fired (' + reason + ')');
         afExecStatements(flow, afInputStatement(block, 'DO'));
@@ -934,15 +1012,10 @@ function afLookupUser(id) {
     return live || { id };
 }
 
-// Called by messages.js for every incoming Photino message — route to websocket triggers.
 window.__afOnWebsocketEvent = function (type, payload) {
-    // Limit to vrc* events (the actual VRChat websocket pipeline). Skip our own afFlows etc.
     if (!type || !type.startsWith('vrc')) return;
-    if (type === 'vrcFriends' || type === 'vrcCredits') return; // bulk loads aren't per-event
+    if (type === 'vrcFriends' || type === 'vrcCredits') return;
 
-    // LogWatcher fires vrcWorldJoined the moment we actually land in a new instance.
-    // Schedule world-change triggers after WORLD_CHANGE_DELAY_MS so currentInstanceData.users
-    // has time to populate before the do branch runs.
     if (type === 'vrcWorldJoined') {
         const worldId = payload?.worldId || '';
         setTimeout(() => {
@@ -955,10 +1028,8 @@ window.__afOnWebsocketEvent = function (type, payload) {
                 }
             }
         }, WORLD_CHANGE_DELAY_MS);
-        // fall through so 'any websocket event' also fires for this event
     }
 
-    // Notification arrived — route to invite / invite-request triggers based on notif type.
     if (type === 'vrcNotificationPrepend' && payload && typeof payload === 'object') {
         const notifType = payload.type;
         const senderId  = payload.senderUserId || null;
@@ -976,7 +1047,6 @@ window.__afOnWebsocketEvent = function (type, payload) {
                 }
             }
         }
-        // fall through so 'any websocket event' also fires
     }
 
     const userId = afExtractUserId(payload);
@@ -1013,8 +1083,6 @@ function afExecStatements(flow, block) {
 function afExecAction(flow, block) {
     const f = block.fields || {};
     switch (block.type) {
-        // Nested control flow — no edge detection here (that's a root-block-only
-        // concept). Inner ifs simply evaluate every time the outer branch runs.
         case 'af_if': {
             if (afEvalValue(afInput(block, 'IF0'))) afExecStatements(flow, afInputStatement(block, 'DO0'));
             return;
@@ -1031,16 +1099,10 @@ function afExecAction(flow, block) {
         }
         case 'af_set_status': {
             const status = f.STATUS || 'active';
-            const desc = (typeof currentVrcUser !== 'undefined' && currentVrcUser?.statusDescription) || '';
+            const text   = String(f.TEXT || '');
+            const desc = text || ((typeof currentVrcUser !== 'undefined' && currentVrcUser?.statusDescription) || '');
             if (typeof sendToCS === 'function') sendToCS({ action: 'vrcUpdateStatus', status, statusDescription: desc });
-            afLog('ok', '[' + flow.name + '] set status → ' + (VRC_STATUS_LABELS[status] || status));
-            break;
-        }
-        case 'af_set_status_text': {
-            const text = f.TEXT || '';
-            const status = (typeof currentVrcUser !== 'undefined' && currentVrcUser?.status) || 'active';
-            if (typeof sendToCS === 'function') sendToCS({ action: 'vrcUpdateStatus', status, statusDescription: text });
-            afLog('ok', '[' + flow.name + '] set status text → "' + text + '"');
+            afLog('ok', '[' + flow.name + '] set status → ' + (VRC_STATUS_LABELS[status] || status) + (text ? ' / "' + text + '"' : ''));
             break;
         }
         case 'af_set_bio_text': {
@@ -1087,7 +1149,6 @@ function afExecAction(flow, block) {
     }
 }
 
-// Read a value-input child block.
 function afInput(block, name) {
     return block.inputs && block.inputs[name] && block.inputs[name].block;
 }
@@ -1095,7 +1156,6 @@ function afInputStatement(block, name) {
     return block.inputs && block.inputs[name] && block.inputs[name].block;
 }
 
-// Evaluate value expressions (booleans, numbers, strings, users, worlds).
 function afEvalValue(block) {
     if (!block) return null;
     const f = block.fields || {};
@@ -1126,12 +1186,33 @@ function afEvalValue(block) {
             if (f.AMPM === 'AM' && hh === 12) hh = 0;
             return now.getHours() === hh && now.getMinutes() === Number(f.MM);
         }
+        case 'af_between_time': {
+            const now = new Date();
+            const toMins = (h, m, ampm) => {
+                let hh = Number(h);
+                if (ampm === 'PM' && hh < 12) hh += 12;
+                if (ampm === 'AM' && hh === 12) hh = 0;
+                return hh * 60 + Number(m);
+            };
+            const start = toMins(f.HH1, f.MM1, f.AMPM1);
+            const end   = toMins(f.HH2, f.MM2, f.AMPM2);
+            const cur   = now.getHours() * 60 + now.getMinutes();
+            return start <= end ? (cur >= start && cur <= end) : (cur >= start || cur <= end);
+        }
         case 'af_is_friend': {
             const u = afEvalUser(afInput(block, 'USER'));
             if (!u || !u.id) return false;
             if (typeof vrcFriendsData === 'undefined') return false;
             return vrcFriendsData.some(fr => fr.id === u.id);
         }
+        case 'af_invite_from_friend':
+            return afContext.triggerKind === 'invite'
+                && !!afContext.triggeringUser
+                && afContext.triggeringUser.id === f.FRIEND_ID;
+        case 'af_invite_request_from_friend':
+            return afContext.triggerKind === 'requestInvite'
+                && !!afContext.triggeringUser
+                && afContext.triggeringUser.id === f.FRIEND_ID;
         case 'af_has_status': {
             const u = afEvalUser(afInput(block, 'USER'));
             if (!u) return false;
@@ -1165,8 +1246,6 @@ function afEvalValue(block) {
         case 'af_in_same_instance': {
             const u = afEvalUser(afInput(block, 'USER'));
             if (!u || !u.id) return false;
-            // LogWatcher fallback: VRChat hides .location for users with Ask Me / DnD,
-            // but the in-game log knows everyone in my instance. Check that first.
             if (typeof currentInstanceData !== 'undefined'
                 && currentInstanceData
                 && !currentInstanceData.empty
@@ -1175,7 +1254,6 @@ function afEvalValue(block) {
                 && currentInstanceData.users.some(x => x && x.id === u.id)) {
                 return true;
             }
-            // Fall back to comparing the public location field (works for Online / Join Me).
             if (!u.location || !String(u.location).startsWith('wrld_')) return false;
             const myLocRaw =
                 (typeof currentInstanceData !== 'undefined' && currentInstanceData?.location) ||
@@ -1191,12 +1269,11 @@ function afEvalValue(block) {
         case 'af_own_user':
         case 'af_triggering_user':
         case 'af_world_obj':
-            return afEvalUser(block); // user/world objects collapse to identifiers
+            return afEvalUser(block);
     }
     return null;
 }
 
-// = comparison handles two world objects / user objects by id, otherwise loose equality.
 function afCmpEq(a, b) {
     if (a && typeof a === 'object' && b && typeof b === 'object') {
         if (a.id && b.id) return a.id === b.id;
@@ -1206,7 +1283,6 @@ function afCmpEq(a, b) {
     return String(a) === String(b);
 }
 
-// Resolve a user/world-typed block into a live user/world descriptor.
 function afEvalUser(block) {
     if (!block) return null;
     const f = block.fields || {};
@@ -1232,15 +1308,11 @@ function afEvalUser(block) {
             return { id: f.WORLD_ID, kind: 'world' };
         }
         case 'af_get_current_world': {
-            return afEvalValue(block); // returns {id,kind:'world'}
+            return afEvalValue(block);
         }
     }
     return null;
 }
-
-// ============================================================================
-// Tab open / message handlers
-// ============================================================================
 
 window.afOnTabOpen = async function afOnTabOpen() {
     if (afTabInitialized) return;
@@ -1251,11 +1323,9 @@ window.afOnTabOpen = async function afOnTabOpen() {
         if (hint) hint.innerHTML = '<span class="msi" style="font-size:32px;color:var(--err);">error</span><div style="font-size:13px;color:var(--err);margin-top:8px;">Failed to load Blockly: ' + afEsc(e.message || e) + '</div>';
         return;
     }
-    // Always re-load flows from backend on first open.
     if (typeof sendToCS === 'function') sendToCS({ action: 'afLoadFlows' });
 };
 
-// Expose action handlers to inline HTML buttons
 window.afNewFlow            = afNewFlow;
 window.afRenameFlow         = afRenameFlow;
 window.afDeleteFlow         = afDeleteFlow;
@@ -1265,7 +1335,6 @@ window.afSaveCurrentFlow    = afSaveCurrentFlow;
 window.afRunNow             = afRunNow;
 window.afClearLog           = afClearLog;
 
-// Custom zoom / delete overlay buttons (Blockly's built-ins are disabled).
 window.afZoom = function (dir) {
     if (!afWorkspace) return;
     afWorkspace.zoomCenter(dir);
@@ -1281,14 +1350,10 @@ window.afDeleteSelected = function () {
     if (sel && typeof sel.dispose === 'function') sel.dispose(true);
 };
 
-// Backend → frontend message handler. Hooks into the global message router
-// in core/logic/messages.js by listening on window for a custom event the
-// router dispatches for unknown actions. Simpler: piggyback on window.
 window.__afHandleMessage = function (action, payload) {
     switch (action) {
         case 'afFlows':
             afFlows = Array.isArray(payload?.flows) ? payload.flows : [];
-            // Ensure unique ids + defaults
             for (const f of afFlows) {
                 if (!f.id) f.id = afNewId();
                 if (typeof f.enabled !== 'boolean') f.enabled = false;
@@ -1310,9 +1375,6 @@ window.__afHandleMessage = function (action, payload) {
     }
 };
 
-// Boot the ticker even before the tab is opened so enabled flows fire in the background.
-// Flows are loaded lazily when the tab first opens, but we also do an eager preload
-// so background execution works without the user ever visiting the tab.
 function afBoot() {
     if (typeof sendToCS === 'function') sendToCS({ action: 'afLoadFlows' });
     afStartTicker();
