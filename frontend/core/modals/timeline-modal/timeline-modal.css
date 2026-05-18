@@ -112,6 +112,12 @@
     height: 100%;
     border-radius: 2px;
     background: var(--accent);
+    cursor: help;
+    transition: filter .12s;
+}
+
+.tl-player-bar:hover {
+    filter: brightness(1.35);
 }
 
 .tl-player-bar.friend {

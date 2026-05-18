@@ -158,6 +158,8 @@ public partial class AppShell
         _core.LoadDatabaseServices();
         _ = MigrationHelper.MigrateUserTrackingCountsAsync(_settings,
             pct => _core?.SendToJS("dbMigrationProgress", new { percent = pct })); // backfill first_meet_date + meet_again_count in background
+        _ = MigrationHelper.MigrateEventPlayerSessionsAsync(_settings,
+            pct => _core?.SendToJS("dbMigrationProgress", new { percent = pct })); // convert event_players to JSON session arrays
         _core.IsVrcRunning = RelayController.IsVrcRunning;
         _core.IsSteamVrRunning = RelayController.IsSteamVrRunning;
         _core.DispatchMessage = rawMsg => OnWebMessage(rawMsg);

@@ -82,6 +82,13 @@ function _tlAvRow(image, name, label, labelColor) {
 
 // Detail: instance join
 
+// Falls back to legacy single-value joinedAt/leftAt when arrays are missing.
+function _tlPlayerSessions(p) {
+    let joins = Array.isArray(p.joinedAts) ? p.joinedAts.slice() : (p.joinedAt ? [p.joinedAt] : []);
+    let lefts = Array.isArray(p.leftAts)   ? p.leftAts.slice()   : (p.leftAt   ? [p.leftAt]   : []);
+    return { joins, lefts };
+}
+
 function _tlPlayerCard(p, instanceStart, instanceEnd) {
     const name   = p.displayName || '?';
     const live   = p.userId ? vrcFriendsData.find(f => f.id === p.userId) : null;
@@ -93,21 +100,32 @@ function _tlPlayerCard(p, instanceStart, instanceEnd) {
     const onclick = p.userId ? `onclick="document.getElementById('modalDetail').style.display='none';openFriendDetail('${jsq(p.userId)}')"` : '';
     const clickCls = p.userId ? ' clickable' : '';
 
+    const { joins, lefts } = _tlPlayerSessions(p);
+    const nowIso = new Date().toISOString();
+
+    // Open session uses "now" as end.
+    let totalSecs = 0;
+    for (let i = 0; i < joins.length; i++) {
+        const jMs = new Date(joins[i]).getTime();
+        const lIso = i < lefts.length ? lefts[i] : nowIso;
+        const lMs = new Date(lIso).getTime();
+        if (isFinite(jMs) && isFinite(lMs) && lMs > jMs) totalSecs += Math.floor((lMs - jMs) / 1000);
+    }
+
     let timesHtml;
-    if (!p.joinedAt && !p.leftAt) {
-        timesHtml = `${esc(t('timeline.detail.from', 'From'))}: ${esc(t('timeline.detail.none', 'None'))} &nbsp;·&nbsp; ${esc(t('timeline.detail.until', 'Until'))}: ${esc(t('timeline.detail.none', 'None'))}`;
+    if (joins.length === 0 && lefts.length === 0) {
+        timesHtml = `${esc(t('timeline.detail.none', 'None'))}`;
     } else {
-        const joinStr = p.joinedAt ? tlFormatTime(p.joinedAt) : t('timeline.detail.none', 'None');
-        const leftPart = p.leftAt
-            ? esc(tlFormatTime(p.leftAt))
-            : `<span style="color:var(--ok);">&#9679;&nbsp;${esc(t('timeline.detail.ongoing', 'Ongoing'))}</span>`;
-        let spentPart = '';
-        if (p.joinedAt) {
-            const endMs = p.leftAt ? new Date(p.leftAt).getTime() : Date.now();
-            const secs  = Math.floor((endMs - new Date(p.joinedAt).getTime()) / 1000);
-            if (secs > 0) spentPart = ` &nbsp;·&nbsp; ${esc(t('nav.time_spent', 'Time Spent'))} ${esc(formatDuration(secs))}`;
-        }
-        timesHtml = `${esc(t('timeline.detail.from', 'From'))} ${esc(joinStr)} &nbsp;·&nbsp; ${esc(t('timeline.detail.until', 'Until'))} ${leftPart}${spentPart}`;
+        const ongoing = lefts.length < joins.length
+            ? `&nbsp;·&nbsp;<span style="color:var(--ok);">&#9679;&nbsp;${esc(t('timeline.detail.ongoing', 'Ongoing'))}</span>`
+            : '';
+        const visits = joins.length > 1
+            ? `${esc(tf('timeline.detail.visits_count', { count: joins.length }, `${joins.length} visits`))}&nbsp;·&nbsp;`
+            : '';
+        const spent = totalSecs > 0
+            ? `${esc(t('nav.time_spent', 'Time Spent'))} ${esc(formatDuration(totalSecs))}`
+            : '';
+        timesHtml = `${visits}${spent}${ongoing}`;
     }
 
     let barHtml = '';
@@ -115,13 +133,23 @@ function _tlPlayerCard(p, instanceStart, instanceEnd) {
     const iStart = toMin(instanceStart ? new Date(instanceStart).getTime() : 0);
     const iEnd   = toMin(instanceEnd   ? new Date(instanceEnd).getTime()   : Date.now());
     const total  = iEnd - iStart;
-    if (total > 0 && (p.joinedAt || p.leftAt)) {
-        const pStart   = toMin(p.joinedAt ? new Date(p.joinedAt).getTime() : iStart);
-        const pEnd     = toMin(p.leftAt   ? new Date(p.leftAt).getTime()   : iEnd);
-        const leftPct  = Math.max(0, Math.min(100, (pStart - iStart) / total * 100));
-        const widthPct = Math.max(0, Math.min(100 - leftPct, (pEnd - pStart) / total * 100));
-        const barCls   = live ? ' friend' : '';
-        barHtml = `<div class="tl-player-bar-wrap"><div class="tl-player-bar${barCls}" style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%"></div></div>`;
+    if (total > 0 && joins.length > 0) {
+        const barCls = live ? ' friend' : '';
+        let segments = '';
+        for (let i = 0; i < joins.length; i++) {
+            const jIso = joins[i];
+            const lIso = i < lefts.length ? lefts[i] : null;
+            const pStart   = toMin(new Date(jIso).getTime());
+            const pEnd     = toMin(lIso ? new Date(lIso).getTime() : iEnd);
+            if (!isFinite(pStart) || !isFinite(pEnd) || pEnd <= pStart) continue;
+            const leftPct  = Math.max(0, Math.min(100, (pStart - iStart) / total * 100));
+            const widthPct = Math.max(0.4, Math.min(100 - leftPct, (pEnd - pStart) / total * 100));
+            const fromStr = tlFormatTime(jIso);
+            const untilStr = lIso ? tlFormatTime(lIso) : t('timeline.detail.ongoing', 'Ongoing');
+            const tip = `${t('timeline.detail.from', 'From')} ${fromStr} · ${t('timeline.detail.until', 'Until')} ${untilStr}`;
+            segments += `<div class="tl-player-bar${barCls}" style="left:${leftPct.toFixed(2)}%;width:${widthPct.toFixed(2)}%" title="${esc(tip)}"></div>`;
+        }
+        if (segments) barHtml = `<div class="tl-player-bar-wrap">${segments}</div>`;
     }
 
     return `<div class="tl-player-card${clickCls}" ${onclick} style="flex-wrap:wrap;">${av}<div class="tl-player-card-info"><div class="tl-player-card-name"><span>${esc(name)}</span>${badge}</div><div class="tl-player-card-times">${timesHtml}</div></div>${barHtml ? `<div style="flex-basis:100%;padding:0 2px;">${barHtml}</div>` : ''}</div>`;

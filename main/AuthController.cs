@@ -950,8 +950,10 @@ public class AuthController
                             if (!string.IsNullOrEmpty(p.UserId))
                             {
                                 _instance.CumulativeInstancePlayers[p.UserId] = (p.DisplayName, p.Image ?? "");
-                                if (!string.IsNullOrEmpty(p.JoinedAt))
-                                    _instance.PlayerJoinTimes[p.UserId] = p.JoinedAt;
+                                if (p.JoinedAts != null && p.JoinedAts.Count > 0)
+                                    _instance.PlayerJoinTimes[p.UserId] = new List<string>(p.JoinedAts);
+                                if (p.LeftAts != null && p.LeftAts.Count > 0)
+                                    _instance.PlayerLeftTimes[p.UserId] = new List<string>(p.LeftAts);
                             }
                         }
                     }
@@ -971,8 +973,8 @@ public class AuthController
                         _core.Timeline.UpdateEvent(lastJoin.Id, ev =>
                         {
                             if (ev.Players == null) return;
-                            foreach (var p in ev.Players.Where(p => string.IsNullOrEmpty(p.LeftAt)))
-                                p.LeftAt = nowStr;
+                            foreach (var p in ev.Players.Where(p => p.LeftAts.Count < p.JoinedAts.Count))
+                                p.LeftAts.Add(nowStr);
                         });
                         _core.Timeline.SetInstanceEventLeftAt(lastJoin.Id, nowStr);
                     }
@@ -986,7 +988,7 @@ public class AuthController
                     if (!_instance.CumulativeInstancePlayers.ContainsKey(p.UserId))
                         _instance.CumulativeInstancePlayers[p.UserId] = (p.DisplayName, "");
                     if (!_instance.PlayerJoinTimes.ContainsKey(p.UserId))
-                        _instance.PlayerJoinTimes[p.UserId] = p.JoinedAt.ToUniversalTime().ToString("o");
+                        _instance.PlayerJoinTimes[p.UserId] = new List<string> { p.JoinedAt.ToUniversalTime().ToString("o") };
                     if (!string.IsNullOrEmpty(p.DisplayName))
                         _core.TimeEngine.UpdateUserInfo(p.UserId, p.DisplayName, "");
                     // Register catch-up players in the engine with their real log timestamp.
@@ -1012,8 +1014,8 @@ public class AuthController
                     _core.Timeline.UpdateEvent(openJoin.Id, ev =>
                     {
                         if (ev.Players == null) return;
-                        foreach (var p in ev.Players.Where(p => string.IsNullOrEmpty(p.LeftAt)))
-                            p.LeftAt = nowStr;
+                        foreach (var p in ev.Players.Where(p => p.LeftAts.Count < p.JoinedAts.Count))
+                            p.LeftAts.Add(nowStr);
                     });
                     _core.Timeline.SetInstanceEventLeftAt(openJoin.Id, nowStr);
                     var closed = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == openJoin.Id);
