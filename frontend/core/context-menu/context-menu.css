@@ -7,7 +7,7 @@
     border-radius: 10px; padding: 4px;
     min-width: 178px;
     box-shadow: 0 8px 32px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.25);
-    z-index: 10002;
+    z-index: 10050;
     user-select: none;
     animation: ctxFadeIn .08s ease;
 }
@@ -54,7 +54,7 @@
     border-radius: 10px; padding: 4px;
     min-width: 160px;
     box-shadow: 0 8px 32px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.25);
-    z-index: 10003;
+    z-index: 10051;
     user-select: none;
     animation: ctxFadeIn .08s ease;
 }

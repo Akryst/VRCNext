@@ -578,15 +578,20 @@ async function afInitWorkspace() {
     });
     afWorkspace.addChangeListener(afOnWorkspaceChange);
     afWorkspace.configureContextMenu = (menuOptions) => { menuOptions.length = 0; };
-    // Blockly's native menu is shown directly by BlockSvg.showContextMenu /
-    // WorkspaceSvg.showContextMenu (called from its gesture system, not via the
-    // contextmenu event). Override both to a no-op so no Blockly menu ever appears.
+    if (typeof ResizeObserver !== 'undefined') {
+        try {
+            const ro = new ResizeObserver(() => {
+                if (afWorkspace && window.Blockly && window.Blockly.svgResize) {
+                    try { window.Blockly.svgResize(afWorkspace); } catch {}
+                }
+            });
+            ro.observe(host);
+        } catch {}
+    }
     const B = window.Blockly;
     if (B.BlockSvg     && !B.BlockSvg.prototype._afCtxKilled)     { B.BlockSvg.prototype.showContextMenu     = function () {}; B.BlockSvg.prototype._afCtxKilled = true; }
     if (B.WorkspaceSvg && !B.WorkspaceSvg.prototype._afCtxKilled) { B.WorkspaceSvg.prototype.showContextMenu = function () {}; B.WorkspaceSvg.prototype._afCtxKilled = true; }
     if (B.ContextMenu  && !B.ContextMenu._afCtxKilled)            { B.ContextMenu.show = function () {};                       B.ContextMenu._afCtxKilled = true; }
-    // Capture-phase contextmenu listener: intercept BEFORE the global VRCNext
-    // dispatcher in context-menu.js so we can show our own block-specific menu.
     host.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         e.stopPropagation();

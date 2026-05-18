@@ -40,6 +40,7 @@ public class InstanceController
     public Dictionary<string, (string displayName, string image)> CumulativeInstancePlayers => _cumulativeInstancePlayers;
     public Dictionary<string, List<string>> PlayerJoinTimes => _playerJoinTimes;
     public Dictionary<string, List<string>> PlayerLeftTimes => _playerLeftTimes;
+    public HashSet<string> MeetAgainThisInstance => _meetAgainThisInstance;
     public string? PendingInstanceEventId { get => _pendingInstanceEventId; set => _pendingInstanceEventId = value; }
     public bool LogWatcherBootstrapped { get => _logWatcherBootstrapped; set => _logWatcherBootstrapped = value; }
     public string LastTrackedWorldId { get => _lastTrackedWorldId; set => _lastTrackedWorldId = value; }
@@ -1239,7 +1240,12 @@ public class InstanceController
             var snap = _cumulativeInstancePlayers
                 .Select(kv => BuildPlayerSnap(kv.Key, kv.Value.displayName, kv.Value.image))
                 .ToList();
-            _core.Timeline.UpdateEvent(evId, ev => ev.Players = snap);
+            _core.Timeline.UpdateEvent(evId, ev =>
+            {
+                ev.Players = snap;
+                // A join means the instance is still active — clear any stale LeftAt that may have been set on startup/auth.
+                if (!string.IsNullOrEmpty(ev.LeftAt)) ev.LeftAt = "";
+            });
             var updated = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == evId);
             if (updated != null) _core.SendToJS("timelineEvent", BuildTimelinePayload(updated));
         }

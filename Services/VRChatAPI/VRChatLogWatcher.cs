@@ -11,7 +11,20 @@ public class VRChatLogWatcher : IDisposable
         public DateTime JoinedAt { get; set; } = DateTime.Now;
     }
 
+    public struct PlayerEvent
+    {
+        public string   UserId      { get; init; }
+        public string   DisplayName { get; init; }
+        public string   Type        { get; init; } // "join" | "left"
+        public DateTime Timestamp   { get; init; }
+    }
+
     private readonly Dictionary<string, PlayerInfo> _players = new();
+    // Append-only log of every OnPlayerJoined / OnPlayerLeft since the last room change.
+    // Captured during catchUp AND live, used as source-of-truth for restart reconciliation.
+    private readonly List<PlayerEvent> _playerEventLog = new();
+    // Last OnPlayerLeft timestamp per player key, used to close stale sessions after VRCNext restart.
+    private readonly Dictionary<string, DateTime> _pastLefts = new();
     private readonly object _lock = new();
 
     private string? _currentLogFile;
@@ -88,6 +101,18 @@ public class VRChatLogWatcher : IDisposable
     public List<PlayerInfo> GetCurrentPlayers()
     {
         lock (_lock) return _players.Values.ToList();
+    }
+
+    public DateTime? GetLastLeftTime(string userId)
+    {
+        if (string.IsNullOrEmpty(userId)) return null;
+        lock (_lock) return _pastLefts.TryGetValue(userId, out var t) ? t : null;
+    }
+
+    // Returns a copy of every player join/left observed in the current room session, in log order.
+    public List<PlayerEvent> GetPlayerEventLog()
+    {
+        lock (_lock) return new List<PlayerEvent>(_playerEventLog);
     }
 
     public int PlayerCount { get { lock (_lock) return _players.Count; } }
@@ -215,7 +240,7 @@ public class VRChatLogWatcher : IDisposable
                 var colon = _currentLocation.IndexOf(':');
                 _currentWorldId = colon >= 0 ? _currentLocation.Substring(0, colon) : _currentLocation;
                 WorldJoinedAt = ParseLogTimestamp(line);
-                lock (_lock) _players.Clear();
+                lock (_lock) { _players.Clear(); _pastLefts.Clear(); _playerEventLog.Clear(); }
                 _totalRoomEvents++;
                 if (!catchUp)
                 {
@@ -231,7 +256,7 @@ public class VRChatLogWatcher : IDisposable
             if (m.Success)
             {
                 PendingWorldName = m.Groups[1].Value.Trim();
-                lock (_lock) _players.Clear();
+                lock (_lock) { _players.Clear(); _pastLefts.Clear(); _playerEventLog.Clear(); }
                 _totalRoomEvents++;
                 if (!catchUp) Log($"LogWatcher: 🌍 {PendingWorldName}");
                 return;
@@ -246,11 +271,14 @@ public class VRChatLogWatcher : IDisposable
                 var name = m.Groups[1].Value.Trim();
                 var uid = m.Groups[2].Success ? m.Groups[2].Value : "";
                 var key = !string.IsNullOrEmpty(uid) ? uid : name;
+                var joinTs = ParseLogTimestamp(line);
                 bool isNew;
                 lock (_lock)
                 {
                     isNew = !_players.ContainsKey(key);
-                    _players[key] = new PlayerInfo { DisplayName = name, UserId = uid, JoinedAt = ParseLogTimestamp(line) };
+                    _players[key] = new PlayerInfo { DisplayName = name, UserId = uid, JoinedAt = joinTs };
+                    _pastLefts.Remove(key);
+                    _playerEventLog.Add(new PlayerEvent { UserId = uid, DisplayName = name, Type = "join", Timestamp = joinTs });
                 }
                 _totalJoinEvents++;
                 if (!catchUp && isNew)
@@ -270,6 +298,7 @@ public class VRChatLogWatcher : IDisposable
                 var name = m.Groups[1].Value.Trim();
                 var uid = m.Groups[2].Success ? m.Groups[2].Value : "";
                 var key = !string.IsNullOrEmpty(uid) ? uid : name;
+                var leftTs = ParseLogTimestamp(line);
                 bool wasPresent;
                 lock (_lock)
                 {
@@ -277,8 +306,10 @@ public class VRChatLogWatcher : IDisposable
                     if (!wasPresent)
                     {
                         var alt = _players.Where(p => p.Value.DisplayName == name).Select(p => p.Key).FirstOrDefault();
-                        if (alt != null) { _players.Remove(alt); wasPresent = true; }
+                        if (alt != null) { _players.Remove(alt); wasPresent = true; key = alt; }
                     }
+                    if (!string.IsNullOrEmpty(uid)) _pastLefts[uid] = leftTs;
+                    _playerEventLog.Add(new PlayerEvent { UserId = uid, DisplayName = name, Type = "left", Timestamp = leftTs });
                 }
                 _totalLeftEvents++;
                 if (!catchUp && wasPresent)

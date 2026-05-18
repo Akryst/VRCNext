@@ -493,6 +493,16 @@
             }
         }
 
+        // Photo detail modal — custom subset (no Hide)
+        const photoPane = el.closest('#photoDetailModal .photo-detail-img-pane');
+        if (photoPane) {
+            const path = photoPane.dataset.path || '';
+            const url  = photoPane.dataset.url  || '';
+            const type = photoPane.dataset.type || 'image';
+            const name = photoPane.dataset.name || '';
+            if (path) return buildPhotoDetailItems(path, url, type, name);
+        }
+
         const libCard = el.closest('.lib-card, .dash-photo-item');
         if (libCard) {
             const path = libCard.dataset.path || '';
@@ -571,7 +581,7 @@
             }
         }
 
-        const friendCard = el.closest('.vrc-friend-card, .vrcn-profile-item, .inst-user-row, .iim-user-tr, .dash-feed-card, .fav-friend-card');
+        const friendCard = el.closest('.vrc-friend-card, .vrcn-profile-item, .inst-user-row, .iim-user-item, .dash-feed-card, .fav-friend-card');
         if (friendCard) {
             const id = extractFriendId(friendCard);
             if (id) {
@@ -1196,6 +1206,28 @@
         items.push(isHidden
             ? { icon: 'visibility', label: cm('library.unhide', 'Unhide'), action: () => toggleHidden(path) }
             : { icon: 'visibility_off', label: cm('library.hide', 'Hide'), action: () => toggleHidden(path) }
+        );
+        items.push('sep');
+        items.push({ icon: 'delete', label: cm('library.delete', 'Delete'), danger: true, action: () => showDeleteModal(path, name) });
+        return items;
+    }
+
+    function buildPhotoDetailItems(path, url, type, name) {
+        const isFav = (typeof favorites !== 'undefined') && favorites.has(path);
+        const items = [
+            { icon: 'content_copy', label: cm('library.copy', 'Copy to Clipboard'), action: () => copyToClipboard(url, path, type) },
+        ];
+        if (type === 'image' || type === 'gif' || type === 'video') {
+            items.push({ icon: 'wallpaper',  label: cm('library.set_background',  'Set as Background'),        action: () => setLibItemAsDashBg(path, url) });
+        }
+        if (type === 'image' || type === 'gif') {
+            items.push({ icon: 'desktop_windows', label: cm('library.set_wallpaper', 'Set as Desktop Background'), action: () => sendToCS({ action: 'setDesktopBackground', path }) });
+        }
+        items.push({ icon: 'folder_open', label: cm('library.reveal_in_explorer', 'Reveal in Explorer'), action: () => sendToCS({ action: 'revealInExplorer', path }) });
+        items.push('sep');
+        items.push(isFav
+            ? { icon: 'star_border', label: cm('library.remove_favorite', 'Remove Favorite'), action: () => toggleFavorite(path) }
+            : { icon: 'star',        label: cm('library.favorite',        'Favorite'),        action: () => toggleFavorite(path) }
         );
         items.push('sep');
         items.push({ icon: 'delete', label: cm('library.delete', 'Delete'), danger: true, action: () => showDeleteModal(path, name) });
