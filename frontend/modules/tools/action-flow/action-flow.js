@@ -1600,8 +1600,14 @@ function afEvalValue(block) {
         }
         case 'af_get_current_world': {
             const u = afEvalUser(afInput(block, 'USER'));
-            if (!u || !u.location) return null;
-            return { id: String(u.location).split(':')[0], kind: 'world' };
+            if (!u) return null;
+            let loc = u.location;
+            if (!loc && typeof currentVrcUser !== 'undefined' && currentVrcUser && u.id === currentVrcUser.id) {
+                loc = (typeof currentInstanceData !== 'undefined' && currentInstanceData && !currentInstanceData.empty)
+                    ? currentInstanceData.location : null;
+            }
+            if (!loc) return null;
+            return { id: String(loc).split(':')[0], kind: 'world' };
         }
         case 'af_in_same_instance': {
             const u = afEvalUser(afInput(block, 'USER'));
