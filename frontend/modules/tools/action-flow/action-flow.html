@@ -3,16 +3,16 @@
                         <div class="sf-status-row af-toolbar-row">
                             <div class="af-toolbar-group">
                                 <div class="sf-status" id="afRunStatus"><span class="sf-dot offline" id="afRunDot"></span><span id="afRunText" data-i18n="action_flow.status.idle">Idle</span></div>
-                                <select id="afFlowSelect" class="af-flow-select" onchange="afSelectFlow(this.value)" title="Selected flow's enabled state"></select>
+                                <select id="afFlowSelect" class="af-flow-select" onchange="afSelectFlow(this.value)" title="Selected flow's enabled state" data-i18n-title="action_flow.flow_select_tooltip"></select>
                                 <button class="vrcn-button af-icon-btn" onclick="afNewFlow()" title="New" data-i18n-title="action_flow.new"><span class="msi" style="font-size:16px;">add</span></button>
                                 <button class="vrcn-button af-icon-btn" onclick="afRenameFlow()" title="Rename" data-i18n-title="action_flow.rename"><span class="msi" style="font-size:16px;">edit</span></button>
                                 <button class="vrcn-button af-icon-btn" onclick="afDeleteFlow()" title="Delete" data-i18n-title="action_flow.delete"><span class="msi" style="font-size:16px;">delete</span></button>
                                 <button class="vrcn-button af-icon-btn" onclick="afRunNow()" title="Run Now" data-i18n-title="action_flow.run_now_tooltip"><span class="msi" style="font-size:16px;">play_arrow</span></button>
-                                <button class="vrcn-button af-icon-btn" id="afLogToggleBtn" onclick="afToggleLogPanel()" title="Show / hide execution log"><span class="msi" style="font-size:16px;">terminal</span></button>
+                                <button class="vrcn-button af-icon-btn" id="afLogToggleBtn" onclick="afToggleLogPanel()" title="Show / hide execution log" data-i18n-title="action_flow.log_tooltip"><span class="msi" style="font-size:16px;">terminal</span></button>
                             </div>
                             <div class="af-toolbar-group">
-                                <div class="af-badge" id="afTriggerCounter" title="Trigger blocks used / max across all flows"><span class="msi" style="font-size:13px;">play_circle</span><span data-i18n="action_flow.triggers">Triggers</span><span id="afTriggerCounterValue">0/16</span></div>
-                                <div class="af-badge" id="afActionCounter" title="Action blocks used / max per flow"><span class="msi" style="font-size:13px;">bolt</span><span data-i18n="action_flow.actions">Actions</span><span id="afActionCounterValue">0/10</span></div>
+                                <div class="af-badge" id="afTriggerCounter" title="Trigger blocks used / max across all flows" data-i18n-title="action_flow.triggers_tooltip"><span class="msi" style="font-size:13px;">play_circle</span><span data-i18n="action_flow.triggers">Triggers</span><span id="afTriggerCounterValue">0/16</span></div>
+                                <div class="af-badge" id="afActionCounter" title="Action blocks used / max per flow" data-i18n-title="action_flow.actions_tooltip"><span class="msi" style="font-size:13px;">bolt</span><span data-i18n="action_flow.actions">Actions</span><span id="afActionCounterValue">0/10</span></div>
                                 <span class="af-toggle-label" data-i18n="action_flow.enabled">Enabled</span>
                                 <label class="toggle af-inline-toggle"><input type="checkbox" id="afFlowEnabled" onchange="afToggleEnabled(this.checked)"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
                                 <button class="vrcn-button vrcn-btn-primary" onclick="afSaveCurrentFlow()" data-i18n-title="action_flow.save"><span class="msi" style="font-size:16px;">save</span><span data-i18n="common.save">Save</span></button>

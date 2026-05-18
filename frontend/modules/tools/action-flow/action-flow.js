@@ -27,14 +27,21 @@ const ACTION_TYPES = new Set([
     'af_send_notification',
 ]);
 
-const STATUS_DROPDOWN = [
-    ['Online',         'active'],
-    ['Ask Me',         'ask me'],
-    ['Do Not Disturb', 'busy'],
-    ['Join Me',        'join me'],
+const aft  = (k, f) => (typeof t  === 'function' ? t ('action_flow.' + k, f)        : f);
+const aftf = (k, v, f) => (typeof tf === 'function' ? tf('action_flow.' + k, v || {}, f) : f);
+const STATUS_DROPDOWN_FACTORY = () => [
+    [aft('status.online',         'Online'),         'active'],
+    [aft('status.ask_me',         'Ask Me'),         'ask me'],
+    [aft('status.do_not_disturb', 'Do Not Disturb'), 'busy'],
+    [aft('status.join_me',        'Join Me'),        'join me'],
 ];
-
-const VRC_STATUS_LABELS = { active: 'Online', 'ask me': 'Ask Me', busy: 'Do Not Disturb', 'join me': 'Join Me' };
+const VRC_STATUS_LABEL_KEYS = { active: 'status.online', 'ask me': 'status.ask_me', busy: 'status.do_not_disturb', 'join me': 'status.join_me' };
+const vrcStatusLabel = (s) => aft(VRC_STATUS_LABEL_KEYS[s] || 'status.online', s);
+const AMPM_DROPDOWN_FACTORY = () => [
+    [aft('block.ampm_24h', '24h'), '24'],
+    [aft('block.ampm_am',  'AM'),  'AM'],
+    [aft('block.ampm_pm',  'PM'),  'PM'],
+];
 
 let afFlows           = [];
 let afCurrentFlowId   = null;
@@ -71,6 +78,7 @@ function afEnsureBlockly() {
 function afDefineBlocks() {
     const B = window.Blockly;
 
+    const DO = aft('block.do', 'do');
     const friendDropdown = () => {
         try {
             if (typeof vrcFriendsData !== 'undefined' && Array.isArray(vrcFriendsData) && vrcFriendsData.length) {
@@ -80,13 +88,13 @@ function afDefineBlocks() {
                     .map(f => [f.displayName || f.id, f.id]);
             }
         } catch {}
-        return [['(no friends loaded)', '']];
+        return [[aft('block.no_friends', '(no friends loaded)'), '']];
     };
 
     function makeTriggerHat(typeName, labelFn) {
         B.Blocks[typeName] = { init() {
             labelFn(this);
-            this.appendStatementInput('DO').appendField('do');
+            this.appendStatementInput('DO').appendField(DO);
             this.setColour(COLOR_TRIGGER);
             this.hat = 'cap';
         } };
@@ -98,8 +106,8 @@ function afDefineBlocks() {
                 this.appendDummyInput('HEADER')
                     .appendField(headLabel)
                     .appendField(new B.FieldCheckbox('FALSE', this._onFilterChange.bind(this)), 'FILTER')
-                    .appendField('only specific user');
-                this.appendStatementInput('DO').appendField('do');
+                    .appendField(aft('trigger.filter_label', 'only specific user'));
+                this.appendStatementInput('DO').appendField(DO);
                 this.setColour(COLOR_TRIGGER);
                 this.hat = 'cap';
             },
@@ -111,7 +119,7 @@ function afDefineBlocks() {
             _setFilterInput(enabled) {
                 if (enabled && !this.getInput('USERID_INPUT')) {
                     this.appendDummyInput('USERID_INPUT')
-                        .appendField('user id')
+                        .appendField(aft('trigger.user_id_label', 'user id'))
                         .appendField(new B.FieldTextInput(''), 'USER_ID');
                     this.moveInputBefore('USERID_INPUT', 'DO');
                 } else if (!enabled && this.getInput('USERID_INPUT')) {
@@ -127,43 +135,43 @@ function afDefineBlocks() {
         };
     }
 
-    makeTriggerHat('af_trigger_interval_30s',         b => b.appendDummyInput().appendField('every 30 seconds'));
-    makeTriggerHat('af_trigger_interval_minutes',     b => b.appendDummyInput().appendField('every').appendField(new B.FieldNumber(5, 1, 1440, 1), 'MIN').appendField('minutes'));
-    makeTriggerHat('af_trigger_world_change',         b => b.appendDummyInput().appendField('when I switch world (15s delay)'));
-    makeUserPresenceTriggerHat('af_trigger_user_joins',           'when someone joins my instance');
-    makeUserPresenceTriggerHat('af_trigger_user_leaves',          'when someone leaves my instance');
-    makeUserPresenceTriggerHat('af_trigger_user_joins_or_leaves', 'when someone joins or leaves my instance');
-    makeTriggerHat('af_trigger_own_status_change',    b => b.appendDummyInput().appendField('when my status changes'));
-    makeTriggerHat('af_trigger_websocket_any',        b => b.appendDummyInput().appendField('on any websocket event'));
-    makeTriggerHat('af_trigger_websocket_friend',     b => b.appendDummyInput().appendField('on websocket event for friend').appendField(new B.FieldDropdown(friendDropdown), 'FRIEND_ID'));
-    makeTriggerHat('af_trigger_manual',               b => b.appendDummyInput().appendField('manual only (Run Now)'));
-    makeTriggerHat('af_trigger_time',                 b => b.appendDummyInput().appendField('at')
+    makeTriggerHat('af_trigger_interval_30s',         b => b.appendDummyInput().appendField(aft('trigger.every_30s', 'every 30 seconds')));
+    makeTriggerHat('af_trigger_interval_minutes',     b => b.appendDummyInput().appendField(aft('trigger.every', 'every')).appendField(new B.FieldNumber(5, 1, 1440, 1), 'MIN').appendField(aft('trigger.minutes', 'minutes')));
+    makeTriggerHat('af_trigger_world_change',         b => b.appendDummyInput().appendField(aft('trigger.world_change', 'when I switch world (15s delay)')));
+    makeUserPresenceTriggerHat('af_trigger_user_joins',           aft('trigger.user_joins',           'when someone joins my instance'));
+    makeUserPresenceTriggerHat('af_trigger_user_leaves',          aft('trigger.user_leaves',          'when someone leaves my instance'));
+    makeUserPresenceTriggerHat('af_trigger_user_joins_or_leaves', aft('trigger.user_joins_or_leaves', 'when someone joins or leaves my instance'));
+    makeTriggerHat('af_trigger_own_status_change',    b => b.appendDummyInput().appendField(aft('trigger.own_status_change', 'when my status changes')));
+    makeTriggerHat('af_trigger_websocket_any',        b => b.appendDummyInput().appendField(aft('trigger.websocket_any', 'on any websocket event')));
+    makeTriggerHat('af_trigger_websocket_friend',     b => b.appendDummyInput().appendField(aft('trigger.websocket_friend', 'on websocket event for friend')).appendField(new B.FieldDropdown(friendDropdown), 'FRIEND_ID'));
+    makeTriggerHat('af_trigger_manual',               b => b.appendDummyInput().appendField(aft('trigger.manual', 'manual only (Run Now)')));
+    makeTriggerHat('af_trigger_time',                 b => b.appendDummyInput().appendField(aft('trigger.at', 'at'))
         .appendField(new B.FieldNumber(12, 0, 23, 1), 'HH').appendField(':')
         .appendField(new B.FieldNumber(0, 0, 59, 1), 'MM')
-        .appendField(new B.FieldDropdown([['24h','24'],['AM','AM'],['PM','PM']]), 'AMPM'));
-    makeTriggerHat('af_trigger_invite_received',         b => b.appendDummyInput().appendField('when someone invites me'));
-    makeTriggerHat('af_trigger_invite_request_received', b => b.appendDummyInput().appendField('when someone requests an invite from me'));
+        .appendField(new B.FieldDropdown(AMPM_DROPDOWN_FACTORY()), 'AMPM'));
+    makeTriggerHat('af_trigger_invite_received',         b => b.appendDummyInput().appendField(aft('trigger.invite_received', 'when someone invites me')));
+    makeTriggerHat('af_trigger_invite_request_received', b => b.appendDummyInput().appendField(aft('trigger.invite_request_received', 'when someone requests an invite from me')));
 
     B.Blocks['af_triggering_user'] = { init() {
-        this.appendDummyInput().appendField('triggering user');
+        this.appendDummyInput().appendField(aft('triggering_user', 'triggering user'));
         this.setOutput(true, 'User');
         this.setColour(COLOR_TRIGGER);
-        this.setTooltip('The user that caused the current trigger to fire.');
+        this.setTooltip(aft('triggering_user_tooltip', 'The user that caused the current trigger to fire.'));
     } };
 
     B.Blocks['af_if'] = { init() {
-        this.appendValueInput('IF0').setCheck('Boolean').appendField('if');
-        this.appendStatementInput('DO0').appendField('do');
+        this.appendValueInput('IF0').setCheck('Boolean').appendField(aft('block.if', 'if'));
+        this.appendStatementInput('DO0').appendField(DO);
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour(COLOR_LOGIC);
-        this.setTooltip('If the condition is true, run the do branch.');
+        this.setTooltip(aft('block.if_tooltip', 'If the condition is true, run the do branch.'));
     } };
 
     B.Blocks['af_if_else'] = { init() {
-        this.appendValueInput('IF0').setCheck('Boolean').appendField('if');
-        this.appendStatementInput('DO0').appendField('do');
-        this.appendStatementInput('ELSE').appendField('else');
+        this.appendValueInput('IF0').setCheck('Boolean').appendField(aft('block.if', 'if'));
+        this.appendStatementInput('DO0').appendField(DO);
+        this.appendStatementInput('ELSE').appendField(aft('block.else', 'else'));
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour(COLOR_LOGIC);
@@ -180,7 +188,7 @@ function afDefineBlocks() {
 
     B.Blocks['af_and'] = { init() {
         this.appendValueInput('A').setCheck('Boolean');
-        this.appendDummyInput().appendField('and');
+        this.appendDummyInput().appendField(aft('block.and', 'and'));
         this.appendValueInput('B').setCheck('Boolean');
         this.setOutput(true, 'Boolean');
         this.setInputsInline(true);
@@ -189,7 +197,7 @@ function afDefineBlocks() {
 
     B.Blocks['af_or'] = { init() {
         this.appendValueInput('A').setCheck('Boolean');
-        this.appendDummyInput().appendField('or');
+        this.appendDummyInput().appendField(aft('block.or', 'or'));
         this.appendValueInput('B').setCheck('Boolean');
         this.setOutput(true, 'Boolean');
         this.setInputsInline(true);
@@ -197,14 +205,17 @@ function afDefineBlocks() {
     } };
 
     B.Blocks['af_bool'] = { init() {
-        this.appendDummyInput().appendField(new B.FieldDropdown([['true','TRUE'],['false','FALSE']]), 'BOOL');
+        this.appendDummyInput().appendField(new B.FieldDropdown([
+            [aft('block.true',  'true'),  'TRUE'],
+            [aft('block.false', 'false'), 'FALSE'],
+        ]), 'BOOL');
         this.setOutput(true, 'Boolean');
         this.setColour(COLOR_LOGIC);
     } };
 
     B.Blocks['af_is_date'] = { init() {
         this.appendDummyInput()
-            .appendField('is date')
+            .appendField(aft('time.is_date', 'is date'))
             .appendField(new B.FieldNumber(1, 1, 31, 1), 'DD').appendField('/')
             .appendField(new B.FieldNumber(1, 1, 12, 1), 'MM').appendField('/')
             .appendField(new B.FieldNumber(new Date().getFullYear(), 2000, 2100, 1), 'YYYY');
@@ -214,31 +225,31 @@ function afDefineBlocks() {
 
     B.Blocks['af_is_time'] = { init() {
         this.appendDummyInput()
-            .appendField('is time')
+            .appendField(aft('time.is_time', 'is time'))
             .appendField(new B.FieldNumber(12, 0, 23, 1), 'HH').appendField(':')
             .appendField(new B.FieldNumber(0, 0, 59, 1), 'MM')
-            .appendField(new B.FieldDropdown([['24h','24'],['AM','AM'],['PM','PM']]), 'AMPM');
+            .appendField(new B.FieldDropdown(AMPM_DROPDOWN_FACTORY()), 'AMPM');
         this.setOutput(true, 'Boolean');
         this.setColour(COLOR_TIME);
     } };
 
     B.Blocks['af_between_time'] = { init() {
         this.appendDummyInput()
-            .appendField('between')
+            .appendField(aft('time.between', 'between'))
             .appendField(new B.FieldNumber(12, 0, 23, 1), 'HH1').appendField(':')
             .appendField(new B.FieldNumber(0, 0, 59, 1), 'MM1')
-            .appendField(new B.FieldDropdown([['24h','24'],['AM','AM'],['PM','PM']]), 'AMPM1')
-            .appendField('and')
+            .appendField(new B.FieldDropdown(AMPM_DROPDOWN_FACTORY()), 'AMPM1')
+            .appendField(aft('time.between_and', 'and'))
             .appendField(new B.FieldNumber(13, 0, 23, 1), 'HH2').appendField(':')
             .appendField(new B.FieldNumber(0, 0, 59, 1), 'MM2')
-            .appendField(new B.FieldDropdown([['24h','24'],['AM','AM'],['PM','PM']]), 'AMPM2');
+            .appendField(new B.FieldDropdown(AMPM_DROPDOWN_FACTORY()), 'AMPM2');
         this.setOutput(true, 'Boolean');
         this.setColour(COLOR_TIME);
-        this.setTooltip('True while the current time is between the two times. Handles ranges that cross midnight.');
+        this.setTooltip(aft('time.between_tooltip', 'True while the current time is between the two times. Handles ranges that cross midnight.'));
     } };
 
     B.Blocks['af_is_friend'] = { init() {
-        this.appendValueInput('USER').setCheck('User').appendField('is friend');
+        this.appendValueInput('USER').setCheck('User').appendField(aft('friend.is_friend', 'is friend'));
         this.setOutput(true, 'Boolean');
         this.setInputsInline(true);
         this.setColour(COLOR_PARAM);
@@ -246,20 +257,20 @@ function afDefineBlocks() {
 
     B.Blocks['af_invite_from_friend'] = { init() {
         this.appendDummyInput()
-            .appendField('invite from')
+            .appendField(aft('friend.invite_from', 'invite from'))
             .appendField(new B.FieldDropdown(friendDropdown), 'FRIEND_ID');
         this.setOutput(true, 'Boolean');
         this.setColour(COLOR_PARAM);
-        this.setTooltip('True inside a "when someone invites me" trigger if the inviter matches this friend.');
+        this.setTooltip(aft('friend.invite_from_tooltip', 'True inside a "when someone invites me" trigger if the inviter matches this friend.'));
     } };
 
     B.Blocks['af_invite_request_from_friend'] = { init() {
         this.appendDummyInput()
-            .appendField('invite request from')
+            .appendField(aft('friend.invite_request_from', 'invite request from'))
             .appendField(new B.FieldDropdown(friendDropdown), 'FRIEND_ID');
         this.setOutput(true, 'Boolean');
         this.setColour(COLOR_PARAM);
-        this.setTooltip('True inside a "when someone requests an invite from me" trigger if the requester matches this friend.');
+        this.setTooltip(aft('friend.invite_request_from_tooltip', 'True inside a "when someone requests an invite from me" trigger if the requester matches this friend.'));
     } };
 
     B.Blocks['af_friend_obj'] = { init() {
@@ -272,47 +283,47 @@ function afDefineBlocks() {
                         .map(f => [f.displayName || f.id, f.id]);
                 }
             } catch {}
-            return [['(no friends loaded)', '']];
+            return [[aft('block.no_friends', '(no friends loaded)'), '']];
         };
-        this.appendDummyInput().appendField('friend').appendField(new B.FieldDropdown(opts), 'FRIEND_ID');
+        this.appendDummyInput().appendField(aft('friend.friend', 'friend')).appendField(new B.FieldDropdown(opts), 'FRIEND_ID');
         this.setOutput(true, 'User');
         this.setColour(COLOR_PARAM);
     } };
 
     B.Blocks['af_user_obj'] = { init() {
-        this.appendDummyInput().appendField('user').appendField(new B.FieldTextInput('usr_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'), 'USER_ID');
+        this.appendDummyInput().appendField(aft('friend.user', 'user')).appendField(new B.FieldTextInput('usr_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'), 'USER_ID');
         this.setOutput(true, 'User');
         this.setColour(COLOR_PARAM);
     } };
 
     B.Blocks['af_own_user'] = { init() {
-        this.appendDummyInput().appendField('me');
+        this.appendDummyInput().appendField(aft('friend.me', 'me'));
         this.setOutput(true, 'User');
         this.setColour(COLOR_PARAM);
     } };
 
     B.Blocks['af_world_obj'] = { init() {
-        this.appendDummyInput().appendField('world').appendField(new B.FieldTextInput('wrld_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'), 'WORLD_ID');
+        this.appendDummyInput().appendField(aft('world_block.world', 'world')).appendField(new B.FieldTextInput('wrld_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'), 'WORLD_ID');
         this.setOutput(true, 'World');
         this.setColour(COLOR_PARAM);
     } };
 
     B.Blocks['af_has_status'] = { init() {
-        this.appendValueInput('USER').setCheck('User').appendField('has status');
-        this.appendDummyInput().appendField(new B.FieldDropdown(STATUS_DROPDOWN), 'STATUS');
+        this.appendValueInput('USER').setCheck('User').appendField(aft('status_block.has_status', 'has status'));
+        this.appendDummyInput().appendField(new B.FieldDropdown(STATUS_DROPDOWN_FACTORY()), 'STATUS');
         this.setOutput(true, 'Boolean');
         this.setInputsInline(true);
         this.setColour(COLOR_PARAM);
     } };
 
     B.Blocks['af_own_status'] = { init() {
-        this.appendDummyInput().appendField('own status =').appendField(new B.FieldDropdown(STATUS_DROPDOWN), 'STATUS');
+        this.appendDummyInput().appendField(aft('status_block.own_status_eq', 'own status =')).appendField(new B.FieldDropdown(STATUS_DROPDOWN_FACTORY()), 'STATUS');
         this.setOutput(true, 'Boolean');
         this.setColour(COLOR_PARAM);
     } };
 
     B.Blocks['af_has_status_text'] = { init() {
-        this.appendValueInput('USER').setCheck('User').appendField('has status text');
+        this.appendValueInput('USER').setCheck('User').appendField(aft('status_block.has_status_text', 'has status text'));
         this.appendDummyInput().appendField('"').appendField(new B.FieldTextInput(''), 'TEXT').appendField('"');
         this.setOutput(true, 'Boolean');
         this.setInputsInline(true);
@@ -320,13 +331,13 @@ function afDefineBlocks() {
     } };
 
     B.Blocks['af_own_status_text'] = { init() {
-        this.appendDummyInput().appendField('own status text =').appendField('"').appendField(new B.FieldTextInput(''), 'TEXT').appendField('"');
+        this.appendDummyInput().appendField(aft('status_block.own_status_text_eq', 'own status text =')).appendField('"').appendField(new B.FieldTextInput(''), 'TEXT').appendField('"');
         this.setOutput(true, 'Boolean');
         this.setColour(COLOR_PARAM);
     } };
 
     B.Blocks['af_has_bio_text'] = { init() {
-        this.appendValueInput('USER').setCheck('User').appendField('has bio text');
+        this.appendValueInput('USER').setCheck('User').appendField(aft('status_block.has_bio_text', 'has bio text'));
         this.appendDummyInput().appendField('"').appendField(new B.FieldTextInput(''), 'TEXT').appendField('"');
         this.setOutput(true, 'Boolean');
         this.setInputsInline(true);
@@ -334,20 +345,20 @@ function afDefineBlocks() {
     } };
 
     B.Blocks['af_own_bio_text'] = { init() {
-        this.appendDummyInput().appendField('own bio text =').appendField('"').appendField(new B.FieldTextInput(''), 'TEXT').appendField('"');
+        this.appendDummyInput().appendField(aft('status_block.own_bio_text_eq', 'own bio text =')).appendField('"').appendField(new B.FieldTextInput(''), 'TEXT').appendField('"');
         this.setOutput(true, 'Boolean');
         this.setColour(COLOR_PARAM);
     } };
 
     B.Blocks['af_get_current_world'] = { init() {
-        this.appendValueInput('USER').setCheck('User').appendField('current world of');
+        this.appendValueInput('USER').setCheck('User').appendField(aft('world_block.current_world_of', 'current world of'));
         this.setOutput(true, 'World');
         this.setInputsInline(true);
         this.setColour(COLOR_PARAM);
     } };
 
     B.Blocks['af_in_same_instance'] = { init() {
-        this.appendValueInput('USER').setCheck('User').appendField('is in same instance as me');
+        this.appendValueInput('USER').setCheck('User').appendField(aft('world_block.in_same_instance', 'is in same instance as me'));
         this.setOutput(true, 'Boolean');
         this.setInputsInline(true);
         this.setColour(COLOR_PARAM);
@@ -355,24 +366,24 @@ function afDefineBlocks() {
 
     B.Blocks['af_set_status'] = { init() {
         this.appendDummyInput()
-            .appendField('set status').appendField(new B.FieldDropdown(STATUS_DROPDOWN), 'STATUS')
-            .appendField('text').appendField('"').appendField(new B.FieldTextInput(''), 'TEXT').appendField('"');
+            .appendField(aft('action.set_status', 'set status')).appendField(new B.FieldDropdown(STATUS_DROPDOWN_FACTORY()), 'STATUS')
+            .appendField(aft('action.text', 'text')).appendField('"').appendField(new B.FieldTextInput(''), 'TEXT').appendField('"');
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour(COLOR_ACTION);
-        this.setTooltip('Sets your VRChat status (and status text if non-empty). Empty text keeps the existing status text.');
+        this.setTooltip(aft('action.set_status_tooltip', 'Sets your VRChat status (and status text if non-empty). Empty text keeps the existing status text.'));
     } };
 
     B.Blocks['af_set_bio_text'] = { init() {
-        this.appendDummyInput().appendField('set bio text').appendField('"').appendField(new B.FieldTextInput(''), 'TEXT').appendField('"');
+        this.appendDummyInput().appendField(aft('action.set_bio_text', 'set bio text')).appendField('"').appendField(new B.FieldTextInput(''), 'TEXT').appendField('"');
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour(COLOR_ACTION);
     } };
 
     B.Blocks['af_invite_friend'] = { init() {
-        this.appendValueInput('USER').setCheck('User').appendField('invite');
-        this.appendDummyInput().appendField('to my instance');
+        this.appendValueInput('USER').setCheck('User').appendField(aft('action.invite', 'invite'));
+        this.appendDummyInput().appendField(aft('action.to_my_instance', 'to my instance'));
         this.setInputsInline(true);
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
@@ -380,7 +391,7 @@ function afDefineBlocks() {
     } };
 
     B.Blocks['af_request_invite'] = { init() {
-        this.appendValueInput('USER').setCheck('User').appendField('request invite from');
+        this.appendValueInput('USER').setCheck('User').appendField(aft('action.request_invite_from', 'request invite from'));
         this.setInputsInline(true);
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
@@ -388,26 +399,26 @@ function afDefineBlocks() {
     } };
 
     B.Blocks['af_send_notification'] = { init() {
-        this.appendDummyInput().appendField('send notification').appendField('"').appendField(new B.FieldTextInput('Hello'), 'TEXT').appendField('"');
+        this.appendDummyInput().appendField(aft('action.send_notification', 'send notification')).appendField('"').appendField(new B.FieldTextInput(aft('action.send_notification_default', 'Hello')), 'TEXT').appendField('"');
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour(COLOR_ACTION);
     } };
 
     B.Blocks['af_answer_invite'] = { init() {
-        this.appendDummyInput().appendField('answer invite').appendField('"').appendField(new B.FieldTextInput('Sorry, can\'t right now!'), 'TEXT').appendField('"');
+        this.appendDummyInput().appendField(aft('action.answer_invite', 'answer invite')).appendField('"').appendField(new B.FieldTextInput(aft('action.answer_invite_default', "Sorry, can't right now!")), 'TEXT').appendField('"');
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour(COLOR_ACTION);
-        this.setTooltip('Send a chat message back to the user who invited me. Use inside a "when someone invites me" trigger.');
+        this.setTooltip(aft('action.answer_invite_tooltip', 'Send a chat message back to the user who invited me. Use inside a "when someone invites me" trigger.'));
     } };
 
     B.Blocks['af_answer_invite_request'] = { init() {
-        this.appendDummyInput().appendField('answer invite request').appendField('"').appendField(new B.FieldTextInput('Sorry, no invite right now!'), 'TEXT').appendField('"');
+        this.appendDummyInput().appendField(aft('action.answer_invite_request', 'answer invite request')).appendField('"').appendField(new B.FieldTextInput(aft('action.answer_invite_request_default', 'Sorry, no invite right now!')), 'TEXT').appendField('"');
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour(COLOR_ACTION);
-        this.setTooltip('Send a chat message back to the user who requested an invite. Use inside a "when someone requests an invite" trigger.');
+        this.setTooltip(aft('action.answer_invite_request_tooltip', 'Send a chat message back to the user who requested an invite. Use inside a "when someone requests an invite" trigger.'));
     } };
 }
 
@@ -415,7 +426,7 @@ function afToolbox() {
     return {
         kind: 'categoryToolbox',
         contents: [
-            { kind: 'category', name: 'Triggers', colour: COLOR_TRIGGER, contents: [
+            { kind: 'category', name: aft('toolbox.triggers', 'Triggers'), colour: COLOR_TRIGGER, contents: [
                 { kind: 'block', type: 'af_trigger_interval_30s' },
                 { kind: 'block', type: 'af_trigger_interval_minutes' },
                 { kind: 'block', type: 'af_trigger_time' },
@@ -432,7 +443,7 @@ function afToolbox() {
                 { kind: 'sep' },
                 { kind: 'block', type: 'af_triggering_user' },
             ]},
-            { kind: 'category', name: 'Logic', colour: COLOR_LOGIC, contents: [
+            { kind: 'category', name: aft('toolbox.logic', 'Logic'), colour: COLOR_LOGIC, contents: [
                 { kind: 'block', type: 'af_if' },
                 { kind: 'block', type: 'af_if_else' },
                 { kind: 'block', type: 'af_compare' },
@@ -440,12 +451,12 @@ function afToolbox() {
                 { kind: 'block', type: 'af_or' },
                 { kind: 'block', type: 'af_bool' },
             ]},
-            { kind: 'category', name: 'Time', colour: COLOR_TIME, contents: [
+            { kind: 'category', name: aft('toolbox.time', 'Time'), colour: COLOR_TIME, contents: [
                 { kind: 'block', type: 'af_is_date' },
                 { kind: 'block', type: 'af_is_time' },
                 { kind: 'block', type: 'af_between_time' },
             ]},
-            { kind: 'category', name: 'Friends', colour: COLOR_PARAM, contents: [
+            { kind: 'category', name: aft('toolbox.friends', 'Friends'), colour: COLOR_PARAM, contents: [
                 { kind: 'block', type: 'af_friend_obj' },
                 { kind: 'block', type: 'af_user_obj' },
                 { kind: 'block', type: 'af_own_user' },
@@ -453,7 +464,7 @@ function afToolbox() {
                 { kind: 'block', type: 'af_invite_from_friend' },
                 { kind: 'block', type: 'af_invite_request_from_friend' },
             ]},
-            { kind: 'category', name: 'Status & Bio', colour: COLOR_PARAM, contents: [
+            { kind: 'category', name: aft('toolbox.status_bio', 'Status & Bio'), colour: COLOR_PARAM, contents: [
                 { kind: 'block', type: 'af_has_status' },
                 { kind: 'block', type: 'af_own_status' },
                 { kind: 'block', type: 'af_has_status_text' },
@@ -461,12 +472,12 @@ function afToolbox() {
                 { kind: 'block', type: 'af_has_bio_text' },
                 { kind: 'block', type: 'af_own_bio_text' },
             ]},
-            { kind: 'category', name: 'World', colour: COLOR_PARAM, contents: [
+            { kind: 'category', name: aft('toolbox.world', 'World'), colour: COLOR_PARAM, contents: [
                 { kind: 'block', type: 'af_world_obj' },
                 { kind: 'block', type: 'af_get_current_world' },
                 { kind: 'block', type: 'af_in_same_instance' },
             ]},
-            { kind: 'category', name: 'Actions', colour: COLOR_ACTION, contents: [
+            { kind: 'category', name: aft('toolbox.actions', 'Actions'), colour: COLOR_ACTION, contents: [
                 { kind: 'block', type: 'af_set_status' },
                 { kind: 'block', type: 'af_set_bio_text' },
                 { kind: 'block', type: 'af_invite_friend' },
@@ -600,8 +611,8 @@ function afApplyActionLockState() {
         try {
             if (locked) {
                 const msg = isAction
-                    ? 'Flow is over the ' + FLOW_ACTION_LIMIT + '-action limit — disabled until you delete blocks'
-                    : 'Over the global trigger limit (' + TRIGGER_LIMIT + ') — disabled until you delete blocks across flows';
+                    ? aftf('warning.action_limit',  { limit: FLOW_ACTION_LIMIT }, 'Flow is over the ' + FLOW_ACTION_LIMIT + '-action limit. Disabled until you delete blocks.')
+                    : aftf('warning.trigger_limit', { limit: TRIGGER_LIMIT },     'Over the global trigger limit (' + TRIGGER_LIMIT + '). Disabled until you delete blocks across flows.');
                 b.setWarningText(msg);
             } else {
                 b.setWarningText(null);
@@ -680,10 +691,10 @@ function afNewId() { return 'flow_' + Math.random().toString(36).slice(2, 10); }
 
 function afNewFlow() {
     if (afFlows.length >= FLOW_LIMIT) {
-        if (typeof showToast === 'function') showToast(false, 'Flow limit reached (' + FLOW_LIMIT + ' max) — delete one to create another');
+        if (typeof showToast === 'function') showToast(false, aftf('toast.flow_limit_reached', { limit: FLOW_LIMIT }, 'Flow limit reached (' + FLOW_LIMIT + ' max). Delete one to create another.'));
         return;
     }
-    const name = prompt('Flow name:', 'New Flow');
+    const name = prompt(aft('prompt.flow_name', 'Flow name:'), aft('prompt.flow_name_default', 'New Flow'));
     if (!name) return;
     const id = afNewId();
     const now = Date.now();
@@ -696,7 +707,7 @@ function afNewFlow() {
 function afRenameFlow() {
     const flow = afFlows.find(f => f.id === afCurrentFlowId);
     if (!flow) return;
-    const name = prompt('Rename flow:', flow.name);
+    const name = prompt(aft('prompt.rename', 'Rename flow:'), flow.name);
     if (!name) return;
     flow.name = name;
     flow.updatedAt = Date.now();
@@ -707,7 +718,7 @@ function afRenameFlow() {
 function afDeleteFlow() {
     const flow = afFlows.find(f => f.id === afCurrentFlowId);
     if (!flow) return;
-    if (!confirm('Delete flow "' + flow.name + '"?')) return;
+    if (!confirm(aftf('prompt.delete_confirm', { name: flow.name }, 'Delete flow "' + flow.name + '"?'))) return;
     afFlows = afFlows.filter(f => f.id !== flow.id);
     delete afTriggerState[flow.id];
     afCurrentFlowId = afFlows[0]?.id || null;
@@ -755,13 +766,13 @@ function afToggleLogPanel() {
 
 function afRunNow() {
     const flow = afFlows.find(f => f.id === afCurrentFlowId);
-    if (!flow) { if (typeof showToast === 'function') showToast(false, 'No flow selected'); return; }
+    if (!flow) { if (typeof showToast === 'function') showToast(false, aft('toast.no_flow_selected', 'No flow selected')); return; }
     if (afWorkspace) flow.workspace = window.Blockly.serialization.workspaces.save(afWorkspace);
     delete afTriggerState[flow.id];
-    afLog('info', '[' + flow.name + '] manual run — firing all triggers');
+    afLog('info', '[' + flow.name + '] ' + aft('log.manual_run', 'manual run, firing all triggers'));
     const ws = flow.workspace;
     if (!ws || !ws.blocks || !ws.blocks.blocks) {
-        afLog('err', '[' + flow.name + '] nothing to run');
+        afLog('err', '[' + flow.name + '] ' + aft('log.nothing_to_run', 'nothing to run'));
         return;
     }
     let fired = 0;
@@ -773,19 +784,19 @@ function afRunNow() {
             }
         }
     } catch (e) { afLog('err', '[' + flow.name + '] ' + (e.message || e)); }
-    if (fired === 0) afLog('err', '[' + flow.name + '] no Trigger block found at root');
+    if (fired === 0) afLog('err', '[' + flow.name + '] ' + aft('log.no_trigger', 'no Trigger block found at root'));
 }
 
 function afSaveCurrentFlow() {
     const flow = afFlows.find(f => f.id === afCurrentFlowId);
     if (!flow) {
-        if (typeof showToast === 'function') showToast(false, 'No flow selected');
+        if (typeof showToast === 'function') showToast(false, aft('toast.no_flow_selected', 'No flow selected'));
         return;
     }
     if (afWorkspace) flow.workspace = window.Blockly.serialization.workspaces.save(afWorkspace);
     flow.updatedAt = Date.now();
     afPersistFlows();
-    if (typeof showToast === 'function') showToast(true, 'Flow saved');
+    if (typeof showToast === 'function') showToast(true, aft('toast.flow_saved', 'Flow saved'));
 }
 
 function afRenderFlowSelect() {
@@ -795,7 +806,7 @@ function afRenderFlowSelect() {
     if (!afFlows.length) {
         const opt = document.createElement('option');
         opt.value = '';
-        opt.textContent = '(no flows)';
+        opt.textContent = aft('no_flows', '(no flows)');
         sel.appendChild(opt);
     } else {
         afFlows.forEach(f => {
@@ -825,7 +836,7 @@ function afLoadFlowIntoWorkspace(id) {
         if (hint) hint.style.display = 'none';
         if (flow.workspace && Object.keys(flow.workspace).length > 0) {
             try { window.Blockly.serialization.workspaces.load(flow.workspace, afWorkspace); }
-            catch (e) { console.error('[ActionFlow] load failed', e); afLog('err', 'Workspace load failed: ' + (e.message || e)); }
+            catch (e) { console.error('[ActionFlow] load failed', e); afLog('err', aftf('log.workspace_load_failed', { error: e.message || e }, 'Workspace load failed: ' + (e.message || e))); }
         }
     } finally {
         setTimeout(() => { afAutoSaveSuppressed = false; afUpdateActionCounter(); afApplyActionLockState(); }, 50);
@@ -858,7 +869,7 @@ function afRenderLog() {
     const host = document.getElementById('afLogList');
     if (!host) return;
     if (!afLogEntries.length) {
-        host.innerHTML = '<div class="af-log-empty">No events yet. Save and enable a flow to see execution traces.</div>';
+        host.innerHTML = '<div class="af-log-empty">' + afEsc(aft('log_empty', 'No events yet. Save and enable a flow to see execution traces.')) + '</div>';
         return;
     }
     host.innerHTML = afLogEntries.slice().reverse().map(e => {
@@ -930,8 +941,8 @@ function afUpdateRunIndicator() {
     const txt = document.getElementById('afRunText');
     if (!dot || !txt) return;
     const anyEnabled = afFlows.some(f => f.enabled);
-    if (anyEnabled) { dot.className = 'sf-dot online';  txt.textContent = 'Running'; }
-    else            { dot.className = 'sf-dot offline'; txt.textContent = 'Idle';    }
+    if (anyEnabled) { dot.className = 'sf-dot online';  txt.textContent = aft('status.running', 'Running'); }
+    else            { dot.className = 'sf-dot offline'; txt.textContent = aft('status.idle',    'Idle');    }
 }
 
 function afEvalFlow(flow, obs) {
@@ -1027,12 +1038,12 @@ function afEvalTrigger(flow, block, obs) {
 function afFireTrigger(flow, block, reason, triggeringUser) {
     const actionCount = afCountActionsInWorkspace(flow.workspace);
     if (actionCount > FLOW_ACTION_LIMIT) {
-        afLog('err', '[' + flow.name + '] over action limit (' + actionCount + '/' + FLOW_ACTION_LIMIT + ') — flow disabled until trimmed');
+        afLog('err', '[' + flow.name + '] ' + aftf('log.over_action_limit', { count: actionCount, limit: FLOW_ACTION_LIMIT }, 'over action limit (' + actionCount + '/' + FLOW_ACTION_LIMIT + '). Flow disabled until trimmed.'));
         return;
     }
     const triggerCount = afCountGlobalTriggers();
     if (triggerCount > TRIGGER_LIMIT) {
-        afLog('err', '[' + flow.name + '] over global trigger limit (' + triggerCount + '/' + TRIGGER_LIMIT + ') — all triggers disabled until trimmed');
+        afLog('err', '[' + flow.name + '] ' + aftf('log.over_trigger_limit', { count: triggerCount, limit: TRIGGER_LIMIT }, 'over global trigger limit (' + triggerCount + '/' + TRIGGER_LIMIT + '). All triggers disabled until trimmed.'));
         return;
     }
     const prevCtx = afContext;
@@ -1041,7 +1052,7 @@ function afFireTrigger(flow, block, reason, triggeringUser) {
         block.type === 'af_trigger_invite_request_received' ? 'requestInvite' : null;
     afContext = { triggeringUser: triggeringUser || null, triggerKind };
     try {
-        afLog('info', '[' + flow.name + '] trigger fired (' + reason + ')');
+        afLog('info', '[' + flow.name + '] ' + aftf('log.trigger_fired', { reason }, 'trigger fired (' + reason + ')'));
         afExecStatements(flow, afInputStatement(block, 'DO'));
     } finally {
         afContext = prevCtx;
@@ -1139,34 +1150,37 @@ function afExecAction(flow, block) {
             const text   = String(f.TEXT || '');
             const desc = text || ((typeof currentVrcUser !== 'undefined' && currentVrcUser?.statusDescription) || '');
             if (typeof sendToCS === 'function') sendToCS({ action: 'vrcUpdateStatus', status, statusDescription: desc });
-            afLog('ok', '[' + flow.name + '] set status → ' + (VRC_STATUS_LABELS[status] || status) + (text ? ' / "' + text + '"' : ''));
+            afLog('ok', '[' + flow.name + '] ' + (text
+                ? aftf('log.set_status_with_text', { status: vrcStatusLabel(status), text }, 'set status to ' + vrcStatusLabel(status) + ' / "' + text + '"')
+                : aftf('log.set_status',           { status: vrcStatusLabel(status) },       'set status to ' + vrcStatusLabel(status))));
             break;
         }
         case 'af_set_bio_text': {
             const text = f.TEXT || '';
             if (typeof sendToCS === 'function') sendToCS({ action: 'vrcUpdateProfile', bio: text });
-            afLog('ok', '[' + flow.name + '] set bio → "' + text + '"');
+            afLog('ok', '[' + flow.name + '] ' + aftf('log.set_bio', { text }, 'set bio to "' + text + '"'));
             break;
         }
         case 'af_invite_friend': {
             const user = afEvalUser(afInput(block, 'USER'));
-            if (!user || !user.id) { afLog('err', '[' + flow.name + '] invite skipped: missing user'); break; }
+            if (!user || !user.id) { afLog('err', '[' + flow.name + '] ' + aft('log.invite_skipped', 'invite skipped: missing user')); break; }
             if (typeof sendToCS === 'function') sendToCS({ action: 'vrcInviteFriend', userId: user.id });
-            afLog('ok', '[' + flow.name + '] invite sent → ' + (user.displayName || user.id));
+            afLog('ok', '[' + flow.name + '] ' + aftf('log.invite_sent', { target: user.displayName || user.id }, 'invite sent to ' + (user.displayName || user.id)));
             break;
         }
         case 'af_request_invite': {
             const user = afEvalUser(afInput(block, 'USER'));
-            if (!user || !user.id) { afLog('err', '[' + flow.name + '] request invite skipped: missing user'); break; }
+            if (!user || !user.id) { afLog('err', '[' + flow.name + '] ' + aft('log.request_invite_skipped', 'request invite skipped: missing user')); break; }
             if (typeof sendToCS === 'function') sendToCS({ action: 'vrcRequestInvite', userId: user.id });
-            afLog('ok', '[' + flow.name + '] request invite → ' + (user.displayName || user.id));
+            afLog('ok', '[' + flow.name + '] ' + aftf('log.request_invite_sent', { target: user.displayName || user.id }, 'request invite from ' + (user.displayName || user.id)));
             break;
         }
         case 'af_send_notification': {
             const text = f.TEXT || '';
             afShowFlowNotificationCard(flow.name, text);
-            if (typeof sendToCS === 'function') sendToCS({ action: 'afTrayNotify', title: 'Action Flow', subtitle: text, accent: 'info' });
-            afLog('ok', '[' + flow.name + '] notify → "' + text + '"');
+            const ntitle = aft('notification_title', 'Action Flow');
+            if (typeof sendToCS === 'function') sendToCS({ action: 'afTrayNotify', title: ntitle, subtitle: text, accent: 'info' });
+            afLog('ok', '[' + flow.name + '] ' + aftf('log.notify', { text }, 'notify "' + text + '"'));
             break;
         }
         case 'af_answer_invite':
@@ -1174,15 +1188,15 @@ function afExecAction(flow, block) {
             const text = f.TEXT || '';
             const target = afContext.triggeringUser;
             if (!target || !target.id) {
-                afLog('err', '[' + flow.name + '] ' + block.type + ' skipped: no triggering user (use inside a "when someone invites me" / "requests invite" trigger)');
+                afLog('err', '[' + flow.name + '] ' + aftf('log.reply_skipped', { action: block.type }, block.type + ' skipped: no triggering user (use inside a "when someone invites me" or "requests invite" trigger)'));
                 break;
             }
             if (typeof sendToCS === 'function') sendToCS({ action: 'vrcSendChatMessage', userId: target.id, text });
-            afLog('ok', '[' + flow.name + '] reply → ' + (target.displayName || target.id) + ': "' + text + '"');
+            afLog('ok', '[' + flow.name + '] ' + aftf('log.reply_sent', { target: target.displayName || target.id, text }, 'reply to ' + (target.displayName || target.id) + ': "' + text + '"'));
             break;
         }
         default:
-            afLog('err', '[' + flow.name + '] unknown action ' + block.type);
+            afLog('err', '[' + flow.name + '] ' + aftf('log.unknown_action', { type: block.type }, 'unknown action ' + block.type));
     }
 }
 
@@ -1426,21 +1440,21 @@ window.afBuildBlockContextMenu = function (target) {
 
     const items = [];
     if (typeof block.isDeletable === 'function' && block.isDeletable()) {
-        items.push({ icon: 'content_copy', label: 'Duplicate', action: () => {
+        items.push({ icon: 'content_copy', label: aft('ctx.duplicate', 'Duplicate'), action: () => {
             try {
                 const json = window.Blockly.serialization.blocks.save(block);
                 const dup = window.Blockly.serialization.blocks.append(json, afWorkspace);
                 const xy = block.getRelativeToSurfaceXY();
                 if (dup && dup.moveBy) dup.moveBy(20, 20);
                 if (dup && dup.select) dup.select();
-            } catch (e) { afLog('err', 'Duplicate failed: ' + (e.message || e)); }
+            } catch (e) { afLog('err', aftf('log.duplicate_failed', { error: e.message || e }, 'Duplicate failed: ' + (e.message || e))); }
         }});
     }
     if (typeof block.setCommentText === 'function') {
         const hasComment = !!block.getCommentText?.();
         items.push({
             icon: hasComment ? 'speaker_notes_off' : 'add_comment',
-            label: hasComment ? 'Remove Comment' : 'Add Comment',
+            label: hasComment ? aft('ctx.remove_comment', 'Remove Comment') : aft('ctx.add_comment', 'Add Comment'),
             action: () => block.setCommentText(hasComment ? null : ''),
         });
     }
@@ -1448,7 +1462,7 @@ window.afBuildBlockContextMenu = function (target) {
         const collapsed = block.isCollapsed();
         items.push({
             icon: collapsed ? 'unfold_more' : 'unfold_less',
-            label: collapsed ? 'Expand Block' : 'Collapse Block',
+            label: collapsed ? aft('ctx.expand', 'Expand Block') : aft('ctx.collapse', 'Collapse Block'),
             action: () => block.setCollapsed(!collapsed),
         });
     }
@@ -1456,7 +1470,7 @@ window.afBuildBlockContextMenu = function (target) {
         const enabled = block.isEnabled();
         items.push({
             icon: enabled ? 'block' : 'check_circle',
-            label: enabled ? 'Disable Block' : 'Enable Block',
+            label: enabled ? aft('ctx.disable', 'Disable Block') : aft('ctx.enable', 'Enable Block'),
             action: () => block.setEnabled(!enabled),
         });
     }
@@ -1465,7 +1479,7 @@ window.afBuildBlockContextMenu = function (target) {
         items.push('sep');
         items.push({
             icon: 'delete',
-            label: count > 1 ? ('Delete ' + count + ' Blocks') : 'Delete Block',
+            label: count > 1 ? aftf('ctx.delete_n', { count }, 'Delete ' + count + ' Blocks') : aft('ctx.delete_one', 'Delete Block'),
             action: () => block.dispose(true),
         });
     }
@@ -1490,8 +1504,8 @@ window.__afHandleMessage = function (action, payload) {
             break;
         case 'afSaveResult':
             if (payload && payload.ok === false) {
-                afLog('err', 'Save failed: ' + (payload.error || 'unknown'));
-                if (typeof showToast === 'function') showToast(false, 'Flow save failed: ' + (payload.error || 'unknown'));
+                afLog('err', aftf('toast.save_failed', { error: payload.error || 'unknown' }, 'Flow save failed: ' + (payload.error || 'unknown')));
+                if (typeof showToast === 'function') showToast(false, aftf('toast.save_failed', { error: payload.error || 'unknown' }, 'Flow save failed: ' + (payload.error || 'unknown')));
             }
             break;
     }
