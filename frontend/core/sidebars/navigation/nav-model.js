@@ -24,6 +24,7 @@ const NAV_ITEMS_DEF = {
     'kikitan-xd':       { icon: 'translate',       tab: 22, i18n: 'nav.kikitan_xd',         label: 'Kikitan XD',       windowsOnly: true },
     'event-snipe':      { icon: 'gps_fixed',       tab: 23, i18n: 'nav.event_snipe',        label: 'Event Snipe'      },
     'avatar-scaling':   { icon: 'height',          tab: 24, i18n: 'nav.avatar_scaling',     label: 'Avatar Scaling',   windowsOnly: true },
+    'action-flow':      { icon: 'auto_awesome',    tab: 25, i18n: 'nav.action_flow',        label: 'Action Flow'      },
 };
 
 const NAV_ICON_OPTIONS = [
@@ -78,7 +79,7 @@ const NAV_DEFAULT_LAYOUT = [
         items: [
             'chatbox','media-relay','space-flight','osc-tool','youtube-fix',
             'activity-log','mutual-network','time-spent','voice-fight',
-            'discord-presence','vr-overlay','permini','kikitan-xd','event-snipe','avatar-scaling',
+            'discord-presence','vr-overlay','permini','kikitan-xd','event-snipe','avatar-scaling','action-flow',
         ],
     },
     { type: 'item', key: 'settings' },

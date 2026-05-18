@@ -626,6 +626,7 @@ function getPageTitle(i) {
         t('page.kikitan_xd', 'Kikitan XD'),
         t('page.event_snipe', 'Event Snipe'),
         t('page.avatar_scaling', 'Avatar Scaling'),
+        t('page.action_flow', 'Action Flow'),
     ][i] ?? '';
 }
 
@@ -1186,6 +1187,7 @@ function showTab(i) {
     if (i === 18) vfOnTabOpen();
     if (i === 21) onPerminiTabOpen();
     if (i === 22) { kxdInitLangSelects(); kxdOnTabOpen(); }
+    if (i === 25) { if (typeof afOnTabOpen === 'function') afOnTabOpen(); }
 
     if (_prevTabEl) {
         if (_lazyUnloadDelay === 0) {
@@ -1604,12 +1606,15 @@ function initVnSelect(el) {
     // Trigger (the visible "button")
     const trigger = document.createElement('div');
     trigger.className = 'vn-select-trigger';
+    const triggerDot = document.createElement('span');
+    triggerDot.className = 'sf-dot';
+    triggerDot.style.display = 'none';
     const label = document.createElement('span');
     label.className = 'vn-select-label';
     const arrow = document.createElement('span');
     arrow.className = 'msi vn-select-arrow';
     arrow.textContent = 'expand_more';
-    trigger.append(label, arrow);
+    trigger.append(triggerDot, label, arrow);
 
     const panel = document.createElement('div');
     panel.className = 'vn-select-panel';
@@ -1632,12 +1637,20 @@ function initVnSelect(el) {
         return m ? { name: m[1], count: m[2] } : { name: text, count: '' };
     }
 
+    function makeDot(state) {
+        const d = document.createElement('span');
+        d.className = 'sf-dot ' + state;
+        return d;
+    }
+
     function buildPanel() {
         panel.innerHTML = '';
         for (let i = 0; i < el.options.length; i++) {
             const opt = el.options[i];
             const item = document.createElement('div');
             item.className = 'vn-select-option' + (i === el.selectedIndex ? ' vn-active' : '');
+
+            if (opt.dataset && opt.dataset.vnDot) item.appendChild(makeDot(opt.dataset.vnDot));
 
             const { name, count } = splitCount(cleanText(opt.text));
             const span = document.createElement('span');
@@ -1672,6 +1685,9 @@ function initVnSelect(el) {
     function syncLabel() {
         const opt = el.options[el.selectedIndex];
         label.textContent = opt ? splitCount(cleanText(opt.text)).name : '';
+        const dotState = opt && opt.dataset && opt.dataset.vnDot;
+        if (dotState) { triggerDot.className = 'sf-dot ' + dotState; triggerDot.style.display = ''; }
+        else          { triggerDot.style.display = 'none'; }
         panel.querySelectorAll('.vn-select-option').forEach((item, i) => {
             item.classList.toggle('vn-active', i === el.selectedIndex);
         });

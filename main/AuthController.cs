@@ -32,7 +32,7 @@ public class AuthController
     // In-flight guards — prevent duplicate startup fetches when JS triggers same requests
     private int _favWorldsInFlight = 0;
     private int _favAvatarsInFlight = 0;
-    private List<JObject>? _cachedFavGroups; // shared across FavWorlds + FavAvatars to avoid double fetch
+    private List<JObject>? _cachedFavGroups;
     public void ClearFavGroupsCache() => _cachedFavGroups = null;
 
     // Constructor
@@ -950,11 +950,16 @@ public class AuthController
                             if (!string.IsNullOrEmpty(p.UserId))
                             {
                                 _instance.CumulativeInstancePlayers[p.UserId] = (p.DisplayName, p.Image ?? "");
-                                if (!string.IsNullOrEmpty(p.JoinedAt))
-                                    _instance.PlayerJoinTimes[p.UserId] = p.JoinedAt;
+                                if (p.JoinedAts != null && p.JoinedAts.Count > 0)
+                                    _instance.PlayerJoinTimes[p.UserId] = new List<string>(p.JoinedAts);
+                                if (p.LeftAts != null && p.LeftAts.Count > 0)
+                                    _instance.PlayerLeftTimes[p.UserId] = new List<string>(p.LeftAts);
+                                if (p.UserId != (_core.CurrentVrcUserId ?? ""))
+                                    _instance.MeetAgainThisInstance.Add(p.UserId);
                             }
                         }
                     }
+                    ReconcilePlayerSessionsFromLog(lastJoin);
                     _core.TimeEngine.OnWorldResumed(_core.LogWatcher.CurrentWorldId, loc);
                     _instance.LastTrackedWorldId = _core.LogWatcher.CurrentWorldId;
                 }
@@ -971,8 +976,8 @@ public class AuthController
                         _core.Timeline.UpdateEvent(lastJoin.Id, ev =>
                         {
                             if (ev.Players == null) return;
-                            foreach (var p in ev.Players.Where(p => string.IsNullOrEmpty(p.LeftAt)))
-                                p.LeftAt = nowStr;
+                            foreach (var p in ev.Players.Where(p => p.LeftAts.Count < p.JoinedAts.Count))
+                                p.LeftAts.Add(nowStr);
                         });
                         _core.Timeline.SetInstanceEventLeftAt(lastJoin.Id, nowStr);
                     }
@@ -986,7 +991,7 @@ public class AuthController
                     if (!_instance.CumulativeInstancePlayers.ContainsKey(p.UserId))
                         _instance.CumulativeInstancePlayers[p.UserId] = (p.DisplayName, "");
                     if (!_instance.PlayerJoinTimes.ContainsKey(p.UserId))
-                        _instance.PlayerJoinTimes[p.UserId] = p.JoinedAt.ToUniversalTime().ToString("o");
+                        _instance.PlayerJoinTimes[p.UserId] = new List<string> { p.JoinedAt.ToUniversalTime().ToString("o") };
                     if (!string.IsNullOrEmpty(p.DisplayName))
                         _core.TimeEngine.UpdateUserInfo(p.UserId, p.DisplayName, "");
                     // Register catch-up players in the engine with their real log timestamp.
@@ -1012,8 +1017,8 @@ public class AuthController
                     _core.Timeline.UpdateEvent(openJoin.Id, ev =>
                     {
                         if (ev.Players == null) return;
-                        foreach (var p in ev.Players.Where(p => string.IsNullOrEmpty(p.LeftAt)))
-                            p.LeftAt = nowStr;
+                        foreach (var p in ev.Players.Where(p => p.LeftAts.Count < p.JoinedAts.Count))
+                            p.LeftAts.Add(nowStr);
                     });
                     _core.Timeline.SetInstanceEventLeftAt(openJoin.Id, nowStr);
                     var closed = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == openJoin.Id);
@@ -1097,6 +1102,131 @@ public class AuthController
                     Invoke(() => _core.SendToJS("vrcCredits", new { balance }));
             });
         }
+    }
+
+    private void ReconcilePlayerSessionsFromLog(TimelineService.TimelineEvent lastJoin)
+    {
+        if (lastJoin == null) return;
+        const long ToleranceMs = 1000;
+
+        long ToMs(string iso)
+        {
+            return DateTimeOffset.TryParse(iso, null, System.Globalization.DateTimeStyles.RoundtripKind, out var o)
+                ? o.ToUnixTimeMilliseconds() : 0L;
+        }
+        bool HasNearby(List<long> existing, long target)
+        {
+            foreach (var e in existing) if (Math.Abs(e - target) <= ToleranceMs) return true;
+            return false;
+        }
+
+        var selfId  = _core.CurrentVrcUserId ?? "";
+        var logEvents = _core.LogWatcher.GetPlayerEventLog();
+        var perUserName = new Dictionary<string, string>();
+        var groupedLog  = new Dictionary<string, List<(string type, DateTime ts)>>();
+        foreach (var ev in logEvents)
+        {
+            if (string.IsNullOrEmpty(ev.UserId) || ev.UserId == selfId) continue;
+            perUserName[ev.UserId] = ev.DisplayName;
+            if (!groupedLog.TryGetValue(ev.UserId, out var list))
+                groupedLog[ev.UserId] = list = new List<(string, DateTime)>();
+            list.Add((ev.Type, ev.Timestamp));
+        }
+
+        var changed = false;
+        // Phase 1: merge log events into DB arrays for every user
+        foreach (var (uid, events) in groupedLog)
+        {
+            if (!_instance.PlayerJoinTimes.TryGetValue(uid, out var dbJoins))
+                _instance.PlayerJoinTimes[uid] = dbJoins = new List<string>();
+            if (!_instance.PlayerLeftTimes.TryGetValue(uid, out var dbLefts))
+                _instance.PlayerLeftTimes[uid] = dbLefts = new List<string>();
+
+            var joinMs = dbJoins.Select(ToMs).ToList();
+            var leftMs = dbLefts.Select(ToMs).ToList();
+
+            foreach (var (type, ts) in events.OrderBy(e => e.ts))
+            {
+                var utc = ts.ToUniversalTime();
+                var ms  = new DateTimeOffset(utc).ToUnixTimeMilliseconds();
+                var iso = utc.ToString("o");
+                if (type == "join")
+                {
+                    if (HasNearby(joinMs, ms)) continue;
+                    dbJoins.Add(iso); joinMs.Add(ms); changed = true;
+                }
+                else
+                {
+                    if (HasNearby(leftMs, ms)) continue;
+                    dbLefts.Add(iso); leftMs.Add(ms); changed = true;
+                }
+            }
+
+            dbJoins.Sort(StringComparer.Ordinal);
+            dbLefts.Sort(StringComparer.Ordinal);
+
+            if (!_instance.CumulativeInstancePlayers.ContainsKey(uid))
+            {
+                var img = _friends.TryGetNameImage(uid, out var fi) ? fi.image : "";
+                _instance.CumulativeInstancePlayers[uid] = (perUserName[uid], img);
+            }
+            _instance.MeetAgainThisInstance.Add(uid);
+        }
+
+        var currentlyPresent = new HashSet<string>(
+            _core.LogWatcher.GetCurrentPlayers()
+                .Where(p => !string.IsNullOrEmpty(p.UserId))
+                .Select(p => p.UserId));
+        var logHasEvidence = logEvents.Count > 0;
+        foreach (var uid in _instance.PlayerJoinTimes.Keys.ToList())
+        {
+            if (uid == selfId) continue;
+            if (logHasEvidence && currentlyPresent.Contains(uid)) continue;
+            var joins = _instance.PlayerJoinTimes[uid];
+            if (!_instance.PlayerLeftTimes.TryGetValue(uid, out var lefts))
+                _instance.PlayerLeftTimes[uid] = lefts = new List<string>();
+            if (lefts.Count >= joins.Count) continue;
+            if (!logHasEvidence)
+            {
+                while (lefts.Count < joins.Count) lefts.Add(joins[joins.Count - 1]);
+            }
+            else
+            {
+                var logLeft = _core.LogWatcher.GetLastLeftTime(uid);
+                var fallback = logLeft?.ToUniversalTime().ToString("o") ?? joins[joins.Count - 1];
+                while (lefts.Count < joins.Count) lefts.Add(fallback);
+            }
+            changed = true;
+        }
+
+        if (!changed) return;
+
+        _core.Timeline.UpdateEvent(lastJoin.Id, ev =>
+        {
+            ev.Players ??= new List<TimelineService.PlayerSnap>();
+            foreach (var p in ev.Players)
+            {
+                if (_instance.PlayerJoinTimes.TryGetValue(p.UserId, out var nj))
+                    p.JoinedAts = new List<string>(nj);
+                if (_instance.PlayerLeftTimes.TryGetValue(p.UserId, out var nl))
+                    p.LeftAts = new List<string>(nl);
+            }
+            foreach (var (uid, _) in groupedLog)
+            {
+                if (ev.Players.Any(p => p.UserId == uid)) continue;
+                var img = _friends.TryGetNameImage(uid, out var fi) ? fi.image : "";
+                ev.Players.Add(new TimelineService.PlayerSnap
+                {
+                    UserId      = uid,
+                    DisplayName = perUserName[uid],
+                    Image       = img,
+                    JoinedAts   = new List<string>(_instance.PlayerJoinTimes[uid]),
+                    LeftAts     = new List<string>(_instance.PlayerLeftTimes.TryGetValue(uid, out var l) ? l : new List<string>()),
+                });
+            }
+        });
+        var refreshed = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == lastJoin.Id);
+        if (refreshed != null) _core.SendToJS("timelineEvent", _instance.BuildTimelinePayload(refreshed));
     }
 
     // Multi-Account state, list, add, switch, remove and logout flows.

@@ -574,6 +574,36 @@ public partial class AppShell
                         _core.MemTrim.TrimNow();
                     else if (result.Extra == "forceTrimAll")
                         _core.TrimCaches(force: true);
+                    else if (result.Extra == "vrcMsgList" && result.ExtraPayload != null)
+                    {
+                        var msgType = JObject.FromObject(result.ExtraPayload)["msgType"]?.ToString() ?? "message";
+                        _ = Task.Run(async () =>
+                        {
+                            var uid = _core.VrcApi.CurrentUserId;
+                            if (string.IsNullOrEmpty(uid))
+                            {
+                                SendToJS("consoleOutput", new { text = "/msg: not logged in", color = "err" });
+                                return;
+                            }
+                            var arr = await _core.Invite.GetInviteMessagesAsync(uid, msgType);
+                            if (arr == null)
+                            {
+                                SendToJS("consoleOutput", new { text = $"/msg {(msgType == "requestResponse" ? "request" : "invite")}: API call failed", color = "err" });
+                                return;
+                            }
+                            var label = msgType == "requestResponse" ? "Invite Request Responses" : "Invite Messages";
+                            var lines = new List<string> { $"{label} ({arr.Count}):" };
+                            foreach (JObject m in arr.Cast<JObject>().OrderBy(x => x["slot"]?.Value<int>() ?? 0))
+                            {
+                                var slot     = m["slot"]?.Value<int>() ?? -1;
+                                var text     = m["message"]?.ToString() ?? "";
+                                var cd       = m["remainingCooldownMinutes"]?.Value<int>() ?? 0;
+                                var cdNote   = cd > 0 ? $" [cooldown {cd}m]" : "";
+                                lines.Add($"  Slot {slot}: \"{text}\"{cdNote}");
+                            }
+                            SendToJS("consoleOutput", new { text = string.Join("\n", lines), color = "info" });
+                        });
+                    }
                     else if (result.Extra != null && result.ExtraPayload != null)
                         SendToJS(result.Extra, result.ExtraPayload);
                     break;
@@ -1873,6 +1903,16 @@ public partial class AppShell
                     await _snipeCtrl.HandleMessage(action, msg);
                     break;
 
+                // Action Flow
+                case "afLoadFlows":
+                case "afSaveFlows":
+                case "afSaveConditions":
+                case "afTrayNotify":
+                case "afGetGameRunning":
+                case "afSendChatMessage":
+                    _afCtrl.HandleMessage(action, msg);
+                    break;
+
                 // Avatar Scaling
                 case "asConnect":
                 case "asDisconnect":
@@ -2002,6 +2042,10 @@ public partial class AppShell
                 case "vrcAcceptNotification":
                 case "vrcMarkNotifRead":
                 case "vrcHideNotification":
+                case "vrcGetRespondMessages":
+                case "vrcUpdateRespondMessage":
+                case "vrcRespondToNotification":
+                case "vrcRespondToNotificationWithPhoto":
                     await _notifications.HandleMessage(action, msg);
                     break;
 
@@ -2445,6 +2489,95 @@ public partial class AppShell
                     };
                     if (!string.IsNullOrEmpty(dir))
                         Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true });
+                    break;
+                }
+
+                // VRChat Tools — config.json + cache management + launch options
+                case "vrcConfigGet":
+                {
+                    _ = Task.Run(() =>
+                    {
+                        var (cfgJson, cacheBytes) = VrcConfigHelper.ReadConfigAndCacheSize();
+                        Invoke(() => SendToJS("vrcConfigData", new { config = cfgJson, cacheBytes }));
+                    });
+                    break;
+                }
+                case "vrcCacheRefresh":
+                {
+                    _ = Task.Run(() =>
+                    {
+                        var bytes = VrcConfigHelper.GetCacheSize();
+                        Invoke(() => SendToJS("vrcConfigData", new { cacheBytes = bytes }));
+                    });
+                    break;
+                }
+                case "vrcCacheDeleteAll":
+                {
+                    _ = Task.Run(() =>
+                    {
+                        bool ok = VrcConfigHelper.DeleteAllCache(out var err);
+                        var bytes = VrcConfigHelper.GetCacheSize();
+                        Invoke(() =>
+                        {
+                            SendToJS("vrcConfigData", new { cacheBytes = bytes });
+                            SendToJS("toast", new { ok, msg = ok ? "VRChat cache deleted" : ("Cache delete failed: " + err) });
+                        });
+                    });
+                    break;
+                }
+                case "vrcCacheSweep":
+                {
+                    _ = Task.Run(() =>
+                    {
+                        var removed = VrcConfigHelper.SweepCache(out var err);
+                        var bytes = VrcConfigHelper.GetCacheSize();
+                        Invoke(() =>
+                        {
+                            SendToJS("vrcConfigData", new { cacheBytes = bytes });
+                            SendToJS("toast", new { ok = err == null, msg = err ?? $"Swept {removed} cache entries" });
+                        });
+                    });
+                    break;
+                }
+                case "vrcConfigSave":
+                {
+                    var cfg = msg["config"] as JObject;
+                    if (cfg != null)
+                    {
+                        _ = Task.Run(() =>
+                        {
+                            bool ok = VrcConfigHelper.WriteConfig(cfg, out var err);
+                            Invoke(() => SendToJS("toast", new { ok, msg = ok ? "VRChat config saved" : ("Config save failed: " + err) }));
+                        });
+                    }
+                    break;
+                }
+                case "vrcLaunchOptionsGet":
+                {
+                    Invoke(() => SendToJS("vrcLaunchOptionsData", new
+                    {
+                        path = _core.Settings.VrcPath ?? "",
+                        args = _core.Settings.VrcLaunchArgs ?? ""
+                    }));
+                    break;
+                }
+                case "vrcLaunchOptionsSave":
+                {
+                    var newPath = msg["path"]?.ToString() ?? "";
+                    var newArgs = (msg["args"]?.ToString() ?? "").Trim();
+                    // Validate path override the way VRCX-0 does (must end in launch.exe if .exe).
+                    if (!string.IsNullOrEmpty(newPath) && newPath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                        && !newPath.EndsWith("launch.exe", StringComparison.OrdinalIgnoreCase)
+                        && !newPath.EndsWith("VRChat.exe", StringComparison.OrdinalIgnoreCase))
+                    {
+                        SendToJS("toast", new { ok = false, msg = "Invalid VRChat path (must end with launch.exe or VRChat.exe)" });
+                        break;
+                    }
+                    _core.Settings.VrcPath = newPath;
+                    _core.Settings.VrcLaunchArgs = newArgs;
+                    try { _core.Settings.Save(); } catch { }
+                    SendToJS("toast", new { ok = true, msg = "Launch options saved" });
+                    SendToJS("vrcLaunchOptionsData", new { path = newPath, args = newArgs });
                     break;
                 }
 

@@ -22,8 +22,8 @@ public class InstanceController
     private string _cachedInstOwnerGroup = "";
 
     private readonly Dictionary<string, (string displayName, string image)> _cumulativeInstancePlayers = new();
-    private readonly Dictionary<string, string> _playerJoinTimes = new();
-    private readonly Dictionary<string, string> _playerLeftTimes = new();
+    private readonly Dictionary<string, List<string>> _playerJoinTimes = new();
+    private readonly Dictionary<string, List<string>> _playerLeftTimes = new();
     private readonly HashSet<string> _meetAgainThisInstance = new();
     private string? _pendingInstanceEventId;
     private System.Threading.Timer? _instanceSnapshotTimer;
@@ -38,7 +38,9 @@ public class InstanceController
     public int    CachedInstCapacity   => _cachedInstCapacity;
     public string CachedInstType       => _cachedInstType;
     public Dictionary<string, (string displayName, string image)> CumulativeInstancePlayers => _cumulativeInstancePlayers;
-    public Dictionary<string, string> PlayerJoinTimes => _playerJoinTimes;
+    public Dictionary<string, List<string>> PlayerJoinTimes => _playerJoinTimes;
+    public Dictionary<string, List<string>> PlayerLeftTimes => _playerLeftTimes;
+    public HashSet<string> MeetAgainThisInstance => _meetAgainThisInstance;
     public string? PendingInstanceEventId { get => _pendingInstanceEventId; set => _pendingInstanceEventId = value; }
     public bool LogWatcherBootstrapped { get => _logWatcherBootstrapped; set => _logWatcherBootstrapped = value; }
     public string LastTrackedWorldId { get => _lastTrackedWorldId; set => _lastTrackedWorldId = value; }
@@ -56,18 +58,30 @@ public class InstanceController
             var id = _pendingInstanceEventId;
             _pendingInstanceEventId = null;
             var now = DateTime.UtcNow.ToString("o");
-            var finalPlayers = _cumulativeInstancePlayers.Select(kv => new TimelineService.PlayerSnap
-            {
-                UserId      = kv.Key,
-                DisplayName = kv.Value.displayName,
-                Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
-                JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
-                LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : now,
-            }).ToList();
+            var finalPlayers = _cumulativeInstancePlayers
+                .Select(kv => BuildPlayerSnap(kv.Key, kv.Value.displayName, kv.Value.image, finalizeLeftAt: now))
+                .ToList();
             _core.Timeline.UpdateEvent(id, ev => ev.Players = finalPlayers);
             _core.Timeline.SetInstanceEventLeftAt(id, now);
             var closed = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == id);
             if (closed != null) _core.SendToJS("timelineEvent", BuildTimelinePayload(closed));
+        };
+    }
+
+    // finalizeLeftAt closes any still-open session with that timestamp.
+    private TimelineService.PlayerSnap BuildPlayerSnap(string uid, string displayName, string image, string? finalizeLeftAt = null)
+    {
+        var joins = _playerJoinTimes.TryGetValue(uid, out var jt) ? new List<string>(jt) : new List<string>();
+        var lefts = _playerLeftTimes.TryGetValue(uid, out var lt) ? new List<string>(lt) : new List<string>();
+        if (finalizeLeftAt != null && lefts.Count < joins.Count)
+            lefts.Add(finalizeLeftAt);
+        return new TimelineService.PlayerSnap
+        {
+            UserId      = uid,
+            DisplayName = displayName,
+            Image       = ResolveWithDiskFallback(uid, image),
+            JoinedAts   = joins,
+            LeftAts     = lefts,
         };
     }
 
@@ -1065,14 +1079,9 @@ public class InstanceController
         if (_pendingInstanceEventId != null)
         {
             var now = DateTime.UtcNow.ToString("o");
-            var finalPlayers = _cumulativeInstancePlayers.Select(kv => new TimelineService.PlayerSnap
-            {
-                UserId      = kv.Key,
-                DisplayName = kv.Value.displayName,
-                Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
-                JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
-                LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : now,
-            }).ToList();
+            var finalPlayers = _cumulativeInstancePlayers
+                .Select(kv => BuildPlayerSnap(kv.Key, kv.Value.displayName, kv.Value.image, finalizeLeftAt: now))
+                .ToList();
             var prevId = _pendingInstanceEventId;
             _core.Timeline.UpdateEvent(prevId, ev => ev.Players = finalPlayers);
             _core.Timeline.SetInstanceEventLeftAt(prevId, now);
@@ -1100,7 +1109,7 @@ public class InstanceController
                 : !string.IsNullOrEmpty(_core.Settings.ActiveAccount?.DisplayName) ? _core.Settings.ActiveAccount.DisplayName
                 : selfId;
             _cumulativeInstancePlayers[selfId] = (resolvedName, selfImg);
-            _playerJoinTimes[selfId] = DateTime.UtcNow.ToString("o");
+            _playerJoinTimes[selfId] = new List<string> { DateTime.UtcNow.ToString("o") };
         }
 
         var evId  = Guid.NewGuid().ToString("N")[..8];
@@ -1157,14 +1166,9 @@ public class InstanceController
                     try
                     {
                         // Refresh any images that have since been fetched (e.g. via requestInstanceInfo)
-                        var snap = _cumulativeInstancePlayers.Select(kv => new TimelineService.PlayerSnap
-                        {
-                            UserId      = kv.Key,
-                            DisplayName = kv.Value.displayName,
-                            Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
-                            JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
-                            LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : "",
-                        }).ToList();
+                        var snap = _cumulativeInstancePlayers
+                            .Select(kv => BuildPlayerSnap(kv.Key, kv.Value.displayName, kv.Value.image))
+                            .ToList();
 
                         // Resolve world name: DB cache first, API fallback
                         var (wName, wThumb) = ResolveWorldInfoFromCache(worldId);
@@ -1207,38 +1211,43 @@ public class InstanceController
     {
         // Skip events for the local player; VRChat logs OnPlayerJoined for self too
         if (!string.IsNullOrEmpty(_core.CurrentVrcUserId) && userId == _core.CurrentVrcUserId) return;
+        if (string.IsNullOrEmpty(userId)) return;
 
-        // Accumulate into instance player history
-        if (!string.IsNullOrEmpty(userId) && !_cumulativeInstancePlayers.ContainsKey(userId))
+        var isFirstSeen = !_cumulativeInstancePlayers.ContainsKey(userId);
+        if (isFirstSeen)
         {
             var img = _friends.TryGetNameImage(userId, out var fi) ? fi.image : "";
             _cumulativeInstancePlayers[userId] = (displayName, img);
             // Store name so this player appears in Time Spent list even when not a friend
             _core.TimeEngine.UpdateUserInfo(userId, displayName, img);
+        }
 
-            // Start time session for this player using the LogWatcher join timestamp.
-            // This ensures Time Together uses the exact same start time as Instance Info.
-            var logPlayer = _core.LogWatcher.GetCurrentPlayers().FirstOrDefault(p => p.UserId == userId);
-            var joinedAtUtc = logPlayer != null ? logPlayer.JoinedAt.ToUniversalTime() : DateTime.UtcNow;
-            _playerJoinTimes[userId] = joinedAtUtc.ToString("o");
-            _core.TimeEngine.OnPlayerJoined(userId, joinedAtUtc);
+        // Always append, also on re-join.
+        var logPlayer = _core.LogWatcher.GetCurrentPlayers().FirstOrDefault(p => p.UserId == userId);
+        var joinedAtUtc = logPlayer != null ? logPlayer.JoinedAt.ToUniversalTime() : DateTime.UtcNow;
+        if (!_playerJoinTimes.TryGetValue(userId, out var joinList))
+        {
+            joinList = new List<string>();
+            _playerJoinTimes[userId] = joinList;
+        }
+        joinList.Add(joinedAtUtc.ToString("o"));
+        _core.TimeEngine.OnPlayerJoined(userId, joinedAtUtc);
 
-            // Live-update the instance_join timeline event so the UI shows players immediately
-            if (_pendingInstanceEventId != null)
+        // Live-update the instance_join timeline event so the UI shows players immediately
+        if (_pendingInstanceEventId != null)
+        {
+            var evId = _pendingInstanceEventId;
+            var snap = _cumulativeInstancePlayers
+                .Select(kv => BuildPlayerSnap(kv.Key, kv.Value.displayName, kv.Value.image))
+                .ToList();
+            _core.Timeline.UpdateEvent(evId, ev =>
             {
-                var evId = _pendingInstanceEventId;
-                var snap = _cumulativeInstancePlayers.Select(kv => new TimelineService.PlayerSnap
-                {
-                    UserId      = kv.Key,
-                    DisplayName = kv.Value.displayName,
-                    Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
-                    JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
-                    LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : "",
-                }).ToList();
-                _core.Timeline.UpdateEvent(evId, ev => ev.Players = snap);
-                var updated = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == evId);
-                if (updated != null) _core.SendToJS("timelineEvent", BuildTimelinePayload(updated));
-            }
+                ev.Players = snap;
+                // A join means the instance is still active — clear any stale LeftAt that may have been set on startup/auth.
+                if (!string.IsNullOrEmpty(ev.LeftAt)) ev.LeftAt = "";
+            });
+            var updated = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == evId);
+            if (updated != null) _core.SendToJS("timelineEvent", BuildTimelinePayload(updated));
         }
 
         // First-meet detection, only after known-users set is seeded
@@ -1411,14 +1420,9 @@ public class InstanceController
                         if (_pendingInstanceEventId != null)
                         {
                             var evId = _pendingInstanceEventId;
-                            var snap = _cumulativeInstancePlayers.Select(kv => new TimelineService.PlayerSnap
-                            {
-                                UserId      = kv.Key,
-                                DisplayName = kv.Value.displayName,
-                                Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
-                                JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
-                                LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : "",
-                            }).ToList();
+                            var snap = _cumulativeInstancePlayers
+                                .Select(kv => BuildPlayerSnap(kv.Key, kv.Value.displayName, kv.Value.image))
+                                .ToList();
                             _core.Timeline.UpdateEvent(evId, ev => ev.Players = snap);
                         }
                     });
@@ -1431,19 +1435,19 @@ public class InstanceController
     public void HandlePlayerLeftOnUiThread(string userId)
     {
         if (string.IsNullOrEmpty(userId)) return;
-        _playerLeftTimes[userId] = DateTime.UtcNow.ToString("o");
+        if (!_playerLeftTimes.TryGetValue(userId, out var leftList))
+        {
+            leftList = new List<string>();
+            _playerLeftTimes[userId] = leftList;
+        }
+        leftList.Add(DateTime.UtcNow.ToString("o"));
 
         if (_pendingInstanceEventId != null)
         {
             var evId = _pendingInstanceEventId;
-            var snap = _cumulativeInstancePlayers.Select(kv => new TimelineService.PlayerSnap
-            {
-                UserId      = kv.Key,
-                DisplayName = kv.Value.displayName,
-                Image       = ResolveWithDiskFallback(kv.Key, kv.Value.image),
-                JoinedAt    = _playerJoinTimes.TryGetValue(kv.Key, out var jt) ? jt : "",
-                LeftAt      = _playerLeftTimes.TryGetValue(kv.Key, out var lt) ? lt : "",
-            }).ToList();
+            var snap = _cumulativeInstancePlayers
+                .Select(kv => BuildPlayerSnap(kv.Key, kv.Value.displayName, kv.Value.image))
+                .ToList();
             _core.Timeline.UpdateEvent(evId, ev => ev.Players = snap);
             var updated = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == evId);
             if (updated != null) _core.SendToJS("timelineEvent", BuildTimelinePayload(updated));
@@ -1512,7 +1516,13 @@ public class InstanceController
         worldName   = ev.WorldName,
         worldThumb  = wThumb,
         location    = ev.Location,
-        players     = ev.Players.Select(p => new { userId = p.UserId, displayName = p.DisplayName, image = ResolveWithDiskFallback(p.UserId, p.Image), joinedAt = p.JoinedAt, leftAt = p.LeftAt }).ToList(),
+        players     = ev.Players.Select(p => new {
+            userId      = p.UserId,
+            displayName = p.DisplayName,
+            image       = ResolveWithDiskFallback(p.UserId, p.Image),
+            joinedAts   = p.JoinedAts,
+            leftAts     = p.LeftAts,
+        }).ToList(),
         photoPath   = ev.PhotoPath,
         photoUrl    = !string.IsNullOrEmpty(ev.PhotoPath) ? (_core.GetVirtualMediaUrl?.Invoke(ev.PhotoPath) ?? "") : _core.FixLocalUrl(ev.PhotoUrl),
         userId      = ev.UserId,

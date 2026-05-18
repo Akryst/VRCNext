@@ -48,6 +48,7 @@ public partial class AppShell
     private AvatarScalingController _asCtrl = null!;
     private RelayController _relayCtrl = null!;
     private SnipeController _snipeCtrl = null!;
+    private ActionFlowController _afCtrl = null!;
     private WindowController _windowCtrl = null!;
     private readonly CacheHandler _cache = new();
     // DB services live in CoreLibrary and are accessed via _core.TimeEngine, _core.PhotoPlayersStore and _core.Timeline.
@@ -157,6 +158,8 @@ public partial class AppShell
         _core.LoadDatabaseServices();
         _ = MigrationHelper.MigrateUserTrackingCountsAsync(_settings,
             pct => _core?.SendToJS("dbMigrationProgress", new { percent = pct })); // backfill first_meet_date + meet_again_count in background
+        _ = MigrationHelper.MigrateEventPlayerSessionsAsync(_settings,
+            pct => _core?.SendToJS("dbMigrationProgress", new { percent = pct })); // convert event_players to JSON session arrays
         _core.IsVrcRunning = RelayController.IsVrcRunning;
         _core.IsSteamVrRunning = RelayController.IsSteamVrRunning;
         _core.DispatchMessage = rawMsg => OnWebMessage(rawMsg);
@@ -178,6 +181,10 @@ public partial class AppShell
         _kxdCtrl = new KikitanXDController(_core);
         _asCtrl = new AvatarScalingController(_core);
         _snipeCtrl = new SnipeController(_core);
+        _afCtrl = new ActionFlowController(_core);
+#if WINDOWS
+        _afCtrl.TrayServiceProvider = () => _trayService;
+#endif
         _relayCtrl = new RelayController(_core, _friends, _instance, _notifications, _vroCtrl);
         _windowCtrl = new WindowController(_core);
 #if WINDOWS
@@ -554,6 +561,7 @@ public partial class AppShell
         _kxdCtrl?.Dispose();
         _asCtrl?.Dispose();
         _snipeCtrl?.Dispose();
+        _afCtrl?.Dispose();
         _discordCtrl?.Dispose();
         _chatboxCtrl?.Dispose();
         _vroCtrl?.Dispose();

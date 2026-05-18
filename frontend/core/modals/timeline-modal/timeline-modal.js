@@ -9,12 +9,29 @@ function openTlDetail(id) {
              || _tlSearchEvents.find(e => e.id === id)
              || _fdTimelineEvents.find(e => e.id === id);
     if (!ev) return;
+
+    if (ev.type === 'photo') {
+        const libItem = (typeof libraryFiles !== 'undefined' && ev.photoPath)
+            ? libraryFiles.find(f => f.path === ev.photoPath)
+            : null;
+        openPhotoDetail(libItem || {
+            name:     ev.photoPath ? ev.photoPath.split(/[\\/]/).pop() : t('timeline.photo', 'Photo'),
+            path:     ev.photoPath || '',
+            url:      ev.photoUrl  || '',
+            modified: ev.timestamp,
+            size:     '',
+            worldId:  ev.worldId   || '',
+            players:  ev.players   || [],
+            imgW: 0, imgH: 0,
+        });
+        return;
+    }
+
     const el = document.getElementById('detailModalContent');
     if (!el) return;
 
     switch (ev.type) {
         case 'instance_join': renderTlDetailJoin(ev, el);      break;
-        case 'photo':         renderTlDetailPhoto(ev, el);     break;
         case 'first_meet':    renderTlDetailMeet(ev, el);      break;
         case 'meet_again':    renderTlDetailMeetAgain(ev, el); break;
         case 'notification':  renderTlDetailNotif(ev, el);     break;
@@ -82,6 +99,13 @@ function _tlAvRow(image, name, label, labelColor) {
 
 // Detail: instance join
 
+// Falls back to legacy single-value joinedAt/leftAt when arrays are missing.
+function _tlPlayerSessions(p) {
+    let joins = Array.isArray(p.joinedAts) ? p.joinedAts.slice() : (p.joinedAt ? [p.joinedAt] : []);
+    let lefts = Array.isArray(p.leftAts)   ? p.leftAts.slice()   : (p.leftAt   ? [p.leftAt]   : []);
+    return { joins, lefts };
+}
+
 function _tlPlayerCard(p, instanceStart, instanceEnd) {
     const name   = p.displayName || '?';
     const live   = p.userId ? vrcFriendsData.find(f => f.id === p.userId) : null;
@@ -93,35 +117,61 @@ function _tlPlayerCard(p, instanceStart, instanceEnd) {
     const onclick = p.userId ? `onclick="document.getElementById('modalDetail').style.display='none';openFriendDetail('${jsq(p.userId)}')"` : '';
     const clickCls = p.userId ? ' clickable' : '';
 
+    const { joins, lefts } = _tlPlayerSessions(p);
+    const nowIso = new Date().toISOString();
+
+    // Open session uses "now" as end.
+    let totalSecs = 0;
+    for (let i = 0; i < joins.length; i++) {
+        const jMs = new Date(joins[i]).getTime();
+        const lIso = i < lefts.length ? lefts[i] : nowIso;
+        const lMs = new Date(lIso).getTime();
+        if (isFinite(jMs) && isFinite(lMs) && lMs > jMs) totalSecs += Math.floor((lMs - jMs) / 1000);
+    }
+
     let timesHtml;
-    if (!p.joinedAt && !p.leftAt) {
-        timesHtml = `${esc(t('timeline.detail.from', 'From'))}: ${esc(t('timeline.detail.none', 'None'))} &nbsp;·&nbsp; ${esc(t('timeline.detail.until', 'Until'))}: ${esc(t('timeline.detail.none', 'None'))}`;
+    if (joins.length === 0 && lefts.length === 0) {
+        timesHtml = `${esc(t('timeline.detail.none', 'None'))}`;
     } else {
-        const joinStr = p.joinedAt ? tlFormatTime(p.joinedAt) : t('timeline.detail.none', 'None');
-        const leftPart = p.leftAt
-            ? esc(tlFormatTime(p.leftAt))
-            : `<span style="color:var(--ok);">&#9679;&nbsp;${esc(t('timeline.detail.ongoing', 'Ongoing'))}</span>`;
-        let spentPart = '';
-        if (p.joinedAt) {
-            const endMs = p.leftAt ? new Date(p.leftAt).getTime() : Date.now();
-            const secs  = Math.floor((endMs - new Date(p.joinedAt).getTime()) / 1000);
-            if (secs > 0) spentPart = ` &nbsp;·&nbsp; ${esc(t('nav.time_spent', 'Time Spent'))} ${esc(formatDuration(secs))}`;
-        }
-        timesHtml = `${esc(t('timeline.detail.from', 'From'))} ${esc(joinStr)} &nbsp;·&nbsp; ${esc(t('timeline.detail.until', 'Until'))} ${leftPart}${spentPart}`;
+        const ongoing = lefts.length < joins.length
+            ? `&nbsp;·&nbsp;<span style="color:var(--ok);">&#9679;&nbsp;${esc(t('timeline.detail.ongoing', 'Ongoing'))}</span>`
+            : '';
+        const visits = joins.length > 1
+            ? `${esc(tf('timeline.detail.visits_count', { count: joins.length }, `${joins.length} visits`))}&nbsp;·&nbsp;`
+            : '';
+        const spent = totalSecs > 0
+            ? `${esc(t('nav.time_spent', 'Time Spent'))} ${esc(formatDuration(totalSecs))}`
+            : '';
+        timesHtml = `${visits}${spent}${ongoing}`;
     }
 
     let barHtml = '';
-    const toMin = ms => Math.floor(ms / 60000) * 60000;
-    const iStart = toMin(instanceStart ? new Date(instanceStart).getTime() : 0);
-    const iEnd   = toMin(instanceEnd   ? new Date(instanceEnd).getTime()   : Date.now());
-    const total  = iEnd - iStart;
-    if (total > 0 && (p.joinedAt || p.leftAt)) {
-        const pStart   = toMin(p.joinedAt ? new Date(p.joinedAt).getTime() : iStart);
-        const pEnd     = toMin(p.leftAt   ? new Date(p.leftAt).getTime()   : iEnd);
-        const leftPct  = Math.max(0, Math.min(100, (pStart - iStart) / total * 100));
-        const widthPct = Math.max(0, Math.min(100 - leftPct, (pEnd - pStart) / total * 100));
-        const barCls   = live ? ' friend' : '';
-        barHtml = `<div class="tl-player-bar-wrap"><div class="tl-player-bar${barCls}" style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%"></div></div>`;
+    const iStart = instanceStart ? new Date(instanceStart).getTime() : 0;
+    const nowMs  = Date.now();
+    let   iEnd   = instanceEnd ? new Date(instanceEnd).getTime() : nowMs;
+    // Extend iEnd if a session ends after the recorded instance close (re-join after a stale close).
+    for (let i = 0; i < joins.length; i++) {
+        const endCandidate = i < lefts.length ? new Date(lefts[i]).getTime() : nowMs;
+        if (isFinite(endCandidate) && endCandidate > iEnd) iEnd = endCandidate;
+    }
+    const total = iEnd - iStart;
+    if (total > 0 && joins.length > 0) {
+        const barCls = live ? ' friend' : '';
+        let segments = '';
+        for (let i = 0; i < joins.length; i++) {
+            const jIso = joins[i];
+            const lIso = i < lefts.length ? lefts[i] : null;
+            const pStart = new Date(jIso).getTime();
+            const pEnd   = lIso ? new Date(lIso).getTime() : iEnd;
+            if (!isFinite(pStart) || !isFinite(pEnd) || pEnd < pStart) continue;
+            const leftPct  = Math.max(0, Math.min(100, (pStart - iStart) / total * 100));
+            const widthPct = Math.max(0.6, Math.min(100 - leftPct, (pEnd - pStart) / total * 100));
+            const fromStr = tlFormatTime(jIso);
+            const untilStr = lIso ? tlFormatTime(lIso) : t('timeline.detail.ongoing', 'Ongoing');
+            const tip = `${t('timeline.detail.from', 'From')} ${fromStr} · ${t('timeline.detail.until', 'Until')} ${untilStr}`;
+            segments += `<div class="tl-player-bar${barCls}" style="left:${leftPct.toFixed(2)}%;width:${widthPct.toFixed(2)}%" title="${esc(tip)}"></div>`;
+        }
+        if (segments) barHtml = `<div class="tl-player-bar-wrap">${segments}</div>`;
     }
 
     return `<div class="tl-player-card${clickCls}" ${onclick} style="flex-wrap:wrap;">${av}<div class="tl-player-card-info"><div class="tl-player-card-name"><span>${esc(name)}</span>${badge}</div><div class="tl-player-card-times">${timesHtml}</div></div>${barHtml ? `<div style="flex-basis:100%;padding:0 2px;">${barHtml}</div>` : ''}</div>`;
@@ -175,46 +225,6 @@ function renderTlDetailJoin(ev, el) {
         </div>
     </div>`;
     _tlInsertBanner(el, ev.worldId || ev.id, ev.worldThumb);
-}
-
-// Detail: photo
-
-function renderTlDetailPhoto(ev, el) {
-    const dateStr  = tlFormatLongDate(ev.timestamp);
-    const timeStr  = tlFormatTime(ev.timestamp);
-    const photoJs  = ev.photoUrl ? jsq(ev.photoUrl) : '';
-    const banner   = ev.photoUrl
-        ? `<div class="fd-banner" style="cursor:pointer;" onclick="openLightbox('${photoJs}','image')"><img src="${ev.photoUrl}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>`
-        : '';
-    const fileName = ev.photoPath ? ev.photoPath.split(/[\\/]/).pop() : t('timeline.photo', 'Photo');
-    const players  = ev.players || [];
-
-    let playersHtml = '';
-    if (players.length > 0) {
-        playersHtml = `<div class="fd-group-rep-label" style="margin:14px 0 8px;">${esc(tf('timeline.detail.players_in_instance', { count: players.length }, `Players in instance (${players.length})`))}</div><div class="photo-players-list">`;
-        players.forEach(p => {
-            const onclick = p.userId ? `document.getElementById('modalDetail').style.display='none';openFriendDetail('${jsq(p.userId)}')` : '';
-            playersHtml += renderProfileItemSmall({ id: p.userId, displayName: p.displayName, image: p.image }, onclick);
-        });
-        playersHtml += '</div>';
-    }
-
-    const worldRowClick = ev.worldId ? ` onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(ev.worldId)}')" style="cursor:pointer;"` : '';
-    const infoRows = [
-        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
-        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
-        ev.worldId ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"${worldRowClick}><span style="color:var(--tx3);">${esc(t('timeline.detail.world', 'World'))}</span><span style="color:var(--accent-lt);text-align:right;">${esc(ev.worldName || ev.worldId)}</span></div>` : '',
-    ].filter(Boolean).join('');
-
-    el.innerHTML = `${banner}<div class="fd-content${banner ? ' fd-has-banner' : ''}" style="padding:20px 0;">
-        <h2 style="margin:0 0 12px;color:var(--tx0);font-size:18px;">${esc(fileName)}</h2>
-        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
-        ${playersHtml}
-        <div style="margin-top:14px;display:flex;gap:8px;">
-            ${ev.photoUrl ? `<button class="vrcn-button-round vrcn-btn-join" onclick="openLightbox('${photoJs}','image')"><span class="msi" style="font-size:14px;">open_in_full</span> ${esc(t('timeline.actions.full_size', 'Full Size'))}</button>` : ''}
-            ${_tlClose()}
-        </div>
-    </div>`;
 }
 
 // Detail: first meet

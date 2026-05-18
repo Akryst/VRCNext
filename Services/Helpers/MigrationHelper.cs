@@ -178,6 +178,103 @@ public static class MigrationHelper
         tx.Commit();
     }
 
+    public static async Task MigrateEventPlayerSessionsAsync(AppSettings settings, Action<int>? onProgress = null)
+    {
+        if (settings.EventPlayerSessionsMigrated) return;
+
+        // Wait briefly so the DB isn't contended at startup
+        await Task.Delay(6000);
+        onProgress?.Invoke(1);
+
+        try
+        {
+            using var db = Database.OpenConnection();
+
+            // Skip rows already in JSON array form (start with '[').
+            var rows = new List<(string EventId, string UserId, string Ja, string La)>();
+            using (var cmd = db.CreateCommand())
+            {
+                cmd.CommandText = @"SELECT event_id, user_id, joined_at, left_at FROM event_players
+                                    WHERE (joined_at != '' AND joined_at NOT LIKE '[%')
+                                       OR (left_at   != '' AND left_at   NOT LIKE '[%')";
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    rows.Add((
+                        r.GetString(0),
+                        r.GetString(1),
+                        r.IsDBNull(2) ? "" : r.GetString(2),
+                        r.IsDBNull(3) ? "" : r.GetString(3)));
+                }
+            }
+            onProgress?.Invoke(15);
+
+            var total = Math.Max(rows.Count, 1);
+            int done  = 0;
+            var batch = new List<(string, string, string, string)>(100);
+
+            foreach (var row in rows)
+            {
+                batch.Add(row);
+                if (batch.Count >= 100)
+                {
+                    ApplyEventPlayerSessionsBatch(db, batch);
+                    done += batch.Count;
+                    batch.Clear();
+                    onProgress?.Invoke(15 + (int)(done * 80.0 / total));
+                    await Task.Delay(15);
+                }
+            }
+            if (batch.Count > 0)
+            {
+                ApplyEventPlayerSessionsBatch(db, batch);
+                done += batch.Count;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Migration] MigrateEventPlayerSessions failed: {ex.Message}");
+            onProgress?.Invoke(-1);
+            return;
+        }
+
+        onProgress?.Invoke(100);
+        settings.EventPlayerSessionsMigrated = true;
+        settings.Save();
+    }
+
+    private static void ApplyEventPlayerSessionsBatch(
+        SqliteConnection db,
+        List<(string EventId, string UserId, string Ja, string La)> rows)
+    {
+        using var tx  = db.BeginTransaction();
+        using var upd = db.CreateCommand();
+        upd.Transaction = tx;
+        upd.CommandText = "UPDATE event_players SET joined_at=$ja, left_at=$la WHERE event_id=$eid AND user_id=$uid";
+        var pJa  = upd.Parameters.Add("$ja",  SqliteType.Text);
+        var pLa  = upd.Parameters.Add("$la",  SqliteType.Text);
+        var pEid = upd.Parameters.Add("$eid", SqliteType.Text);
+        var pUid = upd.Parameters.Add("$uid", SqliteType.Text);
+
+        foreach (var (eid, uid, ja, la) in rows)
+        {
+            pJa.Value  = WrapAsJsonArrayIfPlain(ja);
+            pLa.Value  = WrapAsJsonArrayIfPlain(la);
+            pEid.Value = eid;
+            pUid.Value = uid;
+            upd.ExecuteNonQuery();
+        }
+        tx.Commit();
+    }
+
+    private static string WrapAsJsonArrayIfPlain(string raw)
+    {
+        if (string.IsNullOrEmpty(raw)) return "";
+        var trimmed = raw.TrimStart();
+        if (trimmed.StartsWith("[")) return raw;
+        return JsonConvert.SerializeObject(new[] { raw });
+    }
+
     public static void MigrateCachesToSubdir()
     {
         var root  = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VRCNext");

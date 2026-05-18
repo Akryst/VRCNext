@@ -141,6 +141,7 @@ function renderNotifications(list, noDecline = _notifNoDecline) {
         const { icon, label } = getNotificationTypeMeta(n.type);
         const time = getNotificationTime(n.created_at);
         const canAccept = ['friendRequest', 'invite', 'requestInvite', 'group.invite', 'group.joinRequest'].includes(n.type);
+        const canAnswer = (n.type === 'invite' || n.type === 'requestInvite');
         const nid = esc(n.id);
         const senderLink = n.senderUserId
             ? `<strong style="cursor:pointer;" onclick="toggleNotifPanel();openFriendDetail('${esc(n.senderUserId)}')">${esc(n.senderUsername || n.senderUserId)}</strong>`
@@ -199,6 +200,7 @@ function renderNotifications(list, noDecline = _notifNoDecline) {
             </div>
             <div class="notif-actions">
                 ${canAccept ? `<button class="vrcn-notify-button primary notif-accept-btn" onclick="acceptNotif('${nid}',this)"><span class="msi">check</span> ${t('notifications.actions.accept', 'Accept')}</button>` : ''}
+                ${canAnswer ? `<button class="vrcn-notify-button notif-answer-btn" onclick="openNotifRespondModal('${nid}')" title="${t('notifications.actions.answer_tooltip', 'Decline with a message or image')}"><span class="msi">reply</span> ${t('notifications.actions.answer', 'Answer')}</button>` : ''}
                 ${(!noDecline && (canAccept || !n.seen)) ? `<button class="vrcn-notify-button danger notif-decline-btn" onclick="declineNotif('${nid}',this)" title="${t('notifications.actions.decline', 'Decline')}"><span class="msi">close</span></button>` : ''}
             </div>
         </div>`;

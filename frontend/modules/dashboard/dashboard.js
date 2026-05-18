@@ -750,8 +750,8 @@ function renderDashRecentPhotos() {
         const dateMatch = (f.name || '').match(/(\d{4}-\d{2}-\d{2})/);
         const dateStr   = dateMatch ? fmtShortDate(new Date(dateMatch[1] + 'T00:00:00')) : (f.time || '');
         const isHidden  = (typeof hiddenMedia !== 'undefined') && hiddenMedia.has(f.path);
-        const urlJs = jsq(f.url || '');
-        return `<div class="dash-photo-item${isHidden ? ' dpi-hidden' : ''}" onclick="openLightbox('${urlJs}','image')" title="${esc(f.name || '')}" data-path="${esc(f.path || '')}" data-url="${esc(f.url || '')}" data-type="image" data-name="${esc(f.name || '')}">
+        const pathJs    = jsq(f.path || '');
+        return `<div class="dash-photo-item${isHidden ? ' dpi-hidden' : ''}" onclick="openPhotoDetail('${pathJs}')" title="${esc(f.name || '')}" data-path="${esc(f.path || '')}" data-url="${esc(f.url || '')}" data-type="image" data-name="${esc(f.name || '')}">
             <div class="dpi-img"${thumbUrl ? ` style="background-image:url('${cssUrl(thumbUrl)}')"` : ''}></div>
             <div class="dpi-date">${esc(dateStr)}</div>
         </div>`;

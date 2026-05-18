@@ -40,6 +40,7 @@
     <link rel="stylesheet" href="modules/tools/discord-presence/discord-presence.css">
     <link rel="stylesheet" href="modules/tools/vr-overlay/vr-overlay.css">
     <link rel="stylesheet" href="modules/tools/permini/permini.css">
+    <link rel="stylesheet" href="modules/tools/action-flow/action-flow.css">
     <link rel="stylesheet" href="modules/settings/settings.css">
     <link rel="stylesheet" href="core/modals/modals.css">
     <link rel="stylesheet" href="core/modals/invite-modal/invite-modal.css">
@@ -68,7 +69,7 @@
 <body>
     <div class="app-body">
     <div class="sidebar" id="sidebarEl">
-        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.25.8</div></div></div>
+        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.25.10</div></div></div>
         <div class="nav vrcn-scrollbar" id="navEl"></div>
         <div class="clock-area"><div class="clock-time" id="clock">00:00:00</div><div class="clock-date" id="clockDate"></div></div>
         <div class="play-area"><button class="btn-play" onclick="playVRChat()"><span class="msi play-icon">play_arrow</span><span class="pl" data-i18n="sidebar.play_vrchat">Play VRChat</span></button></div>
@@ -115,6 +116,13 @@
                     <div class="tb-menu-item" id="tbMenuTools"><span data-i18n="nav.tools">Tools</span>
                         <div class="tb-dropdown">
                             <div class="tb-dd-submenu">
+                                <button class="tb-dd-item"><span class="msi">videogame_asset</span><span data-i18n="tb.tools.vrchat">VRChat</span><span class="msi tb-dd-arrow">chevron_right</span></button>
+                                <div class="tb-dd-sub-drop">
+                                    <button class="tb-dd-item" data-keep-modal onclick="openVrcConfigModal()"><span class="msi">tune</span><span data-i18n="tb.vrchat.config">VRChat Config</span></button>
+                                    <button class="tb-dd-item" data-keep-modal onclick="openVrcLaunchOptionsModal()"><span class="msi">terminal</span><span data-i18n="tb.vrchat.launch_options">VRChat Launch Options</span></button>
+                                </div>
+                            </div>
+                            <div class="tb-dd-submenu">
                                 <button class="tb-dd-item"><span class="msi">link</span><span data-i18n="tb.tools.shortcuts">Shortcuts</span><span class="msi tb-dd-arrow">chevron_right</span></button>
                                 <div class="tb-dd-sub-drop">
                                     <button class="tb-dd-item" onclick="sendToCS({action:'openShortcutFolder',folder:'vrchat_data'})"><span class="msi">folder</span><span data-i18n="tb.shortcuts.vrchat_data">VRChat Data</span></button>
@@ -140,6 +148,7 @@
                             <div class="tb-dd-item" onclick="showTab(21)"><span class="msi">lock</span><span data-i18n="nav.permini">Permini</span></div>
                             <div class="tb-dd-item" onclick="showTab(22)"><span class="msi">translate</span><span data-i18n="nav.kikitan_xd">Kikitan XD</span></div>
                             <div class="tb-dd-item" onclick="showTab(24)"><span class="msi">height</span><span data-i18n="nav.avatar_scaling">Avatar Scaling</span></div>
+                            <div class="tb-dd-item" onclick="showTab(25)"><span class="msi">auto_awesome</span><span data-i18n="nav.action_flow">Action Flow</span></div>
                         </div>
                     </div>
                     <div class="tb-menu-item" id="tbMenuHelp"><span data-i18n="tb.help">Help</span>
@@ -319,6 +328,9 @@
             <!-- Tab 24: Avatar Scaling -->
             <div class="tab" id="tab24" data-windows-only></div>
 
+            <!-- Tab 25: Action Flow -->
+            <div class="tab" id="tab25"></div>
+
         </div>
     </div>
 
@@ -401,6 +413,12 @@
     <div class="modal-overlay" id="modalCreateInstance" style="display:none;z-index:10010;" onclick="if(event.target===this)closeCreateInstanceModal()"></div>
 
     <div class="modal-overlay" id="modalPerminiPicker" style="display:none;" onclick="if(event.target===this)closePerminiPicker()"></div>
+
+    <!-- VRChat Config Modal -->
+    <div class="modal-overlay" id="modalVrcConfig" style="display:none;" onclick="if(event.target===this)this.style.display='none'"></div>
+
+    <!-- VRChat Launch Options Modal -->
+    <div class="modal-overlay" id="modalVrcLaunchOptions" style="display:none;" onclick="if(event.target===this)this.style.display='none'"></div>
 
     <!-- Notification Toast (top-right, action feedback) -->
     <div id="notifToastArea" class="notif-toast-area"></div>
@@ -493,6 +511,7 @@
             tab22: 'modules/tools/kikitan-xd/kikitan-xd.html',
             tab23: 'modules/tools/event-snipe/event-snipe.html',
             tab24: 'modules/tools/avatar-scaling/avatar-scaling.html',
+            tab25: 'modules/tools/action-flow/action-flow.html',
         };
 
         const modalFragments = {
@@ -510,6 +529,8 @@
             modalCreateInstance: 'core/modals/create-instance-modal/create-instance-modal.html',
             modalVfBlock:       'modules/tools/voice-fight/voice-fight-block.html',
             modalPerminiPicker: 'modules/tools/permini/permini-picker.html',
+            modalVrcConfig:        'core/modals/vrc-tools-modal/vrc-config-modal.html',
+            modalVrcLaunchOptions: 'core/modals/vrc-tools-modal/vrc-launch-options-modal.html',
             dashLayoutModal:    'modules/dashboard/dash-layout.html',
             avFavPickerPanel:   'modules/avatars/fav-picker.html',
             themeEditorPanel:   'modules/settings/theme-editor.html',
@@ -542,6 +563,7 @@
             'core/modals/auth-modal/auth-modal.js',
             'core/modals/my-profile-modal/my-profile-modal.js',
             'core/modals/friend-invite-modal/friend-invite-modal.js',
+            'core/modals/notification-respond-modal/notification-respond-modal.js',
             'core/modals/image-picker-modal/image-picker-modal.js',
             'core/modals/user-modal/user-modal.js',
             'core/previews/friend-preview.js',
@@ -581,11 +603,13 @@
             'modules/tools/kikitan-xd/kikitan-xd.js',
             'modules/tools/event-snipe/event-snipe.js',
             'modules/tools/avatar-scaling/avatar-scaling.js',
+            'modules/tools/action-flow/action-flow.js',
             'core/logic/init.js',
             'core/debounce/debounce.js',
             'core/SmartSearch/smart-search.js',
             'core/Keybinds/Keybind.js',
             'core/Taskbar/taskbar.js',
+            'core/modals/vrc-tools-modal/vrc-tools-modal.js',
         ];
 
         try {

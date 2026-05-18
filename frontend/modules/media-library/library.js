@@ -574,7 +574,7 @@ function _buildLibCard(x) {
         const thumbSrc = suAttr ? suAttr + '?thumb=1' : '';
         const resTag   = _resTag(x);
         const resBadge = resTag ? `<span class="vrcn-badge accent" style="margin-left:4px;">${resTag}</span>` : '';
-        return `<div class="lib-card" data-path="${esc(x.path||'')}" data-url="${suAttr}" data-type="${x.type}" data-name="${esc(x.name||'')}">${acts}<div class="lib-thumb-wrap${blurClass}" onclick="openLightbox('${suJs}','image')"><img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px;font-weight:700\\'>${jsq(t('library.no_preview', 'No Preview'))}</div>'">${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}${worldBadge}${playersOverlay}</div><div class="lib-info" onclick="event.stopPropagation();openPhotoDetail(${idx})" style="cursor:pointer;"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span style="display:flex;align-items:center;">${x.size}${resBadge}</span><span>${x.time}</span></div></div></div>`;
+        return `<div class="lib-card" data-path="${esc(x.path||'')}" data-url="${suAttr}" data-type="${x.type}" data-name="${esc(x.name||'')}">${acts}<div class="lib-thumb-wrap${blurClass}" onclick="openPhotoDetail(${idx})"><img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px;font-weight:700\\'>${jsq(t('library.no_preview', 'No Preview'))}</div>'">${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}${worldBadge}${playersOverlay}</div><div class="lib-info" onclick="event.stopPropagation();openPhotoDetail(${idx})" style="cursor:pointer;"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span style="display:flex;align-items:center;">${x.size}${resBadge}</span><span>${x.time}</span></div></div></div>`;
     } else {
         const ck     = x.path || '';
         const cached = thumbCache[ck];
@@ -635,6 +635,12 @@ function toggleFavorite(p) {
     }
     filterLibrary(true); // stay on current page
     if (typeof _wdRenderPhotosPage === 'function') _wdRenderPhotosPage();
+    // Refresh photo detail modal info pane if it's showing this photo
+    const photoModal = document.getElementById('photoDetailModal');
+    if (photoModal && _photoState.item?.path === p) {
+        const infoPane = photoModal.querySelector('.photo-detail-info-pane');
+        if (infoPane) infoPane.innerHTML = _photoBuildInfoPaneContent(_photoState.item);
+    }
 }
 
 function toggleHidden(p) {
@@ -691,55 +697,250 @@ function cacheVidThumb(v, fp) {
     } catch (e) {}
 }
 
-// Photo detail modal.
-function openPhotoDetail(idx) {
-    const x = libraryFiles[idx];
+// Photo detail modal — image on the left, info card on the right.
+// Accepts: number (libraryFiles index), string (file path → looked up in libraryFiles), or item object.
+const _photoState = { scale: 1, rotation: 0, tx: 0, ty: 0, item: null, drag: null };
+
+function openPhotoDetail(target) {
+    let x;
+    if (typeof target === 'number')      x = libraryFiles[target];
+    else if (typeof target === 'string') x = libraryFiles.find(f => f.path === target);
+    else                                  x = target;
     if (!x) return;
-    const el      = document.getElementById('detailModalContent');
-    const imgUrl  = x.url || '';
-    const players = x.players || [];
-    const worldId = x.worldId || '';
-    const wInfo   = worldId ? worldInfoCache[worldId] : null;
+
+    _photoState.item = x;
+    _photoState.scale = 1;
+    _photoState.rotation = 0;
+    _photoState.tx = 0;
+    _photoState.ty = 0;
+    _photoState.drag = null;
+
+    const existing = document.getElementById('photoDetailModal');
+    if (existing) {
+        _photoRenderContent(existing, x);
+        _photoApplyTransform();
+    } else {
+        _photoCreateModal(x);
+    }
+}
+
+function _photoCreateModal(x) {
+    const o = document.createElement('div');
+    o.className = 'modal-overlay photo-detail-overlay';
+    o.id        = 'photoDetailModal';
+    o.onclick   = e => { if (e.target === o) closePhotoDetail(); };
+    o.innerHTML = `<div class="photo-detail-box">
+        <button class="photo-detail-close" onclick="closePhotoDetail()" title="${esc(t('common.close', 'Close'))}"><span class="msi" style="font-size:18px;">close</span></button>
+        <div class="photo-detail-img-pane">
+            <img class="photo-detail-img" alt="" draggable="false" style="display:none;" onerror="this.style.display='none'">
+            <div class="photo-detail-toolbar-mount"></div>
+        </div>
+        <div class="photo-detail-info-pane"></div>
+    </div>`;
+    document.body.appendChild(o);
+
+    _photoRenderContent(o, x);
+
+    const imgPane = o.querySelector('.photo-detail-img-pane');
+    if (imgPane) {
+        imgPane.addEventListener('wheel',     _photoOnWheel, { passive: false });
+        imgPane.addEventListener('mousedown', _photoOnMouseDown);
+    }
+
+    const ok = e => {
+        if (e.key === 'Escape') { closePhotoDetail(); document.removeEventListener('keydown', ok); }
+    };
+    document.addEventListener('keydown', ok);
+}
+
+function _photoRenderContent(modal, x) {
+    const imgPane = modal.querySelector('.photo-detail-img-pane');
+    if (imgPane) {
+        imgPane.dataset.path = x.path || '';
+        imgPane.dataset.url  = x.url  || '';
+        imgPane.dataset.type = x.type || 'image';
+        imgPane.dataset.name = x.name || '';
+    }
+
+    const imgEl = modal.querySelector('.photo-detail-img');
+    if (imgEl) {
+        const url = x.url || '';
+        imgEl.style.transform = '';
+        if (url) {
+            imgEl.style.display = '';
+            if (imgEl.getAttribute('src') !== url) imgEl.src = url;
+        } else {
+            imgEl.style.display = 'none';
+            imgEl.removeAttribute('src');
+        }
+    }
+
+    const oldToolbar = modal.querySelector('.photo-detail-toolbar, .photo-detail-toolbar-mount');
+    if (oldToolbar) oldToolbar.outerHTML = _photoBuildToolbar(x);
+
+    const infoPane = modal.querySelector('.photo-detail-info-pane');
+    if (infoPane) infoPane.innerHTML = _photoBuildInfoPaneContent(x);
+}
+
+function _photoBuildToolbar(x) {
+    const isImg = f => f.type === 'image' || f.type === 'gif';
+    const inFilt = x.path ? _libFiltered.some(f => f.path === x.path) : false;
+    const navList = x.path ? (inFilt ? _libFiltered : libraryFiles).filter(isImg) : [];
+    const navIdx  = x.path ? navList.findIndex(f => f.path === x.path) : -1;
+    const prevDisabled = (navIdx <= 0)                              ? ' disabled' : '';
+    const nextDisabled = (navIdx < 0 || navIdx >= navList.length-1) ? ' disabled' : '';
+
+    return `<div class="photo-detail-toolbar" onmousedown="event.stopPropagation()">
+        <button class="pdt-btn" onclick="photoNavPrev()" title="${esc(t('library.detail.prev', 'Previous'))}"${prevDisabled}><span class="msi">chevron_left</span></button>
+        <span class="pdt-sep"></span>
+        <button class="pdt-btn" onclick="photoCopy()" title="${esc(t('library.actions.copy_clipboard', 'Copy to clipboard'))}"><span class="msi">content_copy</span></button>
+        <button class="pdt-btn" onclick="photoZoom(1.25)" title="${esc(t('library.detail.zoom_in', 'Zoom In'))}"><span class="msi">zoom_in</span></button>
+        <button class="pdt-btn" onclick="photoZoom(0.8)" title="${esc(t('library.detail.zoom_out', 'Zoom Out'))}"><span class="msi">zoom_out</span></button>
+        <button class="pdt-btn" onclick="photoRotate(-90)" title="${esc(t('library.detail.rotate_left', 'Rotate Left'))}"><span class="msi">rotate_left</span></button>
+        <button class="pdt-btn" onclick="photoRotate(90)" title="${esc(t('library.detail.rotate_right', 'Rotate Right'))}"><span class="msi">rotate_right</span></button>
+        <button class="pdt-btn" onclick="photoReset()" title="${esc(t('library.detail.reset', 'Reset'))}"><span class="msi">refresh</span></button>
+        <span class="pdt-sep"></span>
+        <button class="pdt-btn" onclick="photoNavNext()" title="${esc(t('library.detail.next', 'Next'))}"${nextDisabled}><span class="msi">chevron_right</span></button>
+    </div>`;
+}
+
+function _photoBuildInfoPaneContent(x) {
+    const players   = x.players || [];
+    const worldId   = x.worldId || '';
+    const wInfo     = worldId ? worldInfoCache[worldId] : null;
     const worldName = wInfo?.name || worldId || '';
-    const date    = new Date(x.modified);
-    const dateStr = fmtLongDate(date);
-    const timeStr = fmtTime(date);
+    const date      = new Date(x.modified);
+    const dateStr   = fmtLongDate(date);
+    const timeStr   = fmtTime(date);
+    const resTag    = _resTag(x);
+    const resStr    = (x.imgW && x.imgH)
+        ? (resTag ? `${resTag} (${x.imgW}×${x.imgH})` : `${x.imgW}×${x.imgH}`)
+        : resTag;
 
-    // Use thumbnail for banner — avoids loading full-res image (30-100 MB) into RAM for a modal
-    const thumbUrl   = imgUrl ? imgUrl + '?thumb=1' : '';
-    const bannerHtml = thumbUrl ? `<div class="fd-banner"><img src="${thumbUrl}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>` : '';
-
-    const worldRowClick = worldId ? ` onclick="document.getElementById('modalDetail').style.display='none';openWorldSearchDetail('${esc(worldId)}')" style="cursor:pointer;"` : '';
+    const worldRowClick = worldId ? ` onclick="closePhotoDetail();openWorldSearchDetail('${esc(worldId)}')" style="cursor:pointer;"` : '';
+    const isFav = x.path && (typeof favorites !== 'undefined') && favorites.has(x.path);
+    const favBadge = `<span class="vrcn-badge accent"><span class="msi" style="font-size:11px;">star</span>${esc(t('library.detail.favorited', 'Favorited'))}</span>`;
     const infoRows = [
         _tlMr(esc(t('library.detail.date', 'Date')), esc(dateStr)),
         _tlMr(esc(t('library.detail.time', 'Time')), esc(timeStr)),
-        _tlMr(esc(t('library.detail.size', 'Size')), esc(x.size)),
+        x.size ? _tlMr(esc(t('library.detail.size', 'Size')), esc(x.size)) : '',
         worldName ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"${worldRowClick}><span style="color:var(--tx3);">${esc(t('library.detail.world', 'World'))}</span><span style="color:var(--accent-lt);text-align:right;">${esc(worldName)}</span></div>` : '',
+        resStr ? _tlMr(esc(t('library.detail.resolution', 'Resolution')), esc(resStr)) : '',
+        isFav ? _tlMr(esc(t('library.detail.favorited', 'Favorited')), favBadge) : '',
     ].filter(Boolean).join('');
 
     let playersHtml = '';
     if (players.length > 0) {
-        playersHtml = `<div class="fd-group-rep-label" style="margin:14px 0 8px;">${tf('library.detail.players_title', { count: players.length }, 'PLAYERS IN INSTANCE ({count})')}</div><div class="photo-players-list">`;
+        let grid = '';
         players.forEach(p => {
-            const onclick = p.userId ? `document.getElementById('modalDetail').style.display='none';openFriendDetail('${jsq(p.userId)}')` : '';
-            const isOwn = currentVrcUser && p.userId === currentVrcUser.id;
-            const fr    = isOwn ? currentVrcUser : vrcFriendsData.find(f => f.id === p.userId);
-            playersHtml += renderProfileItemSmall({ id: p.userId, displayName: p.displayName, image: fr?.image || p.image || '' }, onclick);
+            const name    = p.displayName || '?';
+            const isOwn   = currentVrcUser && p.userId === currentVrcUser.id;
+            const live    = isOwn ? currentVrcUser : (p.userId ? vrcFriendsData.find(f => f.id === p.userId) : null);
+            const image   = live?.image || p.image || '';
+            const av      = image
+                ? `<div class="tl-player-card-av" style="background-image:url('${cssUrl(image)}')"></div>`
+                : `<div class="tl-player-card-av">${esc(name[0].toUpperCase())}</div>`;
+            const badge   = live ? `<span class="vrcn-badge ok"><span class="msi" style="font-size:10px;">check_circle</span>${t('profiles.badges.friend', 'Friend')}</span>` : '';
+            const onclick = p.userId ? `onclick="closePhotoDetail();openFriendDetail('${jsq(p.userId)}')"` : '';
+            const clickCls = p.userId ? ' clickable' : '';
+            grid += `<div class="tl-player-card${clickCls}" ${onclick}>${av}<div class="tl-player-card-info"><div class="tl-player-card-name"><span>${esc(name)}</span>${badge}</div></div></div>`;
         });
-        playersHtml += `</div>`;
+        playersHtml = `<div class="fd-info-card photo-detail-players-card">
+            <div class="fd-group-rep-label">${tf('library.detail.players_title', { count: players.length }, 'PLAYERS IN INSTANCE ({count})')}</div>
+            <div class="tl-players-grid photo-detail-players-grid">${grid}</div>
+        </div>`;
     }
 
-    el.innerHTML = `${bannerHtml}<div class="fd-content${imgUrl ? ' fd-has-banner' : ''}" style="padding:20px 0;">
-        <h2 style="margin:0 0 12px;color:var(--tx0);font-size:18px;">${esc(x.name)}</h2>
+    return `<h2 class="photo-detail-name">${esc(x.name)}</h2>
         ${_tlInfoCard(esc(t('library.detail.info', 'Info')), infoRows)}
-        ${playersHtml}
-        <div style="margin-top:14px;display:flex;gap:8px;">
-            ${_tlClose()}
-        </div>
-    </div>`;
-    const _libMb = document.querySelector('#modalDetail .modal-box');
-    if (_libMb) _libMb.classList.add('narrow');
-    document.getElementById('modalDetail').style.display = 'flex';
+        ${playersHtml}`;
+}
+
+function closePhotoDetail() {
+    const m = document.getElementById('photoDetailModal');
+    if (!m) return;
+    document.removeEventListener('mousemove', _photoOnMouseMove);
+    document.removeEventListener('mouseup',   _photoOnMouseUp);
+    _photoState.drag = null;
+    m.querySelectorAll('img').forEach(img => { img.src = PLACEHOLDER; });
+    m.remove();
+}
+
+// === Photo modal interactions ===
+function _photoApplyTransform() {
+    const img = document.querySelector('#photoDetailModal .photo-detail-img');
+    if (!img) return;
+    const s = _photoState;
+    img.style.transform = `translate(${s.tx}px, ${s.ty}px) scale(${s.scale}) rotate(${s.rotation}deg)`;
+}
+
+function photoZoom(factor) {
+    _photoState.scale = Math.max(0.1, Math.min(20, _photoState.scale * factor));
+    _photoApplyTransform();
+}
+
+function photoRotate(deg) {
+    _photoState.rotation += deg;
+    _photoApplyTransform();
+}
+
+function photoReset() {
+    _photoState.scale    = 1;
+    _photoState.rotation = 0;
+    _photoState.tx       = 0;
+    _photoState.ty       = 0;
+    _photoApplyTransform();
+}
+
+function photoCopy() {
+    const it = _photoState.item;
+    if (!it || !it.path) return;
+    copyToClipboard(it.url || '', it.path, it.type || 'image');
+}
+
+function photoNavPrev() { _photoNav(-1); }
+function photoNavNext() { _photoNav(1);  }
+
+function _photoNav(dir) {
+    const it = _photoState.item;
+    if (!it || !it.path) return;
+    const isImg = f => f.type === 'image' || f.type === 'gif';
+    const inFilt = _libFiltered.some(f => f.path === it.path);
+    const list   = (inFilt ? _libFiltered : libraryFiles).filter(isImg);
+    const idx    = list.findIndex(f => f.path === it.path);
+    if (idx < 0) return;
+    const next = list[idx + dir];
+    if (next) openPhotoDetail(next);
+}
+
+function _photoOnWheel(e) {
+    e.preventDefault();
+    photoZoom(e.deltaY < 0 ? 1.15 : 1/1.15);
+}
+
+function _photoOnMouseDown(e) {
+    if (e.button !== 0) return; // left button only — right/middle pass through (e.g. for context menu)
+    if (e.target.closest('.photo-detail-toolbar')) return;
+    _photoState.drag = { startX: e.clientX, startY: e.clientY, baseTx: _photoState.tx, baseTy: _photoState.ty };
+    document.querySelector('#photoDetailModal .photo-detail-img-pane')?.classList.add('dragging');
+    document.addEventListener('mousemove', _photoOnMouseMove);
+    document.addEventListener('mouseup',   _photoOnMouseUp);
+    e.preventDefault();
+}
+
+function _photoOnMouseMove(e) {
+    const d = _photoState.drag;
+    if (!d) return;
+    _photoState.tx = d.baseTx + (e.clientX - d.startX);
+    _photoState.ty = d.baseTy + (e.clientY - d.startY);
+    _photoApplyTransform();
+}
+
+function _photoOnMouseUp() {
+    _photoState.drag = null;
+    document.querySelector('#photoDetailModal .photo-detail-img-pane')?.classList.remove('dragging');
+    document.removeEventListener('mousemove', _photoOnMouseMove);
+    document.removeEventListener('mouseup',   _photoOnMouseUp);
 }
 
 // Lightbox.

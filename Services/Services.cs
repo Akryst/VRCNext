@@ -210,6 +210,7 @@ public class AppSettings
     public List<string> MyInstances { get; set; } = new();
     public List<string> Favorites { get; set; } = new();
     public string VrcPath { get; set; } = "";
+    public string VrcLaunchArgs { get; set; } = "";
     public List<string> ExtraExe { get; set; } = new(); // legacy — kept for JSON compat / migration
     public List<string> ExtraExeDesktop { get; set; } = new();
     public List<string> ExtraExeVR { get; set; } = new();
@@ -452,6 +453,9 @@ public class AppSettings
 
     // One-time migration: backfill first_meet_date + meet_again_count into user_tracking
     public bool UserTrackingCountsMigrated { get; set; } = false;
+
+    // One-time migration: convert event_players.joined_at/left_at from single timestamp to JSON array of sessions
+    public bool EventPlayerSessionsMigrated { get; set; } = false;
 
     // Auto-Update on startup
     public bool AutoUpdate { get; set; } = true;

@@ -29,8 +29,26 @@ public class TimelineService : IDisposable
         public string UserId      { get; set; } = "";
         public string DisplayName { get; set; } = "";
         public string Image       { get; set; } = "";
-        public string JoinedAt    { get; set; } = "";
-        public string LeftAt      { get; set; } = "";
+        public List<string> JoinedAts { get; set; } = new();
+        public List<string> LeftAts   { get; set; } = new();
+
+        public static List<string> ParseSessions(string raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return new();
+            var trimmed = raw.TrimStart();
+            if (trimmed.StartsWith("["))
+            {
+                try { return JsonConvert.DeserializeObject<List<string>>(raw) ?? new(); }
+                catch { return new(); }
+            }
+            return new() { raw };
+        }
+
+        public static string SerializeSessions(List<string>? sessions)
+        {
+            if (sessions == null || sessions.Count == 0) return "";
+            return JsonConvert.SerializeObject(sessions);
+        }
     }
 
     public class TimelineEvent
@@ -286,7 +304,13 @@ public class TimelineService : IDisposable
                 {
                     var eid = r.GetString(0);
                     if (!optPlayerMap.TryGetValue(eid, out var list)) optPlayerMap[eid] = list = new();
-                    list.Add(new PlayerSnap { UserId = r.GetString(1), DisplayName = r.GetString(2), Image = r.GetString(3), JoinedAt = r.IsDBNull(4) ? "" : r.GetString(4), LeftAt = r.IsDBNull(5) ? "" : r.GetString(5) });
+                    list.Add(new PlayerSnap {
+                        UserId      = r.GetString(1),
+                        DisplayName = r.GetString(2),
+                        Image       = r.GetString(3),
+                        JoinedAts   = PlayerSnap.ParseSessions(r.IsDBNull(4) ? "" : r.GetString(4)),
+                        LeftAts     = PlayerSnap.ParseSessions(r.IsDBNull(5) ? "" : r.GetString(5)),
+                    });
                 }
             }
 
@@ -397,8 +421,8 @@ public class TimelineService : IDisposable
                     UserId      = r.GetString(1),
                     DisplayName = r.GetString(2),
                     Image       = r.GetString(3),
-                    JoinedAt    = r.IsDBNull(4) ? "" : r.GetString(4),
-                    LeftAt      = r.IsDBNull(5) ? "" : r.GetString(5),
+                    JoinedAts   = PlayerSnap.ParseSessions(r.IsDBNull(4) ? "" : r.GetString(4)),
+                    LeftAts     = PlayerSnap.ParseSessions(r.IsDBNull(5) ? "" : r.GetString(5)),
                 });
             }
         }
@@ -874,7 +898,13 @@ public class TimelineService : IDisposable
             {
                 var eid = pr.GetString(0);
                 if (!playerMap.TryGetValue(eid, out var list)) playerMap[eid] = list = new();
-                list.Add(new PlayerSnap { UserId = pr.GetString(1), DisplayName = pr.GetString(2), Image = pr.GetString(3), JoinedAt = pr.IsDBNull(4) ? "" : pr.GetString(4), LeftAt = pr.IsDBNull(5) ? "" : pr.GetString(5) });
+                list.Add(new PlayerSnap {
+                    UserId      = pr.GetString(1),
+                    DisplayName = pr.GetString(2),
+                    Image       = pr.GetString(3),
+                    JoinedAts   = PlayerSnap.ParseSessions(pr.IsDBNull(4) ? "" : pr.GetString(4)),
+                    LeftAts     = PlayerSnap.ParseSessions(pr.IsDBNull(5) ? "" : pr.GetString(5)),
+                });
             }
         }
         catch { }
@@ -968,7 +998,13 @@ public class TimelineService : IDisposable
             {
                 var eid = pr.GetString(0);
                 if (!playerMap.TryGetValue(eid, out var list)) playerMap[eid] = list = new();
-                list.Add(new PlayerSnap { UserId = pr.GetString(1), DisplayName = pr.GetString(2), Image = pr.GetString(3), JoinedAt = pr.IsDBNull(4) ? "" : pr.GetString(4), LeftAt = pr.IsDBNull(5) ? "" : pr.GetString(5) });
+                list.Add(new PlayerSnap {
+                    UserId      = pr.GetString(1),
+                    DisplayName = pr.GetString(2),
+                    Image       = pr.GetString(3),
+                    JoinedAts   = PlayerSnap.ParseSessions(pr.IsDBNull(4) ? "" : pr.GetString(4)),
+                    LeftAts     = PlayerSnap.ParseSessions(pr.IsDBNull(5) ? "" : pr.GetString(5)),
+                });
             }
         }
         catch { }
@@ -1092,7 +1128,13 @@ public class TimelineService : IDisposable
             {
                 var eid = pr.GetString(0);
                 if (!playerMap.TryGetValue(eid, out var list)) playerMap[eid] = list = new();
-                list.Add(new PlayerSnap { UserId = pr.GetString(1), DisplayName = pr.GetString(2), Image = pr.GetString(3), JoinedAt = pr.IsDBNull(4) ? "" : pr.GetString(4), LeftAt = pr.IsDBNull(5) ? "" : pr.GetString(5) });
+                list.Add(new PlayerSnap {
+                    UserId      = pr.GetString(1),
+                    DisplayName = pr.GetString(2),
+                    Image       = pr.GetString(3),
+                    JoinedAts   = PlayerSnap.ParseSessions(pr.IsDBNull(4) ? "" : pr.GetString(4)),
+                    LeftAts     = PlayerSnap.ParseSessions(pr.IsDBNull(5) ? "" : pr.GetString(5)),
+                });
             }
         }
         catch { }
@@ -1174,7 +1216,13 @@ public class TimelineService : IDisposable
             {
                 var eid = pr.GetString(0);
                 if (!playerMap.TryGetValue(eid, out var list)) playerMap[eid] = list = new();
-                list.Add(new PlayerSnap { UserId = pr.GetString(1), DisplayName = pr.GetString(2), Image = pr.GetString(3), JoinedAt = pr.IsDBNull(4) ? "" : pr.GetString(4), LeftAt = pr.IsDBNull(5) ? "" : pr.GetString(5) });
+                list.Add(new PlayerSnap {
+                    UserId      = pr.GetString(1),
+                    DisplayName = pr.GetString(2),
+                    Image       = pr.GetString(3),
+                    JoinedAts   = PlayerSnap.ParseSessions(pr.IsDBNull(4) ? "" : pr.GetString(4)),
+                    LeftAts     = PlayerSnap.ParseSessions(pr.IsDBNull(5) ? "" : pr.GetString(5)),
+                });
             }
         }
         catch { }
@@ -1768,8 +1816,8 @@ public class TimelineService : IDisposable
                     pUid.Value = p.UserId;
                     pDn.Value  = p.DisplayName;
                     pImg.Value = p.Image;
-                    pJa.Value  = p.JoinedAt;
-                    pLa.Value  = p.LeftAt;
+                    pJa.Value  = PlayerSnap.SerializeSessions(p.JoinedAts);
+                    pLa.Value  = PlayerSnap.SerializeSessions(p.LeftAts);
                     pcmd.ExecuteNonQuery();
                 }
             }
@@ -1800,10 +1848,9 @@ public class TimelineService : IDisposable
             cmd.Parameters.AddWithValue("$id",  ev.Id);
             cmd.ExecuteNonQuery();
 
-            // Read existing joined_at + left_at before deleting so they can be preserved
-            // if the new PlayerSnap has empty values (e.g. stale in-memory state).
-            var savedJoinTimes = new Dictionary<string, string>();
-            var savedLeftTimes = new Dictionary<string, string>();
+            // Preserve existing sessions if the new PlayerSnap has empty values.
+            var savedJoinTimes = new Dictionary<string, List<string>>();
+            var savedLeftTimes = new Dictionary<string, List<string>>();
             using (var readCmd = _db.CreateCommand())
             {
                 readCmd.Transaction = tx;
@@ -1813,10 +1860,10 @@ public class TimelineService : IDisposable
                 while (rdr.Read())
                 {
                     var uid = rdr.GetString(0);
-                    var ja  = rdr.IsDBNull(1) ? "" : rdr.GetString(1);
-                    var la  = rdr.IsDBNull(2) ? "" : rdr.GetString(2);
-                    if (ja != "") savedJoinTimes[uid] = ja;
-                    if (la != "") savedLeftTimes[uid] = la;
+                    var ja  = PlayerSnap.ParseSessions(rdr.IsDBNull(1) ? "" : rdr.GetString(1));
+                    var la  = PlayerSnap.ParseSessions(rdr.IsDBNull(2) ? "" : rdr.GetString(2));
+                    if (ja.Count > 0) savedJoinTimes[uid] = ja;
+                    if (la.Count > 0) savedLeftTimes[uid] = la;
                 }
             }
 
@@ -1844,8 +1891,10 @@ public class TimelineService : IDisposable
                     pUid.Value = p.UserId;
                     pDn.Value  = p.DisplayName;
                     pImg.Value = p.Image;
-                    pJa.Value  = string.IsNullOrEmpty(p.JoinedAt) && savedJoinTimes.TryGetValue(p.UserId, out var savedJa) ? savedJa : p.JoinedAt;
-                    pLa.Value  = string.IsNullOrEmpty(p.LeftAt)   && savedLeftTimes.TryGetValue(p.UserId, out var savedLa) ? savedLa : p.LeftAt;
+                    var ja = (p.JoinedAts == null || p.JoinedAts.Count == 0) && savedJoinTimes.TryGetValue(p.UserId, out var savedJa) ? savedJa : p.JoinedAts;
+                    var la = (p.LeftAts   == null || p.LeftAts.Count == 0)   && savedLeftTimes.TryGetValue(p.UserId, out var savedLa) ? savedLa : p.LeftAts;
+                    pJa.Value = PlayerSnap.SerializeSessions(ja);
+                    pLa.Value = PlayerSnap.SerializeSessions(la);
                     pcmd.ExecuteNonQuery();
                 }
             }
@@ -1940,8 +1989,8 @@ public class TimelineService : IDisposable
                     pUid.Value = p.UserId;
                     pDn.Value  = p.DisplayName;
                     pImg.Value = p.Image;
-                    pJa.Value  = p.JoinedAt;
-                    pLa.Value  = p.LeftAt;
+                    pJa.Value  = PlayerSnap.SerializeSessions(p.JoinedAts);
+                    pLa.Value  = PlayerSnap.SerializeSessions(p.LeftAts);
                     pcmd.ExecuteNonQuery();
                 }
             }

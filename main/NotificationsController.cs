@@ -67,6 +67,79 @@ public class NotificationsController
                 _ = GetNotificationsAsync();
                 break;
 
+            case "vrcGetRespondMessages":
+            {
+                /* notifType in {invite, requestInvite} → pool {response, requestResponse}
+                   per openapi.yaml /invite/{notificationId}/response. */
+                var notifType = msg["notifType"]?.ToString() ?? "invite";
+                var pool      = notifType == "requestInvite" ? "requestResponse" : "response";
+                _ = Task.Run(async () =>
+                {
+                    var uid  = _core.VrcApi.CurrentUserId;
+                    if (string.IsNullOrEmpty(uid)) return;
+                    var msgs = await _core.Invite.GetInviteMessagesAsync(uid, pool);
+                    _core.SendToJS("vrcRespondMessages", new { pool, messages = msgs ?? new JArray() });
+                });
+                break;
+            }
+
+            case "vrcUpdateRespondMessage":
+            {
+                var notifType = msg["notifType"]?.ToString() ?? "invite";
+                var pool      = notifType == "requestInvite" ? "requestResponse" : "response";
+                var slot      = msg["slot"]?.Value<int>() ?? -1;
+                var text      = msg["message"]?.ToString() ?? "";
+                if (slot < 0 || string.IsNullOrEmpty(text)) break;
+                _ = Task.Run(async () =>
+                {
+                    var uid = _core.VrcApi.CurrentUserId;
+                    if (string.IsNullOrEmpty(uid)) return;
+                    var (ok, arr, cooldown) = await _core.Invite.UpdateInviteMessageAsync(uid, slot, text, pool);
+                    if (ok && arr != null)
+                        _core.SendToJS("vrcRespondMessages", new { pool, messages = arr });
+                    else
+                        _core.SendToJS("vrcRespondMessageUpdateFailed", new { pool, slot, cooldown });
+                });
+                break;
+            }
+
+            case "vrcRespondToNotification":
+            {
+                var notifId = msg["notifId"]?.ToString();
+                var slot    = msg["responseSlot"]?.Value<int>() ?? -1;
+                if (string.IsNullOrEmpty(notifId) || slot < 0) break;
+                _ = Task.Run(async () =>
+                {
+                    var (ok, err) = await _core.Invite.RespondToNotificationBySlotAsync(notifId, slot);
+                    _core.SendToJS("vrcActionResult", new {
+                        action  = "respondNotif",
+                        success = ok,
+                        message = ok ? "Response sent!" : ("Response failed: " + err),
+                    });
+                    if (ok) await _core.Notifications.HideNotificationAsync(notifId, isV2: false);
+                });
+                break;
+            }
+
+            case "vrcRespondToNotificationWithPhoto":
+            {
+                var notifId  = msg["notifId"]?.ToString();
+                var slot     = msg["responseSlot"]?.Value<int>() ?? -1;
+                var fileUrl  = msg["fileUrl"]?.ToString();
+                if (string.IsNullOrEmpty(notifId) || slot < 0 || string.IsNullOrEmpty(fileUrl)) break;
+                _ = Task.Run(async () =>
+                {
+                    var (ok, err) = await _core.Invite.RespondToNotificationBySlotWithPhotoAsync(notifId, slot, fileUrl);
+                    _core.SendToJS("vrcActionResult", new {
+                        action  = "respondNotif",
+                        success = ok,
+                        message = ok ? "Response sent!" : ("Response failed: " + err),
+                    });
+                    if (ok) await _core.Notifications.HideNotificationAsync(notifId, isV2: false);
+                });
+                break;
+            }
+
             case "vrcGetHiddenNotifications":
                 _ = GetHiddenNotificationsAsync();
                 break;

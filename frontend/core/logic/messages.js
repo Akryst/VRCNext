@@ -1,6 +1,11 @@
 /* === Photino message handler === */
 window.external.receiveMessage(rawMsg => {
     const { type, payload } = JSON.parse(rawMsg);
+    // Forward every incoming event to Action Flow's websocket-trigger router.
+    // Fire-and-forget; any errors must not break the main handler.
+    if (typeof window.__afOnWebsocketEvent === 'function') {
+        try { window.__afOnWebsocketEvent(type, payload); } catch (e) { console.error('[ActionFlow] ws hook', e); }
+    }
     switch (type) {
             case 'translationData': handleTranslationData(payload); break;
             case 'loadSettings': loadSettingsToUI(payload); if (typeof requestAccountsList === 'function') requestAccountsList(); break;
@@ -85,6 +90,12 @@ window.external.receiveMessage(rawMsg => {
                 if (typeof setImgCacheDebug === 'function') setImgCacheDebug(payload.enabled);
                 break;
             case 'toast': showToast(payload.ok, payload.msg); break;
+            case 'vrcConfigData':
+                if (typeof _vrcCfgApplyData === 'function') _vrcCfgApplyData(payload || {});
+                break;
+            case 'vrcLaunchOptionsData':
+                if (typeof _vrcLaApplyData === 'function') _vrcLaApplyData(payload || {});
+                break;
             case 'showCrashModal': showCrashModal(payload); break;
             case 'wsStatus': {
                 const badge = document.getElementById('wsBadge');
@@ -135,7 +146,13 @@ window.external.receiveMessage(rawMsg => {
                 break;
             case 'exeAdded':
                 if (payload.target === 'vrchat') {
-                    document.getElementById('setVrcPath').value = payload.path;
+                    var _setVrcPathEl = document.getElementById('setVrcPath');
+                    if (_setVrcPathEl) _setVrcPathEl.value = payload.path;
+                    var _vrcLaPathEl = document.getElementById('vrcLaPath');
+                    var _laModal = document.getElementById('modalVrcLaunchOptions');
+                    if (_vrcLaPathEl && _laModal && _laModal.style.display !== 'none') {
+                        _vrcLaPathEl.value = payload.path;
+                    }
                 } else if (payload.target === 'extra-desktop') {
                     if (!settings.extraExeDesktop) settings.extraExeDesktop = [];
                     settings.extraExeDesktop.push(payload.path);
@@ -837,6 +854,12 @@ case 'vrcNews':
             case 'vrcInviteMessageUpdateFailed':
                 handleVrcInviteMessageUpdateFailed(payload);
                 break;
+            case 'vrcRespondMessages':
+                if (typeof handleVrcRespondMessages === 'function') handleVrcRespondMessages(payload);
+                break;
+            case 'vrcRespondMessageUpdateFailed':
+                if (typeof handleVrcRespondMessageUpdateFailed === 'function') handleVrcRespondMessageUpdateFailed(payload);
+                break;
             case 'updateAvailable':      showUpdateAvailable(payload.version); break;
             case 'updateProgress':       onUpdateProgress(payload); break;
             case 'updateReady':          onUpdateReady(); break;
@@ -939,6 +962,8 @@ case 'vrcNews':
                         onImagePickerFilesLoaded(payload.files || [], payload.tag);
                     if (payload.tag === 'gallery' && typeof _invModalOnGalleryLoaded === 'function')
                         _invModalOnGalleryLoaded(payload.files || []);
+                    if (payload.tag === 'gallery' && typeof _nrModalOnGalleryLoaded === 'function')
+                        _nrModalOnGalleryLoaded(payload.files || []);
                 } else {
                     renderInvFetchError(payload.error, 'inventory.error.requires_login');
                 }
@@ -1010,6 +1035,11 @@ case 'vrcNews':
             break;
         case 'vroStopWaterSound':
             if (waterAudio) { waterAudio.loop = false; waterAudio.pause(); waterAudio.currentTime = 0; }
+            break;
+        case 'afFlows':
+        case 'afSaveResult':
+        case 'afGameRunning':
+            if (typeof window.__afHandleMessage === 'function') window.__afHandleMessage(type, payload);
             break;
     }
 });
