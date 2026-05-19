@@ -658,6 +658,9 @@ public class AuthController
                         _core.Timeline.AddEvent(ev);
                         _core.SendToJS("timelineEvent", _instance.BuildTimelinePayload(ev));
 
+                        if (!string.IsNullOrEmpty(avatarId))
+                            _core.SendToJS("vrcAvatarSelected", new { avatarId });
+
                         // Submit public avatar to avtrdb if enabled
                         if (!string.IsNullOrEmpty(avatarId) && av?["releaseStatus"]?.ToString() == "public")
                             _core.AvtrdbSubmit?.Invoke(avatarId);
