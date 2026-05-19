@@ -1,5 +1,7 @@
 **2026.26.2**
 
+**Avatars**
+* Avatar changes are now shown live inside the avatar tab regardless on how you changed the avatar.
 
 **Action Flow**
 

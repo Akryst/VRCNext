@@ -224,6 +224,13 @@ function afDefineBlocks() {
         this.setColour(COLOR_LOGIC);
     } };
 
+    B.Blocks['af_number'] = { init() {
+        this.appendDummyInput().appendField(new B.FieldNumber(0), 'VALUE');
+        this.setOutput(true, 'Number');
+        this.setColour(COLOR_LOGIC);
+        this.setTooltip(aft('block.number_tooltip', 'A numeric literal — use on the right side of comparisons like "user count > 10".'));
+    } };
+
     /* Conditions: persistent named boolean flags managed via the sidebar.
        Both blocks use a dynamic dropdown of currently-defined condition names. */
     const conditionDropdown = () => {
@@ -456,6 +463,44 @@ function afDefineBlocks() {
         this.setTooltip(aft('avatar_block.is_my_current_tooltip', 'True if the given avatar ID matches my currently worn avatar.'));
     } };
 
+    B.Blocks['af_get_user_count'] = { init() {
+        this.appendDummyInput().appendField(aft('instance_block.user_count', 'user count of instance'));
+        this.setOutput(true, 'Number');
+        this.setColour(COLOR_PARAM);
+        this.setTooltip(aft('instance_block.user_count_tooltip', 'Number of users currently in my instance (includes me).'));
+    } };
+
+    B.Blocks['af_get_instance_type'] = { init() {
+        this.appendDummyInput().appendField(aft('instance_block.my_type', 'my instance type'));
+        this.setOutput(true, 'String');
+        this.setColour(COLOR_PARAM);
+        this.setTooltip(aft('instance_block.my_type_tooltip', 'Returns the instance type I am currently in (e.g., public, friends, invite_plus, group-plus).'));
+    } };
+
+    /* Instance type literal — dropdown of all VRChat instance types. Label is
+       user-facing; value matches the canonical strings used in parseFriendLocation
+       (`public`, `friends`, `friends+`, `invite_plus`, `private`, `group`,
+       `group-plus`, `group-public`). */
+    const INSTANCE_TYPE_DROPDOWN_FACTORY = () => () => [
+        [aft('instance_type.public',       'Public'),       'public'],
+        [aft('instance_type.friends_plus', 'Friends+'),     'friends+'],
+        [aft('instance_type.friends',      'Friends'),      'friends'],
+        [aft('instance_type.invite_plus',  'Invite+'),      'invite_plus'],
+        [aft('instance_type.invite',       'Invite'),       'private'],
+        [aft('instance_type.group_public', 'Group Public'), 'group-public'],
+        [aft('instance_type.group_plus',   'Group+'),       'group-plus'],
+        [aft('instance_type.group',        'Group'),        'group'],
+    ];
+
+    B.Blocks['af_instance_type_obj'] = { init() {
+        this.appendDummyInput()
+            .appendField(aft('instance_block.type_literal', 'instance type'))
+            .appendField(new B.FieldDropdown(INSTANCE_TYPE_DROPDOWN_FACTORY()), 'INSTANCE_TYPE');
+        this.setOutput(true, 'String');
+        this.setColour(COLOR_PARAM);
+        this.setTooltip(aft('instance_block.type_literal_tooltip', 'A literal instance type — use on the right side of "= my instance type" to compare.'));
+    } };
+
     B.Blocks['af_set_status'] = { init() {
         this.appendDummyInput()
             .appendField(aft('action.set_status', 'set status')).appendField(new B.FieldDropdown(STATUS_DROPDOWN_FACTORY()), 'STATUS')
@@ -585,6 +630,7 @@ function afToolbox() {
                 { kind: 'block', type: 'af_and' },
                 { kind: 'block', type: 'af_or' },
                 { kind: 'block', type: 'af_bool' },
+                { kind: 'block', type: 'af_number' },
                 { kind: 'sep' },
                 { kind: 'block', type: 'af_get_condition' },
                 { kind: 'block', type: 'af_set_condition' },
@@ -623,6 +669,11 @@ function afToolbox() {
                 { kind: 'block', type: 'af_get_my_avatar' },
                 { kind: 'block', type: 'af_avatar_obj' },
                 { kind: 'block', type: 'af_is_my_avatar' },
+            ]},
+            { kind: 'category', name: aft('toolbox.instance', 'Instance'), colour: COLOR_PARAM, contents: [
+                { kind: 'block', type: 'af_get_user_count' },
+                { kind: 'block', type: 'af_get_instance_type' },
+                { kind: 'block', type: 'af_instance_type_obj' },
             ]},
             { kind: 'category', name: aft('toolbox.actions', 'Actions'), colour: COLOR_ACTION, contents: [
                 { kind: 'block', type: 'af_set_status' },
@@ -1543,6 +1594,7 @@ function afEvalValue(block) {
     const f = block.fields || {};
     switch (block.type) {
         case 'af_bool':   return f.BOOL === 'TRUE';
+        case 'af_number': return Number(f.VALUE);
         case 'af_get_condition': {
             const name = f.NAME;
             if (!name) return false;
@@ -1648,6 +1700,22 @@ function afEvalValue(block) {
         }
         case 'af_avatar_obj': {
             return (f.AVATAR_ID || '').trim();
+        }
+        case 'af_get_user_count': {
+            if (typeof currentInstanceData === 'undefined' || !currentInstanceData || currentInstanceData.empty) return 0;
+            if (Array.isArray(currentInstanceData.users) && currentInstanceData.users.length > 0)
+                return currentInstanceData.users.length;
+            return Number(currentInstanceData.nUsers) || 0;
+        }
+        case 'af_get_instance_type': {
+            if (typeof currentInstanceData === 'undefined' || !currentInstanceData || currentInstanceData.empty) return '';
+            const raw = String(currentInstanceData.instanceType || '');
+            if (raw === 'hidden')        return 'friends+';
+            if (raw === 'group-members') return 'group';
+            return raw;
+        }
+        case 'af_instance_type_obj': {
+            return f.INSTANCE_TYPE || '';
         }
         case 'af_is_my_avatar': {
             const want = (f.AVATAR_ID || '').trim();
