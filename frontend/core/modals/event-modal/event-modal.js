@@ -81,7 +81,7 @@ function renderEventDetail(ev) {
     const evHeaderActions = renderModalActions([
         { icon: isFollowing ? 'notifications_off' : 'notifications_active', title: followLabel, onclick: `toggleFollowEvent('${groupId}','${calendarId}',${isFollowing},this)` },
         gid ? { icon: 'group', title: t('calendar.detail.open_group', 'Open Group'), onclick: `navOpenModal('group','${groupOpenId}','${jsq(groupName || '')}')` } : null,
-        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeEventDetail()` },
+        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeEventDetail()`, header: true },
     ]);
 
     el.innerHTML = `${evHeaderActions}
@@ -103,11 +103,15 @@ function toggleFollowEvent(groupId, calendarId, isCurrentlyFollowing, btn) {
     const follow = !isCurrentlyFollowing;
     sendToCS({ action: 'vrcFollowEvent', groupId, calendarId, follow });
     if (btn) {
-        const ic = btn.querySelector('.msi');
-        if (ic) ic.textContent = follow ? 'notifications_off' : 'notifications_active';
-        btn.title = follow
+        const label = follow
             ? t('calendar.detail.unfollow', 'Unfollow')
             : t('calendar.detail.follow', 'Follow');
+        const ic = btn.querySelector('.msi');
+        if (ic) ic.textContent = follow ? 'notifications_off' : 'notifications_active';
+        const lbl = btn.querySelector('.ev-follow-lbl');
+        if (lbl) lbl.textContent = label;
+        else if (!ic) btn.textContent = label;
+        btn.title = label;
         btn.onclick = () => toggleFollowEvent(groupId, calendarId, follow, btn);
     }
 }

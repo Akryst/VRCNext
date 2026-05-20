@@ -265,7 +265,7 @@ function renderWorldSearchDetail(w) {
 
     const wdHeaderActions = renderModalActions([
         { icon: 'share', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/world/${esc(wid)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
-        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeWorldSearchDetail()` },
+        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeWorldSearchDetail()`, header: true },
     ]);
     el.innerHTML = `${wdHeaderActions}${thumb ? `<div class="fd-banner" id="wd-banner-slot"><div class="fd-banner-fade"></div></div>` : ''}
         <div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:20px 0;">
@@ -779,11 +779,11 @@ function openWorldDetail(worldId) {
     const _singleRegion = getWorldRegionLabel((instanceLoc.match(/~region\(([^)]+)\)/) || [])[1] || '');
     const singleRegionBadge = _singleRegion ? `<span class="vrcn-badge accent">${esc(_singleRegion)}</span>` : '';
 
-    let actionsHtml = '<div class="fd-actions">';
-    if (canJoin) actionsHtml += `<button class="vrcn-button-round vrcn-btn-join" onclick="worldJoinAction('${loc}')">${t('dashboard.instances.join_world', 'Join World')}</button>`;
-    actionsHtml += `<button class="vrcn-button-round" onclick="navOpenModal('worldSearch','${wid}','${esc(cached?.name || '')}')">${t('dashboard.instances.open_world', 'Open World')}</button>`;
-    actionsHtml += `<button class="vrcn-button-round" style="margin-left:auto;" onclick="closeWorldDetail()">${t('common.close', 'Close')}</button>`;
-    actionsHtml += '</div>';
+    if (typeof setTaskbarModalActions === 'function') setTaskbarModalActions([
+        canJoin ? { title: t('dashboard.instances.join_world', 'Join World'), onclick: `worldJoinAction('${loc}')` } : null,
+        { title: t('dashboard.instances.open_world', 'Open World'), onclick: `navOpenModal('worldSearch','${wid}','${esc(cached?.name || '')}')` },
+    ]);
+    let actionsHtml = `<div class="fd-actions"><button class="vrcn-button-round" style="margin-left:auto;" onclick="closeWorldDetail()">${t('common.close', 'Close')}</button></div>`;
 
     c.innerHTML = `${bannerHtml}<div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:16px 0;">
         <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(worldName)}</h2>

@@ -725,8 +725,8 @@ function renderFriendDetail(d) {
     const bannerSrc = d.profilePicOverride || d.currentAvatarImageUrl || d.image || '';
     const bannerHtml = bannerSrc ? `<div class="fd-banner" id="fd-banner-slot"><div class="fd-banner-fade"></div></div>` : '';
     const fdHeaderActions = renderModalActions([
-        { icon: 'share', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(d.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
-        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeFriendDetail()` },
+        { icon: 'share', title: t('common.share', 'Share'), label: t('common.share_profile', 'Share Profile'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(d.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
+        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeFriendDetail()`, header: true },
     ]);
 
     const fdLocation = d.location || '';

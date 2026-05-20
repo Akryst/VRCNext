@@ -98,7 +98,7 @@ function renderGroupDetail(g) {
     const canEvent  = g.canEvent === true;
     const canInvite = g.canInvite === true;
     const headerActions = renderModalActions([
-        canEdit ? { icon: 'edit', title: t('groups.images.change_banner', 'Change banner'), onclick: `openImagePicker('group-banner','${gidJs}')` } : null,
+        canEdit ? { icon: 'edit', title: t('groups.images.change_banner', 'Change banner'), onclick: `openImagePicker('group-banner','${gidJs}')`, header: true } : null,
         g.isJoined
             ? { icon: 'logout', title: t('groups.actions.leave_group', 'Leave Group'), onclick: `confirmLeaveGroup('${gidJs}','${jsq(g.name || '')}')`, danger: true }
             : { icon: 'group_add', title: t('groups.actions.join_group', 'Join Group'), onclick: `sendToCS({action:'vrcJoinGroup',groupId:'${gidJs}'});closeGroupDetail();` },
@@ -106,7 +106,7 @@ function renderGroupDetail(g) {
         (g.isJoined && canPost)   ? { icon: 'post_add',   title: t('groups.actions.post', 'Post'),     onclick: `openGroupPostModal('${gidJs}')` } : null,
         (g.isJoined && canEvent)  ? { icon: 'event',      title: t('groups.actions.events', 'Events'), onclick: `openGroupEventModal('${gidJs}')` } : null,
         { icon: 'share', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/group/${esc(g.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
-        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeGroupDetail()` },
+        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeGroupDetail()`, header: true },
     ]);
 
     // Tab: Info

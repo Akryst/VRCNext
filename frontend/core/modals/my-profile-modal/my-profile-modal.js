@@ -5,13 +5,16 @@ function openMyProfileModal() {
     if (!currentVrcUser) return;
     const m = document.getElementById('modalMyProfile');
     if (!m) return;
+    if (typeof navSetCurrent === 'function') navSetCurrent('myprofile', currentVrcUser.id || 'me');
+    if (typeof navUpdateLabel === 'function') navUpdateLabel(currentVrcUser.displayName || '');
     renderMyProfileContent();
     m.style.display = 'flex';
 }
 
-function closeMyProfile() {
+function closeMyProfile(fromNav = false) {
     const m = document.getElementById('modalMyProfile');
     if (m) m.style.display = 'none';
+    if (!fromNav && typeof navClear === 'function') navClear();
 }
 
 function renderMyProfileContent() {
@@ -35,9 +38,9 @@ function renderMyProfileContent() {
         ? `<div class="fd-banner"><img src="${esc(bannerSrc)}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>`
         : `<div style="display:flex;justify-content:flex-end;padding:4px 0 2px 0;"><button class="myp-edit-btn" onclick="openImagePicker('profile-banner')" title="${esc(addBannerTitle)}"><span class="msi" style="font-size:13px;">edit</span><span style="font-size:11px;margin-left:3px;">${esc(bannerLabel)}</span></button></div>`;
     const mypHeaderActions = renderModalActions([
-        { icon: 'edit', title: changeBannerTitle, onclick: `openImagePicker('profile-banner')` },
+        { icon: 'edit', title: changeBannerTitle, onclick: `openImagePicker('profile-banner')`, header: true },
         { icon: 'share', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(u.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
-        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeMyProfile()` },
+        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeMyProfile()`, header: true },
     ]);
 
     // Avatar with edit overlay

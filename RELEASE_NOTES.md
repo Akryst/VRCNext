@@ -1,5 +1,14 @@
 **2026.26.3**
 
+**Taskbar and Modal Navigation**
+
+Several actions, such as **Share Profile**, **Share Group**, **Share Avatar**, **Leave Group**, **Join Group**, **Use Avatar**, and many other buttons that were previously located at the bottom of modals, have now been moved to the new taskbar system.
+
+This may feel confusing the first few times, since most actions used to be inside the modal itself. However, it should feel natural after a few minutes.
+
+Moving these actions to the taskbar turned out to be much better, since the taskbar is meant for quick tasks. It also speeds things up, especially when you do not want to scroll up and down or switch between sub-tabs.
+
+
 **Settings**
 * Added a new settings category: **Sidebar**.
 * Added **Friends Sidebar Card** to **Sidebar Settings**.
@@ -14,6 +23,7 @@
 * Moved the Timeline search bar to the top bar, giving the log list more space.
 * Added player count to profile modals under **Current World**.
 * Added the age-gated tag to profile modals under **Current World**.
+* Added dynamic animations to taskbar.
 
 **Keybinds**
 * You can now use the LEFT ARROW and RIGHT ARROW keys to navigate through photos.

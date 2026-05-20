@@ -636,7 +636,28 @@ function updateCurrentPageTitle() {
     const match = activeTab.id.match(/^tab(\d+)$/);
     if (!match) return;
     const pageTitle = document.getElementById('pageTitle');
-    if (pageTitle) pageTitle.textContent = getPageTitle(parseInt(match[1], 10));
+    if (!pageTitle) return;
+    const next = getPageTitle(parseInt(match[1], 10));
+    if (pageTitle.textContent === next) return;
+    const noAnim = document.documentElement.classList.contains('no-animations');
+    const oldW = pageTitle.offsetWidth;
+    pageTitle.textContent = next;
+    pageTitle.classList.remove('tb-title-anim');
+    void pageTitle.offsetWidth;
+    pageTitle.classList.add('tb-title-anim');
+    if (noAnim || !oldW) return;
+    const newW = pageTitle.offsetWidth;
+    if (newW === oldW) return;
+    pageTitle.style.width = oldW + 'px';
+    void pageTitle.offsetWidth;
+    pageTitle.style.transition = 'width 0.18s ease';
+    pageTitle.style.width = newW + 'px';
+    const done = () => {
+        pageTitle.style.transition = '';
+        pageTitle.style.width = '';
+        pageTitle.removeEventListener('transitionend', done);
+    };
+    pageTitle.addEventListener('transitionend', done);
 }
 
 function renderThemeChips() {
