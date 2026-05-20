@@ -78,7 +78,13 @@ function renderEventDetail(ev) {
         ? t('calendar.detail.unfollow', 'Unfollow')
         : t('calendar.detail.follow', 'Follow');
 
-    el.innerHTML = `
+    const evHeaderActions = renderModalActions([
+        { icon: isFollowing ? 'notifications_off' : 'notifications_active', title: followLabel, onclick: `toggleFollowEvent('${groupId}','${calendarId}',${isFollowing},this)` },
+        gid ? { icon: 'group', title: t('calendar.detail.open_group', 'Open Group'), onclick: `navOpenModal('group','${groupOpenId}','${jsq(groupName || '')}')` } : null,
+        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeEventDetail()` },
+    ]);
+
+    el.innerHTML = `${evHeaderActions}
         ${bannerHtml}
         <div class="fd-content${bannerHtml ? ' fd-has-banner' : ''}">
             <div class="fd-header" style="flex-direction:column;align-items:flex-start;gap:6px;">
@@ -90,11 +96,6 @@ function renderEventDetail(ev) {
             </div>
             ${groupHtml}
             ${ev.description ? `<div class="fd-section-label" style="margin-top:12px;">${t('calendar.detail.about', 'About')}</div><div class="fd-bio">${esc(ev.description)}</div>` : ''}
-            <div style="display:flex;justify-content:flex-start;align-items:center;gap:8px;margin-top:16px;">
-                <button class="vrcn-button-round vrcn-btn-join" id="${followBtnId}" onclick="toggleFollowEvent('${groupId}','${calendarId}',${isFollowing},this)"><span class="msi">${isFollowing ? 'notifications_off' : 'notifications_active'}</span><span class="ev-follow-lbl">${followLabel}</span></button>
-                ${gid ? `<button class="vrcn-button-round" onclick="navOpenModal('group','${groupOpenId}','${jsq(groupName || '')}')"><span class="msi">group</span><span>${t('calendar.detail.open_group', 'Open Group')}</span></button>` : ''}
-                <button class="vrcn-button-round" onclick="closeEventDetail()" style="margin-left:auto;">${t('common.close', 'Close')}</button>
-            </div>
         </div>`;
 }
 
@@ -102,8 +103,9 @@ function toggleFollowEvent(groupId, calendarId, isCurrentlyFollowing, btn) {
     const follow = !isCurrentlyFollowing;
     sendToCS({ action: 'vrcFollowEvent', groupId, calendarId, follow });
     if (btn) {
-        btn.querySelector('.msi').textContent = follow ? 'notifications_off' : 'notifications_active';
-        btn.querySelector('.ev-follow-lbl').textContent = follow
+        const ic = btn.querySelector('.msi');
+        if (ic) ic.textContent = follow ? 'notifications_off' : 'notifications_active';
+        btn.title = follow
             ? t('calendar.detail.unfollow', 'Unfollow')
             : t('calendar.detail.follow', 'Follow');
         btn.onclick = () => toggleFollowEvent(groupId, calendarId, follow, btn);

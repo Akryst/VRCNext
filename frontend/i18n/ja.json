@@ -1493,6 +1493,8 @@
   "groups.actions.post": "投稿",
   "groups.actions.events": "イベント",
   "groups.actions.leave_group": "グループを退出",
+  "groups.leave_confirm.title": "グループを退出",
+  "groups.leave_confirm.message": "{name} を退出しますか？",
   "groups.actions.join_group": "グループに参加",
   "groups.posts.delete_title": "投稿を削除",
   "groups.posts.edit_title": "投稿を編集",

@@ -1496,6 +1496,8 @@
   "groups.actions.post": "Beitrag",
   "groups.actions.events": "Events",
   "groups.actions.leave_group": "Gruppe verlassen",
+  "groups.leave_confirm.title": "Gruppe verlassen",
+  "groups.leave_confirm.message": "{name} verlassen?",
   "groups.actions.join_group": "Gruppe beitreten",
   "groups.posts.delete_title": "Beitrag loeschen",
   "groups.posts.edit_title": "Beitrag bearbeiten",

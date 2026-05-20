@@ -6,6 +6,7 @@
     gap: 8px;
     padding: 0 0 12px;
     flex-shrink: 0;
+    flex-wrap: wrap;
 }
 
 .tl-list-wrap {

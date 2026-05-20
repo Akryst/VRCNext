@@ -1494,6 +1494,8 @@
   "groups.actions.post": "Publier",
   "groups.actions.events": "Événements",
   "groups.actions.leave_group": "Quitter le groupe",
+  "groups.leave_confirm.title": "Quitter le groupe",
+  "groups.leave_confirm.message": "Quitter {name} ?",
   "groups.actions.join_group": "Rejoindre le groupe",
   "groups.posts.delete_title": "Supprimer la publication",
   "groups.posts.edit_title": "Modifier la publication",

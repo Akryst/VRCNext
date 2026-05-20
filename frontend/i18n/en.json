@@ -1513,6 +1513,8 @@
   "groups.actions.post": "Post",
   "groups.actions.events": "Events",
   "groups.actions.leave_group": "Leave Group",
+  "groups.leave_confirm.title": "Leave Group",
+  "groups.leave_confirm.message": "Leave {name}?",
   "groups.actions.join_group": "Join Group",
   "groups.posts.delete_title": "Delete post",
   "groups.posts.edit_title": "Edit post",

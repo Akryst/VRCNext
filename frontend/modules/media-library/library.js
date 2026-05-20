@@ -719,6 +719,7 @@ function cacheVidThumb(v, fp) {
 // Photo detail modal — image on the left, info card on the right.
 // Accepts: number (libraryFiles index), string (file path → looked up in libraryFiles), or item object.
 const _photoState = { scale: 1, rotation: 0, tx: 0, ty: 0, item: null, drag: null };
+let _photoKeyHandler = null;
 
 function openPhotoDetail(target) {
     let x;
@@ -767,11 +768,12 @@ function _photoCreateModal(x) {
     }
 
     const ok = e => {
-        if (e.key === 'Escape')          { closePhotoDetail(); document.removeEventListener('keydown', ok); }
+        if (e.key === 'Escape')          { closePhotoDetail(); }
         else if (e.key === 'ArrowLeft')  { e.preventDefault(); photoNavPrev(); }
         else if (e.key === 'ArrowRight') { e.preventDefault(); photoNavNext(); }
     };
     document.addEventListener('keydown', ok);
+    _photoKeyHandler = ok;
 }
 
 function _photoRenderContent(modal, x) {
@@ -895,6 +897,7 @@ function _photoBuildInfoPaneContent(x) {
 function closePhotoDetail() {
     const m = document.getElementById('photoDetailModal');
     if (!m) return;
+    if (_photoKeyHandler) { document.removeEventListener('keydown', _photoKeyHandler); _photoKeyHandler = null; }
     document.removeEventListener('mousemove', _photoOnMouseMove);
     document.removeEventListener('mouseup',   _photoOnMouseUp);
     _photoState.drag = null;

@@ -3,6 +3,13 @@ let _navIdx          = -1;
 let _navCurrentEntry = null;
 let _navBackdropEl   = null;
 
+function renderModalActions(actions) {
+    const btns = (actions || []).filter(Boolean).map(a =>
+        `<button class="btn-notif fd-action-btn${a.danger ? ' fd-action-danger' : ''}" title="${esc(a.title || '')}" onclick="${a.onclick}"><span class="msi" style="font-size:20px;">${esc(a.icon)}</span></button>`
+    ).join('');
+    return btns ? `<div class="fd-modal-actions">${btns}</div>` : '';
+}
+
 function navSetCurrent(type, id, id2) {
     _navCurrentEntry = { type, id: id || '', id2: id2 || '', label: '' };
 }

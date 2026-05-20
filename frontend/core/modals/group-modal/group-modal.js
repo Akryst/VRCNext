@@ -46,6 +46,24 @@ function closeGroupDetail(fromNav = false) {
     if (!fromNav && typeof navClear === 'function') navClear();
 }
 
+function confirmLeaveGroup(groupId, groupName) {
+    const old = document.getElementById('leaveGroupModal');
+    if (old) old.remove();
+    const o = document.createElement('div');
+    o.className = 'modal-overlay';
+    o.id = 'leaveGroupModal';
+    o.style.zIndex = '10003';
+    o.onclick = e => { if (e.target === o) o.remove(); };
+    o.innerHTML = `<div class="modal-box"><div class="modal-icon danger"><span class="msi" style="font-size:22px;">logout</span></div>
+        <div class="modal-title">${t('groups.leave_confirm.title', 'Leave Group')}</div>
+        <div class="modal-msg">${tf('groups.leave_confirm.message', { name: esc(groupName || '') }, 'Leave {name}?')}</div>
+        <div class="modal-btns">
+            <button class="vrcn-button-round" onclick="document.getElementById('leaveGroupModal').remove()">${t('common.cancel', 'Cancel')}</button>
+            <button class="vrcn-button-round vrcn-btn-danger" onclick="document.getElementById('leaveGroupModal').remove();sendToCS({action:'vrcLeaveGroup',groupId:'${jsq(groupId)}'});closeGroupDetail();">${t('groups.actions.leave_group', 'Leave Group')}</button>
+        </div></div>`;
+    document.body.appendChild(o);
+}
+
 function renderGroupDetail(g) {
     if (g.id && g.rawJson) _gdRawJsonCache[g.id] = g.rawJson;
     if (g.id) _groupDetailCache[g.id] = g;
@@ -58,9 +76,8 @@ function renderGroupDetail(g) {
     const canEdit = g.canEdit === true;
     const gidJs  = jsq(g.id);
     const banner = g.bannerUrl || g.iconUrl || 'fallback_cover.png';
-    const bannerEditBtn = canEdit ? `<button class="btn-notif" style="position:absolute;top:8px;right:44px;z-index:4;" onclick="openImagePicker('group-banner','${gidJs}')" title="${esc(t('groups.images.change_banner', 'Change banner'))}"><span class="msi" style="font-size:20px;">edit</span></button>` : '';
     const bannerHtml = banner
-        ? `<div class="fd-banner">${bannerEditBtn}<img src="${banner}" onerror="this.src='fallback_cover.png'"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/group/${esc(g.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>`
+        ? `<div class="fd-banner"><img src="${banner}" onerror="this.src='fallback_cover.png'"><div class="fd-banner-fade"></div></div>`
         : (canEdit ? `<div style="display:flex;justify-content:flex-end;padding:4px 0 2px 0;"><button class="myp-edit-btn" onclick="openImagePicker('group-banner','${gidJs}')" title="${esc(t('groups.images.add_banner', 'Add banner'))}"><span class="msi" style="font-size:13px;">edit</span><span style="font-size:11px;margin-left:3px;">${esc(t('groups.images.banner', 'Banner'))}</span></button></div>` : '');
 
     // Header
@@ -76,22 +93,21 @@ function renderGroupDetail(g) {
         : '';
     const headerHtml = `<div class="fd-content${banner ? ' fd-has-banner' : ''}"><div class="fd-header">${iconHtml}<div style="flex:1;min-width:0;"><div class="fd-name">${esc(g.name)}</div>${ownerHtml}<div class="fd-status">${headerMeta}</div></div><span id="ggrpHeaderBadge" style="margin-left:auto;flex-shrink:0;">${g.joinState ? joinStateBadge(g.joinState) : ''}</span></div><div class="fd-badges-row">${idBadge(g.id)}</div>`;
 
-    // Actions - moved to bottom bar
+    // Header action cluster (top-right) — replaces the old bottom button bar.
     const canPost   = g.canPost === true;
     const canEvent  = g.canEvent === true;
     const canInvite = g.canInvite === true;
-    const inviteBtn = (g.isJoined && canInvite)
-        ? `<button class="vrcn-button-round vrcn-btn-join" onclick="openGroupInviteModal('${esc(g.id)}')"><span class="msi" style="font-size:16px;vertical-align:middle;margin-right:4px;">person_add</span>${t('groups.actions.invite', 'Invite')}</button>`
-        : '';
-    const createPostBtn = (g.isJoined && canPost)
-        ? `<button class="vrcn-button-round vrcn-btn-join" onclick="openGroupPostModal('${esc(g.id)}')"><span class="msi" style="font-size:16px;vertical-align:middle;margin-right:4px;">edit</span>${t('groups.actions.post', 'Post')}</button>`
-        : '';
-    const createEventBtn = (g.isJoined && canEvent)
-        ? `<button class="vrcn-button-round vrcn-btn-join" onclick="openGroupEventModal('${esc(g.id)}')"><span class="msi" style="font-size:16px;vertical-align:middle;margin-right:4px;">event</span>${t('groups.actions.events', 'Events')}</button>`
-        : '';
-    const leaveJoinBtn = g.isJoined
-        ? `<button class="vrcn-button-round vrcn-btn-danger" onclick="sendToCS({action:'vrcLeaveGroup',groupId:'${esc(g.id)}'});document.getElementById('modalDetail').style.display='none';"><span class="msi" style="font-size:16px;vertical-align:middle;margin-right:4px;">logout</span>${t('groups.actions.leave_group', 'Leave Group')}</button>`
-        : `<button class="vrcn-button-round vrcn-btn-join" onclick="sendToCS({action:'vrcJoinGroup',groupId:'${esc(g.id)}'});document.getElementById('modalDetail').style.display='none';"><span class="msi" style="font-size:16px;vertical-align:middle;margin-right:4px;">group_add</span>${t('groups.actions.join_group', 'Join Group')}</button>`;
+    const headerActions = renderModalActions([
+        canEdit ? { icon: 'edit', title: t('groups.images.change_banner', 'Change banner'), onclick: `openImagePicker('group-banner','${gidJs}')` } : null,
+        g.isJoined
+            ? { icon: 'logout', title: t('groups.actions.leave_group', 'Leave Group'), onclick: `confirmLeaveGroup('${gidJs}','${jsq(g.name || '')}')`, danger: true }
+            : { icon: 'group_add', title: t('groups.actions.join_group', 'Join Group'), onclick: `sendToCS({action:'vrcJoinGroup',groupId:'${gidJs}'});closeGroupDetail();` },
+        (g.isJoined && canInvite) ? { icon: 'person_add', title: t('groups.actions.invite', 'Invite'), onclick: `openGroupInviteModal('${gidJs}')` } : null,
+        (g.isJoined && canPost)   ? { icon: 'post_add',   title: t('groups.actions.post', 'Post'),     onclick: `openGroupPostModal('${gidJs}')` } : null,
+        (g.isJoined && canEvent)  ? { icon: 'event',      title: t('groups.actions.events', 'Events'), onclick: `openGroupEventModal('${gidJs}')` } : null,
+        { icon: 'share', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/group/${esc(g.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
+        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeGroupDetail()` },
+    ]);
 
     // Tab: Info
     const gid_e = esc(g.id);
@@ -429,7 +445,7 @@ function renderGroupDetail(g) {
     const rolesTab   = g.canManageRoles ? _buildRolesTab(g) : '';
     const bannedTab  = g.canBan ? _buildBannedTab() : '';
 
-    el.innerHTML = `${bannerHtml}${headerHtml}${tabsHtml}
+    el.innerHTML = `${headerActions}${bannerHtml}${headerHtml}${tabsHtml}
         <div id="gdTabInfo">${infoTab}</div>
         <div id="gdTabPosts" style="display:none;">${postsTab}</div>
         <div id="gdTabEvents" style="display:none;">${eventsTab}</div>
@@ -439,7 +455,6 @@ function renderGroupDetail(g) {
         ${g.canManageRoles ? `<div id="gdTabRoles" style="display:none;">${rolesTab}</div>` : ''}
         ${g.canBan ? `<div id="gdTabBanned" style="display:none;">${bannedTab}</div>` : ''}
         <div id="gdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((g.id && _gdRawJsonCache[g.id]) || {})}</div></div>
-        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;gap:8px;">${inviteBtn}${createPostBtn}${createEventBtn}${leaveJoinBtn}</div><button class="vrcn-button-round" onclick="closeGroupDetail()">${t('common.close', 'Close')}</button></div>
     </div>`;
     applyGroupDetailTranslations(g);
 }
@@ -532,21 +547,15 @@ function applyGroupDetailTranslations(g) {
     }
 
     const invBtn = detail.querySelector(`button[onclick*="openGroupInviteModal("]`);
-    if (invBtn) invBtn.innerHTML = `<span class="msi" style="font-size:16px;vertical-align:middle;margin-right:4px;">person_add</span>${t('groups.actions.invite', 'Invite')}`;
+    if (invBtn) invBtn.title = t('groups.actions.invite', 'Invite');
     const postBtn = detail.querySelector(`button[onclick*="openGroupPostModal("]`);
-    if (postBtn) postBtn.innerHTML = `<span class="msi" style="font-size:16px;vertical-align:middle;margin-right:4px;">edit</span>${t('groups.actions.post', 'Post')}`;
+    if (postBtn) postBtn.title = t('groups.actions.post', 'Post');
     const eventBtn = detail.querySelector(`button[onclick*="openGroupEventModal("]`);
-    if (eventBtn) eventBtn.innerHTML = `<span class="msi" style="font-size:16px;vertical-align:middle;margin-right:4px;">event</span>${t('groups.actions.events', 'Events')}`;
-    const leaveBtn = detail.querySelector(`button[onclick*="vrcLeaveGroup"]`);
-    if (leaveBtn) leaveBtn.innerHTML = `<span class="msi" style="font-size:16px;vertical-align:middle;margin-right:4px;">logout</span>${t('groups.actions.leave_group', 'Leave Group')}`;
+    if (eventBtn) eventBtn.title = t('groups.actions.events', 'Events');
+    const leaveBtn = detail.querySelector(`button[onclick*="confirmLeaveGroup"]`);
+    if (leaveBtn) leaveBtn.title = t('groups.actions.leave_group', 'Leave Group');
     const joinBtn = detail.querySelector(`button[onclick*="vrcJoinGroup"]`);
-    if (joinBtn) joinBtn.innerHTML = `<span class="msi" style="font-size:16px;vertical-align:middle;margin-right:4px;">group_add</span>${t('groups.actions.join_group', 'Join Group')}`;
-    const footerRow = Array.from(detail.querySelectorAll('div')).find(el => el.getAttribute('style')?.includes('justify-content:space-between'));
-    if (footerRow) {
-        const footerButtons = footerRow.querySelectorAll('button.vrcn-button-round');
-        const closeBtn = footerButtons[footerButtons.length - 1];
-        if (closeBtn) closeBtn.textContent = t('common.close', 'Close');
-    }
+    if (joinBtn) joinBtn.title = t('groups.actions.join_group', 'Join Group');
 
     const postsTab = document.getElementById('gdTabPosts');
     if (postsTab) {

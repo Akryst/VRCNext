@@ -263,7 +263,11 @@ function renderWorldSearchDetail(w) {
         w.popularity != null ? _wmr(t('worlds.meta.popularity', 'Popularity'), String(w.popularity)) : '',
     ].join('');
 
-    el.innerHTML = `${thumb ? `<div class="fd-banner" id="wd-banner-slot"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/world/${esc(wid)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>` : ''}
+    const wdHeaderActions = renderModalActions([
+        { icon: 'share', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/world/${esc(wid)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
+        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeWorldSearchDetail()` },
+    ]);
+    el.innerHTML = `${wdHeaderActions}${thumb ? `<div class="fd-banner" id="wd-banner-slot"><div class="fd-banner-fade"></div></div>` : ''}
         <div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:20px 0;">
         <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(w.name)}</h2>
         <div style="font-size:12px;color:var(--tx3);margin-bottom:12px;">${t('worlds.meta.by', 'by')} ${w.authorId ? `<span onclick="navOpenModal('friend','${jsq(w.authorId)}','${jsq(w.authorName || '')}')" style="display:inline-flex;align-items:center;padding:1px 8px;border-radius:20px;background:var(--bg-hover);font-size:11px;font-weight:600;color:var(--tx1);cursor:pointer;line-height:1.8;">${esc(w.authorName)}</span>` : esc(w.authorName)}</div>
@@ -305,7 +309,6 @@ function renderWorldSearchDetail(w) {
         <div id="wdTabPhotos" style="display:none;"><div id="wdPhotosGrid"></div><div id="wdPhotosPaginatorBar" class="mini-paginator"></div></div>
         ${isOwnWorld ? `<div id="wdTabInsights" style="display:none;"><div id="wiContainer"></div></div>` : ''}
         <div id="wdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((w.id && _wdRawJsonCache[w.id]) || {})}</div></div>
-        <div style="margin-top:14px;text-align:right;"><button class="vrcn-button-round" onclick="closeWorldSearchDetail()">${t('common.close', 'Close')}</button></div>
         </div>`;
 
     if (thumb) { const s = document.getElementById('wd-banner-slot'); const bi = _getWorldBannerImg(wid, thumb); if (s && bi) s.insertBefore(bi, s.firstChild); }

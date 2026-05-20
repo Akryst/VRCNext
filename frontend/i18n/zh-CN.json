@@ -1494,6 +1494,8 @@
   "groups.actions.post": "发帖",
   "groups.actions.events": "活动",
   "groups.actions.leave_group": "退出群组",
+  "groups.leave_confirm.title": "退出群组",
+  "groups.leave_confirm.message": "退出 {name}？",
   "groups.actions.join_group": "加入群组",
   "groups.posts.delete_title": "删除帖子",
   "groups.posts.edit_title": "编辑帖子",
