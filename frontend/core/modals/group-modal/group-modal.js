@@ -105,6 +105,14 @@ function renderGroupDetail(g) {
         (g.isJoined && canInvite) ? { icon: 'person_add', title: t('groups.actions.invite', 'Invite'), onclick: `openGroupInviteModal('${gidJs}')` } : null,
         (g.isJoined && canPost)   ? { icon: 'post_add',   title: t('groups.actions.post', 'Post'),     onclick: `openGroupPostModal('${gidJs}')` } : null,
         (g.isJoined && canEvent)  ? { icon: 'event',      title: t('groups.actions.events', 'Events'), onclick: `openGroupEventModal('${gidJs}')` } : null,
+        g.isJoined ? { label: t('common.more', 'More'), dropdown: [
+            { icon: 'shield_person', label: t('context_menu.group.represent', 'Represent this group'), onclick: `sendToCS({action:'vrcRepresentGroup',groupId:'${gidJs}'})`, disabled: g.isRepresenting === true },
+            { icon: 'visibility', label: t('context_menu.group.visibility', 'Visibility'), submenu: [
+                { icon: 'public',         label: t('groups.visibility.visible', 'Visible for Everyone'), active: (g.visibility || 'visible') === 'visible', onclick: `setGroupVisibility('${gidJs}','visible')` },
+                { icon: 'people',         label: t('groups.visibility.friends', 'Visible for Friends'),  active: (g.visibility || 'visible') === 'friends', onclick: `setGroupVisibility('${gidJs}','friends')` },
+                { icon: 'visibility_off', label: t('groups.visibility.hidden',  'Visible for None'),     active: (g.visibility || 'visible') === 'hidden',  onclick: `setGroupVisibility('${gidJs}','hidden')` },
+            ] },
+        ] } : null,
         { icon: 'share', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/group/${esc(g.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
         { icon: 'close', title: t('common.close', 'Close'), onclick: `closeGroupDetail()`, header: true },
     ]);

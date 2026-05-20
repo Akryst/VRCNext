@@ -15,9 +15,51 @@ function renderModalActions(actions) {
 function setTaskbarModalActions(actions) {
     const el = document.getElementById('tbModalActions');
     if (!el) return;
-    el.innerHTML = (actions || []).filter(Boolean).map(a =>
-        `<button class="tb-modal-action${a.danger ? ' tb-modal-action-danger' : ''}" onclick="${a.onclick}">${esc(a.label || a.title || '')}</button>`
-    ).join('<div class="tb-sep"></div>');
+    el.innerHTML = (actions || []).filter(Boolean).map(a => {
+        if (a.dropdown) {
+            const items = a.dropdown.filter(Boolean).map(_tbDropdownItem).join('');
+            return `<div class="tb-modal-action-wrap"><button class="tb-modal-action" onclick="_tbToggleDropdown(this)">${esc(a.label || a.title || '')}<span class="msi tb-modal-dd-caret">expand_more</span></button><div class="tb-modal-dropdown">${items}</div></div>`;
+        }
+        return `<button class="tb-modal-action${a.danger ? ' tb-modal-action-danger' : ''}"${a.disabled ? ' disabled' : ''} onclick="${a.onclick}">${esc(a.label || a.title || '')}</button>`;
+    }).join('<div class="tb-sep"></div>');
+}
+
+function _tbDropdownItem(o) {
+    if (o.submenu) {
+        const sub = o.submenu.filter(Boolean).map(_tbDropdownItem).join('');
+        return `<div class="tb-modal-dd-sub-wrap"><button class="tb-modal-dd-item" onclick="_tbToggleSubmenu(this,event)">${o.icon ? `<span class="msi">${esc(o.icon)}</span>` : ''}<span>${esc(o.label || '')}</span><span class="msi tb-modal-dd-arrow">chevron_right</span></button><div class="tb-modal-dropdown tb-modal-dd-sub">${sub}</div></div>`;
+    }
+    return `<button class="tb-modal-dd-item${o.active ? ' active' : ''}"${o.disabled ? ' disabled' : ''} onclick="${o.disabled ? '' : '_tbCloseDropdowns();' + o.onclick}">${o.icon ? `<span class="msi">${esc(o.icon)}</span>` : ''}<span>${esc(o.label || '')}</span></button>`;
+}
+
+function _tbToggleSubmenu(btn, e) {
+    if (e) e.stopPropagation();
+    const wrap = btn.closest('.tb-modal-dd-sub-wrap');
+    if (!wrap) return;
+    const wasOpen = wrap.classList.contains('open');
+    const parent = wrap.parentNode;
+    if (parent) parent.querySelectorAll('.tb-modal-dd-sub-wrap.open').forEach(w => w.classList.remove('open'));
+    if (!wasOpen) wrap.classList.add('open');
+}
+
+function _tbToggleDropdown(btn) {
+    const wrap = btn.closest('.tb-modal-action-wrap');
+    if (!wrap) return;
+    const wasOpen = wrap.classList.contains('open');
+    _tbCloseDropdowns();
+    if (!wasOpen) {
+        wrap.classList.add('open');
+        setTimeout(() => document.addEventListener('click', _tbDropdownOutside), 0);
+    }
+}
+
+function _tbCloseDropdowns() {
+    document.querySelectorAll('.tb-modal-action-wrap.open, .tb-modal-dd-sub-wrap.open').forEach(w => w.classList.remove('open'));
+    document.removeEventListener('click', _tbDropdownOutside);
+}
+
+function _tbDropdownOutside(e) {
+    if (!e.target.closest('.tb-modal-action-wrap')) _tbCloseDropdowns();
 }
 
 function _tbModalActive() {
