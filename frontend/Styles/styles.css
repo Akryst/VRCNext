@@ -38,8 +38,6 @@
 .vrc-profile-status,
 .vrc-friend-name,
 .vrc-friend-loc,
-.fd-profile-item-name,
-.fd-profile-item-status,
 .fd-pi-sm-name,
 .fd-pi-sm-sub,
 .dash-feed-name,
@@ -59,7 +57,6 @@
 .osc-param-name,
 .myp-name,
 .inv-world-name,
-.fav-friend-name,
 .nc-sub,
 .tl-main-label,
 .tl-sub-label,
@@ -77,7 +74,6 @@
 .vrc-profile-info,
 .vrc-friend-info,
 .gd-perm-info,
-.fd-profile-item-info,
 .fd-pi-sm-info,
 .dash-feed-info,
 .fd-group-card-info,
@@ -86,8 +82,6 @@
 .chat-inbox-body { flex: 1; min-width: 0; }
 
 .gd-role-name,
-.fd-profile-item-name,
-.fav-friend-name,
 .cb-media-title { font-size: 13px; font-weight: 600; color: var(--tx0); }
 
 .fd-pi-sm-sub, .upd-status, .nc-sub, .cb-media-artist { font-size: 11px; color: var(--tx3); }
@@ -113,7 +107,6 @@
 .modal-icon,
 .vrcn-lib-button,
 .fd-pi-sm-av-letter,
-.fav-friend-av-letter,
 .cb-preview-box,
 .inst-user-av-letter,
 .inst-av-sm-letter,
@@ -434,7 +427,7 @@ html.text-tools-active * { user-select: text !important; }
     overflow-y: auto;
 }
 
-.wd-friends-list .vrcn-profile-item {
+.wd-friends-list .vrcn-user-item {
     margin-bottom: 0;
 }
 
@@ -695,7 +688,7 @@ html.text-tools-active * { user-select: text !important; }
     padding: 6px 32px 4px;
     text-transform: uppercase;
 }
-.inv-list .vrcn-profile-item { margin: 0 32px 6px; }
+.inv-list .vrcn-user-item { margin: 0 32px 6px; }
 .inv-row-sel { background: color-mix(in srgb, var(--accent) 14%, var(--bg-input)) !important; }
 .inv-row-sel:hover { background: color-mix(in srgb, var(--accent) 20%, var(--bg-input)) !important; }
 .inv-check {

@@ -343,10 +343,10 @@ window.external.receiveMessage(rawMsg => {
                         // Remove card from banned list
                         const bannedList = document.getElementById('gdBannedList');
                         if (bannedList) {
-                            bannedList.querySelectorAll('.vrcn-profile-item').forEach(card => {
-                                if (card.innerHTML.includes(`openFriendDetail('${payload.userId}')`)) card.remove();
+                            bannedList.querySelectorAll('.vrcn-user-item').forEach(card => {
+                                if ((card.getAttribute('onclick') || '').includes(payload.userId)) card.remove();
                             });
-                            if (!bannedList.querySelector('.vrcn-profile-item'))
+                            if (!bannedList.querySelector('.vrcn-user-item'))
                                 bannedList.innerHTML = `<div style="padding:20px;text-align:center;font-size:12px;color:var(--tx3);">${t('groups.empty.no_banned_members', 'No banned members')}</div>`;
                         }
                     }

@@ -218,9 +218,9 @@ function _buildInstanceCard(locBase, g, isMyInstance) {
             renderProfileItem(f, `navOpenModal('friend','${jsq(f.id || '')}','${jsq(f.displayName || '')}')`)
         ).join('');
     } else {
-        friendsHtml = `<div class="vrcn-profile-item" style="pointer-events:none;opacity:0.55;">
-            <div class="fd-profile-item-avatar" style="display:flex;align-items:center;justify-content:center;"><span class="msi" style="font-size:20px;color:var(--tx3);">person</span></div>
-            <div class="fd-profile-item-info"><div class="fd-profile-item-name">${t('dashboard.instances.no_friends_title', 'No friends here yet!')}</div></div>
+        friendsHtml = `<div class="vrcn-user-item" style="pointer-events:none;opacity:0.55;">
+            <div class="vrcn-user-item-avatar vrcn-user-item-avatar-letter"><span class="msi" style="font-size:20px;color:var(--tx3);">person</span></div>
+            <div class="vrcn-user-item-info"><div class="vrcn-user-item-name">${t('dashboard.instances.no_friends_title', 'No friends here yet!')}</div></div>
         </div>`;
     }
 

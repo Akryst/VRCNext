@@ -93,14 +93,6 @@ function getStatusText(status, description) {
     return `${statusLabel(status)}${description ? ' - ' + esc(description) : ''}`;
 }
 
-function getFriendStatusLine(friend) {
-    if (!friend) {
-        return `<span class="vrc-status-dot s-offline" style="width:6px;height:6px;flex-shrink:0;"></span><span class="fav-friend-status-text">${t('status.offline', 'Offline')}</span>`;
-    }
-    const dotCls = friend.presence === 'web' ? 'vrc-status-ring' : 'vrc-status-dot';
-    return `<span class="${dotCls} ${statusDotClass(friend.status)}" style="width:6px;height:6px;flex-shrink:0;"></span><span class="fav-friend-status-text">${getStatusText(friend.status, friend.statusDescription)}</span>`;
-}
-
 function getGroupMemberText(memberCount, fallbackToGroup = true) {
     if (memberCount) return tf('worlds.groups.members', { count: memberCount }, '{count} members');
     return fallbackToGroup ? t('groups.common.group', 'Group') : '';
@@ -268,18 +260,7 @@ function filterAllFriends() {
         setPaginator('peopleAllPaginatorBar', '');
         return;
     }
-    el.innerHTML = slice.map(f => {
-        const img = f.image ? `<div class="fav-friend-av" style="background-image:url('${cssUrl(f.image)}')"></div>`
-                            : `<div class="fav-friend-av fav-friend-av-letter">${esc((f.displayName || '?')[0].toUpperCase())}</div>`;
-        const uid = jsq(f.id);
-        return `<div class="fav-friend-card" onclick="openFriendDetail('${uid}')">
-            ${img}
-            <div class="fav-friend-info">
-                <div class="fav-friend-name">${esc(f.displayName)}</div>
-                <div class="fav-friend-status">${getFriendStatusLine(f)}</div>
-            </div>
-        </div>`;
-    }).join('');
+    el.innerHTML = slice.map(f => renderUserItem(f, `openFriendDetail('${jsq(f.id)}')`)).join('');
     setPaginator('peopleAllPaginatorBar', buildPaginator(page, totalPages, 'peopleAllGoPage',
         `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${all.length.toLocaleString()} total</span>`));
 }
@@ -339,19 +320,9 @@ function renderModList(containerId, list, actionType) {
         const uid = jsq(entry.targetUserId || '');
         const displayName = entry.targetDisplayName || entry.targetUserId || '?';
         const friend = vrcFriendsData.find(f => f.id === entry.targetUserId);
-        const imageUrl = entry.image || (friend && friend.image) || '';
-        const img = imageUrl
-            ? `<div class="fav-friend-av" style="background-image:url('${cssUrl(imageUrl)}')"></div>`
-            : `<div class="fav-friend-av fav-friend-av-letter">${esc(displayName[0].toUpperCase())}</div>`;
-        const statusLine = getFriendStatusLine(friend);
-        return `<div class="fav-friend-card" onclick="openFriendDetail('${uid}')">
-            ${img}
-            <div class="fav-friend-info">
-                <div class="fav-friend-name">${esc(displayName)}</div>
-                <div class="fav-friend-status">${statusLine}</div>
-            </div>
-            <button class="${btnClass}" style="margin-left:auto;flex-shrink:0;" onclick="event.stopPropagation();doUnmod('${uid}','${actionType}')">${btnLabel}</button>
-        </div>`;
+        const user = { id: entry.targetUserId, displayName, image: entry.image || (friend && friend.image) || '' };
+        const trailing = `<button class="${btnClass}" style="margin-left:auto;flex-shrink:0;" onclick="event.stopPropagation();doUnmod('${uid}','${actionType}')">${btnLabel}</button>`;
+        return renderUserItem(user, `openFriendDetail('${uid}')`, { trailing });
     }).join('');
     setPaginator(paginatorBarId, buildPaginator(page, totalPages, goPageFn,
         `<span style="font-size:11px;color:var(--tx3);padding:0 8px;">${all.length.toLocaleString()} total</span>`));
@@ -529,30 +500,17 @@ function onFriendFavoriteGroupUpdated(data) {
 
 function renderFavFriendCard(f) {
     const uid = jsq(f.id);
-    const img = f.image ? `<div class="fav-friend-av" style="background-image:url('${cssUrl(f.image)}')"></div>`
-                        : `<div class="fav-friend-av fav-friend-av-letter">${esc((f.displayName || '?')[0].toUpperCase())}</div>`;
-    const statusLine = getFriendStatusLine(f);
     if (_favFriendEditMode) {
         const isSel = _favFriendEditSelected.has(f.id);
         const checkIcon = isSel
             ? `<span class="msi" style="font-size:22px;color:var(--accent);">check_circle</span>`
             : `<span class="msi" style="font-size:22px;color:rgba(255,255,255,0.7);">radio_button_unchecked</span>`;
-        return `<div class="fav-friend-card" data-uid="${esc(f.id)}" onclick="toggleFriendEditSelect('${uid}',this)" style="user-select:none;">
-            ${img}
-            <div class="fav-friend-info">
-                <div class="fav-friend-name">${esc(f.displayName)}</div>
-                <div class="fav-friend-status">${statusLine}</div>
-            </div>
-            <div style="margin-left:auto;flex-shrink:0;">${checkIcon}</div>
-        </div>`;
+        return renderUserItem(f, `toggleFriendEditSelect('${uid}',this)`, {
+            attrs: `data-uid="${esc(f.id)}"`,
+            trailing: `<div style="margin-left:auto;flex-shrink:0;">${checkIcon}</div>`,
+        });
     }
-    return `<div class="fav-friend-card" onclick="openFriendDetail('${uid}')">
-        ${img}
-        <div class="fav-friend-info">
-            <div class="fav-friend-name">${esc(f.displayName)}</div>
-            <div class="fav-friend-status">${statusLine}</div>
-        </div>
-    </div>`;
+    return renderUserItem(f, `openFriendDetail('${uid}')`);
 }
 
 function filterFavFriends() {

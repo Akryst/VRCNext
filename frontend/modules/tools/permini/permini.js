@@ -119,23 +119,8 @@ function renderPerminiPicker(filter) {
     }
 
     el.innerHTML = friends.map(f => {
-        const hasImg = f.image && f.image.length > 5;
-        const av = hasImg
-            ? `<img class="fd-profile-item-avatar" src="${esc(f.image)}" onerror="this.outerHTML='<div class=\\'fd-profile-item-avatar\\' style=\\'display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;\\'>${esc((f.displayName||'?')[0])}</div>'">`
-            : `<div class="fd-profile-item-avatar" style="display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;">${esc((f.displayName||'?')[0])}</div>`;
-        const statusCls = statusDotClass(f.status || 'offline');
-        const fid = jsq(f.id);
-        return `<div class="vrcn-profile-item" onclick="addPerminiEntry('${fid}')" style="cursor:pointer;">
-            ${av}
-            <div class="fd-profile-item-info">
-                <div class="fd-profile-item-name">${esc(f.displayName || f.id)}</div>
-                <div class="fd-profile-item-status">
-                    <span class="vrc-status-dot ${esc(statusCls)}" style="width:7px;height:7px;display:inline-block;border-radius:50%;margin-right:4px;"></span>
-                    ${esc(f.statusDescription || statusLabel(f.status || 'offline'))}
-                </div>
-            </div>
-            <span class="msi" style="font-size:18px;color:var(--accent);margin-left:auto;flex-shrink:0;">add</span>
-        </div>`;
+        const trailing = `<span class="msi" style="font-size:18px;color:var(--accent);margin-left:auto;flex-shrink:0;">add</span>`;
+        return renderUserItem(f, `addPerminiEntry('${jsq(f.id)}')`, { trailing });
     }).join('');
 }
 

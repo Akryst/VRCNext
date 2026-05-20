@@ -15,7 +15,7 @@
 
 
 .fd-info-top-row .inst-item,
-.fd-info-top-row .vrcn-profile-item {
+.fd-info-top-row .vrcn-user-item {
     background: transparent;
     margin-bottom: 0;
 }
@@ -25,7 +25,7 @@
     height: 36px;
 }
 
-.fd-info-top-row .fd-profile-item-avatar {
+.fd-info-top-row .vrcn-user-item-avatar {
     width: 36px;
     height: 36px;
     border-radius: 8px;
@@ -70,7 +70,7 @@
     border-bottom: 1px solid var(--brd);
 }
 
-.fd-owner-col .fd-profile-item-avatar {
+.fd-owner-col .vrcn-user-item-avatar {
     width: 48px;
     height: 48px;
     border-radius: 6px;

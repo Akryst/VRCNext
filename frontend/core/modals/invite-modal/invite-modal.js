@@ -124,25 +124,11 @@ function renderInviteList(filter) {
 
     function card(f) {
         const sel = _inviteSelected.has(f.id);
-        const hasImg = f.image && f.image.length > 5;
-        const av = hasImg
-            ? `<img class="fd-profile-item-avatar" src="${esc(f.image)}" onerror="this.outerHTML='<div class=\\'fd-profile-item-avatar\\' style=\\'display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--tx3)\\'>${esc((f.displayName || '?')[0])}</div>'">`
-            : `<div class="fd-profile-item-avatar" style="display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--tx3)">${esc((f.displayName || '?')[0])}</div>`;
-        const isWeb = f.presence === 'web';
-        const loc = isWeb ? t('profiles.friends.location.web', 'Web / Mobile') : (f.statusDescription || statusLabel(f.status || 'offline'));
-        const indicatorClass = isWeb ? 'vrc-status-ring' : 'vrc-status-dot';
-        const statusCls = statusDotClass(f.status || 'offline');
-        const fid = jsq(f.id || '');
-        return `<div class="vrcn-profile-item${sel ? ' inv-row-sel' : ''}" onclick="toggleInviteSelect('${fid}')">
-            <div class="inv-check${sel ? ' inv-check-on' : ''}">
-                ${sel ? '<span class="msi" style="font-size:13px;line-height:1;">check</span>' : ''}
-            </div>
-            ${av}
-            <div class="fd-profile-item-info">
-                <div class="fd-profile-item-name">${esc(f.displayName)}</div>
-                <div class="fd-profile-item-status"><span class="${indicatorClass} ${statusCls}" style="width:6px;height:6px;flex-shrink:0;"></span>${esc(loc)}</div>
-            </div>
-        </div>`;
+        const trailing = `<div class="inv-check${sel ? ' inv-check-on' : ''}" style="margin-left:auto;flex-shrink:0;">${sel ? '<span class="msi" style="font-size:13px;line-height:1;">check</span>' : ''}</div>`;
+        return renderUserItem(f, `toggleInviteSelect('${jsq(f.id || '')}')`, {
+            cls: sel ? 'inv-row-sel' : '',
+            trailing,
+        });
     }
 
     let h = '';

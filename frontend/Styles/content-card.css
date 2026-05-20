@@ -225,8 +225,7 @@
     gap: 3px;
 }
 
-.fav-friend-av, .s-card-avatar { border-radius: 50%; background-size: cover; background-position: center; flex-shrink: 0; }
-.fav-friend-av { width: 40px; height: 40px; }
+.s-card-avatar { border-radius: 50%; background-size: cover; background-position: center; flex-shrink: 0; }
 .s-card-avatar { width: 44px; height: 44px; background-color: var(--bg-input); }
 
 .fav-group-header {
@@ -247,27 +246,6 @@
     font-weight: 500;
     color: var(--tx3);
 }
-
-.fav-friend-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    background: var(--bg-input);
-    cursor: pointer;
-    transition: background .15s;
-}
-.fav-friend-card:hover { background: var(--bg-hover); }
-.fav-friend-av-letter {
-    background: var(--bg3);
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--tx2);
-}
-.fav-friend-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow: hidden; }
-.fav-friend-status { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--tx3); overflow: hidden; }
-.fav-friend-status-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 
 .fd-group-card {
     display: flex;

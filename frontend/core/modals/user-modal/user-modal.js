@@ -195,10 +195,9 @@ function filterFdMutuals() {
     const slice = filtered.slice(page * MINI_PG_SIZE, (page + 1) * MINI_PG_SIZE);
     grid.innerHTML = slice.length
         ? slice.map(mu => {
-            const html = renderProfileItem(mu, `navOpenModal('friend','${jsq(mu.id)}','${jsq(mu.displayName || '')}')`);
             const thumbUrl = mu.currentAvatarThumbnailImageUrl || '';
-            if (!thumbUrl) return html;
-            return html.replace('<div class="vrcn-profile-item"', `<div class="vrcn-profile-item" data-avatar-thumb="${esc(thumbUrl)}"`);
+            const opts = thumbUrl ? { attrs: `data-avatar-thumb="${esc(thumbUrl)}"` } : undefined;
+            return renderProfileItem(mu, `navOpenModal('friend','${jsq(mu.id)}','${jsq(mu.displayName || '')}')`, opts);
         }).join('')
         : `<div style="padding:12px;grid-column:1/-1;text-align:center;font-size:12px;color:var(--tx3);">${t('profiles.mutuals.no_results', 'No results')}</div>`;
     setMiniPaginator('fdMutualsPageBar', buildMiniPaginator(page, totalPages, 'fdMutualsGoPage'));
@@ -486,7 +485,7 @@ function renderFriendDetail(d) {
             const _ownerUser = vrcFriendsData.find(f => f.id === _fdOwnerId);
             if (_ownerUser) {
                 const _ownerOnclick = `navOpenModal('friend','${jsq(_ownerUser.id)}','${jsq(_ownerUser.displayName || '')}')`;
-                _ownerPartHtml = renderProfileItem(_ownerUser, _ownerOnclick);
+                _ownerPartHtml = renderProfileItem(_ownerUser, _ownerOnclick, { noWorld: true });
             } else {
                 _ownerPartHtml = `<div id="fdOwnerSlot" data-owner-id="${esc(_fdOwnerId)}"><div class="sk-block" style="height:44px;border-radius:8px;"></div></div>`;
                 sendToCS({ action: 'vrcGetUserBasic', userId: _fdOwnerId, contextId: d.id });
@@ -1018,7 +1017,7 @@ function patchFriendDetailLive(f) {
             if (newOwnerId && newOwnerId.startsWith('usr_')) {
                 const ownerUser = vrcFriendsData.find(fu => fu.id === newOwnerId);
                 const ownerBody = ownerUser
-                    ? renderProfileItem(ownerUser, `navOpenModal('friend','${jsq(ownerUser.id)}','${jsq(ownerUser.displayName || '')}')`)
+                    ? renderProfileItem(ownerUser, `navOpenModal('friend','${jsq(ownerUser.id)}','${jsq(ownerUser.displayName || '')}')`, { noWorld: true })
                     : `<div id="fdOwnerSlot" data-owner-id="${esc(newOwnerId)}"><div class="sk-block" style="height:44px;border-radius:8px;"></div></div>`;
                 const ownerInner = `<div class="fd-group-rep-label">${t('instance.owner', 'Instance Owner')}</div>${ownerBody}`;
                 if (existingOwnerCard) {
@@ -1311,7 +1310,7 @@ function handleUserBasic(payload) {
     if (!slot || slot.dataset.ownerId !== payload.id) return;
     if (!currentFriendDetail || currentFriendDetail.id !== payload.contextId) return;
     const onclick = `navOpenModal('friend','${jsq(payload.id)}','${jsq(payload.displayName || '')}')`;
-    slot.outerHTML = renderProfileItem(payload, onclick);
+    slot.outerHTML = renderProfileItem(payload, onclick, { noWorld: true });
 }
 
 // Global VRC badge tooltip (position: fixed, escapes modal overflow)

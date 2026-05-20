@@ -35,6 +35,7 @@
     overflow-y: auto;
     min-height: 0;
     align-content: start;
+    gap: 10px;
 }
 
 /* Sidebar profile card */

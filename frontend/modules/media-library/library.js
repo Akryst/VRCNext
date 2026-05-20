@@ -748,7 +748,9 @@ function _photoCreateModal(x) {
     }
 
     const ok = e => {
-        if (e.key === 'Escape') { closePhotoDetail(); document.removeEventListener('keydown', ok); }
+        if (e.key === 'Escape')          { closePhotoDetail(); document.removeEventListener('keydown', ok); }
+        else if (e.key === 'ArrowLeft')  { e.preventDefault(); photoNavPrev(); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); photoNavNext(); }
     };
     document.addEventListener('keydown', ok);
 }
