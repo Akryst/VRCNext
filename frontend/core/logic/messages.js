@@ -522,6 +522,8 @@ window.external.receiveMessage(rawMsg => {
                 // Refresh moderation card in open profile modal
                 if (typeof renderFdModerationCard === 'function' && currentFriendDetail && currentFriendDetail.id === modUid)
                     renderFdModerationCard(modUid);
+                if (typeof refreshFdTaskbarActions === 'function' && currentFriendDetail && currentFriendDetail.id === modUid)
+                    refreshFdTaskbarActions();
                 break;
             }
             case 'vrcAvatars':

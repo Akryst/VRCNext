@@ -725,7 +725,7 @@ function renderFriendDetail(d) {
     const bannerSrc = d.profilePicOverride || d.currentAvatarImageUrl || d.image || '';
     const bannerHtml = bannerSrc ? `<div class="fd-banner" id="fd-banner-slot"><div class="fd-banner-fade"></div></div>` : '';
     const fdHeaderActions = renderModalActions([
-        { icon: 'share', title: t('common.share', 'Share'), label: t('common.share_profile', 'Share Profile'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(d.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
+        ..._fdBuildTaskbarActions(d),
         { icon: 'close', title: t('common.close', 'Close'), onclick: `closeFriendDetail()`, header: true },
     ]);
 
@@ -1309,6 +1309,39 @@ function _buildModCardInner(userId) {
 function renderFdModerationCard(userId) {
     const card = document.getElementById('fdModerationCard');
     if (card) card.innerHTML = _buildModCardInner(userId);
+}
+
+function _fdBuildTaskbarActions(d) {
+    const _fid  = jsq(d.id || '');
+    const _mBlk = Array.isArray(blockedData)      && blockedData.some(x => x.targetUserId === d.id);
+    const _mMut = Array.isArray(mutedData)        && mutedData.some(x => x.targetUserId === d.id);
+    const _mCht = Array.isArray(muteChatData)     && muteChatData.some(x => x.targetUserId === d.id);
+    const _mAvt = Array.isArray(hiddenAvatarData) && hiddenAvatarData.some(x => x.targetUserId === d.id);
+    const _mInt = Array.isArray(interactOffData)  && interactOffData.some(x => x.targetUserId === d.id);
+    const _invG = (typeof myGroups !== 'undefined') ? myGroups.filter(g => g.canInvite === true) : [];
+    const _moreItems = [
+        d.isFriend ? { icon: 'waving_hand', label: t('context_menu.friend.boop', 'Boop!'), onclick: `(typeof msgrRegisterBoopSent==='function'&&msgrRegisterBoopSent('${_fid}'));sendToCS({action:'vrcBoop',userId:'${_fid}'})` } : null,
+        (d.isFriend && _invG.length) ? { icon: 'group_add', label: t('context_menu.friend.invite_group', 'Invite to Group'), submenu: _invG.map(g => ({ icon: 'group', label: g.name || g.id, onclick: `sendToCS({action:'vrcInviteToGroup',groupId:'${jsq(g.id)}',userIds:['${_fid}']});showToast(true,t('context_menu.friend.invite_group_sent','Invite sent!'))` })) } : null,
+        { icon: 'shield_person', label: t('context_menu.friend.moderate', 'Moderate'), submenu: [
+            { icon: _mBlk ? 'lock_open' : 'block',           label: _mBlk ? t('context_menu.friend.unblock', 'Unblock')                  : t('context_menu.friend.block', 'Block'),                       onclick: `sendToCS({action:'${_mBlk ? 'vrcUnblock' : 'vrcBlock'}',userId:'${_fid}'})` },
+            { icon: _mMut ? 'mic' : 'mic_off',               label: _mMut ? t('context_menu.friend.unmute', 'Unmute')                    : t('context_menu.friend.mute', 'Mute'),                         onclick: `sendToCS({action:'${_mMut ? 'vrcUnmute' : 'vrcMute'}',userId:'${_fid}'})` },
+            { icon: _mCht ? 'chat' : 'comments_disabled',    label: _mCht ? t('context_menu.friend.unmute_chat', 'Unmute Chat')           : t('context_menu.friend.mute_chat', 'Mute Chat'),               onclick: `sendToCS({action:'${_mCht ? 'vrcUnmuteChat' : 'vrcMuteChat'}',userId:'${_fid}'})` },
+            { icon: _mAvt ? 'visibility' : 'visibility_off', label: _mAvt ? t('context_menu.friend.show_avatar', 'Show Avatar')           : t('context_menu.friend.hide_avatar', 'Hide Avatar'),           onclick: `sendToCS({action:'${_mAvt ? 'vrcShowAvatar' : 'vrcHideAvatar'}',userId:'${_fid}'})` },
+            { icon: _mInt ? 'touch_app' : 'do_not_touch',    label: _mInt ? t('context_menu.friend.interact_on', 'Turn On Interactions') : t('context_menu.friend.interact_off', 'Turn Off Interactions'), onclick: `sendToCS({action:'${_mInt ? 'vrcInteractOn' : 'vrcInteractOff'}',userId:'${_fid}'})` },
+        ] },
+    ].filter(Boolean);
+    const out = [
+        { icon: 'share', title: t('common.share', 'Share'), label: t('common.share_profile', 'Share Profile'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(d.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
+    ];
+    if (_moreItems.length) out.push({ label: t('common.more', 'More'), dropdown: _moreItems });
+    return out;
+}
+
+function refreshFdTaskbarActions() {
+    if (!currentFriendDetail || typeof setTaskbarModalActions !== 'function') return;
+    const md = document.getElementById('modalFriendDetail');
+    if (!md || md.style.display === 'none') return;
+    setTaskbarModalActions(_fdBuildTaskbarActions(currentFriendDetail));
 }
 
 function handleUserBasic(payload) {

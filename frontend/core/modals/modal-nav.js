@@ -27,19 +27,9 @@ function setTaskbarModalActions(actions) {
 function _tbDropdownItem(o) {
     if (o.submenu) {
         const sub = o.submenu.filter(Boolean).map(_tbDropdownItem).join('');
-        return `<div class="tb-modal-dd-sub-wrap"><button class="tb-modal-dd-item" onclick="_tbToggleSubmenu(this,event)">${o.icon ? `<span class="msi">${esc(o.icon)}</span>` : ''}<span>${esc(o.label || '')}</span><span class="msi tb-modal-dd-arrow">chevron_right</span></button><div class="tb-modal-dropdown tb-modal-dd-sub">${sub}</div></div>`;
+        return `<div class="tb-modal-dd-sub-wrap"><button class="tb-modal-dd-item">${o.icon ? `<span class="msi">${esc(o.icon)}</span>` : ''}<span>${esc(o.label || '')}</span><span class="msi tb-modal-dd-arrow">chevron_right</span></button><div class="tb-modal-dropdown tb-modal-dd-sub">${sub}</div></div>`;
     }
     return `<button class="tb-modal-dd-item${o.active ? ' active' : ''}"${o.disabled ? ' disabled' : ''} onclick="${o.disabled ? '' : '_tbCloseDropdowns();' + o.onclick}">${o.icon ? `<span class="msi">${esc(o.icon)}</span>` : ''}<span>${esc(o.label || '')}</span></button>`;
-}
-
-function _tbToggleSubmenu(btn, e) {
-    if (e) e.stopPropagation();
-    const wrap = btn.closest('.tb-modal-dd-sub-wrap');
-    if (!wrap) return;
-    const wasOpen = wrap.classList.contains('open');
-    const parent = wrap.parentNode;
-    if (parent) parent.querySelectorAll('.tb-modal-dd-sub-wrap.open').forEach(w => w.classList.remove('open'));
-    if (!wasOpen) wrap.classList.add('open');
 }
 
 function _tbToggleDropdown(btn) {
