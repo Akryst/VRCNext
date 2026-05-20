@@ -28,21 +28,14 @@ function renderUserItem(user, onclick, opts) {
 
     const statusText = statusDesc || (status ? statusLabel(status) : t('status.offline', 'Offline'));
 
-    const location = live?.location || user.location || '';
-    const parsed = (location && typeof parseFriendLocation === 'function') ? parseFriendLocation(location) : null;
-    let worldInner = '';
-    if (parsed && parsed.worldId && parsed.worldId.startsWith('wrld_')) {
-        const wc = (typeof dashWorldCache !== 'undefined') ? dashWorldCache[parsed.worldId] : null;
-        const wname = wc?.name || t('dashboard.friends.location_world', 'In World');
-        worldInner = `<span class="msi">public</span><span class="vrcn-user-item-world-name">${esc(wname)}</span>`;
-    }
-    const worldLine = opts.noWorld ? '' : `<div class="vrcn-user-item-world">${worldInner}</div>`;
+    const worldLine = opts.noWorld ? '' : `<div class="vrcn-user-item-world">${_userItemWorldInner(live?.location || user.location || '')}</div>`;
 
     const attrs = opts.attrs ? ' ' + opts.attrs : '';
     const cls = opts.cls ? ' ' + opts.cls : '';
+    const idAttr = id ? ` data-uid="${esc(id)}"` : '';
     const trailing = opts.trailing || '';
 
-    return `<div class="vrcn-user-item${cls}"${attrs} onclick="${onclick}">
+    return `<div class="vrcn-user-item${cls}"${idAttr}${attrs} onclick="${onclick}">
         <div class="vrcn-user-item-avatar-wrap">${avatar}${dot}</div>
         <div class="vrcn-user-item-info">
             <div class="vrcn-user-item-name">${esc(name)}${platBadge ? `<span class="vrcn-user-item-plat">${platBadge}</span>` : ''}</div>
@@ -51,6 +44,40 @@ function renderUserItem(user, onclick, opts) {
         </div>
         ${trailing}
     </div>`;
+}
+
+function _userItemWorldInner(location) {
+    const parsed = (location && typeof parseFriendLocation === 'function') ? parseFriendLocation(location) : null;
+    if (parsed && parsed.worldId && parsed.worldId.startsWith('wrld_')) {
+        const wc = (typeof dashWorldCache !== 'undefined') ? dashWorldCache[parsed.worldId] : null;
+        const wname = wc?.name || t('dashboard.friends.location_world', 'In World');
+        return `<span class="msi">public</span><span class="vrcn-user-item-world-name">${esc(wname)}</span>`;
+    }
+    return '';
+}
+
+function updateUserItemWorld(idOrUser) {
+    const id = typeof idOrUser === 'string' ? idOrUser : (idOrUser && (idOrUser.id || idOrUser.userId));
+    if (!id) return;
+    const items = document.querySelectorAll(`.vrcn-user-item[data-uid="${id}"]`);
+    if (!items.length) return;
+    const live = (typeof vrcFriendsData !== 'undefined') ? vrcFriendsData.find(f => f.id === id) : null;
+    const location = live?.location || (typeof idOrUser === 'object' ? idOrUser.location : '') || '';
+    const inner = _userItemWorldInner(location);
+    items.forEach(item => {
+        const wl = item.querySelector('.vrcn-user-item-world');
+        if (wl) wl.innerHTML = inner;
+    });
+}
+
+function refreshAllUserItemWorlds() {
+    document.querySelectorAll('.vrcn-user-item[data-uid]').forEach(item => {
+        const wl = item.querySelector('.vrcn-user-item-world');
+        if (!wl) return;
+        const id = item.getAttribute('data-uid');
+        const live = (typeof vrcFriendsData !== 'undefined') ? vrcFriendsData.find(f => f.id === id) : null;
+        wl.innerHTML = _userItemWorldInner(live?.location || '');
+    });
 }
 
 function renderProfileItem(user, onclick, opts) {

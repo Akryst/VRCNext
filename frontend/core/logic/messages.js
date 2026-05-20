@@ -218,6 +218,7 @@ window.external.receiveMessage(rawMsg => {
                 else vrcFriendsData.push(payload);
                 renderVrcFriends(vrcFriendsData);
                 if (favFriendsData.length > 0) filterFavFriends();
+                if (typeof updateUserItemWorld === 'function') updateUserItemWorld(payload);
                 if (typeof patchFriendDetailLive === 'function') patchFriendDetailLive(payload);
                 break;
             }

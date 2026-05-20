@@ -506,7 +506,6 @@ function renderFavFriendCard(f) {
             ? `<span class="msi" style="font-size:22px;color:var(--accent);">check_circle</span>`
             : `<span class="msi" style="font-size:22px;color:rgba(255,255,255,0.7);">radio_button_unchecked</span>`;
         return renderUserItem(f, `toggleFriendEditSelect('${uid}',this)`, {
-            attrs: `data-uid="${esc(f.id)}"`,
             trailing: `<div style="margin-left:auto;flex-shrink:0;">${checkIcon}</div>`,
         });
     }

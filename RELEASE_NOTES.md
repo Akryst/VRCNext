@@ -1,5 +1,9 @@
 **2026.26.3**
 
+**Improvements**
+* Friend Items now show world locations.
+* Friend Items change world location live base don Websocket jut like the friends sidebar.
+
 **Keybinds**
 
 * You can now use the LEFT ARROW and RIGHT ARROW keys to navigate through photos.
