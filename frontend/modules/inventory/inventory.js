@@ -125,7 +125,7 @@ function switchInvTab(tab) {
     refreshInventory();
 }
 
-function refreshInventory() {
+function refreshInventory(force = false) {
     const tab = activeInvTab;
     const info = INV_TABS[tab];
     const grid = document.getElementById('invGrid');
@@ -137,11 +137,11 @@ function refreshInventory() {
     if (count) count.textContent = '';
 
     if (tab === 'prints') {
-        sendToCS({ action: 'invGetPrints' });
+        sendToCS({ action: 'invGetPrints', force });
     } else if (tab === 'inventory') {
-        sendToCS({ action: 'invGetInventory' });
+        sendToCS({ action: 'invGetInventory', force });
     } else if (info?.tag) {
-        sendToCS({ action: 'invGetFiles', tag: info.tag });
+        sendToCS({ action: 'invGetFiles', tag: info.tag, force });
     }
 }
 
