@@ -1971,9 +1971,17 @@ public partial class AppShell
                     var calMonth  = msg["month"]?.Value<int>() ?? 0;
                     _ = Task.Run(async () => {
                         var evts = await _core.Calendar.GetCalendarEventsAsync(calFilter, calYear, calMonth);
-                        foreach (var ce in evts.OfType<JObject>())
+                        // Block event series and show 1 event instead of multiple ones lol.
+                        var seriesIds = new HashSet<string>(
+                            evts.OfType<JObject>()
+                                .Select(e => e["seriesId"]?.ToString())
+                                .Where(s => !string.IsNullOrEmpty(s))!);
+                        var deduped = new JArray(
+                            evts.OfType<JObject>()
+                                .Where(e => !seriesIds.Contains(e["id"]?.ToString() ?? "")));
+                        foreach (var ce in deduped.OfType<JObject>())
                             ce["imageUrl"] = ImageCacheHelper.GetEventUrl(ce["id"]?.ToString(), ce["imageUrl"]?.ToString());
-                        Invoke(() => SendToJS("vrcCalendarEvents", new { events = evts, filter = calFilter }));
+                        Invoke(() => SendToJS("vrcCalendarEvents", new { events = deduped, filter = calFilter }));
                     });
                     break;
 
