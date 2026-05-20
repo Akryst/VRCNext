@@ -39,3 +39,4 @@
 * Fixed a Z-ordering issue in Photo Preview where the delete confirmation dialog rendered behind the photo modal.
 * Fixed an issue that caused Photo Preview to open when using the arrow keys, even when it was closed or had not been used.
 * Fixed an issue in "Timeline" not repositioning the top buttons when making the window smaller
+* Fixed an issue when deleting an image while photo modal wa sopen the modal started to break.

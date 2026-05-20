@@ -137,8 +137,7 @@ window.external.receiveMessage(rawMsg => {
             case 'libraryAuthors': applyLibraryAuthors(payload); break;
             case 'libraryNewFile': addNewLibraryFile(payload); renderDashRecentPhotos(); break;
             case 'libraryFileDeleted':
-                libraryFiles = libraryFiles.filter(f => f.path !== payload.path);
-                filterLibrary(true); // stay on current page after delete
+                onLibraryFileDeleted(payload.path);
                 renderDashRecentPhotos();
                 break;
             case 'favoritesLoaded':

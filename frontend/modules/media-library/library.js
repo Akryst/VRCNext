@@ -952,6 +952,29 @@ function _photoNav(dir) {
     if (next) openPhotoDetail(next);
 }
 
+function onLibraryFileDeleted(path) {
+    const modal = document.getElementById('photoDetailModal');
+    const showingDeleted = modal && _photoState.item?.path === path;
+
+    // Pick the neighbour BEFORE removal, while the deleted item is still in the list.
+    let neighbor = null;
+    if (showingDeleted) {
+        const isImg  = f => f.type === 'image' || f.type === 'gif';
+        const inFilt = _libFiltered.some(f => f.path === path);
+        const list   = (inFilt ? _libFiltered : libraryFiles).filter(isImg);
+        const idx    = list.findIndex(f => f.path === path);
+        if (idx >= 0) neighbor = list[idx + 1] || list[idx - 1] || null;
+    }
+
+    libraryFiles = libraryFiles.filter(f => f.path !== path);
+    filterLibrary(true); // stay on current page after delete
+
+    if (showingDeleted) {
+        if (neighbor) openPhotoDetail(neighbor);
+        else          closePhotoDetail();
+    }
+}
+
 function _photoOnWheel(e) {
     e.preventDefault();
     photoZoom(e.deltaY < 0 ? 1.15 : 1/1.15);
