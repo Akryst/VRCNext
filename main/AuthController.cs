@@ -1560,6 +1560,7 @@ public class AuthController
             _core.Settings.SteamOverlaySoundEnabled = data["steamOverlaySoundEnabled"]?.Value<bool>() ?? true;
             _core.Settings.FriendOnlineToastEnabled = data["friendOnlineToastEnabled"]?.Value<bool>() ?? false;
             _core.Settings.FriendOnlineToastFavOnly = data["friendOnlineToastFavOnly"]?.Value<bool>() ?? false;
+            _core.Settings.FriendsSidebarLocationOnly = data["friendsSidebarLocationOnly"]?.Value<bool>() ?? true;
             _core.Settings.MinimizeToTray = data["minimizeToTray"]?.Value<bool>() ?? false;
             _core.Settings.TrayNotificationsEnabled = data["trayNotificationsEnabled"]?.Value<bool>() ?? false;
 #if WINDOWS

@@ -1,11 +1,21 @@
 **2026.26.3**
 
+**Settings**
+
+* Added a new settings category: **Sidebar**.
+* Added **Friends Sidebar Card** to **Sidebar Settings**.
+* You can now enable or disable instance information in the sidebar.
+* By default, friend items show: **Status Text | World Name**.
+* When enabled, they show: **Flag | World Name**. This displays the server location and world name, but hides the user’s status text.
+
 **Improvements**
 
 * Friend items now show world locations.
 * Friend items now update world locations live through WebSocket updates, just like the friends sidebar.
 * Added **Author** to photo previews.
 * Moved the Timeline search bar to the top bar, giving the log list more space.
+* Added player count to profile modals under **Current World**.
+* Added the age-gated tag to profile modals under **Current World**.
 
 **Keybinds**
 

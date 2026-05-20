@@ -106,6 +106,7 @@ function saveSettings() {
             steamOverlaySoundEnabled: document.getElementById('setSteamOverlaySoundEnabled')?.checked ?? true,
             friendOnlineToastEnabled: document.getElementById('setFriendOnlineToastEnabled')?.checked ?? false,
             friendOnlineToastFavOnly: document.getElementById('setFriendOnlineToastFavOnly')?.checked ?? false,
+            friendsSidebarLocationOnly: document.getElementById('setFriendsSidebarLocationOnly')?.checked ?? true,
             language: currentLanguage,
             theme: currentTheme,
             specialTheme: currentSpecialTheme,
@@ -266,6 +267,7 @@ function autoSave() {
 function initAutoSave() {
     const ids = ['setBotName','setBotAvatar','setVrcPath','setStartWithWindows','setMinimizeToTray','setTrayNotifications',
         'setNotifySoundEnabled','setMessageSoundEnabled','setMediaRelaySoundEnabled','setSteamOverlaySoundEnabled',
+        'setFriendsSidebarLocationOnly',
         'setRandomBg','setClockEnabled','setClockAmPm',
         'setAutoStartVR','setAutoStartDesktop',
         'setCbAutoStartVR','setCbAutoStartDesktop',
@@ -313,6 +315,9 @@ function loadSettingsToUI(s) {
     const _fotFavEl = document.getElementById('setFriendOnlineToastFavOnly');
     if (_fotFavEl) _fotFavEl.checked = s.FriendOnlineToastFavOnly ?? s.friendOnlineToastFavOnly ?? false;
     _fotUpdateFavOnly();
+    settings.friendsSidebarLocationOnly = s.FriendsSidebarLocationOnly ?? s.friendsSidebarLocationOnly ?? true;
+    const _fslEl = document.getElementById('setFriendsSidebarLocationOnly');
+    if (_fslEl) _fslEl.checked = settings.friendsSidebarLocationOnly;
     settings.folders = s.WatchFolders || s.watchFolders || s.folders || [];
     settings.relayEnabledFolders = s.RelayEnabledFolders ?? s.relayEnabledFolders ?? null;
     settings.extraExe = s.ExtraExe || s.extraExe || [];

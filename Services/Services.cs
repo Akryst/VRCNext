@@ -226,6 +226,7 @@ public class AppSettings
     public bool SteamOverlaySoundEnabled { get; set; } = true;
     public bool FriendOnlineToastEnabled { get; set; }
     public bool FriendOnlineToastFavOnly { get; set; }
+    public bool FriendsSidebarLocationOnly { get; set; } = true;
     public bool MinimizeToTray { get; set; }
     public bool TrayNotificationsEnabled { get; set; }
     public string Language { get; set; } = "en";
