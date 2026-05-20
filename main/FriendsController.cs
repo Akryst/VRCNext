@@ -1537,8 +1537,11 @@ public class FriendsController
                 ["worldName"]             = liveWorld.name,
                 ["worldThumb"]            = liveWorld.thumb,
                 ["instanceType"]          = liveIsInWorld ? liveInstType : cachedEntry.ProfileInstanceType,
-                ["userCount"]             = 0,
-                ["worldCapacity"]         = 0,
+                // Reuse the last-known count/capacity only while the friend is still in the
+                // same instance, so the XX/XX badge survives the modal cache like instanceType.
+                ["userCount"]             = (liveIsInWorld && liveLoc == cachedEntry.ProfileLocation) ? cachedEntry.ProfileUserCount : 0,
+                ["worldCapacity"]         = (liveIsInWorld && liveLoc == cachedEntry.ProfileLocation) ? cachedEntry.ProfileWorldCapacity : 0,
+                ["ageGate"]               = liveIsInWorld && liveLoc.Contains("~ageGate"),
                 ["isFriend"]              = cachedEntry.ProfileIsFriend != 0,
                 ["canJoin"]               = liveIsInWorld && liveInstType is "public" or "friends" or "friends+" or "hidden" or "group-public" or "group-plus" or "group-members" or "group",
                 ["canRequestInvite"]      = liveInstType is "private" or "invite_plus",
@@ -1895,6 +1898,7 @@ public class FriendsController
             lastActivity = ParseIsoDate(user["last_activity"]),
             dateJoined = user["date_joined"]?.ToString() ?? "",
             location, worldName, worldThumb, instanceType, userCount, worldCapacity,
+            ageGate = location.Contains("~ageGate"),
             isFriend = user["isFriend"]?.Value<bool>() ?? !string.IsNullOrEmpty(user["friendKey"]?.ToString()),
             canJoin = isInWorld && canJoin, canRequestInvite, canInvite = true,
             currentAvatarImageUrl = ImageCacheHelper.GetAvatarUrl(user["currentAvatar"]?.ToString(), user["currentAvatarImageUrl"]?.ToString()),

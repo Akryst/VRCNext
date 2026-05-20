@@ -478,6 +478,7 @@ function renderFriendDetail(d) {
             region:       _region,
             userCount:    d.userCount || 0,
             capacity:     d.worldCapacity || 0,
+            ageGate:      d.ageGate || false,
             onclick,
         });
         _worldPartHtml = _instanceItemHtml;
@@ -995,7 +996,8 @@ function patchFriendDetailLive(f) {
 
             const instanceItemHtml = renderInstanceItem({
                 thumb: worldThumb, worldName, instanceType,
-                instanceId: instId, region, userCount: 0, capacity: 0, onclick,
+                instanceId: instId, region, userCount: 0, capacity: 0,
+                ageGate: loc.includes('~ageGate'), onclick,
             });
             const worldInner = `<div class="fd-group-rep-label">${t('profiles.meta.current_world', 'Current World')}</div>${instanceItemHtml}`;
 
