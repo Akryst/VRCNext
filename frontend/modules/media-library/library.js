@@ -166,6 +166,24 @@ function applyLibraryWorldIds(dict) {
     _renderLibIconSelects();
 }
 
+function applyLibraryAuthors(dict) {
+    if (!dict || !Object.keys(dict).length) return;
+    for (const [path, author] of Object.entries(dict)) {
+        if (!author) continue;
+        const item = libraryFiles.find(f => f.path === path);
+        if (item) {
+            item.authorName = author.name || '';
+            item.authorId   = author.id   || '';
+        }
+        const photoModal = document.getElementById('photoDetailModal');
+        if (photoModal && _photoState.item?.path === path) {
+            if (_photoState.item) { _photoState.item.authorName = author.name || ''; _photoState.item.authorId = author.id || ''; }
+            const infoPane = photoModal.querySelector('.photo-detail-info-pane');
+            if (infoPane) infoPane.innerHTML = _photoBuildInfoPaneContent(_photoState.item);
+        }
+    }
+}
+
 // Called when a new file lands in a watch folder — no rescan needed.
 function addNewLibraryFile(item) {
     if (!item || libraryFiles.find(f => f.path === item.path)) return;
@@ -823,12 +841,26 @@ function _photoBuildInfoPaneContent(x) {
     const worldRowClick = worldId ? ` onclick="closePhotoDetail();openWorldSearchDetail('${esc(worldId)}')" style="cursor:pointer;"` : '';
     const isFav = x.path && (typeof favorites !== 'undefined') && favorites.has(x.path);
     const favBadge = `<span class="vrcn-badge accent"><span class="msi" style="font-size:11px;">star</span>${esc(t('library.detail.favorited', 'Favorited'))}</span>`;
+
+    const authorName = x.authorName || '';
+    const authorId   = x.authorId   || '';
+    let authorRow = '';
+    if (authorName) {
+        const authorLabel = esc(t('library.detail.author', 'Author'));
+        if (authorId) {
+            authorRow = `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;cursor:pointer;" onclick="closePhotoDetail();openFriendDetail('${jsq(authorId)}')"><span style="color:var(--tx3);">${authorLabel}</span><span style="color:var(--accent-lt);font-weight:700;text-align:right;">${esc(authorName)}</span></div>`;
+        } else {
+            authorRow = _tlMr(authorLabel, `<span style="font-weight:700;">${esc(authorName)}</span>`);
+        }
+    }
+
     const infoRows = [
         _tlMr(esc(t('library.detail.date', 'Date')), esc(dateStr)),
         _tlMr(esc(t('library.detail.time', 'Time')), esc(timeStr)),
         x.size ? _tlMr(esc(t('library.detail.size', 'Size')), esc(x.size)) : '',
         worldName ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"${worldRowClick}><span style="color:var(--tx3);">${esc(t('library.detail.world', 'World'))}</span><span style="color:var(--accent-lt);text-align:right;">${esc(worldName)}</span></div>` : '',
         resStr ? _tlMr(esc(t('library.detail.resolution', 'Resolution')), esc(resStr)) : '',
+        authorRow,
         isFav ? _tlMr(esc(t('library.detail.favorited', 'Favorited')), favBadge) : '',
     ].filter(Boolean).join('');
 

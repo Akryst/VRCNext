@@ -1179,6 +1179,7 @@
   "library.detail.time": "Time",
   "library.detail.size": "Size",
   "library.detail.world": "World",
+  "library.detail.author": "Author",
   "library.detail.info": "Info",
   "library.detail.resolution": "Resolution",
   "library.detail.favorited": "Favorited",

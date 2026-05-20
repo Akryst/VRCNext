@@ -488,6 +488,7 @@ public class PhotosController
 
             string? worldId = null;
             List<object>? players = null;
+            string authorName = "", authorId = "";
             if (isImg)
             {
                 var rec = _core.PhotoPlayersStore.GetPhotoRecord(fi.Name);
@@ -499,6 +500,16 @@ public class PhotosController
                         userId = p.UserId, displayName = p.DisplayName,
                         image  = _friends.ResolveWithDiskFallback(p.UserId, p.Image)
                     }).ToList();
+                }
+                if (fi.Extension.Equals(".png", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        var (an, aid) = UnifiedTimeEngine.ExtractPhotoAuthorFromPng(fi.FullName);
+                        authorName = an ?? "";
+                        authorId   = aid ?? "";
+                    }
+                    catch { }
                 }
             }
 
@@ -514,6 +525,8 @@ public class PhotosController
                 url,
                 worldId  = worldId ?? "",
                 players  = players ?? new List<object>(),
+                authorName,
+                authorId,
             });
         }
         catch { }
@@ -727,36 +740,51 @@ public class PhotosController
         }
         return result;
     }
-
-    // Silently reads PNG world-ID metadata in the background after the fast scan.
-    // Sends batches of { path -> worldId } to JS so it can patch items and cards.
-    // Only processes PNGs that don't already have a worldId from the player store.
+    
     private void EnrichLibraryWorldIds()
     {
-        var batch = new Dictionary<string, string>();
+        var batch       = new Dictionary<string, string>();
+        var authorBatch = new Dictionary<string, object>();
         foreach (var e in _libFileCache)
         {
             var f = e.Fi;
             if (!f.Extension.Equals(".png", StringComparison.OrdinalIgnoreCase)) continue;
-            // Skip if player store already provided a worldId
-            var rec = _core.PhotoPlayersStore.GetPhotoRecord(f.Name);
-            if (rec != null && !string.IsNullOrEmpty(rec.WorldId)) continue;
 
-            string? worldId = null;
-            try { worldId = UnifiedTimeEngine.ExtractWorldIdFromPng(f.FullName); } catch { }
-            if (string.IsNullOrEmpty(worldId)) continue;
-
-            batch[f.FullName] = worldId;
-            if (batch.Count >= 50)
+            try
             {
-                var toSend = new Dictionary<string, string>(batch);
-                _core.SendToJS("libraryWorldIds", toSend);
-                batch.Clear();
+                var (an, aid) = UnifiedTimeEngine.ExtractPhotoAuthorFromPng(f.FullName);
+                if (!string.IsNullOrEmpty(an) || !string.IsNullOrEmpty(aid))
+                    authorBatch[f.FullName] = new { name = an ?? "", id = aid ?? "" };
+            }
+            catch { }
+
+            var rec = _core.PhotoPlayersStore.GetPhotoRecord(f.Name);
+            if (rec == null || string.IsNullOrEmpty(rec.WorldId))
+            {
+                string? worldId = null;
+                try { worldId = UnifiedTimeEngine.ExtractWorldIdFromPng(f.FullName); } catch { }
+                if (!string.IsNullOrEmpty(worldId)) batch[f.FullName] = worldId;
+            }
+
+            if (batch.Count >= 50 || authorBatch.Count >= 50)
+            {
+                if (batch.Count > 0)
+                {
+                    _core.SendToJS("libraryWorldIds", new Dictionary<string, string>(batch));
+                    batch.Clear();
+                }
+                if (authorBatch.Count > 0)
+                {
+                    _core.SendToJS("libraryAuthors", new Dictionary<string, object>(authorBatch));
+                    authorBatch.Clear();
+                }
                 Thread.Sleep(20); // yield -- keep enrichment low-priority
             }
         }
         if (batch.Count > 0)
             _core.SendToJS("libraryWorldIds", batch);
+        if (authorBatch.Count > 0)
+            _core.SendToJS("libraryAuthors", authorBatch);
     }
 
     // Keep old paginated builder for loadLibraryPage compatibility

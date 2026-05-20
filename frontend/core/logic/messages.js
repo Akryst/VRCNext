@@ -134,6 +134,7 @@ window.external.receiveMessage(rawMsg => {
             case 'libraryData': renderLibrary(payload); renderDashRecentPhotos(); break;
             case 'libraryPageData': appendLibraryPage(payload); break;
             case 'libraryWorldIds': applyLibraryWorldIds(payload); break;
+            case 'libraryAuthors': applyLibraryAuthors(payload); break;
             case 'libraryNewFile': addNewLibraryFile(payload); renderDashRecentPhotos(); break;
             case 'libraryFileDeleted':
                 libraryFiles = libraryFiles.filter(f => f.path !== payload.path);

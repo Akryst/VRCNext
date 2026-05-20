@@ -3,6 +3,7 @@
 **Improvements**
 * Friend Items now show world locations.
 * Friend Items change world location live base don Websocket jut like the friends sidebar.
+* Added "Author" to Photo Previews.
 
 **Keybinds**
 

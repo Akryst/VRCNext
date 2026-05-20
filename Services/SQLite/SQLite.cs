@@ -2199,4 +2199,61 @@ public class UnifiedTimeEngine : IDisposable
         catch { }
         return null;
     }
+
+    public static (string? name, string? id) ExtractPhotoAuthorFromPng(string filePath)
+    {
+        string? name = null, id = null;
+        try
+        {
+            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var sig = new byte[8];
+            if (fs.Read(sig, 0, 8) != 8) return (null, null);
+            if (sig[0] != 137 || sig[1] != 80 || sig[2] != 78 || sig[3] != 71) return (null, null);
+
+            while (fs.Position < fs.Length - 8)
+            {
+                var lenBuf = new byte[4];
+                if (fs.Read(lenBuf, 0, 4) != 4) break;
+                int chunkLen = (lenBuf[0] << 24) | (lenBuf[1] << 16) | (lenBuf[2] << 8) | lenBuf[3];
+
+                var typeBuf = new byte[4];
+                if (fs.Read(typeBuf, 0, 4) != 4) break;
+                var chunkType = System.Text.Encoding.ASCII.GetString(typeBuf);
+
+                if (chunkType == "IEND") break;
+
+                if ((chunkType == "tEXt" || chunkType == "iTXt" || chunkType == "zTXt") && chunkLen > 0 && chunkLen < 131072)
+                {
+                    var data = new byte[chunkLen];
+                    if (fs.Read(data, 0, chunkLen) != chunkLen) break;
+
+                    var text = System.Text.Encoding.UTF8.GetString(data);
+
+                    if (name == null)
+                    {
+                        var nm = System.Text.RegularExpressions.Regex.Match(text, @"<[A-Za-z]*:?Author>\s*([^<]+?)\s*</");
+                        if (nm.Success)
+                        {
+                            var v = nm.Groups[1].Value.Trim();
+                            if (v.Length > 0) name = v;
+                        }
+                    }
+
+                    if (id == null)
+                    {
+                        var im = System.Text.RegularExpressions.Regex.Match(text, @"AuthorID>\s*(usr_[0-9a-fA-F\-]+)");
+                        if (im.Success) id = im.Groups[1].Value;
+                    }
+
+                    fs.Seek(4, SeekOrigin.Current);
+                    if (name != null && id != null) break;
+                    continue;
+                }
+
+                fs.Seek(chunkLen + 4, SeekOrigin.Current);
+            }
+        }
+        catch { }
+        return (name, id);
+    }
 }
