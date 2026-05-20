@@ -838,7 +838,8 @@ function _photoBuildInfoPaneContent(x) {
         ? (resTag ? `${resTag} (${x.imgW}×${x.imgH})` : `${x.imgW}×${x.imgH}`)
         : resTag;
 
-    const worldRowClick = worldId ? ` onclick="closePhotoDetail();openWorldSearchDetail('${esc(worldId)}')" style="cursor:pointer;"` : '';
+    const worldRowClick = worldId ? ` onclick="closePhotoDetail();openWorldSearchDetail('${esc(worldId)}')"` : '';
+    const worldCursor   = worldId ? 'cursor:pointer;' : '';
     const isFav = x.path && (typeof favorites !== 'undefined') && favorites.has(x.path);
     const favBadge = `<span class="vrcn-badge accent"><span class="msi" style="font-size:11px;">star</span>${esc(t('library.detail.favorited', 'Favorited'))}</span>`;
 
@@ -858,7 +859,7 @@ function _photoBuildInfoPaneContent(x) {
         _tlMr(esc(t('library.detail.date', 'Date')), esc(dateStr)),
         _tlMr(esc(t('library.detail.time', 'Time')), esc(timeStr)),
         x.size ? _tlMr(esc(t('library.detail.size', 'Size')), esc(x.size)) : '',
-        worldName ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"${worldRowClick}><span style="color:var(--tx3);">${esc(t('library.detail.world', 'World'))}</span><span style="color:var(--accent-lt);text-align:right;">${esc(worldName)}</span></div>` : '',
+        worldName ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;${worldCursor}"${worldRowClick}><span style="color:var(--tx3);">${esc(t('library.detail.world', 'World'))}</span><span style="color:var(--accent-lt);font-weight:700;text-align:right;">${esc(worldName)}</span></div>` : '',
         resStr ? _tlMr(esc(t('library.detail.resolution', 'Resolution')), esc(resStr)) : '',
         authorRow,
         isFav ? _tlMr(esc(t('library.detail.favorited', 'Favorited')), favBadge) : '',

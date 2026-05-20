@@ -23,3 +23,4 @@
 
 * Fixed the context menu having lower Z-ordering than preview modals, causing it to render behind them.
 * Fixed the Current Instance card being slightly bigger than the Current World card in user profiles.
+* Fixed an issue when you hovered over "World" text in Photo Modal not showing the "you can click this hand".
