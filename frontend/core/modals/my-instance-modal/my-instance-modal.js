@@ -264,7 +264,7 @@ function setInstanceModal(inst) {
 
     _miModalWorldId = worldId;
 
-    if (typeof setTaskbarModalActions === 'function') setTaskbarModalActions([]);
+    const miBar = (typeof renderModalActions === 'function') ? renderModalActions([]) : '';
 
     const instanceGroups = {}; // locBase → { friends, instanceType, instId, location }
 
@@ -273,6 +273,10 @@ function setInstanceModal(inst) {
         const allWorldFriends = (typeof vrcFriendsData !== 'undefined')
             ? vrcFriendsData.filter(f => f.location && f.location.split(':')[0] === worldId)
             : [];
+        const _selfM = (typeof _selfInstanceMember === 'function') ? _selfInstanceMember() : null;
+        if (_selfM && _selfM.location.split(':')[0] === worldId && !allWorldFriends.some(f => f.id === _selfM.id)) {
+            allWorldFriends.unshift(_selfM);
+        }
         allWorldFriends.forEach(f => {
             const key = f.location.split('~')[0];
             if (!instanceGroups[key]) {
@@ -295,6 +299,10 @@ function setInstanceModal(inst) {
         const locFriends = (typeof vrcFriendsData !== 'undefined')
             ? vrcFriendsData.filter(f => f.location && f.location.split('~')[0] === locBase)
             : [];
+        const _selfMi = (typeof _selfInstanceMember === 'function') ? _selfInstanceMember() : null;
+        if (_selfMi && _selfMi.location.split('~')[0] === locBase && !locFriends.some(f => f.id === _selfMi.id)) {
+            locFriends.unshift(_selfMi);
+        }
         const curBase  = (currentInstanceData?.location || '').split('~')[0];
         const logUsers = (locBase && curBase === locBase && currentInstanceData?.users) ? currentInstanceData.users : [];
         const friendById = {};
@@ -312,7 +320,7 @@ function setInstanceModal(inst) {
         ? `<div style="padding:24px;text-align:center;color:var(--tx3);font-size:12px;">${t('dashboard.instances.no_friends_title', 'No friends here yet!')}</div>`
         : groupKeys.map(key => _buildInstanceCard(key, instanceGroups[key], false)).join('');
 
-    c.innerHTML = `<div class="mi-layout">
+    c.innerHTML = `${miBar}<div class="mi-layout">
         <div class="mi-left">
             <div class="mi-world-banner-wrap"><div id="mi-banner-slot"><div class="mi-world-banner-fade"></div></div></div>
             <div class="mi-world-info">
@@ -349,12 +357,18 @@ function setOwnInstanceModal(inst) {
 
     _miModalWorldId = worldId;
 
+    const miBar = (typeof renderModalActions === 'function') ? renderModalActions([]) : '';
+
     const locBase = (inst.location || '').split('~')[0];
     const instId  = locBase.includes(':') ? locBase.split(':')[1] : '';
 
     const locFriends = (typeof vrcFriendsData !== 'undefined')
         ? vrcFriendsData.filter(f => f.location && f.location.split('~')[0] === locBase)
         : [];
+    const _selfMo = (typeof _selfInstanceMember === 'function') ? _selfInstanceMember() : null;
+    if (_selfMo && _selfMo.location.split('~')[0] === locBase && !locFriends.some(f => f.id === _selfMo.id)) {
+        locFriends.unshift(_selfMo);
+    }
     const curBase  = (currentInstanceData?.location || '').split('~')[0];
     const logUsers = (locBase && curBase === locBase && currentInstanceData?.users) ? currentInstanceData.users : [];
     const friendById = {};
@@ -381,7 +395,7 @@ function setOwnInstanceModal(inst) {
 
     const playerCount = inst.userCount != null ? `${inst.userCount}${inst.capacity ? '/' + inst.capacity : ''}` : '';
 
-    c.innerHTML = `<div class="mi-layout">
+    c.innerHTML = `${miBar}<div class="mi-layout">
         <div class="mi-left">
             <div class="mi-world-banner-wrap"><div id="mi-banner-slot"><div class="mi-world-banner-fade"></div></div></div>
             <div class="mi-world-info">

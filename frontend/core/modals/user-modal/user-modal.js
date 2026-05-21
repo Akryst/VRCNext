@@ -724,10 +724,7 @@ function renderFriendDetail(d) {
 
     const bannerSrc = d.profilePicOverride || d.currentAvatarImageUrl || d.image || '';
     const bannerHtml = bannerSrc ? `<div class="fd-banner" id="fd-banner-slot"><div class="fd-banner-fade"></div></div>` : '';
-    const fdHeaderActions = renderModalActions([
-        ..._fdBuildTaskbarActions(d),
-        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeFriendDetail()`, header: true },
-    ]);
+    const fdHeaderActions = renderModalActions(_fdBuildTaskbarActions(d));
 
     const fdLocation = d.location || '';
     const fdIsOffline = (d.status || 'offline') === 'offline';
@@ -741,10 +738,7 @@ function renderFriendDetail(d) {
         <p style="margin:10px 0 0;font-size:12px;color:var(--tx3);line-height:1.45;">${t('profiles.trust.description', 'This user has a trusted user standing within the community.')}</p>` : '';
 
     const _fdInstFriends = (_worldPartHtml && d.location && d.location !== 'private' && d.location !== 'traveling')
-        ? (typeof vrcFriendsData !== 'undefined' ? vrcFriendsData : []).filter(f =>
-            f.location === d.location &&
-            f.id !== d.id &&
-            !(currentVrcUser && f.id === currentVrcUser.id))
+        ? (typeof getInstanceMembers === 'function' ? getInstanceMembers(d.location) : []).filter(m => m.id !== d.id)
         : [];
     const _instFriendsHtml = _fdInstFriends.length > 0
         ? `<div class="fd-group-rep-label" style="margin-top:10px;">${tf('instance.sections.friends_in_instance', { count: _fdInstFriends.length }, 'FRIENDS IN INSTANCE ({count})')}</div>
@@ -1334,14 +1328,15 @@ function _fdBuildTaskbarActions(d) {
         { icon: 'share', title: t('common.share', 'Share'), label: t('common.share_profile', 'Share Profile'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(d.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
     ];
     if (_moreItems.length) out.push({ label: t('common.more', 'More'), dropdown: _moreItems });
+    out.push({ icon: 'close', title: t('common.close', 'Close'), onclick: `closeFriendDetail()`, header: true });
     return out;
 }
 
 function refreshFdTaskbarActions() {
-    if (!currentFriendDetail || typeof setTaskbarModalActions !== 'function') return;
+    if (!currentFriendDetail || typeof refreshModalActions !== 'function') return;
     const md = document.getElementById('modalFriendDetail');
     if (!md || md.style.display === 'none') return;
-    setTaskbarModalActions(_fdBuildTaskbarActions(currentFriendDetail));
+    refreshModalActions(_fdBuildTaskbarActions(currentFriendDetail));
 }
 
 function handleUserBasic(payload) {

@@ -73,7 +73,7 @@ function _wdUpdateInstancesInPlace(w) {
         instanceId: inst.instanceId || '', owner: inst.ownerName || '',
         ownerGroup: inst.ownerGroup || '', ownerId: inst.ownerId || '',
         region: getWorldRegionLabel(inst.region), userCount: inst.users,
-        capacity: w.capacity || 0, friends: worldFriendsByLoc[inst.location] || [],
+        capacity: w.capacity || 0, friends: getInstanceMembers(inst.location),
         location: inst.location, ageGate: inst.ageGate || false,
         languageRatio: inst.languageRatio || {},
     });
@@ -216,7 +216,7 @@ function renderWorldSearchDetail(w) {
             region:        getWorldRegionLabel(inst.region),
             userCount:     inst.users,
             capacity:      w.capacity || 0,
-            friends:       worldFriendsByLoc[inst.location] || [],
+            friends:       getInstanceMembers(inst.location),
             location:      inst.location,
             ageGate:       inst.ageGate || false,
             languageRatio: inst.languageRatio || {},
@@ -643,11 +643,15 @@ function openWorldDetail(worldId) {
         (_instUserIds.has(f.id) && (!f.location || f.location === 'private')) ? { ...f, location: _instLoc } : f
     );
 
-    // Find all friends in this world
+    // Find all friends in this world (plus self, so you can spot your own instance)
     const friends = friendsRaw.filter(f => {
         const { worldId: wid } = parseFriendLocation(f.location);
         return wid === worldId;
     });
+    const _selfM = typeof _selfInstanceMember === 'function' ? _selfInstanceMember() : null;
+    if (_selfM && parseFriendLocation(_selfM.location).worldId === worldId && !friends.some(f => f.id === _selfM.id)) {
+        friends.unshift(_selfM);
+    }
 
     const cached = dashWorldCache[worldId];
     const worldName = cached?.name || worldId;
@@ -657,7 +661,7 @@ function openWorldDetail(worldId) {
     // Group friends by instance (full location string)
     const instanceMap = {};
     friends.forEach(f => {
-        const loc = f.location;
+        const loc = (f.location || '').replace(/~nonce\([^)]*\)/, '');
         if (!instanceMap[loc]) {
             const { instanceType: iType, ownerId: iOwner } = parseFriendLocation(loc);
             const numMatch = loc.match(/:(\d+)/);
@@ -779,13 +783,13 @@ function openWorldDetail(worldId) {
     const _singleRegion = getWorldRegionLabel((instanceLoc.match(/~region\(([^)]+)\)/) || [])[1] || '');
     const singleRegionBadge = _singleRegion ? `<span class="vrcn-badge accent">${esc(_singleRegion)}</span>` : '';
 
-    if (typeof setTaskbarModalActions === 'function') setTaskbarModalActions([
-        canJoin ? { title: t('dashboard.instances.join_world', 'Join World'), onclick: `worldJoinAction('${loc}')` } : null,
-        { title: t('dashboard.instances.open_world', 'Open World'), onclick: `navOpenModal('worldSearch','${wid}','${esc(cached?.name || '')}')` },
+    const wiBar = renderModalActions([
+        canJoin ? { icon: 'login', title: t('dashboard.instances.join_world', 'Join World'), onclick: `worldJoinAction('${loc}')` } : null,
+        { icon: 'public', title: t('dashboard.instances.open_world', 'Open World'), onclick: `navOpenModal('worldSearch','${wid}','${esc(cached?.name || '')}')` },
     ]);
     let actionsHtml = `<div class="fd-actions"><button class="vrcn-button-round" style="margin-left:auto;" onclick="closeWorldDetail()">${t('common.close', 'Close')}</button></div>`;
 
-    c.innerHTML = `${bannerHtml}<div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:16px 0;">
+    c.innerHTML = `${wiBar}${bannerHtml}<div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:16px 0;">
         <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(worldName)}</h2>
         <div class="fd-badges-row">${multiInstance ? '' : (() => {
             const _oid = myInst ? (myInst.ownerId || parseFriendLocation(myInst.location).ownerId || '') : singleOwnerId;

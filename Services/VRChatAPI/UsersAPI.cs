@@ -106,6 +106,7 @@ public class UsersAPI(VRChatApiService ctx)
             if (resp.IsSuccessStatusCode)
             {
                 var user = JObject.Parse(body);
+                if (profilePicOverride != null) user["profilePicOverride"] = profilePicOverride;
                 ctx.CurrentUserRaw = user;
                 return user;
             }

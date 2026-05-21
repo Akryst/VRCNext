@@ -8,6 +8,9 @@ This may feel confusing the first few times, since most actions used to be insid
 
 Moving these actions to the taskbar turned out to be much better, since the taskbar is meant for quick tasks. It also speeds things up, especially when you do not want to scroll up and down or switch between sub-tabs.
 
+Important: If you don't like this kind of navigation you can change it in:
+Settings > Navigation > Use Direct Modal Navigation > - If you turn this on:
+When enabled, the breadcrumb history and all modal actions are shown in a bar at the top of the modal instead of in the taskbar. This makes navigating easier in fullscreen or on larger screens. It's recommended to leave this off when not running VRCNext in fullscreen.
 
 **Settings**
 * Added a new settings category: **Sidebar**.
@@ -24,6 +27,10 @@ Moving these actions to the taskbar turned out to be much better, since the task
 * Added player count to profile modals under **Current World**.
 * Added the age-gated tag to profile modals under **Current World**.
 * Added dynamic animations to taskbar.
+* In Group Modal, World Modal, My/-Instance Modals and Profile Modals you will now be shown as well instead of only your friends.
+
+**Changes**
+* Changed the "X" Close button in Photo Modal to match all other modals.
 
 **Keybinds**
 * You can now use the LEFT ARROW and RIGHT ARROW keys to navigate through photos.
@@ -56,3 +63,5 @@ Moving these actions to the taskbar turned out to be much better, since the task
 * Fixed an issue in "Timeline" not repositioning the top buttons when making the window smaller
 * Fixed an issue when deleting an image while photo modal wa sopen the modal started to break.
 * Fixed an issue where the "Create Event" Modal was stuck below the taskbar.
+* Fixed an issue causing to show the old header image when replacing it with a new one.
+* Several UI flaws and Z ordering issue have been fixed.

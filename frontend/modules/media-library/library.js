@@ -750,7 +750,7 @@ function _photoCreateModal(x) {
     o.id        = 'photoDetailModal';
     o.onclick   = e => { if (e.target === o) closePhotoDetail(); };
     o.innerHTML = `<div class="photo-detail-box">
-        <button class="photo-detail-close" onclick="closePhotoDetail()" title="${esc(t('common.close', 'Close'))}"><span class="msi" style="font-size:18px;">close</span></button>
+        <div class="fd-modal-actions"><button class="btn-notif fd-action-btn" onclick="closePhotoDetail()" title="${esc(t('common.close', 'Close'))}"><span class="msi" style="font-size:20px;">close</span></button></div>
         <div class="photo-detail-img-pane">
             <img class="photo-detail-img" alt="" draggable="false" style="display:none;" onerror="this.style.display='none'">
             <div class="photo-detail-toolbar-mount"></div>

@@ -394,6 +394,7 @@ function renderGroupDetail(g) {
                 userCount:    inst.userCount || 0,
                 capacity:     inst.capacity  || 0,
                 location:     inst.location  || '',
+                friends:      getInstanceMembers(inst.location || ''),
                 ageGate:      (inst.instanceId || '').includes('~ageGate'),
             });
         });

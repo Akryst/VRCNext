@@ -2,26 +2,67 @@ let _navStack        = [];
 let _navIdx          = -1;
 let _navCurrentEntry = null;
 let _navBackdropEl   = null;
+let _mnActions       = [];
+
+function _directNav() { return typeof settings !== 'undefined' && settings.directModalNav === true; }
+
+function _mnActionHtml(a, asText) {
+    if (a.dropdown) {
+        const items = a.dropdown.filter(Boolean).map(_tbDropdownItem).join('');
+        if (asText) {
+            return `<div class="tb-modal-action-wrap"><button class="tb-modal-action" onclick="_tbToggleDropdown(this)">${esc(a.label || a.title || '')}<span class="msi tb-modal-dd-caret">expand_more</span></button><div class="tb-modal-dropdown">${items}</div></div>`;
+        }
+        return `<div class="tb-modal-action-wrap"><button class="btn-notif fd-action-btn" title="${esc(a.title || a.label || '')}" onclick="_tbToggleDropdown(this)"><span class="msi" style="font-size:20px;">${esc(a.icon || 'more_horiz')}</span></button><div class="tb-modal-dropdown">${items}</div></div>`;
+    }
+    if (asText) {
+        return `<button class="tb-modal-action${a.danger ? ' tb-modal-action-danger' : ''}"${a.disabled ? ' disabled' : ''} onclick="${a.onclick}">${esc(a.label || a.title || '')}</button>`;
+    }
+    return `<button class="btn-notif fd-action-btn${a.danger ? ' fd-action-danger' : ''}"${a.disabled ? ' disabled' : ''} title="${esc(a.title || a.label || '')}" onclick="${a.onclick}"><span class="msi" style="font-size:20px;">${esc(a.icon)}</span></button>`;
+}
+
+function _mnActionsHtml(actions, asText) {
+    return (actions || []).filter(Boolean).map(a => _mnActionHtml(a, asText)).join(asText ? '<div class="tb-sep"></div>' : '');
+}
+
+function _mnActiveBar() {
+    const bars = document.querySelectorAll('.fd-modal-bar');
+    for (const b of bars) if (b.offsetParent !== null) return b;
+    return null;
+}
 
 function renderModalActions(actions) {
     actions = (actions || []).filter(Boolean);
+    _mnActions = actions;
+    if (_directNav()) {
+        return `<div class="fd-modal-bar"><div class="fd-modal-bar-crumbs">${_mnCrumbsHtml()}</div><div class="fd-modal-bar-actions">${_mnActionsHtml(actions, false)}</div></div>`;
+    }
     setTaskbarModalActions(actions.filter(a => !a.header));
-    const btns = actions.filter(a => a.header).map(a =>
-        `<button class="btn-notif fd-action-btn${a.danger ? ' fd-action-danger' : ''}" title="${esc(a.title || '')}" onclick="${a.onclick}"><span class="msi" style="font-size:20px;">${esc(a.icon)}</span></button>`
-    ).join('');
-    return btns ? `<div class="fd-modal-actions">${btns}</div>` : '';
+    const header = actions.filter(a => a.header);
+    return header.length ? `<div class="fd-modal-actions">${_mnActionsHtml(header, false)}</div>` : '';
+}
+
+function refreshModalActions(actions) {
+    actions = (actions || []).filter(Boolean);
+    _mnActions = actions;
+    if (_directNav()) {
+        const el = _mnActiveBar()?.querySelector('.fd-modal-bar-actions');
+        if (el) el.innerHTML = _mnActionsHtml(actions, false);
+    } else {
+        const el = document.getElementById('tbModalActions');
+        if (el) el.innerHTML = _mnActionsHtml(actions.filter(a => !a.header), true);
+    }
 }
 
 function setTaskbarModalActions(actions) {
+    actions = (actions || []).filter(Boolean);
+    if (_directNav()) {
+        _mnActions = actions;
+        const el = _mnActiveBar()?.querySelector('.fd-modal-bar-actions');
+        if (el) el.innerHTML = _mnActionsHtml(actions, false);
+        return;
+    }
     const el = document.getElementById('tbModalActions');
-    if (!el) return;
-    el.innerHTML = (actions || []).filter(Boolean).map(a => {
-        if (a.dropdown) {
-            const items = a.dropdown.filter(Boolean).map(_tbDropdownItem).join('');
-            return `<div class="tb-modal-action-wrap"><button class="tb-modal-action" onclick="_tbToggleDropdown(this)">${esc(a.label || a.title || '')}<span class="msi tb-modal-dd-caret">expand_more</span></button><div class="tb-modal-dropdown">${items}</div></div>`;
-        }
-        return `<button class="tb-modal-action${a.danger ? ' tb-modal-action-danger' : ''}"${a.disabled ? ' disabled' : ''} onclick="${a.onclick}">${esc(a.label || a.title || '')}</button>`;
-    }).join('<div class="tb-sep"></div>');
+    if (el) el.innerHTML = _mnActionsHtml(actions, true);
 }
 
 function _tbDropdownItem(o) {
@@ -58,6 +99,14 @@ function _tbModalActive() {
 
 function _navSyncTaskbar() {
     const tb = document.getElementById('taskbar');
+    if (_directNav()) {
+        if (tb) tb.classList.remove('tb-modal-mode');
+        const c0 = document.getElementById('tbModalCrumbs'); if (c0) c0.innerHTML = '';
+        const a0 = document.getElementById('tbModalActions'); if (a0) a0.innerHTML = '';
+        const bc = _mnActiveBar()?.querySelector('.fd-modal-bar-crumbs');
+        if (bc) bc.innerHTML = _mnCrumbsHtml();
+        return;
+    }
     if (!tb) return;
     if (_tbModalActive()) {
         tb.classList.add('tb-modal-mode');
@@ -69,13 +118,11 @@ function _navSyncTaskbar() {
     }
 }
 
-function renderTaskbarCrumbs() {
-    const el = document.getElementById('tbModalCrumbs');
-    if (!el) return;
+function _mnCrumbsHtml() {
     let entries, curIdx;
     if (_navIdx >= 0 && _navStack.length > 0) { entries = _navStack.slice(0, _navIdx + 1); curIdx = entries.length - 1; }
     else if (_navCurrentEntry && _navCurrentEntry.id) { entries = [_navCurrentEntry]; curIdx = 0; }
-    else { el.innerHTML = ''; return; }
+    else return '';
     const start = Math.max(0, entries.length - 5);
     let html = '';
     if (start > 0) html += `<button class="tb-crumb" onclick="navGoTo(0)">···</button><span class="tb-crumb-sep">›</span>`;
@@ -86,7 +133,12 @@ function renderTaskbarCrumbs() {
         if (idx === curIdx) return `<span class="tb-crumb-current" title="${_esc(name)}">${_esc(short)}</span>`;
         return `<button class="tb-crumb" title="${_esc(name)}" onclick="navGoTo(${idx})">${_esc(short)}</button>`;
     }).join('<span class="tb-crumb-sep">›</span>');
-    el.innerHTML = html;
+    return html;
+}
+
+function renderTaskbarCrumbs() {
+    const el = document.getElementById('tbModalCrumbs');
+    if (el) el.innerHTML = _mnCrumbsHtml();
 }
 
 function navSetCurrent(type, id, id2) {
