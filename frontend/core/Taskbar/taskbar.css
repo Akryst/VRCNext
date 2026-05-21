@@ -385,7 +385,8 @@ html.no-animations .tb-title-anim { animation: none !important; }
 #taskbar.tb-modal-mode #tb-left { flex-shrink: 1; min-width: 0; }
 
 .tb-crumb, .tb-crumb-current {
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -405,7 +406,7 @@ html.no-animations .tb-title-anim { animation: none !important; }
 }
 .tb-crumb:hover { color: #fff; background: rgba(255, 255, 255, 0.07); }
 .tb-crumb-current { color: var(--tx0); font-weight: 700; padding: 2px 2px; }
-.tb-crumb-sep { color: rgba(255, 255, 255, 0.3); font-size: 12px; flex-shrink: 0; }
+.tb-crumb-sep { color: rgba(255, 255, 255, 0.3); font-size: 13px; flex-shrink: 0; }
 
 .tb-modal-action {
     display: inline-flex;
@@ -415,8 +416,8 @@ html.no-animations .tb-title-anim { animation: none !important; }
     cursor: pointer;
     color: rgba(255, 255, 255, 0.72);
     font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 500;
     white-space: nowrap;
     padding: 0 12px;
     transition: background 0.1s, color 0.1s;
@@ -436,9 +437,9 @@ html.no-animations .tb-title-anim { animation: none !important; }
     right: 0;
     min-width: 190px;
     background: var(--bg-card);
-    border: 1px solid var(--brd);
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--brd-lt);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.25);
     padding: 4px;
     z-index: 10001;
 }
@@ -449,14 +450,15 @@ html.no-animations .tb-modal-dropdown { animation: none !important; }
 .tb-modal-dd-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
     width: 100%;
     background: none;
     border: none;
     cursor: pointer;
     color: var(--tx1);
     font-family: inherit;
-    font-size: 12px;
+    font-size: 12.5px;
+    font-weight: 500;
     padding: 7px 10px;
     border-radius: 6px;
     white-space: nowrap;
@@ -464,12 +466,12 @@ html.no-animations .tb-modal-dropdown { animation: none !important; }
 }
 .tb-modal-dd-item:hover { background: var(--bg-hover); }
 .tb-modal-dd-item.active { color: var(--accent); }
-.tb-modal-dd-item .msi { font-size: 15px; flex-shrink: 0; }
+.tb-modal-dd-item .msi { font-size: 16px; width: 18px; flex-shrink: 0; }
 .tb-modal-dd-item:disabled { opacity: 0.4; cursor: default; }
 .tb-modal-dd-item:disabled:hover { background: none; }
 
 .tb-modal-dd-sub-wrap { position: relative; }
-.tb-modal-dd-arrow { margin-left: auto; font-size: 15px !important; opacity: 0.6; }
+.tb-modal-dd-arrow { margin-left: auto; font-size: 14px !important; width: auto !important; color: var(--tx3); }
 .tb-modal-dd-sub {
     top: -5px;
     right: 100%;
