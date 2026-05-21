@@ -1,4 +1,4 @@
-**2026.26.3**
+**2026.26.5**
 
 **Taskbar and Modal Navigation**
 
@@ -30,6 +30,9 @@ When enabled, the breadcrumb history and all modal actions are shown in a bar at
 * In Group Modal, World Modal, My/-Instance Modals and Profile Modals you will now be shown as well instead of only your friends.
 * Added Cookie checks for VRCN. If cookies are not valid: user will be logged out and will be asked to log in again.
 * Added a Warn icon to the collapsed sidebar when the user is not logged in anymore. once pressed the sidebar will open and show the login-form.
+
+*i18n*
+* Added Russian Language.
 
 **Changes**
 * Changed the "X" Close button in Photo Modal to match all other modals.
