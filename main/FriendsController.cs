@@ -1549,7 +1549,7 @@ public class FriendsController
                 ["currentAvatarImageUrl"] = !string.IsNullOrEmpty(liveAvatarImg) ? ImageCacheHelper.GetAvatarUrl(liveAvatarId, liveAvatarImg) : cachedEntry.ProfileAvatarImg,
                 ["currentAvatarId"]       = liveAvatarId,
                 ["avatarFileId"]          = liveFileId,
-                ["profilePicOverride"]    = livePicOverride ?? cachedEntry.ProfilePicOverride,
+                ["profilePicOverride"]    = !string.IsNullOrEmpty(livePicOverride) ? ImageCacheHelper.GetUserBannerUrl(userId, livePicOverride) : cachedEntry.ProfilePicOverride,
                 ["tags"]                  = liveTags ?? TryParseJArray(cachedEntry.ProfileTags) ?? new JArray(),
                 ["note"]                  = cachedEntry.ProfileNote,
                 ["friendKey"]             = cachedEntry.ProfileFriendKey,
