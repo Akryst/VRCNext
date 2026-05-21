@@ -65,3 +65,6 @@ When enabled, the breadcrumb history and all modal actions are shown in a bar at
 * Fixed an issue where the "Create Event" Modal was stuck below the taskbar.
 * Fixed an issue causing to show the old header image when replacing it with a new one.
 * Several UI flaws and Z ordering issue have been fixed.
+
+* Fixed an issue where it shows a Mutual friend in other profiles even if you unfriended that person.
+* Fixed an issue where it shows a Mutual group even if you left that group.

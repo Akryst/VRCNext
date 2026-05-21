@@ -1008,6 +1008,98 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
+    public void CleanMutualCaches(HashSet<string>? validFriendIds, HashSet<string>? validGroupIds)
+    {
+        if (validFriendIds == null && validGroupIds == null) return;
+        lock (_lock)
+        {
+            try
+            {
+                var rows = new List<(string id, string mutuals, string mutualGroups)>();
+                using (var sel = _db.CreateCommand())
+                {
+                    sel.CommandText = @"SELECT user_id, mutuals, mutual_groups FROM user_tracking
+                        WHERE (mutuals IS NOT NULL AND mutuals != '' AND mutuals != '{}')
+                           OR (mutual_groups IS NOT NULL AND mutual_groups != '' AND mutual_groups != '[]')";
+                    using var r = sel.ExecuteReader();
+                    while (r.Read())
+                        rows.Add((
+                            r.IsDBNull(0) ? "" : r.GetString(0),
+                            r.IsDBNull(1) ? "" : r.GetString(1),
+                            r.IsDBNull(2) ? "" : r.GetString(2)));
+                }
+
+                foreach (var (uid, mutualsJson, mutualGroupsJson) in rows)
+                {
+                    if (string.IsNullOrEmpty(uid)) continue;
+                    string? newMutuals = null;
+                    string? newMutualGroups = null;
+
+                    if (validFriendIds != null && !string.IsNullOrEmpty(mutualsJson) && mutualsJson != "{}")
+                    {
+                        try
+                        {
+                            var obj = JObject.Parse(mutualsJson);
+                            if (obj["mutuals"] is JArray arr)
+                            {
+                                var filtered = new JArray(arr.Where(m =>
+                                {
+                                    var id = m?["id"]?.ToString() ?? "";
+                                    return id.Length == 0 || validFriendIds.Contains(id);
+                                }));
+                                if (filtered.Count != arr.Count)
+                                {
+                                    obj["mutuals"] = filtered;
+                                    newMutuals = obj.ToString(Formatting.None);
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+
+                    if (validGroupIds != null && !string.IsNullOrEmpty(mutualGroupsJson) && mutualGroupsJson != "[]")
+                    {
+                        try
+                        {
+                            var arr = JArray.Parse(mutualGroupsJson);
+                            var filtered = new JArray(arr.Where(g =>
+                            {
+                                var id = g?["groupId"]?.ToString() ?? g?["id"]?.ToString() ?? "";
+                                return id.Length == 0 || validGroupIds.Contains(id);
+                            }));
+                            if (filtered.Count != arr.Count)
+                                newMutualGroups = filtered.ToString(Formatting.None);
+                        }
+                        catch { }
+                    }
+
+                    if (newMutuals == null && newMutualGroups == null) continue;
+
+                    using var upd = _db.CreateCommand();
+                    if (newMutuals != null && newMutualGroups != null)
+                    {
+                        upd.CommandText = "UPDATE user_tracking SET mutuals=$m, mutual_groups=$g WHERE user_id=$id";
+                        upd.Parameters.AddWithValue("$m", newMutuals);
+                        upd.Parameters.AddWithValue("$g", newMutualGroups);
+                    }
+                    else if (newMutuals != null)
+                    {
+                        upd.CommandText = "UPDATE user_tracking SET mutuals=$m WHERE user_id=$id";
+                        upd.Parameters.AddWithValue("$m", newMutuals);
+                    }
+                    else
+                    {
+                        upd.CommandText = "UPDATE user_tracking SET mutual_groups=$g WHERE user_id=$id";
+                        upd.Parameters.AddWithValue("$g", newMutualGroups);
+                    }
+                    upd.Parameters.AddWithValue("$id", uid);
+                    upd.ExecuteNonQuery();
+                }
+            }
+            catch { }
+        }
+    }
+
     // Event detail cache
 
     public class EventDetailCache

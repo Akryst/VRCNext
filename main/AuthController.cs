@@ -877,6 +877,20 @@ public class AuthController
         });
     }
 
+    private void TryCleanMutualCaches(JObject user)
+    {
+        HashSet<string>? friendIds = null;
+        if (user["friends"] is JArray fr)
+            friendIds = new HashSet<string>(fr.Select(t => t?.ToString() ?? "").Where(s => s.Length > 0));
+
+        HashSet<string>? groupIds = null;
+        if ((user["presence"] as JObject)?["groups"] is JArray gr)
+            groupIds = new HashSet<string>(gr.Select(t => t?.ToString() ?? "").Where(s => s.Length > 0));
+
+        if (friendIds == null && groupIds == null) return;
+        _ = Task.Run(() => { try { _core.TimeEngine.CleanMutualCaches(friendIds, groupIds); } catch { } });
+    }
+
     // Writes current session cookies into the active account, caller must already hold the mutation lock.
     private void SaveVrcCookiesUnlocked()
     {
@@ -905,6 +919,8 @@ public class AuthController
     public void SendVrcUserDataUnlocked(JObject user, bool loginFlow = false)
     {
         _core.CurrentVrcUserId = user["id"]?.ToString() ?? "";
+
+        TryCleanMutualCaches(user);
 
         // Backwrite UserId to the active account if empty and always refresh display name and avatar.
         var acc = _core.Settings.ActiveAccount;
