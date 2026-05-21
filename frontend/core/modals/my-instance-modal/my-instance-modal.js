@@ -264,9 +264,7 @@ function setInstanceModal(inst) {
 
     _miModalWorldId = worldId;
 
-    if (typeof setTaskbarModalActions === 'function') setTaskbarModalActions([
-        { title: t('dashboard.instances.open_world', 'Open World'), onclick: `navOpenModal('worldSearch','${jsq(worldId)}','')` },
-    ]);
+    if (typeof setTaskbarModalActions === 'function') setTaskbarModalActions([]);
 
     const instanceGroups = {}; // locBase → { friends, instanceType, instId, location }
 
@@ -323,6 +321,7 @@ function setInstanceModal(inst) {
                 <div class="mi-world-description"></div>
             </div>
             <div class="mi-left-actions">
+                <button class="vrcn-button-round mi-action-btn" onclick="navOpenModal('worldSearch','${jsq(worldId)}','')">${t('dashboard.instances.open_world', 'Open World')}</button>
                 <button class="vrcn-button-round mi-action-btn" onclick="closeMyInstanceDetail()">${t('common.close', 'Close')}</button>
             </div>
         </div>
@@ -391,6 +390,7 @@ function setOwnInstanceModal(inst) {
                 <div class="mi-world-description"></div>
             </div>
             <div class="mi-left-actions">
+                <button class="vrcn-button-round mi-action-btn" onclick="navOpenModal('worldSearch','${jsq(worldId)}','')">${t('dashboard.instances.open_world', 'Open World')}</button>
                 <button class="vrcn-button-round mi-action-btn" onclick="closeMyInstanceDetail()">${t('common.close', 'Close')}</button>
             </div>
         </div>

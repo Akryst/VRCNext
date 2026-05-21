@@ -41,6 +41,7 @@ Moving these actions to the taskbar turned out to be much better, since the task
 **VRChat API**
 * Some small improvements to reduce GET requests on dashboard.
 * Improved request handling in user profiles.
+* Improved permafail urls (404 etc).
 
 **Fixes**
 * Fixed the context menu having a lower Z-order than preview modals, causing it to render behind them.
