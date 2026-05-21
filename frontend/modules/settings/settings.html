@@ -13,6 +13,7 @@
                         <button class="settings-nav-item" onclick="switchSettingsSection('vrcx',this)"><span class="msi">download</span><span data-i18n="settings.nav.vrcx">VRCX</span></button>
                         <button class="settings-nav-item" onclick="switchSettingsSection('about',this)"><span class="msi">info</span><span data-i18n="settings.nav.about">About</span></button>
                         <button class="settings-nav-item" onclick="switchSettingsSection('accounts',this)"><span class="msi">account_circle</span><span data-i18n="settings.nav.accounts">Accounts</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('attribution',this)"><span class="msi">copyright</span><span data-i18n="settings.nav.attribution">Attribution</span></button>
                     </nav>
                     <div class="settings-content">
 
@@ -582,6 +583,418 @@
                             </div>
                         </div>
 
+                    </div>
+
+                    <!-- ATTRIBUTION -->
+                    <div class="vrcn-panel-card" data-section="attribution" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">copyright</span> <span data-i18n="settings.attribution.title">Third-Party Licenses</span></div>
+                        <div class="set-desc" style="margin-bottom:16px;" data-i18n="settings.attribution.desc">VRCNext is built with the following open-source libraries. All copyright notices are retained as required by their respective licenses.</div>
+                        <div style="display:flex;flex-direction:column;gap:4px;">
+
+                            <!-- DiscordRichPresence -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">DiscordRichPresence <span class="attrib-ver">1.2.1.24</span></div>
+                                    <span class="attrib-badge attrib-mit">MIT</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© Lachee</div>
+                                    <pre class="attrib-license-text">MIT License
+
+Copyright (c) Lachee
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/Lachee/discord-rpc-csharp'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- Microsoft.Data.Sqlite -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">Microsoft.Data.Sqlite <span class="attrib-ver">9.0.0</span></div>
+                                    <span class="attrib-badge attrib-mit">MIT</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© .NET Foundation and Contributors</div>
+                                    <pre class="attrib-license-text">MIT License
+
+Copyright (c) .NET Foundation and Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/dotnet/efcore'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- NAudio -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">NAudio <span class="attrib-ver">2.2.1</span></div>
+                                    <span class="attrib-badge attrib-mit">MIT</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© Mark Heath</div>
+                                    <pre class="attrib-license-text">MIT License
+
+Copyright (c) Mark Heath
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/naudio/NAudio'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- NAudio.Vorbis -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">NAudio.Vorbis <span class="attrib-ver">1.5.0</span></div>
+                                    <span class="attrib-badge attrib-mit">MIT</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© Mark Heath</div>
+                                    <pre class="attrib-license-text">MIT License
+
+Copyright (c) Mark Heath
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/naudio/NVorbis'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- NativeFileDialogSharp -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">NativeFileDialogSharp <span class="attrib-ver">0.5.0</span></div>
+                                    <span class="attrib-badge attrib-mit">MIT</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© Daniel Spurling</div>
+                                    <pre class="attrib-license-text">MIT License
+
+Copyright (c) Daniel Spurling
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/milleniumbug/NativeFileDialogSharp'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- Newtonsoft.Json -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">Newtonsoft.Json <span class="attrib-ver">13.0.3</span></div>
+                                    <span class="attrib-badge attrib-mit">MIT</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© James Newton-King</div>
+                                    <pre class="attrib-license-text">MIT License
+
+Copyright (c) James Newton-King
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/JamesNK/Newtonsoft.Json'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- Photino.NET -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">Photino.NET <span class="attrib-ver">4.0.16</span></div>
+                                    <span class="attrib-badge attrib-mit">MIT</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© tryphotino</div>
+                                    <pre class="attrib-license-text">MIT License
+
+Copyright (c) tryphotino
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/tryphotino/photino.NET'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- Rsync.Delta -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">Rsync.Delta <span class="attrib-ver">1.0.1</span></div>
+                                    <span class="attrib-badge attrib-mit">MIT</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© Logan Dam</div>
+                                    <pre class="attrib-license-text">MIT License
+
+Copyright (c) Logan Dam
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/ldunsmore/rsyncdelta'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- SkiaSharp -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">SkiaSharp <span class="attrib-ver">2.88.8</span></div>
+                                    <span class="attrib-badge attrib-mit">MIT</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© Microsoft Corporation</div>
+                                    <pre class="attrib-license-text">MIT License
+
+Copyright (c) Microsoft Corporation
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/mono/SkiaSharp'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- System.Diagnostics.PerformanceCounter -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">System.Diagnostics.PerformanceCounter <span class="attrib-ver">9.0.0</span></div>
+                                    <span class="attrib-badge attrib-mit">MIT</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© .NET Foundation and Contributors</div>
+                                    <pre class="attrib-license-text">MIT License
+
+Copyright (c) .NET Foundation and Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/dotnet/runtime'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- System.Drawing.Common -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">System.Drawing.Common <span class="attrib-ver">9.0.0</span></div>
+                                    <span class="attrib-badge attrib-mit">MIT</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© .NET Foundation and Contributors</div>
+                                    <pre class="attrib-license-text">MIT License
+
+Copyright (c) .NET Foundation and Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/dotnet/runtime'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- System.Security.Cryptography.ProtectedData -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">System.Security.Cryptography.ProtectedData <span class="attrib-ver">9.0.0</span></div>
+                                    <span class="attrib-badge attrib-mit">MIT</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© .NET Foundation and Contributors</div>
+                                    <pre class="attrib-license-text">MIT License
+
+Copyright (c) .NET Foundation and Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/dotnet/runtime'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- Velopack -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">Velopack <span class="attrib-ver">0.0.915</span></div>
+                                    <span class="attrib-badge attrib-mit">MIT</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© Velopack Contributors</div>
+                                    <pre class="attrib-license-text">MIT License
+
+Copyright (c) Velopack Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/velopack/velopack'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- Vosk -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">Vosk <span class="attrib-ver">0.3.38</span></div>
+                                    <span class="attrib-badge attrib-apache">Apache 2.0</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© Alpha Cephei Inc.</div>
+                                    <pre class="attrib-license-text">Apache License
+Version 2.0, January 2004
+
+Copyright (c) Alpha Cephei Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/alphacep/vosk-api'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- Vortice.Direct3D11 -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">Vortice.Direct3D11 <span class="attrib-ver">3.8.2</span></div>
+                                    <span class="attrib-badge attrib-mit">MIT</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© Amer Koleci and Contributors</div>
+                                    <pre class="attrib-license-text">MIT License
+
+Copyright (c) Amer Koleci and Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/amerkoleci/Vortice.Windows'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- VRChat.API -->
+                            <div class="attrib-item">
+                                <div class="attrib-header" onclick="toggleAttrib(this)">
+                                    <div class="attrib-name">VRChat.API <span class="attrib-ver">2.20.7</span></div>
+                                    <span class="attrib-badge attrib-mit">MIT</span>
+                                    <span class="msi attrib-chevron">expand_more</span>
+                                </div>
+                                <div class="attrib-body">
+                                    <div class="attrib-copy">© VRChat API Client Contributors</div>
+                                    <pre class="attrib-license-text">MIT License
+
+Copyright (c) VRChat API Client Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+                                    <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/vrchatapi/vrchatapi-csharp'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                </div>
+                            </div>
+
+                            <!-- FONTS -->
+                            <div style="margin-top:8px;padding-top:12px;border-top:1px solid var(--brd);">
+                                <div style="font-size:11px;font-weight:600;color:var(--tx3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;" data-i18n="settings.attribution.fonts">Fonts (via Google Fonts CDN)</div>
+                                <div style="display:flex;flex-direction:column;gap:4px;">
+
+                                    <!-- Material Symbols Rounded -->
+                                    <div class="attrib-item">
+                                        <div class="attrib-header" onclick="toggleAttrib(this)">
+                                            <div class="attrib-name">Material Symbols Rounded</div>
+                                            <span class="attrib-badge attrib-apache">Apache 2.0</span>
+                                            <span class="msi attrib-chevron">expand_more</span>
+                                        </div>
+                                        <div class="attrib-body">
+                                            <div class="attrib-copy">© Google LLC</div>
+                                            <pre class="attrib-license-text">Apache License
+Version 2.0, January 2004
+
+Copyright (c) Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.</pre>
+                                            <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://github.com/google/material-design-icons'})"><span class="msi" style="font-size:15px;">open_in_new</span> View Source</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Google Sans -->
+                                    <div class="attrib-item">
+                                        <div class="attrib-header" onclick="toggleAttrib(this)">
+                                            <div class="attrib-name">Google Sans &amp; Google Sans Mono</div>
+                                            <span class="attrib-badge attrib-gfonts">Google Fonts</span>
+                                            <span class="msi attrib-chevron">expand_more</span>
+                                        </div>
+                                        <div class="attrib-body">
+                                            <div class="attrib-copy">© Google LLC</div>
+                                            <pre class="attrib-license-text">Google Sans and Google Sans Mono are served via the Google Fonts API (fonts.googleapis.com).
+
+Copyright (c) Google LLC
+
+Use of these fonts is subject to the Google Fonts Terms of Service:
+https://developers.google.com/fonts/terms</pre>
+                                            <button class="vrcn-button attrib-src-btn" onclick="sendToCS({action:'openUrl',url:'https://fonts.google.com/'})"><span class="msi" style="font-size:15px;">open_in_new</span> View on Google Fonts</button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
 
                     </div><!-- /settings-content -->

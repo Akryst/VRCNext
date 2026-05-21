@@ -1,5 +1,74 @@
 /* === Settings Module === */
 
+/* Attribution Accordion */
+.attrib-item {
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg2);
+}
+.attrib-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    user-select: none;
+}
+.attrib-header:hover { background: var(--bg-hover); }
+.attrib-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tx1);
+}
+.attrib-ver {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--tx3);
+}
+.attrib-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    flex-shrink: 0;
+}
+.attrib-mit   { color: var(--accent); background: rgba(var(--accent-rgb,120,120,255),.12); }
+.attrib-apache { color: #e8912a; background: rgba(232,145,42,.14); }
+.attrib-gfonts { color: var(--tx2); background: rgba(255,255,255,.08); }
+.attrib-chevron {
+    font-size: 20px;
+    color: var(--tx3);
+    transition: transform .2s;
+    flex-shrink: 0;
+}
+.attrib-item.open .attrib-chevron { transform: rotate(180deg); }
+.attrib-body {
+    display: none;
+    padding: 0 12px 12px;
+    border-top: 1px solid var(--brd);
+}
+.attrib-item.open .attrib-body { display: block; }
+.attrib-copy {
+    font-size: 11px;
+    color: var(--tx3);
+    margin: 8px 0 6px;
+}
+.attrib-license-text {
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--tx2);
+    background: var(--bg3, var(--bg));
+    border: 1px solid var(--brd);
+    border-radius: 6px;
+    padding: 10px 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 180px;
+    overflow-y: auto;
+    margin: 0 0 8px;
+}
+.attrib-src-btn { font-size: 12px; }
+
 .settings-inner {
     width: 100%;
 }

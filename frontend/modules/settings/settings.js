@@ -1,4 +1,8 @@
-﻿function renderFolders(f) {
+﻿function toggleAttrib(header) {
+    header.closest('.attrib-item').classList.toggle('open');
+}
+
+function renderFolders(f) {
     const e = document.getElementById('folderList');
     if (!f || !f.length) {
         e.innerHTML = `<div class="folder-empty">${t('settings.watch_folders.empty', 'No folders added')}</div>`;
