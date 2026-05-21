@@ -55,3 +55,4 @@ Moving these actions to the taskbar turned out to be much better, since the task
 * Fixed an issue that caused Photo Preview to open when using the arrow keys, even when it was closed or had not been used.
 * Fixed an issue in "Timeline" not repositioning the top buttons when making the window smaller
 * Fixed an issue when deleting an image while photo modal wa sopen the modal started to break.
+* Fixed an issue where the "Create Event" Modal was stuck below the taskbar.

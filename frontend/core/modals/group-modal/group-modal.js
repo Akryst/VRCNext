@@ -844,7 +844,7 @@ function openGroupPostModal(groupId, editPost = null) {
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.id = 'groupPostOverlay';
-        overlay.style.cssText = 'position:fixed;inset:0;z-index:10002;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;';
+        overlay.style.cssText = 'position:fixed;top:var(--tb-h);left:0;right:0;bottom:0;z-index:10002;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;';
         document.body.appendChild(overlay);
     }
     overlay.innerHTML = `
@@ -1269,11 +1269,11 @@ function openGroupEventModal(groupId) {
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.id = 'groupEventOverlay';
-        overlay.style.cssText = 'position:fixed;inset:0;z-index:10002;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;';
+        overlay.style.cssText = 'position:fixed;top:var(--tb-h);left:0;right:0;bottom:0;z-index:10002;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;';
         document.body.appendChild(overlay);
     }
     overlay.innerHTML = `
-    <div class="gp-modal" role="dialog" aria-label="${esc(t('groups.events.modal.aria_label', 'Create Group Event'))}" style="max-height:calc(100vh - 32px);overflow-y:auto;">
+    <div class="gp-modal" role="dialog" aria-label="${esc(t('groups.events.modal.aria_label', 'Create Group Event'))}" style="max-height:calc(100vh - var(--tb-h) - 32px);overflow-y:auto;">
         <div class="gp-modal-header">
             <span class="msi" style="font-size:20px;color:var(--accent);">event</span>
             <span>${t('groups.events.modal.title', 'Create Group Event')}</span>
