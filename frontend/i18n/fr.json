@@ -654,6 +654,7 @@
   "profiles.my_profile.add_language": "Ajouter une langue...",
   "profiles.friends.title": "AMIS",
   "profiles.friends.login_prompt": "Connectez-vous à VRChat pour voir les amis en ligne",
+  "profiles.friends.login_to_vrchat": "Se connecter à VRChat",
   "profiles.friends.search_placeholder": "Rechercher des amis...",
   "profiles.friends.location.web": "Web / Mobile",
   "profiles.friends.location.private": "Instance privée",

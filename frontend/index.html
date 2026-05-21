@@ -340,10 +340,11 @@
         </div>
     </div>
 
-    <div class="rsidebar" id="rsidebar">
+    <div class="rsidebar logged-out" id="rsidebar">
         <div class="rsidebar-content" id="vrcPanel">
             <div id="vrcProfileArea"></div>
             <div id="vrcInstanceArea"></div>
+            <button id="vrcLoginCollapsed" class="nav-btn vrc-login-collapsed-btn" onclick="if(rsidebarCollapsed)toggleRsidebar()" title="Login to VRChat" data-i18n-title="profiles.friends.login_to_vrchat"><span class="msi vrc-login-collapsed-icon">error</span></button>
             <div id="vrcFriendSearch" class="vrc-friend-search" style="display:none;">
                 <button class="nav-btn vrc-fs-icon-btn" onclick="if(rsidebarCollapsed)toggleRsidebar()"><span class="msi vrc-fs-icon">search</span></button>
                 <input type="text" id="vrcFriendSearchInput" class="vrcn-input" placeholder="Search friends..." data-i18n-placeholder="profiles.friends.search_placeholder" oninput="_dbFilterFriends()">

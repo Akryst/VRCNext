@@ -28,6 +28,8 @@ function toggleRsidebar() {
 
 function renderVrcProfile(u) {
     const a = document.getElementById('vrcProfileArea');
+    const rs = document.getElementById('rsidebar');
+    if (rs) rs.classList.toggle('logged-out', !u);
     if (!u) { a.innerHTML = ''; currentVrcUser = null; return; }
     if (u.rawJson) _mypRawJson = u.rawJson;
     currentVrcUser = u;

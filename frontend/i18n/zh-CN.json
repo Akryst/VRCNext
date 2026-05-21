@@ -654,6 +654,7 @@
   "profiles.my_profile.add_language": "添加语言...",
   "profiles.friends.title": "好友",
   "profiles.friends.login_prompt": "登录 VRChat 以查看在线好友",
+  "profiles.friends.login_to_vrchat": "登录 VRChat",
   "profiles.friends.search_placeholder": "搜索好友...",
   "profiles.friends.location.web": "网页 / 移动端",
   "profiles.friends.location.private": "私人实例",

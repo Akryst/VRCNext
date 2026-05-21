@@ -654,6 +654,7 @@
   "profiles.my_profile.add_language": "言語を追加...",
   "profiles.friends.title": "フレンド",
   "profiles.friends.login_prompt": "VRChatにログインしてオンラインのフレンドを表示",
+  "profiles.friends.login_to_vrchat": "VRChatにログイン",
   "profiles.friends.search_placeholder": "フレンドを検索...",
   "profiles.friends.location.web": "Web / モバイル",
   "profiles.friends.location.private": "プライベートインスタンス",
