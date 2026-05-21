@@ -134,10 +134,10 @@ window.external.receiveMessage(rawMsg => {
             case 'libraryData': renderLibrary(payload); renderDashRecentPhotos(); break;
             case 'libraryPageData': appendLibraryPage(payload); break;
             case 'libraryWorldIds': applyLibraryWorldIds(payload); break;
+            case 'libraryAuthors': applyLibraryAuthors(payload); break;
             case 'libraryNewFile': addNewLibraryFile(payload); renderDashRecentPhotos(); break;
             case 'libraryFileDeleted':
-                libraryFiles = libraryFiles.filter(f => f.path !== payload.path);
-                filterLibrary(true); // stay on current page after delete
+                onLibraryFileDeleted(payload.path);
                 renderDashRecentPhotos();
                 break;
             case 'favoritesLoaded':
@@ -218,6 +218,7 @@ window.external.receiveMessage(rawMsg => {
                 else vrcFriendsData.push(payload);
                 renderVrcFriends(vrcFriendsData);
                 if (favFriendsData.length > 0) filterFavFriends();
+                if (typeof updateUserItemWorld === 'function') updateUserItemWorld(payload);
                 if (typeof patchFriendDetailLive === 'function') patchFriendDetailLive(payload);
                 break;
             }
@@ -343,10 +344,10 @@ window.external.receiveMessage(rawMsg => {
                         // Remove card from banned list
                         const bannedList = document.getElementById('gdBannedList');
                         if (bannedList) {
-                            bannedList.querySelectorAll('.vrcn-profile-item').forEach(card => {
-                                if (card.innerHTML.includes(`openFriendDetail('${payload.userId}')`)) card.remove();
+                            bannedList.querySelectorAll('.vrcn-user-item').forEach(card => {
+                                if ((card.getAttribute('onclick') || '').includes(payload.userId)) card.remove();
                             });
-                            if (!bannedList.querySelector('.vrcn-profile-item'))
+                            if (!bannedList.querySelector('.vrcn-user-item'))
                                 bannedList.innerHTML = `<div style="padding:20px;text-align:center;font-size:12px;color:var(--tx3);">${t('groups.empty.no_banned_members', 'No banned members')}</div>`;
                         }
                     }
@@ -521,6 +522,8 @@ window.external.receiveMessage(rawMsg => {
                 // Refresh moderation card in open profile modal
                 if (typeof renderFdModerationCard === 'function' && currentFriendDetail && currentFriendDetail.id === modUid)
                     renderFdModerationCard(modUid);
+                if (typeof refreshFdTaskbarActions === 'function' && currentFriendDetail && currentFriendDetail.id === modUid)
+                    refreshFdTaskbarActions();
                 break;
             }
             case 'vrcAvatars':

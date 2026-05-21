@@ -55,6 +55,8 @@ public sealed class VRChatWebSocketService : IDisposable
 
     public event EventHandler<FriendEventArgs>? FriendRemoved;
 
+    public event EventHandler? AuthExpiredSuspected;
+
     // State
 
     private string _authToken = "";
@@ -72,6 +74,10 @@ public sealed class VRChatWebSocketService : IDisposable
 
     private long _lastReceiveTicks = DateTime.UtcNow.Ticks;
     private const int HeartbeatTimeoutSec = 300;
+
+    private volatile bool _gotDataThisConn;
+    private int _consecutiveAuthFailures;
+    private const int AuthFailureThreshold = 3;
 
     // Public API
 
@@ -121,6 +127,8 @@ public sealed class VRChatWebSocketService : IDisposable
                 catch { }
             }
 
+            _gotDataThisConn = false;
+
             try
             {
                 using var ws = new ClientWebSocket();
@@ -136,7 +144,6 @@ public sealed class VRChatWebSocketService : IDisposable
                 var uri = new Uri($"wss://pipeline.vrchat.cloud/?authToken={Uri.EscapeDataString(_authToken)}");
                 await ws.ConnectAsync(uri, ct);
 
-                delaySec = 1;
                 Interlocked.Exchange(ref _lastReceiveTicks, DateTime.UtcNow.Ticks);
                 Connected?.Invoke(this, EventArgs.Empty);
 
@@ -159,10 +166,21 @@ public sealed class VRChatWebSocketService : IDisposable
 
             Disconnected?.Invoke(this, EventArgs.Empty);
 
+            if (_gotDataThisConn)
+            {
+                delaySec = 1;
+                _consecutiveAuthFailures = 0;
+            }
+            else
+            {
+                _consecutiveAuthFailures++;
+                if (_consecutiveAuthFailures == AuthFailureThreshold)
+                    AuthExpiredSuspected?.Invoke(this, EventArgs.Empty);
+                delaySec = Math.Min(delaySec * 2, 30);
+            }
+
             try { await Task.Delay(TimeSpan.FromSeconds(delaySec), ct); }
             catch (OperationCanceledException) { break; }
-
-            delaySec = Math.Min(delaySec * 2, 30);
         }
     }
 
@@ -184,6 +202,7 @@ public sealed class VRChatWebSocketService : IDisposable
             while (!result.EndOfMessage);
 
             Interlocked.Exchange(ref _lastReceiveTicks, DateTime.UtcNow.Ticks);
+            _gotDataThisConn = true;
 
             HandleMessage(sb.ToString());
         }

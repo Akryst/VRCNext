@@ -61,6 +61,7 @@
     <link rel="stylesheet" href="core/sidebars/navigation/nav-editor.css">
     <link rel="stylesheet" href="core/sidebars/friends/friends.css">
     <link rel="stylesheet" href="core/previews/friend-preview.css">
+    <link rel="stylesheet" href="core/Blyat/blyat.css">
     <link rel="stylesheet" href="core/SmartSearch/smart-search.css">
     <link rel="stylesheet" href="core/Keybinds/Keybind.css">
     <link rel="stylesheet" href="Debug/CacheTests/cache-debug.css">
@@ -69,7 +70,7 @@
 <body>
     <div class="app-body">
     <div class="sidebar" id="sidebarEl">
-        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.26.1</div></div></div>
+        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.26.2</div></div></div>
         <div class="nav vrcn-scrollbar" id="navEl"></div>
         <div class="clock-area"><div class="clock-time" id="clock">00:00:00</div><div class="clock-date" id="clockDate"></div></div>
         <div class="play-area"><button class="btn-play" onclick="playVRChat()"><span class="msi play-icon">play_arrow</span><span class="pl" data-i18n="sidebar.play_vrchat">Play VRChat</span></button></div>
@@ -80,6 +81,7 @@
             <div id="tb-left">
                 <div class="tb-brand">VRCNext</div>
                 <div class="tb-sep"></div>
+                <div id="tbNormalLeft">
                 <span class="topbar-title" id="pageTitle" data-i18n="page.dashboard" onclick="toggleHelpPanel()" style="cursor:pointer;" data-i18n-title="page.help.tooltip">Dashboard</span>
                 <div class="tb-sep"></div>
                 <div id="tbMenuItems">
@@ -163,6 +165,8 @@
                         </div>
                     </div>
                 </div>
+                </div>
+                <div id="tbModalCrumbs"></div>
             </div>
             <div id="tb-drag">
                 <div id="dbMigrationIndicator" style="display:none;flex:0 0 auto;align-items:center;gap:8px;margin:0 8px;min-width:140px;max-width:200px;">
@@ -176,6 +180,7 @@
                 </div>
             </div>
             <div id="tb-right">
+                <div id="tbAppControls">
                 <button class="tb-sidebar-btn" id="badgeVrcCredits" style="display:none;width:auto;padding:0 9px;gap:5px;" title="VRC Credits" data-i18n-title="tb.title.vrc_credits"><img src="assets/credits.png" width="18" height="18" style="flex-shrink:0;opacity:0.48;transition:opacity 0.1s;"><span id="badgeVrcCreditsLabel" style="font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;"></span></button>
                 <button class="tb-sidebar-btn" id="badgeVrcPlus" style="display:none;" title="VRC+" data-i18n-title="tb.title.vrc_plus"><img src="assets/vrcplus.png" width="18" height="18" style="flex-shrink:0;opacity:0.48;transition:opacity 0.1s;"></button>
                 <div class="tb-sep"></div>
@@ -212,7 +217,9 @@
                         <rect x="10.5" y="1.5" width="4" height="9" rx="0.5" fill="currentColor" opacity="0.7"/>
                     </svg>
                 </button>
-                <div class="tb-sep"></div>
+                </div>
+                <div id="tbModalActions"></div>
+                <div class="tb-sep" id="tbModalActionsSep"></div>
                 <button class="tb-win-btn" title="Minimize" data-i18n-title="tb.win.minimize" onclick="sendToCS({action:'windowMinimize'})">
                     <svg width="12" height="2" viewBox="0 0 12 2"><rect width="12" height="1.5" y="0.25" fill="currentColor"/></svg>
                 </button>
@@ -334,10 +341,11 @@
         </div>
     </div>
 
-    <div class="rsidebar" id="rsidebar">
+    <div class="rsidebar logged-out" id="rsidebar">
         <div class="rsidebar-content" id="vrcPanel">
             <div id="vrcProfileArea"></div>
             <div id="vrcInstanceArea"></div>
+            <button id="vrcLoginCollapsed" class="nav-btn vrc-login-collapsed-btn" onclick="if(rsidebarCollapsed)toggleRsidebar()" title="Login to VRChat" data-i18n-title="profiles.friends.login_to_vrchat"><span class="msi vrc-login-collapsed-icon">error</span></button>
             <div id="vrcFriendSearch" class="vrc-friend-search" style="display:none;">
                 <button class="nav-btn vrc-fs-icon-btn" onclick="if(rsidebarCollapsed)toggleRsidebar()"><span class="msi vrc-fs-icon">search</span></button>
                 <input type="text" id="vrcFriendSearchInput" class="vrcn-input" placeholder="Search friends..." data-i18n-placeholder="profiles.friends.search_placeholder" oninput="_dbFilterFriends()">
@@ -610,6 +618,7 @@
             'core/Keybinds/Keybind.js',
             'core/Taskbar/taskbar.js',
             'core/modals/vrc-tools-modal/vrc-tools-modal.js',
+            'core/Blyat/blyat.js',
         ];
 
         try {

@@ -2,11 +2,6 @@
                     <button class="vrcn-button sub-tab-btn active" id="tlModePersonal" onclick="setTlMode('personal')"><span class="msi" style="font-size:14px;">person</span> <span data-i18n="timeline.mode.personal">Personal</span></button>
                     <button class="vrcn-button sub-tab-btn" id="tlModeFriends" onclick="setTlMode('friends')"><span class="msi" style="font-size:14px;">group</span> <span data-i18n="timeline.mode.friends">Friends</span></button>
                     <button class="vrcn-button sub-tab-btn" id="tlModeGameLog" onclick="setTlMode('gamelog')"><span class="msi" style="font-size:14px;">terminal</span> <span data-i18n="timeline.mode.gamelog">Game Log</span></button>
-                    <div style="flex:1;"></div>
-                    <button class="vrcn-button sub-tab-btn" id="tlViewTimeline" title="Timeline View" data-i18n-title="timeline.view.timeline_title" onclick="setTlViewMode('timeline')"><span class="msi" style="font-size:14px;">account_tree</span></button>
-                    <button class="vrcn-button sub-tab-btn" id="tlViewList" title="List View" data-i18n-title="timeline.view.list_title" onclick="setTlViewMode('list')"><span class="msi" style="font-size:14px;">format_list_bulleted</span></button>
-                </div>
-                <div class="tl-topbar">
                     <div class="search-bar-row" style="flex:1;margin-bottom:0;">
                         <span class="msi search-ico">search</span>
                         <input type="text" id="tlSearchInput" class="vrcn-input" placeholder="Search timeline..." data-i18n-placeholder="timeline.search.placeholder" oninput="tlMode==='gamelog'?renderGameLog():tlMode==='friends'?filterFriendTimeline():filterTimeline()">
@@ -21,6 +16,8 @@
                     <button class="vrcn-button tl-datebtn" onclick="refreshTimeline()" title="Refresh" data-i18n-title="timeline.refresh_title">
                         <span class="msi" style="font-size:16px;">refresh</span>
                     </button>
+                    <button class="vrcn-button sub-tab-btn" id="tlViewTimeline" title="Timeline View" data-i18n-title="timeline.view.timeline_title" onclick="setTlViewMode('timeline')"><span class="msi" style="font-size:14px;">account_tree</span></button>
+                    <button class="vrcn-button sub-tab-btn" id="tlViewList" title="List View" data-i18n-title="timeline.view.list_title" onclick="setTlViewMode('list')"><span class="msi" style="font-size:14px;">format_list_bulleted</span></button>
                 </div>
                 <div id="tlDatePicker" class="tl-date-picker" style="display:none;">
                     <div class="tl-dp-header">

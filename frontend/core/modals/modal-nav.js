@@ -2,9 +2,148 @@ let _navStack        = [];
 let _navIdx          = -1;
 let _navCurrentEntry = null;
 let _navBackdropEl   = null;
+let _mnActions       = [];
+
+function _directNav() { return typeof settings !== 'undefined' && settings.directModalNav === true; }
+
+function _mnActionHtml(a, asText) {
+    if (a.dropdown) {
+        const items = a.dropdown.filter(Boolean).map(_tbDropdownItem).join('');
+        if (asText) {
+            return `<div class="tb-modal-action-wrap"><button class="tb-modal-action" onclick="_tbToggleDropdown(this)">${esc(a.label || a.title || '')}<span class="msi tb-modal-dd-caret">expand_more</span></button><div class="tb-modal-dropdown">${items}</div></div>`;
+        }
+        return `<div class="tb-modal-action-wrap"><button class="btn-notif fd-action-btn" title="${esc(a.title || a.label || '')}" onclick="_tbToggleDropdown(this)"><span class="msi" style="font-size:20px;">${esc(a.icon || 'more_horiz')}</span></button><div class="tb-modal-dropdown">${items}</div></div>`;
+    }
+    if (asText) {
+        return `<button class="tb-modal-action${a.danger ? ' tb-modal-action-danger' : ''}"${a.disabled ? ' disabled' : ''} onclick="${a.onclick}">${esc(a.label || a.title || '')}</button>`;
+    }
+    return `<button class="btn-notif fd-action-btn${a.danger ? ' fd-action-danger' : ''}"${a.disabled ? ' disabled' : ''} title="${esc(a.title || a.label || '')}" onclick="${a.onclick}"><span class="msi" style="font-size:20px;">${esc(a.icon)}</span></button>`;
+}
+
+function _mnActionsHtml(actions, asText) {
+    return (actions || []).filter(Boolean).map(a => _mnActionHtml(a, asText)).join(asText ? '<div class="tb-sep"></div>' : '');
+}
+
+function _mnActiveBar() {
+    const bars = document.querySelectorAll('.fd-modal-bar');
+    for (const b of bars) if (b.offsetParent !== null) return b;
+    return null;
+}
+
+function renderModalActions(actions) {
+    actions = (actions || []).filter(Boolean);
+    _mnActions = actions;
+    if (_directNav()) {
+        return `<div class="fd-modal-bar"><div class="fd-modal-bar-crumbs">${_mnCrumbsHtml()}</div><div class="fd-modal-bar-actions">${_mnActionsHtml(actions, false)}</div></div>`;
+    }
+    setTaskbarModalActions(actions.filter(a => !a.header));
+    const header = actions.filter(a => a.header);
+    return header.length ? `<div class="fd-modal-actions">${_mnActionsHtml(header, false)}</div>` : '';
+}
+
+function refreshModalActions(actions) {
+    actions = (actions || []).filter(Boolean);
+    _mnActions = actions;
+    if (_directNav()) {
+        const el = _mnActiveBar()?.querySelector('.fd-modal-bar-actions');
+        if (el) el.innerHTML = _mnActionsHtml(actions, false);
+    } else {
+        const el = document.getElementById('tbModalActions');
+        if (el) el.innerHTML = _mnActionsHtml(actions.filter(a => !a.header), true);
+    }
+}
+
+function setTaskbarModalActions(actions) {
+    actions = (actions || []).filter(Boolean);
+    if (_directNav()) {
+        _mnActions = actions;
+        const el = _mnActiveBar()?.querySelector('.fd-modal-bar-actions');
+        if (el) el.innerHTML = _mnActionsHtml(actions, false);
+        return;
+    }
+    const el = document.getElementById('tbModalActions');
+    if (el) el.innerHTML = _mnActionsHtml(actions, true);
+}
+
+function _tbDropdownItem(o) {
+    if (o.submenu) {
+        const sub = o.submenu.filter(Boolean).map(_tbDropdownItem).join('');
+        return `<div class="tb-modal-dd-sub-wrap"><button class="tb-modal-dd-item">${o.icon ? `<span class="msi">${esc(o.icon)}</span>` : ''}<span>${esc(o.label || '')}</span><span class="msi tb-modal-dd-arrow">chevron_right</span></button><div class="tb-modal-dropdown tb-modal-dd-sub">${sub}</div></div>`;
+    }
+    return `<button class="tb-modal-dd-item${o.active ? ' active' : ''}"${o.disabled ? ' disabled' : ''} onclick="${o.disabled ? '' : '_tbCloseDropdowns();' + o.onclick}">${o.icon ? `<span class="msi">${esc(o.icon)}</span>` : ''}<span>${esc(o.label || '')}</span></button>`;
+}
+
+function _tbToggleDropdown(btn) {
+    const wrap = btn.closest('.tb-modal-action-wrap');
+    if (!wrap) return;
+    const wasOpen = wrap.classList.contains('open');
+    _tbCloseDropdowns();
+    if (!wasOpen) {
+        wrap.classList.add('open');
+        setTimeout(() => document.addEventListener('click', _tbDropdownOutside), 0);
+    }
+}
+
+function _tbCloseDropdowns() {
+    document.querySelectorAll('.tb-modal-action-wrap.open, .tb-modal-dd-sub-wrap.open').forEach(w => w.classList.remove('open'));
+    document.removeEventListener('click', _tbDropdownOutside);
+}
+
+function _tbDropdownOutside(e) {
+    if (!e.target.closest('.tb-modal-action-wrap')) _tbCloseDropdowns();
+}
+
+function _tbModalActive() {
+    return (_navIdx >= 0 && _navStack.length > 0) || !!(_navCurrentEntry && _navCurrentEntry.id);
+}
+
+function _navSyncTaskbar() {
+    const tb = document.getElementById('taskbar');
+    if (_directNav()) {
+        if (tb) tb.classList.remove('tb-modal-mode');
+        const c0 = document.getElementById('tbModalCrumbs'); if (c0) c0.innerHTML = '';
+        const a0 = document.getElementById('tbModalActions'); if (a0) a0.innerHTML = '';
+        const bc = _mnActiveBar()?.querySelector('.fd-modal-bar-crumbs');
+        if (bc) bc.innerHTML = _mnCrumbsHtml();
+        return;
+    }
+    if (!tb) return;
+    if (_tbModalActive()) {
+        tb.classList.add('tb-modal-mode');
+        renderTaskbarCrumbs();
+    } else {
+        tb.classList.remove('tb-modal-mode');
+        const c = document.getElementById('tbModalCrumbs'); if (c) c.innerHTML = '';
+        const a = document.getElementById('tbModalActions'); if (a) a.innerHTML = '';
+    }
+}
+
+function _mnCrumbsHtml() {
+    let entries, curIdx;
+    if (_navIdx >= 0 && _navStack.length > 0) { entries = _navStack.slice(0, _navIdx + 1); curIdx = entries.length - 1; }
+    else if (_navCurrentEntry && _navCurrentEntry.id) { entries = [_navCurrentEntry]; curIdx = 0; }
+    else return '';
+    const start = Math.max(0, entries.length - 5);
+    let html = '';
+    if (start > 0) html += `<button class="tb-crumb" onclick="navGoTo(0)">···</button><span class="tb-crumb-sep">›</span>`;
+    html += entries.slice(start).map((e, j) => {
+        const idx = start + j;
+        const name = e.label || _navTypeLabel(e.type);
+        const short = _trunc(name, 14);
+        if (idx === curIdx) return `<span class="tb-crumb-current" title="${_esc(name)}">${_esc(short)}</span>`;
+        return `<button class="tb-crumb" title="${_esc(name)}" onclick="navGoTo(${idx})">${_esc(short)}</button>`;
+    }).join('<span class="tb-crumb-sep">›</span>');
+    return html;
+}
+
+function renderTaskbarCrumbs() {
+    const el = document.getElementById('tbModalCrumbs');
+    if (el) el.innerHTML = _mnCrumbsHtml();
+}
 
 function navSetCurrent(type, id, id2) {
     _navCurrentEntry = { type, id: id || '', id2: id2 || '', label: '' };
+    _navSyncTaskbar();
 }
 
 function navOpenModal(type, id, label, id2) {
@@ -75,10 +214,8 @@ function navClear() {
 
 function navUpdateLabel(label) {
     if (_navCurrentEntry) _navCurrentEntry.label = label;
-    if (_navIdx >= 0 && _navStack[_navIdx]) {
-        _navStack[_navIdx].label = label;
-        _navRender();
-    }
+    if (_navIdx >= 0 && _navStack[_navIdx]) _navStack[_navIdx].label = label;
+    _navSyncTaskbar();
 }
 
 function _navDoOpen(type, id, id2) {
@@ -90,6 +227,7 @@ function _navDoOpen(type, id, id2) {
         case 'group':       openGroupDetail(id);            break;
         case 'event':       openEventDetail(id, id2);       break;
         case 'instance':    if (typeof _reopenCachedInstance === 'function') _reopenCachedInstance(id); break;
+        case 'myprofile':   if (typeof openMyProfileModal === 'function') openMyProfileModal(); break;
     }
 }
 
@@ -102,6 +240,7 @@ function _navOverlayIdForType(type) {
         case 'group':       return 'modalDetail';
         case 'event':       return 'modalDetail';
         case 'instance':    return 'modalMyInstance';
+        case 'myprofile':   return 'modalMyProfile';
         default:            return null;
     }
 }
@@ -197,6 +336,11 @@ function _navCloseForEntry(entry) {
             if (mi) mi.style.display = 'none';
             break;
         }
+        case 'myprofile': {
+            const mp = document.getElementById('modalMyProfile');
+            if (mp) mp.style.display = 'none';
+            break;
+        }
     }
 }
 
@@ -211,64 +355,11 @@ const _NAV_SHELLS = [
 const _NAV_SLOTS = 5;
 
 function _navRender() {
-    const show      = _navStack.length >= 2 && _navIdx > 0;
-    const start     = Math.max(0, (_navIdx + 1) - _NAV_SLOTS);
-    const ovVisible = start > 0;
-
     for (const s of _NAV_SHELLS) {
         const bar = document.getElementById(s.bar);
-        if (!bar) continue;
-        bar.style.display = show ? 'flex' : 'none';
-        if (!show) {
-            const ov = document.getElementById(s.p + '_ov');
-            if (ov) ov.hidden = true;
-            for (let i = 0; i < _NAV_SLOTS; i++) {
-                const sep = document.getElementById(s.p + '_s' + i);
-                const btn = document.getElementById(s.p + '_b' + i);
-                const cur = document.getElementById(s.p + '_cur' + i);
-                if (sep) sep.hidden = true;
-                if (btn) btn.hidden = true;
-                if (cur) cur.hidden = true;
-            }
-            continue;
-        }
-
-        const ov = document.getElementById(s.p + '_ov');
-        if (ov) ov.hidden = !ovVisible;
-
-        for (let i = 0; i < _NAV_SLOTS; i++) {
-            const si  = start + i;
-            const sep = document.getElementById(s.p + '_s' + i);
-            const btn = document.getElementById(s.p + '_b' + i);
-            const cur = document.getElementById(s.p + '_cur' + i);
-            if (!sep || !btn || !cur) continue;
-
-            const slotUsed  = si <= _navIdx;
-            const isCurrent = si === _navIdx;
-
-            if (!slotUsed) {
-                sep.hidden = true;
-                btn.hidden = true;
-                cur.hidden = true;
-                continue;
-            }
-
-            const name = _navStack[si].label || _navTypeLabel(_navStack[si].type);
-
-            sep.hidden = (i === 0 && !ovVisible);
-            btn.hidden = isCurrent;
-            cur.hidden = !isCurrent;
-
-            if (!isCurrent) {
-                btn.textContent = _trunc(name);
-                btn.title       = name;
-                btn.onclick     = (function(idx) { return function() { navGoTo(idx); }; })(si);
-            } else {
-                cur.textContent = _trunc(name);
-                cur.title       = name;
-            }
-        }
+        if (bar) bar.style.display = 'none';
     }
+    _navSyncTaskbar();
 }
 
 function _trunc(s, max = 12) {
@@ -289,6 +380,7 @@ function _navTypeLabel(type) {
         group:       typeof t === 'function' ? t('nav.modal.group',       'Group')   : 'Group',
         event:       typeof t === 'function' ? t('nav.modal.event',       'Event')   : 'Event',
         instance:    typeof t === 'function' ? t('nav.modal.instance',    'Instance'): 'Instance',
+        myprofile:   typeof t === 'function' ? t('nav.modal.friend',      'Profile') : 'Profile',
     };
     return labels[type] || type;
 }

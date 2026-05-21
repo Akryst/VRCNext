@@ -166,6 +166,24 @@ function applyLibraryWorldIds(dict) {
     _renderLibIconSelects();
 }
 
+function applyLibraryAuthors(dict) {
+    if (!dict || !Object.keys(dict).length) return;
+    for (const [path, author] of Object.entries(dict)) {
+        if (!author) continue;
+        const item = libraryFiles.find(f => f.path === path);
+        if (item) {
+            item.authorName = author.name || '';
+            item.authorId   = author.id   || '';
+        }
+        const photoModal = document.getElementById('photoDetailModal');
+        if (photoModal && _photoState.item?.path === path) {
+            if (_photoState.item) { _photoState.item.authorName = author.name || ''; _photoState.item.authorId = author.id || ''; }
+            const infoPane = photoModal.querySelector('.photo-detail-info-pane');
+            if (infoPane) infoPane.innerHTML = _photoBuildInfoPaneContent(_photoState.item);
+        }
+    }
+}
+
 // Called when a new file lands in a watch folder — no rescan needed.
 function addNewLibraryFile(item) {
     if (!item || libraryFiles.find(f => f.path === item.path)) return;
@@ -594,6 +612,7 @@ function onWorldsResolved(dict) {
     Object.assign(dashWorldCache, dict);
     renderDashboard();
     if (typeof renderVrcFriends === 'function' && vrcFriendsData?.length) renderVrcFriends(vrcFriendsData);
+    if (typeof refreshAllUserItemWorlds === 'function') refreshAllUserItemWorlds();
     document.querySelectorAll('.lib-world-badge[data-wid]').forEach(btn => {
         const wid  = btn.getAttribute('data-wid');
         const info = worldInfoCache[wid];
@@ -700,6 +719,7 @@ function cacheVidThumb(v, fp) {
 // Photo detail modal — image on the left, info card on the right.
 // Accepts: number (libraryFiles index), string (file path → looked up in libraryFiles), or item object.
 const _photoState = { scale: 1, rotation: 0, tx: 0, ty: 0, item: null, drag: null };
+let _photoKeyHandler = null;
 
 function openPhotoDetail(target) {
     let x;
@@ -730,7 +750,7 @@ function _photoCreateModal(x) {
     o.id        = 'photoDetailModal';
     o.onclick   = e => { if (e.target === o) closePhotoDetail(); };
     o.innerHTML = `<div class="photo-detail-box">
-        <button class="photo-detail-close" onclick="closePhotoDetail()" title="${esc(t('common.close', 'Close'))}"><span class="msi" style="font-size:18px;">close</span></button>
+        <div class="fd-modal-actions"><button class="btn-notif fd-action-btn" onclick="closePhotoDetail()" title="${esc(t('common.close', 'Close'))}"><span class="msi" style="font-size:20px;">close</span></button></div>
         <div class="photo-detail-img-pane">
             <img class="photo-detail-img" alt="" draggable="false" style="display:none;" onerror="this.style.display='none'">
             <div class="photo-detail-toolbar-mount"></div>
@@ -748,9 +768,12 @@ function _photoCreateModal(x) {
     }
 
     const ok = e => {
-        if (e.key === 'Escape') { closePhotoDetail(); document.removeEventListener('keydown', ok); }
+        if (e.key === 'Escape')          { closePhotoDetail(); }
+        else if (e.key === 'ArrowLeft')  { e.preventDefault(); photoNavPrev(); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); photoNavNext(); }
     };
     document.addEventListener('keydown', ok);
+    _photoKeyHandler = ok;
 }
 
 function _photoRenderContent(modal, x) {
@@ -817,15 +840,30 @@ function _photoBuildInfoPaneContent(x) {
         ? (resTag ? `${resTag} (${x.imgW}×${x.imgH})` : `${x.imgW}×${x.imgH}`)
         : resTag;
 
-    const worldRowClick = worldId ? ` onclick="closePhotoDetail();openWorldSearchDetail('${esc(worldId)}')" style="cursor:pointer;"` : '';
+    const worldRowClick = worldId ? ` onclick="closePhotoDetail();openWorldSearchDetail('${esc(worldId)}')"` : '';
+    const worldCursor   = worldId ? 'cursor:pointer;' : '';
     const isFav = x.path && (typeof favorites !== 'undefined') && favorites.has(x.path);
     const favBadge = `<span class="vrcn-badge accent"><span class="msi" style="font-size:11px;">star</span>${esc(t('library.detail.favorited', 'Favorited'))}</span>`;
+
+    const authorName = x.authorName || '';
+    const authorId   = x.authorId   || '';
+    let authorRow = '';
+    if (authorName) {
+        const authorLabel = esc(t('library.detail.author', 'Author'));
+        if (authorId) {
+            authorRow = `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;cursor:pointer;" onclick="closePhotoDetail();openFriendDetail('${jsq(authorId)}')"><span style="color:var(--tx3);">${authorLabel}</span><span style="color:var(--accent-lt);font-weight:700;text-align:right;">${esc(authorName)}</span></div>`;
+        } else {
+            authorRow = _tlMr(authorLabel, `<span style="font-weight:700;">${esc(authorName)}</span>`);
+        }
+    }
+
     const infoRows = [
         _tlMr(esc(t('library.detail.date', 'Date')), esc(dateStr)),
         _tlMr(esc(t('library.detail.time', 'Time')), esc(timeStr)),
         x.size ? _tlMr(esc(t('library.detail.size', 'Size')), esc(x.size)) : '',
-        worldName ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;"${worldRowClick}><span style="color:var(--tx3);">${esc(t('library.detail.world', 'World'))}</span><span style="color:var(--accent-lt);text-align:right;">${esc(worldName)}</span></div>` : '',
+        worldName ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;${worldCursor}"${worldRowClick}><span style="color:var(--tx3);">${esc(t('library.detail.world', 'World'))}</span><span style="color:var(--accent-lt);font-weight:700;text-align:right;">${esc(worldName)}</span></div>` : '',
         resStr ? _tlMr(esc(t('library.detail.resolution', 'Resolution')), esc(resStr)) : '',
+        authorRow,
         isFav ? _tlMr(esc(t('library.detail.favorited', 'Favorited')), favBadge) : '',
     ].filter(Boolean).join('');
 
@@ -859,6 +897,7 @@ function _photoBuildInfoPaneContent(x) {
 function closePhotoDetail() {
     const m = document.getElementById('photoDetailModal');
     if (!m) return;
+    if (_photoKeyHandler) { document.removeEventListener('keydown', _photoKeyHandler); _photoKeyHandler = null; }
     document.removeEventListener('mousemove', _photoOnMouseMove);
     document.removeEventListener('mouseup',   _photoOnMouseUp);
     _photoState.drag = null;
@@ -911,6 +950,29 @@ function _photoNav(dir) {
     if (idx < 0) return;
     const next = list[idx + dir];
     if (next) openPhotoDetail(next);
+}
+
+function onLibraryFileDeleted(path) {
+    const modal = document.getElementById('photoDetailModal');
+    const showingDeleted = modal && _photoState.item?.path === path;
+
+    // Pick the neighbour BEFORE removal, while the deleted item is still in the list.
+    let neighbor = null;
+    if (showingDeleted) {
+        const isImg  = f => f.type === 'image' || f.type === 'gif';
+        const inFilt = _libFiltered.some(f => f.path === path);
+        const list   = (inFilt ? _libFiltered : libraryFiles).filter(isImg);
+        const idx    = list.findIndex(f => f.path === path);
+        if (idx >= 0) neighbor = list[idx + 1] || list[idx - 1] || null;
+    }
+
+    libraryFiles = libraryFiles.filter(f => f.path !== path);
+    filterLibrary(true); // stay on current page after delete
+
+    if (showingDeleted) {
+        if (neighbor) openPhotoDetail(neighbor);
+        else          closePhotoDetail();
+    }
 }
 
 function _photoOnWheel(e) {

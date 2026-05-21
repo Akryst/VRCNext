@@ -1971,9 +1971,17 @@ public partial class AppShell
                     var calMonth  = msg["month"]?.Value<int>() ?? 0;
                     _ = Task.Run(async () => {
                         var evts = await _core.Calendar.GetCalendarEventsAsync(calFilter, calYear, calMonth);
-                        foreach (var ce in evts.OfType<JObject>())
+                        // Block event series and show 1 event instead of multiple ones lol.
+                        var seriesIds = new HashSet<string>(
+                            evts.OfType<JObject>()
+                                .Select(e => e["seriesId"]?.ToString())
+                                .Where(s => !string.IsNullOrEmpty(s))!);
+                        var deduped = new JArray(
+                            evts.OfType<JObject>()
+                                .Where(e => !seriesIds.Contains(e["id"]?.ToString() ?? "")));
+                        foreach (var ce in deduped.OfType<JObject>())
                             ce["imageUrl"] = ImageCacheHelper.GetEventUrl(ce["id"]?.ToString(), ce["imageUrl"]?.ToString());
-                        Invoke(() => SendToJS("vrcCalendarEvents", new { events = evts, filter = calFilter }));
+                        Invoke(() => SendToJS("vrcCalendarEvents", new { events = deduped, filter = calFilter }));
                     });
                     break;
 
@@ -2129,12 +2137,13 @@ public partial class AppShell
                 case "invGetFiles":
                 {
                     var invTag = msg["tag"]?.ToString() ?? "gallery";
+                    var invFilesForce = msg["force"]?.Value<bool>() ?? false;
                     _ = Task.Run(async () =>
                     {
                         try
                         {
-                            // Serve from cache if fresh
-                            if (_settings.FfcEnabled && _cache.IsFresh(CacheHandler.KeyInventory, TimeSpan.FromHours(12)))
+                            // Serve from cache if fresh (unless an explicit refresh forced a reload)
+                            if (!invFilesForce && _settings.FfcEnabled && _cache.IsFresh(CacheHandler.KeyInventory, TimeSpan.FromHours(12)))
                             {
                                 var cached = _cache.LoadRaw(CacheHandler.KeyInventory) as JObject;
                                 var cachedSection = cached?["files"]?[invTag] as JArray;
@@ -2310,14 +2319,15 @@ public partial class AppShell
                 case "invGetPrints":
                 {
                     var printUserId = _vrcApi.CurrentUserId;
+                    var invPrintsForce = msg["force"]?.Value<bool>() ?? false;
                     if (!string.IsNullOrEmpty(printUserId))
                     {
                         _ = Task.Run(async () =>
                         {
                             try
                             {
-                                // Serve from cache if fresh
-                                if (_settings.FfcEnabled && _cache.IsFresh(CacheHandler.KeyInventory, TimeSpan.FromHours(12)))
+                                // Serve from cache if fresh (unless an explicit refresh forced a reload)
+                                if (!invPrintsForce && _settings.FfcEnabled && _cache.IsFresh(CacheHandler.KeyInventory, TimeSpan.FromHours(12)))
                                 {
                                     var cached = _cache.LoadRaw(CacheHandler.KeyInventory) as JObject;
                                     var cachedSection = cached?["prints"] as JArray;
@@ -2369,12 +2379,13 @@ public partial class AppShell
 
                 case "invGetInventory":
                 {
+                    var invItemsForce = msg["force"]?.Value<bool>() ?? false;
                     _ = Task.Run(async () =>
                     {
                         try
                         {
-                            // Serve from cache if fresh
-                            if (_settings.FfcEnabled && _cache.IsFresh(CacheHandler.KeyInventory, TimeSpan.FromHours(12)))
+                            // Serve from cache if fresh (unless an explicit refresh forced a reload)
+                            if (!invItemsForce && _settings.FfcEnabled && _cache.IsFresh(CacheHandler.KeyInventory, TimeSpan.FromHours(12)))
                             {
                                 var cached = _cache.LoadRaw(CacheHandler.KeyInventory) as JObject;
                                 var cachedSection = cached?["inventory"] as JObject;
@@ -2416,6 +2427,7 @@ public partial class AppShell
                         _ = Task.Run(async () =>
                         {
                             var ok = await _core.Inventory.DeletePrintAsync(delPrintId);
+                            if (ok) _cache.Delete(CacheHandler.KeyInventory);
                             Invoke(() => SendToJS("invPrintDeleteResult", new { success = ok, printId = delPrintId }));
                         });
                     }

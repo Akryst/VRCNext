@@ -30,6 +30,8 @@ public class RelayController : IDisposable
     // Callback set by AuthController so RelayController can trigger re-auth without circular dep
     public Func<Task>? OnWakeResumeRequested { get; set; }
 
+    public Action? OnAuthExpired { get; set; }
+
     // Public Accessors
     public bool IsRunning => _relayRunning;
     public DateTime RelayStart => _relayStart;
@@ -549,6 +551,8 @@ public class RelayController : IDisposable
 
         // Wire all notification-related WebSocket events to NotificationsController
         _notifications.WireWebSocket(_wsService);
+
+        _wsService.AuthExpiredSuspected += (_, _) => Invoke(() => OnAuthExpired?.Invoke());
 
         // Small delay so the VRC API reflects the new location before we query it
         _wsService.OwnLocationChanged += (_, _) =>

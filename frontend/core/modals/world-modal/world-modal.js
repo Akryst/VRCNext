@@ -73,7 +73,7 @@ function _wdUpdateInstancesInPlace(w) {
         instanceId: inst.instanceId || '', owner: inst.ownerName || '',
         ownerGroup: inst.ownerGroup || '', ownerId: inst.ownerId || '',
         region: getWorldRegionLabel(inst.region), userCount: inst.users,
-        capacity: w.capacity || 0, friends: worldFriendsByLoc[inst.location] || [],
+        capacity: w.capacity || 0, friends: getInstanceMembers(inst.location),
         location: inst.location, ageGate: inst.ageGate || false,
         languageRatio: inst.languageRatio || {},
     });
@@ -216,7 +216,7 @@ function renderWorldSearchDetail(w) {
             region:        getWorldRegionLabel(inst.region),
             userCount:     inst.users,
             capacity:      w.capacity || 0,
-            friends:       worldFriendsByLoc[inst.location] || [],
+            friends:       getInstanceMembers(inst.location),
             location:      inst.location,
             ageGate:       inst.ageGate || false,
             languageRatio: inst.languageRatio || {},
@@ -263,7 +263,11 @@ function renderWorldSearchDetail(w) {
         w.popularity != null ? _wmr(t('worlds.meta.popularity', 'Popularity'), String(w.popularity)) : '',
     ].join('');
 
-    el.innerHTML = `${thumb ? `<div class="fd-banner" id="wd-banner-slot"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/world/${esc(wid)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>` : ''}
+    const wdHeaderActions = renderModalActions([
+        { icon: 'share', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/world/${esc(wid)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
+        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeWorldSearchDetail()`, header: true },
+    ]);
+    el.innerHTML = `${wdHeaderActions}${thumb ? `<div class="fd-banner" id="wd-banner-slot"><div class="fd-banner-fade"></div></div>` : ''}
         <div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:20px 0;">
         <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(w.name)}</h2>
         <div style="font-size:12px;color:var(--tx3);margin-bottom:12px;">${t('worlds.meta.by', 'by')} ${w.authorId ? `<span onclick="navOpenModal('friend','${jsq(w.authorId)}','${jsq(w.authorName || '')}')" style="display:inline-flex;align-items:center;padding:1px 8px;border-radius:20px;background:var(--bg-hover);font-size:11px;font-weight:600;color:var(--tx1);cursor:pointer;line-height:1.8;">${esc(w.authorName)}</span>` : esc(w.authorName)}</div>
@@ -305,7 +309,6 @@ function renderWorldSearchDetail(w) {
         <div id="wdTabPhotos" style="display:none;"><div id="wdPhotosGrid"></div><div id="wdPhotosPaginatorBar" class="mini-paginator"></div></div>
         ${isOwnWorld ? `<div id="wdTabInsights" style="display:none;"><div id="wiContainer"></div></div>` : ''}
         <div id="wdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((w.id && _wdRawJsonCache[w.id]) || {})}</div></div>
-        <div style="margin-top:14px;text-align:right;"><button class="vrcn-button-round" onclick="closeWorldSearchDetail()">${t('common.close', 'Close')}</button></div>
         </div>`;
 
     if (thumb) { const s = document.getElementById('wd-banner-slot'); const bi = _getWorldBannerImg(wid, thumb); if (s && bi) s.insertBefore(bi, s.firstChild); }
@@ -640,11 +643,15 @@ function openWorldDetail(worldId) {
         (_instUserIds.has(f.id) && (!f.location || f.location === 'private')) ? { ...f, location: _instLoc } : f
     );
 
-    // Find all friends in this world
+    // Find all friends in this world (plus self, so you can spot your own instance)
     const friends = friendsRaw.filter(f => {
         const { worldId: wid } = parseFriendLocation(f.location);
         return wid === worldId;
     });
+    const _selfM = typeof _selfInstanceMember === 'function' ? _selfInstanceMember() : null;
+    if (_selfM && parseFriendLocation(_selfM.location).worldId === worldId && !friends.some(f => f.id === _selfM.id)) {
+        friends.unshift(_selfM);
+    }
 
     const cached = dashWorldCache[worldId];
     const worldName = cached?.name || worldId;
@@ -654,7 +661,7 @@ function openWorldDetail(worldId) {
     // Group friends by instance (full location string)
     const instanceMap = {};
     friends.forEach(f => {
-        const loc = f.location;
+        const loc = (f.location || '').replace(/~nonce\([^)]*\)/, '');
         if (!instanceMap[loc]) {
             const { instanceType: iType, ownerId: iOwner } = parseFriendLocation(loc);
             const numMatch = loc.match(/:(\d+)/);
@@ -716,11 +723,11 @@ function openWorldDetail(worldId) {
                 friendsHtml += renderProfileItem(f, `navOpenModal('friend','${jsq(f.id || '')}','${jsq(f.displayName || '')}')`);
             });
         } else {
-            friendsHtml += `<div class="vrcn-profile-item" style="pointer-events:none;opacity:0.55;">
-                <div class="fd-profile-item-avatar" style="display:flex;align-items:center;justify-content:center;"><span class="msi" style="font-size:20px;color:var(--tx3);">person</span></div>
-                <div class="fd-profile-item-info">
-                    <div class="fd-profile-item-name">${t('dashboard.instances.no_friends_title', 'No friends here yet!')}</div>
-                    <div class="fd-profile-item-status">${t('dashboard.instances.no_friends_desc', 'Invite friends to this instance!')}</div>
+            friendsHtml += `<div class="vrcn-user-item" style="pointer-events:none;opacity:0.55;">
+                <div class="vrcn-user-item-avatar vrcn-user-item-avatar-letter"><span class="msi" style="font-size:20px;color:var(--tx3);">person</span></div>
+                <div class="vrcn-user-item-info">
+                    <div class="vrcn-user-item-name">${t('dashboard.instances.no_friends_title', 'No friends here yet!')}</div>
+                    <div class="vrcn-user-item-status">${t('dashboard.instances.no_friends_desc', 'Invite friends to this instance!')}</div>
                 </div>
             </div>`;
         }
@@ -776,13 +783,13 @@ function openWorldDetail(worldId) {
     const _singleRegion = getWorldRegionLabel((instanceLoc.match(/~region\(([^)]+)\)/) || [])[1] || '');
     const singleRegionBadge = _singleRegion ? `<span class="vrcn-badge accent">${esc(_singleRegion)}</span>` : '';
 
-    let actionsHtml = '<div class="fd-actions">';
-    if (canJoin) actionsHtml += `<button class="vrcn-button-round vrcn-btn-join" onclick="worldJoinAction('${loc}')">${t('dashboard.instances.join_world', 'Join World')}</button>`;
-    actionsHtml += `<button class="vrcn-button-round" onclick="navOpenModal('worldSearch','${wid}','${esc(cached?.name || '')}')">${t('dashboard.instances.open_world', 'Open World')}</button>`;
-    actionsHtml += `<button class="vrcn-button-round" style="margin-left:auto;" onclick="closeWorldDetail()">${t('common.close', 'Close')}</button>`;
-    actionsHtml += '</div>';
+    const wiBar = renderModalActions([
+        canJoin ? { icon: 'login', title: t('dashboard.instances.join_world', 'Join World'), onclick: `worldJoinAction('${loc}')` } : null,
+        { icon: 'public', title: t('dashboard.instances.open_world', 'Open World'), onclick: `navOpenModal('worldSearch','${wid}','${esc(cached?.name || '')}')` },
+    ]);
+    let actionsHtml = `<div class="fd-actions"><button class="vrcn-button-round" style="margin-left:auto;" onclick="closeWorldDetail()">${t('common.close', 'Close')}</button></div>`;
 
-    c.innerHTML = `${bannerHtml}<div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:16px 0;">
+    c.innerHTML = `${wiBar}${bannerHtml}<div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:16px 0;">
         <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(worldName)}</h2>
         <div class="fd-badges-row">${multiInstance ? '' : (() => {
             const _oid = myInst ? (myInst.ownerId || parseFriendLocation(myInst.location).ownerId || '') : singleOwnerId;

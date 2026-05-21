@@ -6,6 +6,7 @@
     gap: 8px;
     padding: 0 0 12px;
     flex-shrink: 0;
+    flex-wrap: wrap;
 }
 
 .tl-list-wrap {
@@ -142,14 +143,6 @@
 .ft-status-chip.busy          { color: var(--status-busy);   border-color: var(--status-busy);   }
 .ft-status-chip.do-not-disturb { color: var(--status-busy);  border-color: var(--status-busy);   }
 .ft-status-chip.offline       { color: var(--status-offline); border-color: var(--status-offline); }
-
-.tl-topbar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0 0 8px;
-    flex-shrink: 0;
-}
 
 .tl-datebtn { padding: 0 10px; }
 #tlDateBtn.dp-active { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-lt); }

@@ -233,6 +233,27 @@
     color: var(--tx3);
 }
 
+.vrc-loc-world {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+.vrc-loc-wicon { font-size: 12px; flex-shrink: 0; }
+.vrc-loc-wname {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+.vrc-friend-loc .vrcn-badge.vrc-region-badge {
+    background: var(--bg-card);
+    color: var(--tx2);
+    padding: 3px 5px 2px;
+    font-size: 9px;
+    line-height: 1;
+}
+
 .vrc-friend-search {
     display: flex;
     align-items: center;
@@ -262,6 +283,11 @@
     color: var(--tx1);
     background: rgba(255,255,255,.04);
 }
+
+.vrc-login-collapsed-btn { display: none; }
+.rsidebar.collapsed.logged-out .vrc-login-collapsed-btn { display: flex; justify-content: center; }
+.vrc-login-collapsed-icon { color: var(--err); }
+.rsidebar.collapsed #vrcLoginPrompt { display: none !important; }
 
 .vrc-section-label {
     display: flex;

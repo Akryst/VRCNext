@@ -216,8 +216,14 @@ function renderAvatarDetail(a) {
         </div>` : ''}
     </div>`;
 
-    c.innerHTML = `
-        ${thumb ? `<div class="fd-banner"><img src="${thumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div>${isOwn ? `<button class="btn-notif" style="position:absolute;top:8px;right:44px;z-index:3;" title="${esc(t('avatars.detail.actions.change_image','Change Image'))}" onclick="avUploadBannerImage('${aid}')" id="avBannerEditBtn"><span class="msi" style="font-size:20px;">edit</span></button>` : ''}<button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/avatar/${esc(a.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>` : ''}
+    const avHeaderActions = renderModalActions([
+        isOwn ? { icon: 'edit', title: t('avatars.detail.actions.change_image', 'Change Image'), onclick: `avUploadBannerImage('${aid}')`, header: true } : null,
+        { icon: 'checkroom', title: t('avatars.detail.actions.use_avatar', 'Use Avatar'), onclick: `selectAvatar('${aid}');closeAvatarDetail()` },
+        { icon: 'share', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/avatar/${esc(a.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
+        { icon: 'close', title: t('common.close', 'Close'), onclick: `closeAvatarDetail()`, header: true },
+    ]);
+    c.innerHTML = `${avHeaderActions}
+        ${thumb ? `<div class="fd-banner"><img src="${thumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>` : ''}
         <div class="fd-content${thumb ? ' fd-has-banner' : ''}">
             <div class="fd-header">
                 <div style="flex:1;min-width:0;">
@@ -254,12 +260,6 @@ function renderAvatarDetail(a) {
                 <div id="avGalleryContent" style="min-height:60px;"></div>
             </div>
             <div id="avTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((a.id && _avRawJsonCache[a.id]) || {})}</div></div>
-            <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:6px;">
-                <button class="vrcn-button-round vrcn-btn-join" onclick="selectAvatar('${aid}');closeAvatarDetail()">
-                    <span class="msi" style="font-size:14px;">checkroom</span> ${t('avatars.detail.actions.use_avatar', 'Use Avatar')}
-                </button>
-                <button class="vrcn-button-round" onclick="closeAvatarDetail()">${t('common.close', 'Close')}</button>
-            </div>
         </div>`;
 }
 

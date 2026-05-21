@@ -354,6 +354,130 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
     flex-shrink: 0;
 }
 
+#tbNormalLeft { display: flex; align-items: stretch; min-width: 0; }
+#tbAppControls { display: flex; align-items: stretch; flex-shrink: 0; }
+#tbModalCrumbs { display: none; align-items: center; gap: 4px; min-width: 0; overflow: hidden; padding: 0 6px; }
+#tbModalActions { display: none; align-items: stretch; }
+
+#taskbar.tb-modal-mode #tbNormalLeft,
+#taskbar.tb-modal-mode #tbAppControls { display: none; }
+#taskbar.tb-modal-mode #tbModalCrumbs,
+#taskbar.tb-modal-mode #tbModalActions { display: flex; }
+#taskbar:not(.tb-modal-mode) #tbModalActionsSep { display: none; }
+
+@keyframes tbFadeInLeft { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes tbFadeInRight { from { opacity: 0; transform: translateX(6px); } to { opacity: 1; transform: translateX(0); } }
+
+#taskbar.tb-modal-mode #tbModalCrumbs,
+#taskbar:not(.tb-modal-mode) #tbNormalLeft { animation: tbFadeInLeft 0.18s ease; }
+#taskbar.tb-modal-mode #tbModalActions,
+#taskbar:not(.tb-modal-mode) #tbAppControls { animation: tbFadeInRight 0.18s ease; }
+
+html.no-animations #tbModalCrumbs,
+html.no-animations #tbModalActions,
+html.no-animations #tbNormalLeft,
+html.no-animations #tbAppControls { animation: none !important; }
+
+@keyframes tbTitleFade { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
+.tb-title-anim { animation: tbTitleFade 0.18s ease; }
+html.no-animations .tb-title-anim { animation: none !important; }
+
+#taskbar.tb-modal-mode #tb-left { flex-shrink: 1; min-width: 0; }
+
+.tb-crumb, .tb-crumb-current {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px;
+    min-width: 0;
+    flex-shrink: 1;
+}
+.tb-crumb {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.5);
+    font-family: inherit;
+    padding: 2px 4px;
+    border-radius: 5px;
+    transition: color 0.1s, background 0.1s;
+}
+.tb-crumb:hover { color: #fff; background: rgba(255, 255, 255, 0.07); }
+.tb-crumb-current { color: var(--tx0); font-weight: 700; padding: 2px 2px; }
+.tb-crumb-sep { color: rgba(255, 255, 255, 0.3); font-size: 13px; flex-shrink: 0; }
+
+.tb-modal-action {
+    display: inline-flex;
+    align-items: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.72);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    padding: 0 12px;
+    transition: background 0.1s, color 0.1s;
+}
+.tb-modal-action:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
+.tb-modal-action-danger { color: #EF5350; }
+.tb-modal-action-danger:hover { background: rgba(239, 83, 80, 0.12); color: #EF5350; }
+.tb-modal-action:disabled { opacity: 0.4; cursor: default; }
+.tb-modal-action:disabled:hover { background: none; color: rgba(255, 255, 255, 0.72); }
+
+.tb-modal-action-wrap { position: relative; display: flex; }
+.tb-modal-dd-caret { font-size: 16px !important; line-height: 1; margin-left: 2px; opacity: 0.7; }
+.tb-modal-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 190px;
+    background: var(--bg-card);
+    border: 1px solid var(--brd-lt);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.25);
+    padding: 4px;
+    z-index: 10001;
+}
+@keyframes tbDropdownIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.tb-modal-action-wrap.open > .tb-modal-dropdown,
+.tb-modal-dd-sub-wrap:hover > .tb-modal-dd-sub { display: block; animation: tbDropdownIn 0.13s ease; }
+html.no-animations .tb-modal-dropdown { animation: none !important; }
+.tb-modal-dd-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--tx1);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 7px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    text-align: left;
+}
+.tb-modal-dd-item:hover { background: var(--bg-hover); }
+.tb-modal-dd-item.active { color: var(--accent); }
+.tb-modal-dd-item .msi { font-size: 16px; width: 18px; flex-shrink: 0; }
+.tb-modal-dd-item:disabled { opacity: 0.4; cursor: default; }
+.tb-modal-dd-item:disabled:hover { background: none; }
+
+.tb-modal-dd-sub-wrap { position: relative; }
+.tb-modal-dd-arrow { margin-left: auto; font-size: 14px !important; width: auto !important; color: var(--tx3); }
+.tb-modal-dd-sub {
+    top: -5px;
+    right: 100%;
+    left: auto;
+}
+
 /* Windows-style window control buttons */
 .tb-win-btn {
     display: flex;

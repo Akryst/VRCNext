@@ -156,10 +156,22 @@ function renderNotifications(list, noDecline = _notifNoDecline) {
             ? `<div class="notif-avatar" style="background-image:url('${cssUrl(nImg)}')"><span class="msi notif-avatar-badge">${icon}</span></div>`
             : `<span class="msi notif-icon" style="font-size:18px;">${icon}</span>`;
 
+        const _notifGroupId = (() => {
+            const d = (n._data && typeof n._data === 'string')
+                ? (() => { try { return JSON.parse(n._data); } catch { return {}; } })()
+                : (n._data || {});
+            return det.groupId || d.groupId
+                || (n._link && (n._link.match(/grp_[0-9a-f-]+/) || [])[0])
+                || '';
+        })();
+
         let titleHtml;
         let bodyHtml = '';
         if (n._v2 && n._title) {
-            titleHtml = esc(n._title);
+            const isGroupNotif = typeof n.type === 'string' && n.type.startsWith('group.');
+            titleHtml = (isGroupNotif && _notifGroupId)
+                ? `<strong style="cursor:pointer;" onclick="toggleNotifPanel();openGroupDetail('${jsq(_notifGroupId)}')">${esc(n._title)}</strong>`
+                : esc(n._title);
             if (n.message) bodyHtml = `<div class="notif-msg">${esc(n.message)}</div>`;
         } else if (n.type === 'invite') {
             const worldName = det.worldName ? esc(det.worldName) : t('notifications.unknown_world', 'unknown world');

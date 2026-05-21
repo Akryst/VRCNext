@@ -1,4 +1,4 @@
-/* Multi-Account Manager — uses existing vrcn-profile-item / fd-profile-item-* classes from items.css. */
+/* Multi-Account Manager — uses the universal vrcn-user-item classes from items.css. */
 
 let _accountsState = { activeAccountId: '', accounts: [] };
 
@@ -48,13 +48,13 @@ function renderAccountsList(payload) {
         }
 
         return `
-            <div class="vrcn-profile-item" style="cursor:default;">
-                ${avatar ? `<img class="fd-profile-item-avatar" src="${avatar}" alt="">` : `<div class="fd-profile-item-avatar"></div>`}
-                <div style="display:flex;flex-direction:column;flex:1;min-width:0;">
-                    <div style="display:flex;align-items:center;font-size:13px;color:var(--tx1);">${name}${badges.join('')}</div>
-                    <div class="fd-profile-item-status">${userTag}</div>
+            <div class="vrcn-user-item" style="cursor:default;">
+                ${avatar ? `<img class="vrcn-user-item-avatar" src="${avatar}" alt="">` : `<div class="vrcn-user-item-avatar vrcn-user-item-avatar-letter"></div>`}
+                <div class="vrcn-user-item-info">
+                    <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--tx1);">${name}${badges.join('')}</div>
+                    <div class="vrcn-user-item-status">${userTag}</div>
                 </div>
-                <div style="display:flex;gap:6px;">${buttons.join('')}</div>
+                <div style="display:flex;gap:6px;flex-shrink:0;">${buttons.join('')}</div>
             </div>`;
     }).join('');
 }

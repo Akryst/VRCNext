@@ -1,3 +1,29 @@
+function _selfInstanceMember() {
+    const self = (typeof currentVrcUser !== 'undefined') ? currentVrcUser : null;
+    if (!self || !self.id) return null;
+    let loc = self.location || '';
+    if ((!loc || !loc.includes(':')) && typeof currentInstanceData !== 'undefined' && currentInstanceData && currentInstanceData.location) {
+        loc = currentInstanceData.location;
+    }
+    if (!loc || !loc.includes(':')) return null;
+    return { id: self.id, displayName: self.displayName, image: self.image, status: self.status, statusDescription: self.statusDescription, location: loc, presence: 'game' };
+}
+
+function getInstanceMembers(location) {
+    const base = (location || '').split('~')[0];
+    if (!base || !base.includes(':')) return [];
+    const out = [];
+    const self = _selfInstanceMember();
+    if (self && self.location.split('~')[0] === base) out.push(self);
+    if (typeof vrcFriendsData !== 'undefined') {
+        vrcFriendsData.forEach(f => {
+            if (self && f.id === self.id) return;
+            if ((f.location || '').split('~')[0] === base) out.push(f);
+        });
+    }
+    return out;
+}
+
 /**
  * Universal instance item card.
  * Used by: World Modal → Active Instances, Friend Profile → Current World.

@@ -1,36 +1,87 @@
 /**
- * Universal profile list item; fd-profile-item design.
- * Used by Profiles -> Mutuals, Groups -> Members, World Detail.
- *
- * @param {object} user    - { id, displayName, image, status, statusDescription, presence }
- * @param {string} onclick - Inline JS onclick string; caller uses jsq() for user id
- * @returns {string} HTML string
+ * @param {object} user 
+ * @param {string} onclick 
+ * @param {object} [opts] 
+ * @returns {string} 
  */
-function renderProfileItem(user, onclick) {
+function renderUserItem(user, onclick, opts) {
+    opts = opts || {};
+    const id = user.id || user.userId || '';
     const name = user.displayName || '?';
 
-    // Friends: prefer live image from vrcFriendsData (correctly resolved from friends API,
-    // which returns userIcon reliably). Partial APIs like group members often omit userIcon.
-    // Non-friends: use the payload image as-is.
-    const live = vrcFriendsData.find(f => f.id === user.id);
+    const live = id ? vrcFriendsData.find(f => f.id === id) : null;
     const image = live?.image || user.image || '';
 
-    const img = image
-        ? `<img class="fd-profile-item-avatar" src="${esc(image)}" onerror="this.outerHTML='<div class=\\'fd-profile-item-avatar\\' style=\\'display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--tx3)\\'>${esc(name[0])}</div>'">`
-        : `<div class="fd-profile-item-avatar" style="display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--tx3)">${esc(name[0])}</div>`;
+    const letter = esc((name[0] || '?').toUpperCase());
+    const avatar = image
+        ? `<img class="vrcn-user-item-avatar" src="${esc(image)}" onerror="this.outerHTML='<div class=\\'vrcn-user-item-avatar vrcn-user-item-avatar-letter\\'>${letter}</div>'">`
+        : `<div class="vrcn-user-item-avatar vrcn-user-item-avatar-letter">${letter}</div>`;
 
-    // Status: live friend data first, then payload (covers non-friends in groups etc.).
     const status = live?.status || user.status || '';
     const statusDesc = live?.statusDescription || user.statusDescription || '';
     const presence = live ? live.presence : (user.presence || '');
-    const indicator = presence === 'web' ? 'vrc-status-ring' : 'vrc-status-dot';
-
-    const statusLine = status
-        ? `<div class="fd-profile-item-status"><span class="${indicator} ${statusDotClass(status)}" style="width:6px;height:6px;flex-shrink:0;"></span>${statusLabel(status)}${statusDesc ? ' - ' + esc(statusDesc) : ''}</div>`
-        : '';
+    const dotCls = presence === 'web' ? 'vrc-status-ring' : 'vrc-status-dot';
+    const dot = `<span class="${dotCls} ${statusDotClass(status)} vrcn-user-item-dot"></span>`;
 
     const platform = live?.platform || user.platform || '';
     const platBadge = getPlatformBadgeHtml(platform);
 
-    return `<div class="vrcn-profile-item" onclick="${onclick}">${img}<div class="fd-profile-item-info"><div class="fd-profile-item-name">${esc(name)}${platBadge ? `<span style="margin-left:6px;">${platBadge}</span>` : ''}</div>${statusLine}</div></div>`;
+    const statusText = statusDesc || (status ? statusLabel(status) : t('status.offline', 'Offline'));
+
+    const worldInner = opts.noWorld ? '' : _userItemWorldInner(live?.location || user.location || '');
+    const secondRow = worldInner
+        ? `<div class="vrcn-user-item-world">${worldInner}</div>`
+        : `<div class="vrcn-user-item-status">${esc(statusText)}</div>`;
+
+    const attrs = opts.attrs ? ' ' + opts.attrs : '';
+    const cls = opts.cls ? ' ' + opts.cls : '';
+    const idAttr = id ? ` data-uid="${esc(id)}"` : '';
+    const trailing = opts.trailing || '';
+
+    return `<div class="vrcn-user-item${cls}"${idAttr}${attrs} onclick="${onclick}">
+        <div class="vrcn-user-item-avatar-wrap">${avatar}${dot}</div>
+        <div class="vrcn-user-item-info">
+            <div class="vrcn-user-item-name">${esc(name)}${platBadge ? `<span class="vrcn-user-item-plat">${platBadge}</span>` : ''}</div>
+            ${secondRow}
+        </div>
+        ${trailing}
+    </div>`;
+}
+
+function _userItemWorldInner(location) {
+    const parsed = (location && typeof parseFriendLocation === 'function') ? parseFriendLocation(location) : null;
+    if (parsed && parsed.worldId && parsed.worldId.startsWith('wrld_')) {
+        const wc = (typeof dashWorldCache !== 'undefined') ? dashWorldCache[parsed.worldId] : null;
+        const wname = wc?.name || t('dashboard.friends.location_world', 'In World');
+        return `<span class="msi">public</span><span class="vrcn-user-item-world-name">${esc(wname)}</span>`;
+    }
+    return '';
+}
+
+function updateUserItemWorld(idOrUser) {
+    const id = typeof idOrUser === 'string' ? idOrUser : (idOrUser && (idOrUser.id || idOrUser.userId));
+    if (!id) return;
+    const items = document.querySelectorAll(`.vrcn-user-item[data-uid="${id}"]`);
+    if (!items.length) return;
+    const live = (typeof vrcFriendsData !== 'undefined') ? vrcFriendsData.find(f => f.id === id) : null;
+    const location = live?.location || (typeof idOrUser === 'object' ? idOrUser.location : '') || '';
+    const inner = _userItemWorldInner(location);
+    items.forEach(item => {
+        const wl = item.querySelector('.vrcn-user-item-world');
+        if (wl) wl.innerHTML = inner;
+    });
+}
+
+function refreshAllUserItemWorlds() {
+    document.querySelectorAll('.vrcn-user-item[data-uid]').forEach(item => {
+        const wl = item.querySelector('.vrcn-user-item-world');
+        if (!wl) return;
+        const id = item.getAttribute('data-uid');
+        const live = (typeof vrcFriendsData !== 'undefined') ? vrcFriendsData.find(f => f.id === id) : null;
+        wl.innerHTML = _userItemWorldInner(live?.location || '');
+    });
+}
+
+function renderProfileItem(user, onclick, opts) {
+    return renderUserItem(user, onclick, opts);
 }

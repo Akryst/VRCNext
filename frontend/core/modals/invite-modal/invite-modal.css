@@ -106,7 +106,7 @@
     padding: 6px 32px 4px;
     text-transform: uppercase;
 }
-.inv-list .vrcn-profile-item { margin: 0 32px 6px; }
+.inv-list .vrcn-user-item { margin: 0 32px 6px; }
 .inv-row-sel { background: color-mix(in srgb, var(--accent) 14%, var(--bg-input)) !important; }
 
 .inv-msg-item {

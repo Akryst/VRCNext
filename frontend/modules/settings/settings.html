@@ -2,6 +2,8 @@
                     <nav class="settings-nav">
                         <button class="settings-nav-item active" onclick="switchSettingsSection('general',this)"><span class="msi">tune</span><span data-i18n="settings.nav.general">General</span></button>
                         <button class="settings-nav-item" onclick="switchSettingsSection('appearance',this)"><span class="msi">palette</span><span data-i18n="settings.nav.appearance">Appearance</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('sidebar',this)"><span class="msi">view_sidebar</span><span data-i18n="settings.nav.sidebar">Sidebar</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('navigation',this)"><span class="msi">alt_route</span><span data-i18n="settings.nav.navigation">Navigation</span></button>
                         <button class="settings-nav-item" onclick="switchSettingsSection('notifications',this)"><span class="msi">notifications</span><span data-i18n="settings.nav.notifications">Notifications</span></button>
                         <button class="settings-nav-item" onclick="switchSettingsSection('vrchat',this)"><span class="msi">sports_esports</span><span data-i18n="settings.nav.vrchat">VRChat</span></button>
                         <button class="settings-nav-item" onclick="switchSettingsSection('data',this)"><span class="msi">folder_open</span><span data-i18n="settings.nav.data">Data</span></button>
@@ -234,6 +236,20 @@
                             </label>
                         </div>
                         <div class="set-desc" id="trayNotifDesc" data-windows-only data-i18n="settings.system.tray.notifications_desc">Displays a notification when a new VRChat notification arrives while VRCNext is hidden in the system tray.</div>
+                    </div>
+
+                    <!-- FRIENDS SIDEBAR -->
+                    <div class="vrcn-panel-card" data-section="sidebar" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">groups</span> <span data-i18n="settings.sidebar.title">Friends Sidebar</span></div>
+                        <div class="sf-toggle-row"><span data-i18n="settings.sidebar.location_only">Show only location when available</span><label class="toggle"><input type="checkbox" id="setFriendsSidebarLocationOnly" onchange="settings.friendsSidebarLocationOnly=this.checked;autoSave();if(typeof renderVrcFriends==='function'&&typeof vrcFriendsData!=='undefined'&&vrcFriendsData?.length)renderVrcFriends(vrcFriendsData);"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="set-desc" data-i18n="settings.sidebar.location_only_desc">When enabled, friends who are in a world show the instance's region flag and world name instead of their status. Friends who aren't in a world keep showing their status text.</div>
+                    </div>
+
+                    <!-- MODAL NAVIGATION -->
+                    <div class="vrcn-panel-card" data-section="navigation" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">alt_route</span> <span data-i18n="settings.navigation.title">Modal Navigation</span></div>
+                        <div class="sf-toggle-row"><span data-i18n="settings.navigation.direct">Use Direct Modal Navigation</span><label class="toggle"><input type="checkbox" id="setDirectModalNav" onchange="settings.directModalNav=this.checked;autoSave();"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="set-desc" data-i18n="settings.navigation.direct_desc">When enabled, the breadcrumb history and all modal actions are shown in a bar at the top of the modal instead of in the taskbar. This makes navigating easier in fullscreen or on larger screens. It's recommended to leave this off when not running VRCNext in fullscreen.</div>
                     </div>
 
                     <!-- SOUNDS -->

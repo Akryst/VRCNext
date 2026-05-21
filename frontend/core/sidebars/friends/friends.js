@@ -1,5 +1,22 @@
 let _sidebarGroupInstances = null;
 
+function getRegionCode(region) {
+    return (region || 'us').toUpperCase();
+}
+function _friendLocLineInner(f, presenceType, statusText, locationText) {
+    const locationOnly = (typeof settings !== 'undefined') && settings.friendsSidebarLocationOnly === true;
+    if (locationOnly) {
+        const inWorld = f.location && f.location.startsWith('wrld_');
+        if (!inWorld) return esc(statusText);
+        const parsed      = parseFriendLocation(f.location);
+        const wc          = (typeof dashWorldCache !== 'undefined') ? dashWorldCache[parsed.worldId] : null;
+        const wname       = wc?.name || locationText;
+        const regionRaw   = (f.location.match(/~region\(([^)]+)\)/) || [])[1] || '';
+        return `<span class="vrc-loc-world"><span class="msi vrc-loc-wicon">public</span><span class="vrcn-badge vrc-region-badge">${esc(getRegionCode(regionRaw))}</span><span class="vrc-loc-wname">${esc(wname)}</span></span>`;
+    }
+    return `${esc(statusText)} &middot; ${esc(locationText)}`;
+}
+
 function toggleRsidebar() {
     rsidebarCollapsed = !rsidebarCollapsed;
     localStorage.setItem('vrcnext_rsidebar', rsidebarCollapsed ? '1' : '0');
@@ -11,6 +28,8 @@ function toggleRsidebar() {
 
 function renderVrcProfile(u) {
     const a = document.getElementById('vrcProfileArea');
+    const rs = document.getElementById('rsidebar');
+    if (rs) rs.classList.toggle('logged-out', !u);
     if (!u) { a.innerHTML = ''; currentVrcUser = null; return; }
     if (u.rawJson) _mypRawJson = u.rawJson;
     currentVrcUser = u;
@@ -84,7 +103,7 @@ function renderVrcFriends(friends, counts) {
         const locationText = getFriendLocationLabel(presenceType, f.location);
         const badgeDotCls = presenceType === 'web' ? 'vrc-status-ring' : 'vrc-status-dot';
         const avatarWrap = `<div class="vrc-friend-avatar-wrap">${imgTag}<span class="vrc-friend-status-badge ${badgeDotCls} ${statusCls}"></span></div>`;
-        return `<div class="vrc-friend-card" data-uid="${fid}" data-status="${statusCls}" onclick="openFriendDetail('${fid}')">${avatarWrap}<div class="vrc-friend-info"><div class="vrc-friend-name"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.displayName)}</span>${rankBadge}</div><div class="vrc-friend-loc">${esc(statusText)} &middot; ${esc(locationText)}</div></div></div>`;
+        return `<div class="vrc-friend-card" data-uid="${fid}" data-status="${statusCls}" onclick="openFriendDetail('${fid}')">${avatarWrap}<div class="vrc-friend-info"><div class="vrc-friend-name"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.displayName)}</span>${rankBadge}</div><div class="vrc-friend-loc">${_friendLocLineInner(f, presenceType, statusText, locationText)}</div></div></div>`;
     };
 
     const favIds = new Set(favFriendsData.map(f => f.favoriteId));
@@ -258,7 +277,7 @@ function filterFriendsList() {
         const locationText = getFriendLocationLabel(presenceType, f.location);
         const badgeDotCls = presenceType === 'web' ? 'vrc-status-ring' : 'vrc-status-dot';
         const avatarWrap = `<div class="vrc-friend-avatar-wrap">${imgTag}<span class="vrc-friend-status-badge ${badgeDotCls} ${statusCls}"></span></div>`;
-        h += `<div class="vrc-friend-card" data-uid="${fid}" data-status="${statusCls}" onclick="openFriendDetail('${fid}')">${avatarWrap}<div class="vrc-friend-info"><div class="vrc-friend-name"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.displayName)}</span>${rankBadge}</div><div class="vrc-friend-loc">${esc(statusText)} &middot; ${esc(locationText)}</div></div></div>`;
+        h += `<div class="vrc-friend-card" data-uid="${fid}" data-status="${statusCls}" onclick="openFriendDetail('${fid}')">${avatarWrap}<div class="vrc-friend-info"><div class="vrc-friend-name"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.displayName)}</span>${rankBadge}</div><div class="vrc-friend-loc">${_friendLocLineInner(f, presenceType, statusText, locationText)}</div></div></div>`;
     });
     h += `</div>`;
     el.innerHTML = h;

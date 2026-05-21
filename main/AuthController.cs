@@ -28,6 +28,7 @@ public class AuthController
     private DateTime _lastVideoUrlTime = DateTime.MinValue;
     private DateTime _readyAt = DateTime.MaxValue;
     private CancellationTokenSource? _refreshCts;
+    private volatile bool _sessionExpiryHandled;
 
     // In-flight guards — prevent duplicate startup fetches when JS triggers same requests
     private int _favWorldsInFlight = 0;
@@ -56,6 +57,8 @@ public class AuthController
 
         // Allow RelayController to trigger a session resume....
         _relayCtrl.OnWakeResumeRequested = VrcTryResumeAsync;
+
+        _relayCtrl.OnAuthExpired = HandleWsAuthExpired;
 
         // CoreLibrary uses these callbacks to stop and restart account-scoped background tasks.
         _core.StopAccountScopedTasks = () =>
@@ -790,6 +793,8 @@ public class AuthController
     {
         SetupVrcDebugLog();
         _core.SendToJS("log", new { msg = "VRChat: Logging in...", color = "sec" });
+        _core.VrcApi.ResetSession();
+        _sessionExpiryHandled = false;
         var result = await _core.Auth.LoginAsync(username, password);
         if (result.Requires2FA)
         {
@@ -857,6 +862,7 @@ public class AuthController
 
     private void StartPeriodicRefresh()
     {
+        _sessionExpiryHandled = false;
         _refreshCts?.Cancel();
         _refreshCts = new CancellationTokenSource();
         var ct = _refreshCts.Token;
@@ -870,11 +876,75 @@ public class AuthController
                     if (!_core.VrcApi.IsLoggedIn) break;
                     var result = await _core.Auth.TryResumeSessionAsync();
                     if (result.Success && result.User != null)
+                    {
                         Invoke(() => SendVrcUserData(result.User, loginFlow: false));
+                    }
+                    else if (!result.NetworkError)
+                    {
+                        Invoke(() => HandleSessionExpired("session refresh unauthorized"));
+                        break;
+                    }
                 }
             }
             catch (OperationCanceledException) { }
         });
+    }
+
+    private void HandleWsAuthExpired()
+    {
+        if (!_core.VrcApi.IsLoggedIn || _sessionExpiryHandled) return;
+        _ = Task.Run(async () =>
+        {
+            var result = await _core.Auth.TryResumeSessionAsync();
+            if (result.Success || result.NetworkError) return;
+            Invoke(() => HandleSessionExpired("WebSocket authentication failed"));
+        });
+    }
+
+    private void HandleSessionExpired(string reason)
+    {
+        if (_sessionExpiryHandled) return;
+        _sessionExpiryHandled = true;
+
+        _refreshCts?.Cancel();
+        _relayCtrl.StopWebSocket();
+        _core.VrcApi.ResetSession();
+        _core.CurrentVrcUserId = "";
+
+        string username = "", password = "";
+        _core.AccountMutationLock.Wait();
+        try
+        {
+            var acc = _core.Settings.ActiveAccount;
+            if (acc != null)
+            {
+                acc.AuthCookie = "";
+                acc.TwoFactorCookie = "";
+                username = acc.Username ?? "";
+                password = acc.Password ?? "";
+            }
+            _core.Settings.Save();
+        }
+        finally { _core.AccountMutationLock.Release(); }
+
+        _core.SendToJS("log", new { msg = $"VRChat: Session expired ({reason}) — please log in again", color = "warn" });
+        _core.SendToJS("vrcLoggedOut", (object?)null);
+        if (!string.IsNullOrEmpty(username))
+            _core.SendToJS("vrcPrefillLogin", new { username, password });
+    }
+
+    private void TryCleanMutualCaches(JObject user)
+    {
+        HashSet<string>? friendIds = null;
+        if (user["friends"] is JArray fr)
+            friendIds = new HashSet<string>(fr.Select(t => t?.ToString() ?? "").Where(s => s.Length > 0));
+
+        HashSet<string>? groupIds = null;
+        if ((user["presence"] as JObject)?["groups"] is JArray gr)
+            groupIds = new HashSet<string>(gr.Select(t => t?.ToString() ?? "").Where(s => s.Length > 0));
+
+        if (friendIds == null && groupIds == null) return;
+        _ = Task.Run(() => { try { _core.TimeEngine.CleanMutualCaches(friendIds, groupIds); } catch { } });
     }
 
     // Writes current session cookies into the active account, caller must already hold the mutation lock.
@@ -905,6 +975,8 @@ public class AuthController
     public void SendVrcUserDataUnlocked(JObject user, bool loginFlow = false)
     {
         _core.CurrentVrcUserId = user["id"]?.ToString() ?? "";
+
+        TryCleanMutualCaches(user);
 
         // Backwrite UserId to the active account if empty and always refresh display name and avatar.
         var acc = _core.Settings.ActiveAccount;
@@ -1560,6 +1632,8 @@ public class AuthController
             _core.Settings.SteamOverlaySoundEnabled = data["steamOverlaySoundEnabled"]?.Value<bool>() ?? true;
             _core.Settings.FriendOnlineToastEnabled = data["friendOnlineToastEnabled"]?.Value<bool>() ?? false;
             _core.Settings.FriendOnlineToastFavOnly = data["friendOnlineToastFavOnly"]?.Value<bool>() ?? false;
+            _core.Settings.FriendsSidebarLocationOnly = data["friendsSidebarLocationOnly"]?.Value<bool>() ?? true;
+            _core.Settings.DirectModalNav = data["directModalNav"]?.Value<bool>() ?? false;
             _core.Settings.MinimizeToTray = data["minimizeToTray"]?.Value<bool>() ?? false;
             _core.Settings.TrayNotificationsEnabled = data["trayNotificationsEnabled"]?.Value<bool>() ?? false;
 #if WINDOWS
@@ -1768,6 +1842,7 @@ public class AuthController
             "ja" => "ja",
             "zh-cn" => "zh-CN",
             "zh_cn" => "zh-CN",
+            "ru"    => "ru",
             _ => "en"
         };
     }

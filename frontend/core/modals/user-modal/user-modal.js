@@ -195,10 +195,9 @@ function filterFdMutuals() {
     const slice = filtered.slice(page * MINI_PG_SIZE, (page + 1) * MINI_PG_SIZE);
     grid.innerHTML = slice.length
         ? slice.map(mu => {
-            const html = renderProfileItem(mu, `navOpenModal('friend','${jsq(mu.id)}','${jsq(mu.displayName || '')}')`);
             const thumbUrl = mu.currentAvatarThumbnailImageUrl || '';
-            if (!thumbUrl) return html;
-            return html.replace('<div class="vrcn-profile-item"', `<div class="vrcn-profile-item" data-avatar-thumb="${esc(thumbUrl)}"`);
+            const opts = thumbUrl ? { attrs: `data-avatar-thumb="${esc(thumbUrl)}"` } : undefined;
+            return renderProfileItem(mu, `navOpenModal('friend','${jsq(mu.id)}','${jsq(mu.displayName || '')}')`, opts);
         }).join('')
         : `<div style="padding:12px;grid-column:1/-1;text-align:center;font-size:12px;color:var(--tx3);">${t('profiles.mutuals.no_results', 'No results')}</div>`;
     setMiniPaginator('fdMutualsPageBar', buildMiniPaginator(page, totalPages, 'fdMutualsGoPage'));
@@ -479,6 +478,7 @@ function renderFriendDetail(d) {
             region:       _region,
             userCount:    d.userCount || 0,
             capacity:     d.worldCapacity || 0,
+            ageGate:      d.ageGate || false,
             onclick,
         });
         _worldPartHtml = _instanceItemHtml;
@@ -486,7 +486,7 @@ function renderFriendDetail(d) {
             const _ownerUser = vrcFriendsData.find(f => f.id === _fdOwnerId);
             if (_ownerUser) {
                 const _ownerOnclick = `navOpenModal('friend','${jsq(_ownerUser.id)}','${jsq(_ownerUser.displayName || '')}')`;
-                _ownerPartHtml = renderProfileItem(_ownerUser, _ownerOnclick);
+                _ownerPartHtml = renderProfileItem(_ownerUser, _ownerOnclick, { noWorld: true });
             } else {
                 _ownerPartHtml = `<div id="fdOwnerSlot" data-owner-id="${esc(_fdOwnerId)}"><div class="sk-block" style="height:44px;border-radius:8px;"></div></div>`;
                 sendToCS({ action: 'vrcGetUserBasic', userId: _fdOwnerId, contextId: d.id });
@@ -723,7 +723,8 @@ function renderFriendDetail(d) {
         <div id="fdUserActivity" style="max-height:160px;overflow-y:auto;display:none;"></div>`;
 
     const bannerSrc = d.profilePicOverride || d.currentAvatarImageUrl || d.image || '';
-    const bannerHtml = bannerSrc ? `<div class="fd-banner" id="fd-banner-slot"><div class="fd-banner-fade"></div><button class="btn-notif" style="position:absolute;top:8px;right:8px;z-index:3;" title="${esc(t('common.share','Share'))}" onclick="navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(d.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))"><span class="msi" style="font-size:20px;">share</span></button></div>` : '';
+    const bannerHtml = bannerSrc ? `<div class="fd-banner" id="fd-banner-slot"><div class="fd-banner-fade"></div></div>` : '';
+    const fdHeaderActions = renderModalActions(_fdBuildTaskbarActions(d));
 
     const fdLocation = d.location || '';
     const fdIsOffline = (d.status || 'offline') === 'offline';
@@ -737,10 +738,7 @@ function renderFriendDetail(d) {
         <p style="margin:10px 0 0;font-size:12px;color:var(--tx3);line-height:1.45;">${t('profiles.trust.description', 'This user has a trusted user standing within the community.')}</p>` : '';
 
     const _fdInstFriends = (_worldPartHtml && d.location && d.location !== 'private' && d.location !== 'traveling')
-        ? (typeof vrcFriendsData !== 'undefined' ? vrcFriendsData : []).filter(f =>
-            f.location === d.location &&
-            f.id !== d.id &&
-            !(currentVrcUser && f.id === currentVrcUser.id))
+        ? (typeof getInstanceMembers === 'function' ? getInstanceMembers(d.location) : []).filter(m => m.id !== d.id)
         : [];
     const _instFriendsHtml = _fdInstFriends.length > 0
         ? `<div class="fd-group-rep-label" style="margin-top:10px;">${tf('instance.sections.friends_in_instance', { count: _fdInstFriends.length }, 'FRIENDS IN INSTANCE ({count})')}</div>
@@ -817,7 +815,7 @@ function renderFriendDetail(d) {
             <div id="fdAvatarsPageBar" class="mini-paginator"></div>
         </div>`;
 
-    c.innerHTML = `${bannerHtml}<div class="fd-content${bannerSrc ? ' fd-has-banner' : ''}"><div class="fd-header">${imgTag}<div><div class="fd-name" style="display:flex;align-items:center;gap:6px;">${esc(d.displayName)}${vrcPlusBadge}</div>${pronounsHtml}<div class="fd-status-row"><div class="fd-status" id="fd-live-status"><span class="${fdDotClass} ${fdStatusDotCls}" style="width:8px;height:8px;"></span>${fdIsOffline ? t('status.offline', 'Offline') : statusLabel(d.status)}${(!fdIsOffline && fdIsWeb) ? ' ' + t('profiles.friends.web_suffix', '(Web)') : ''}${(!fdIsOffline && d.statusDescription) ? ' - ' + esc(d.statusDescription) : ''}</div>${repGroupBadgeHtml}</div></div></div>${badgesHtml}${actionsHtml}${favPickerHtml}${tabsHtml}<div id="fdTabInfo">${infoContent}</div><div id="fdTabGroups" style="display:none;">${groupsContent}</div><div id="fdTabMutuals" style="display:none;">${mutualsContent}</div><div id="fdTabContent" style="display:none;">${contentHtml}</div><div id="fdTabFavs" style="display:none;" data-user-id="${esc(userId)}"></div><div id="fdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((d.id && _fdRawJsonCache[d.id]) || {})}</div></div><div style="margin-top:10px;text-align:right;"><button class="vrcn-button-round" onclick="closeFriendDetail()">${t('common.close', 'Close')}</button></div></div>`;
+    c.innerHTML = `${fdHeaderActions}${bannerHtml}<div class="fd-content${bannerSrc ? ' fd-has-banner' : ''}"><div class="fd-header">${imgTag}<div><div class="fd-name" style="display:flex;align-items:center;gap:6px;">${esc(d.displayName)}${vrcPlusBadge}</div>${pronounsHtml}<div class="fd-status-row"><div class="fd-status" id="fd-live-status"><span class="${fdDotClass} ${fdStatusDotCls}" style="width:8px;height:8px;"></span>${fdIsOffline ? t('status.offline', 'Offline') : statusLabel(d.status)}${(!fdIsOffline && fdIsWeb) ? ' ' + t('profiles.friends.web_suffix', '(Web)') : ''}${(!fdIsOffline && d.statusDescription) ? ' - ' + esc(d.statusDescription) : ''}</div>${repGroupBadgeHtml}</div></div></div>${badgesHtml}${actionsHtml}${favPickerHtml}${tabsHtml}<div id="fdTabInfo">${infoContent}</div><div id="fdTabGroups" style="display:none;">${groupsContent}</div><div id="fdTabMutuals" style="display:none;">${mutualsContent}</div><div id="fdTabContent" style="display:none;">${contentHtml}</div><div id="fdTabFavs" style="display:none;" data-user-id="${esc(userId)}"></div><div id="fdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((d.id && _fdRawJsonCache[d.id]) || {})}</div></div></div>`;
 
     if (bannerSrc) {
         const bannerSlot = document.getElementById('fd-banner-slot');
@@ -996,7 +994,8 @@ function patchFriendDetailLive(f) {
 
             const instanceItemHtml = renderInstanceItem({
                 thumb: worldThumb, worldName, instanceType,
-                instanceId: instId, region, userCount: 0, capacity: 0, onclick,
+                instanceId: instId, region, userCount: 0, capacity: 0,
+                ageGate: loc.includes('~ageGate'), onclick,
             });
             const worldInner = `<div class="fd-group-rep-label">${t('profiles.meta.current_world', 'Current World')}</div>${instanceItemHtml}`;
 
@@ -1018,7 +1017,7 @@ function patchFriendDetailLive(f) {
             if (newOwnerId && newOwnerId.startsWith('usr_')) {
                 const ownerUser = vrcFriendsData.find(fu => fu.id === newOwnerId);
                 const ownerBody = ownerUser
-                    ? renderProfileItem(ownerUser, `navOpenModal('friend','${jsq(ownerUser.id)}','${jsq(ownerUser.displayName || '')}')`)
+                    ? renderProfileItem(ownerUser, `navOpenModal('friend','${jsq(ownerUser.id)}','${jsq(ownerUser.displayName || '')}')`, { noWorld: true })
                     : `<div id="fdOwnerSlot" data-owner-id="${esc(newOwnerId)}"><div class="sk-block" style="height:44px;border-radius:8px;"></div></div>`;
                 const ownerInner = `<div class="fd-group-rep-label">${t('instance.owner', 'Instance Owner')}</div>${ownerBody}`;
                 if (existingOwnerCard) {
@@ -1306,12 +1305,46 @@ function renderFdModerationCard(userId) {
     if (card) card.innerHTML = _buildModCardInner(userId);
 }
 
+function _fdBuildTaskbarActions(d) {
+    const _fid  = jsq(d.id || '');
+    const _mBlk = Array.isArray(blockedData)      && blockedData.some(x => x.targetUserId === d.id);
+    const _mMut = Array.isArray(mutedData)        && mutedData.some(x => x.targetUserId === d.id);
+    const _mCht = Array.isArray(muteChatData)     && muteChatData.some(x => x.targetUserId === d.id);
+    const _mAvt = Array.isArray(hiddenAvatarData) && hiddenAvatarData.some(x => x.targetUserId === d.id);
+    const _mInt = Array.isArray(interactOffData)  && interactOffData.some(x => x.targetUserId === d.id);
+    const _invG = (typeof myGroups !== 'undefined') ? myGroups.filter(g => g.canInvite === true) : [];
+    const _moreItems = [
+        d.isFriend ? { icon: 'waving_hand', label: t('context_menu.friend.boop', 'Boop!'), onclick: `(typeof msgrRegisterBoopSent==='function'&&msgrRegisterBoopSent('${_fid}'));sendToCS({action:'vrcBoop',userId:'${_fid}'})` } : null,
+        (d.isFriend && _invG.length) ? { icon: 'group_add', label: t('context_menu.friend.invite_group', 'Invite to Group'), submenu: _invG.map(g => ({ icon: 'group', label: g.name || g.id, onclick: `sendToCS({action:'vrcInviteToGroup',groupId:'${jsq(g.id)}',userIds:['${_fid}']});showToast(true,t('context_menu.friend.invite_group_sent','Invite sent!'))` })) } : null,
+        { icon: 'shield_person', label: t('context_menu.friend.moderate', 'Moderate'), submenu: [
+            { icon: _mBlk ? 'lock_open' : 'block',           label: _mBlk ? t('context_menu.friend.unblock', 'Unblock')                  : t('context_menu.friend.block', 'Block'),                       onclick: `sendToCS({action:'${_mBlk ? 'vrcUnblock' : 'vrcBlock'}',userId:'${_fid}'})` },
+            { icon: _mMut ? 'mic' : 'mic_off',               label: _mMut ? t('context_menu.friend.unmute', 'Unmute')                    : t('context_menu.friend.mute', 'Mute'),                         onclick: `sendToCS({action:'${_mMut ? 'vrcUnmute' : 'vrcMute'}',userId:'${_fid}'})` },
+            { icon: _mCht ? 'chat' : 'comments_disabled',    label: _mCht ? t('context_menu.friend.unmute_chat', 'Unmute Chat')           : t('context_menu.friend.mute_chat', 'Mute Chat'),               onclick: `sendToCS({action:'${_mCht ? 'vrcUnmuteChat' : 'vrcMuteChat'}',userId:'${_fid}'})` },
+            { icon: _mAvt ? 'visibility' : 'visibility_off', label: _mAvt ? t('context_menu.friend.show_avatar', 'Show Avatar')           : t('context_menu.friend.hide_avatar', 'Hide Avatar'),           onclick: `sendToCS({action:'${_mAvt ? 'vrcShowAvatar' : 'vrcHideAvatar'}',userId:'${_fid}'})` },
+            { icon: _mInt ? 'touch_app' : 'do_not_touch',    label: _mInt ? t('context_menu.friend.interact_on', 'Turn On Interactions') : t('context_menu.friend.interact_off', 'Turn Off Interactions'), onclick: `sendToCS({action:'${_mInt ? 'vrcInteractOn' : 'vrcInteractOff'}',userId:'${_fid}'})` },
+        ] },
+    ].filter(Boolean);
+    const out = [
+        { icon: 'share', title: t('common.share', 'Share'), label: t('common.share_profile', 'Share Profile'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(d.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
+    ];
+    if (_moreItems.length) out.push({ label: t('common.more', 'More'), dropdown: _moreItems });
+    out.push({ icon: 'close', title: t('common.close', 'Close'), onclick: `closeFriendDetail()`, header: true });
+    return out;
+}
+
+function refreshFdTaskbarActions() {
+    if (!currentFriendDetail || typeof refreshModalActions !== 'function') return;
+    const md = document.getElementById('modalFriendDetail');
+    if (!md || md.style.display === 'none') return;
+    refreshModalActions(_fdBuildTaskbarActions(currentFriendDetail));
+}
+
 function handleUserBasic(payload) {
     const slot = document.getElementById('fdOwnerSlot');
     if (!slot || slot.dataset.ownerId !== payload.id) return;
     if (!currentFriendDetail || currentFriendDetail.id !== payload.contextId) return;
     const onclick = `navOpenModal('friend','${jsq(payload.id)}','${jsq(payload.displayName || '')}')`;
-    slot.outerHTML = renderProfileItem(payload, onclick);
+    slot.outerHTML = renderProfileItem(payload, onclick, { noWorld: true });
 }
 
 // Global VRC badge tooltip (position: fixed, escapes modal overflow)

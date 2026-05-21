@@ -552,7 +552,7 @@
             if (id) return buildAvatarItems(id);
         }
 
-        const bannedCard = el.closest('#gdTabBanned .vrcn-profile-item');
+        const bannedCard = el.closest('#gdTabBanned .vrcn-user-item');
         if (bannedCard && window._currentGroupDetail?.canBan) {
             const id = extractFriendId(bannedCard);
             if (id) {
@@ -568,7 +568,7 @@
             }
         }
 
-        const memberCard = el.closest('#gdTabMembers .vrcn-profile-item, #gdTabRoles .vrcn-profile-item');
+        const memberCard = el.closest('#gdTabMembers .vrcn-user-item, #gdTabRoles .vrcn-user-item');
         if (memberCard && window._currentGroupDetail) {
             const id = extractFriendId(memberCard);
             if (id) {
@@ -578,7 +578,7 @@
             }
         }
 
-        const friendCard = el.closest('.vrc-friend-card, .vrcn-profile-item, .inst-user-row, .iim-user-item, .dash-feed-card, .fav-friend-card');
+        const friendCard = el.closest('.vrc-friend-card, .vrcn-user-item, .inst-user-row, .iim-user-item, .dash-feed-card');
         if (friendCard) {
             const id = extractFriendId(friendCard);
             if (id) {
@@ -1152,7 +1152,7 @@
         if (f) {
             const isFav = Array.isArray(favFriendsData) && favFriendsData.some(x => x.favoriteId === id);
             const favEntry = isFav ? favFriendsData.find(x => x.favoriteId === id) : null;
-            const onFavTab = sourceEl?.classList.contains('fav-friend-card');
+            const onFavTab = !!sourceEl?.closest('#favFriendsGrid');
             items.push('sep');
             if (isFav) {
                 items.push({ icon: 'star_border', label: cm('friend.unfavorite', 'Unfavorite'), action: () => sendToCS({ action: 'vrcRemoveFavoriteFriend', userId: id, fvrtId: favEntry?.fvrtId || '' }) });
