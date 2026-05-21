@@ -38,6 +38,9 @@ Moving these actions to the taskbar turned out to be much better, since the task
 * Moved the bottom action buttons of the Avatar, Profile, Event, Group, World, and Own Profile modals into the top header as icon buttons, next to **Share** and **Close**, so actions no longer require scrolling to the bottom.
 * Leaving a group now asks for confirmation before you leave.
 
+**VRChat API**
+* Some small improvements to reduce GET requests on dashboard.
+
 **Fixes**
 * Fixed the context menu having a lower Z-order than preview modals, causing it to render behind them.
 * Fixed the Current Instance card being slightly bigger than the Current World card in user profiles.

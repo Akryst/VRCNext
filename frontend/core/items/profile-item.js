@@ -28,7 +28,10 @@ function renderUserItem(user, onclick, opts) {
 
     const statusText = statusDesc || (status ? statusLabel(status) : t('status.offline', 'Offline'));
 
-    const worldLine = opts.noWorld ? '' : `<div class="vrcn-user-item-world">${_userItemWorldInner(live?.location || user.location || '')}</div>`;
+    const worldInner = opts.noWorld ? '' : _userItemWorldInner(live?.location || user.location || '');
+    const secondRow = worldInner
+        ? `<div class="vrcn-user-item-world">${worldInner}</div>`
+        : `<div class="vrcn-user-item-status">${esc(statusText)}</div>`;
 
     const attrs = opts.attrs ? ' ' + opts.attrs : '';
     const cls = opts.cls ? ' ' + opts.cls : '';
@@ -39,8 +42,7 @@ function renderUserItem(user, onclick, opts) {
         <div class="vrcn-user-item-avatar-wrap">${avatar}${dot}</div>
         <div class="vrcn-user-item-info">
             <div class="vrcn-user-item-name">${esc(name)}${platBadge ? `<span class="vrcn-user-item-plat">${platBadge}</span>` : ''}</div>
-            <div class="vrcn-user-item-status">${esc(statusText)}</div>
-            ${worldLine}
+            ${secondRow}
         </div>
         ${trailing}
     </div>`;

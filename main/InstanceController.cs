@@ -497,11 +497,12 @@ public class InstanceController
                             {
                                 var world = await _core.World.GetWorldAsync(wid);
                                 if (world == null) return (wid, null as object);
+                                var wThumb = ImageCacheHelper.GetWorldUrl(wid, world["imageUrl"]?.ToString() ?? world["thumbnailImageUrl"]?.ToString());
                                 return (wid, (object)new
                                 {
                                     name             = world["name"]?.ToString() ?? "",
-                                    thumbnailImageUrl = world["thumbnailImageUrl"]?.ToString() ?? "",
-                                    imageUrl         = ImageCacheHelper.GetWorldUrl(wid, world["imageUrl"]?.ToString()),
+                                    thumbnailImageUrl = wThumb,
+                                    imageUrl         = wThumb,
                                 });
                             }
                             catch { return (wid, null as object); }
