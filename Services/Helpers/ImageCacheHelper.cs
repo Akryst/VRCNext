@@ -135,7 +135,7 @@ public static class ImageCacheHelper
             return ToLocalUrl(cached);
         }
         CacheWorldBackground(worldId, imageUrl);
-        return NormalizeTo512(imageUrl ?? "");
+        return RawOrEmpty(imageUrl);
     }
 
 // Groups
@@ -173,7 +173,7 @@ public static class ImageCacheHelper
             return ToLocalUrl(cached);
         }
         CacheGroupBackground(groupId, iconUrl);
-        return NormalizeTo512(iconUrl ?? "");
+        return RawOrEmpty(iconUrl);
     }
 
     public static string GetGroupBannerUrl(string? groupId, string? bannerUrl)
@@ -196,7 +196,7 @@ public static class ImageCacheHelper
         }
         if (!string.IsNullOrWhiteSpace(bannerId) && !string.IsNullOrWhiteSpace(bannerUrl))
             _ = CacheAsync("Groups", bannerId, bannerUrl, false);
-        return NormalizeTo512(bannerUrl ?? "");
+        return RawOrEmpty(bannerUrl);
     }
 
 // Users
@@ -228,7 +228,7 @@ public static class ImageCacheHelper
         }
         if (!string.IsNullOrWhiteSpace(userId) && !string.IsNullOrWhiteSpace(iconUrl))
             _ = CacheAsync("Users", userId, iconUrl, false);
-        return NormalizeTo512(iconUrl ?? "");
+        return RawOrEmpty(iconUrl);
     }
 
     public static string GetUserBannerUrl(string? userId, string? bannerUrl)
@@ -254,7 +254,7 @@ public static class ImageCacheHelper
         }
         if (!string.IsNullOrWhiteSpace(bannerId) && !string.IsNullOrWhiteSpace(bannerUrl))
             _ = CacheAsync("Users", bannerId, bannerUrl, false);
-        return NormalizeTo512(bannerUrl ?? "");
+        return RawOrEmpty(bannerUrl);
     }
 
 // Badges
@@ -266,7 +266,7 @@ public static class ImageCacheHelper
         imageUrl = StripLocalhostUrl(imageUrl);
         if (!string.IsNullOrWhiteSpace(badgeId) && !string.IsNullOrWhiteSpace(imageUrl))
             _ = CacheAsync("Badges", badgeId, imageUrl, false);
-        return NormalizeTo512(imageUrl ?? "");
+        return RawOrEmpty(imageUrl);
     }
 
 // Events (Group Events, Calendar Events)
@@ -293,7 +293,7 @@ public static class ImageCacheHelper
         }
         if (!string.IsNullOrWhiteSpace(eventId) && !string.IsNullOrWhiteSpace(imageUrl))
             _ = CacheAsync("Events", eventId, imageUrl, false);
-        return NormalizeTo512(imageUrl ?? "");
+        return RawOrEmpty(imageUrl);
     }
 
 // Avatars
@@ -331,7 +331,7 @@ public static class ImageCacheHelper
             return ToLocalUrl(cached);
         }
         CacheAvatarBackground(avatarId, imageUrl);
-        return NormalizeTo512(imageUrl ?? "");
+        return RawOrEmpty(imageUrl);
     }
 
 // Core
@@ -339,6 +339,15 @@ public static class ImageCacheHelper
     // Strip stale localhost URLs — we can't re-download from localhost.
     private static string? StripLocalhostUrl(string? url) =>
         url != null && url.StartsWith("http://localhost:") ? null : url;
+
+    // Returns the normalized URL for the frontend, or "" if it has permanently
+    // failed (403/404). Prevents the browser from re-requesting dead images.
+    private static string RawOrEmpty(string? url)
+    {
+        var norm = NormalizeTo512(url ?? "");
+        if (string.IsNullOrEmpty(norm)) return "";
+        return PermafailHelper.IsPermafailed(norm, "Image") ? "" : norm;
+    }
 
     // Extract VRChat file ID from a normalized URL (e.g. .../image/file_xxx/2/512 → file_xxx)
     private static string ExtractFileId(string? url)
