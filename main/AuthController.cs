@@ -1842,6 +1842,7 @@ public class AuthController
             "ja" => "ja",
             "zh-cn" => "zh-CN",
             "zh_cn" => "zh-CN",
+            "ru"    => "ru",
             _ => "en"
         };
     }

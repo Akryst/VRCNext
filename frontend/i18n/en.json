@@ -828,6 +828,7 @@
   "language.title": "Language",
   "language.en": "English",
   "language.de": "Deutsch",
+  "language.ru": "Русский",
   "settings.watch_folders.title": "Watch Folders",
   "settings.watch_folders.desc": "Watch folders monitor for new images you create. Add your VRChat screenshot folder here. You can also add folders from apps like VHF (VR Hands Frame) to track world location and friends list for those images too.",
   "settings.watch_folders.empty": "No folders added",

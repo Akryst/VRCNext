@@ -1537,6 +1537,7 @@ function execConsoleCommand(cmd) {
     if (!cmd) return;
     const input = document.getElementById('consoleInput');
     if (input) input.value = '';
+    if (cmd.toLowerCase() === '/blyat') { if (typeof runBlyat === 'function') runBlyat(); return; }
     addLog('> ' + cmd, 'cmd');
     sendToCS({ action: 'consoleCommand', cmd });
 }
