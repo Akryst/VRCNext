@@ -534,7 +534,8 @@ function renderFriendDetail(d) {
         </div>`;
 
     const _aboutRows = [
-        _mr(t('profiles.meta.platform',       'Platform'),       esc(d.lastPlatform || '—')),
+        _mr(t('profiles.meta.platform',       'Platform'),       esc(d.platform || d.lastPlatform || '—')),
+        _mr(t('profiles.meta.last_platform',  'Last Platform'),  esc(d.lastPlatform || '—')),
         _mr(t('profiles.meta.joined',         'Joined'),         d.dateJoined ? fmtShortDate(new Date(d.dateJoined + 'T00:00:00')) : '—'),
         _mr(t('profiles.meta.last_seen',      'Last Seen'),      esc(lastSeenStr   || '—')),
         _mr(t('profiles.meta.last_active',    'Last Active'),    esc(lastActiveStr || '—')),

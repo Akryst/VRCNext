@@ -53,7 +53,7 @@ function renderMyProfileContent() {
     // Trust rank & badges row
     const rank = getTrustRank(u.tags || []);
     const vrcPlusBadge = (u.tags || []).includes('system_supporter') ? `<span class="vrcn-supporter-badge">VRC+</span>` : '';
-    const platBadge = getPlatformBadgeHtml(u.lastPlatform || '');
+    const platBadge = getPlatformBadgeHtml(u.platform || u.lastPlatform || '');
     let badgesRowHtml = '<div class="fd-badges-row">';
     if (platBadge) badgesRowHtml += platBadge;
     if (u.ageVerified) badgesRowHtml += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">verified</span>18+</span>`;
@@ -154,7 +154,8 @@ function renderMyProfileContent() {
     const _infosRows = [
         _mr(t('profiles.meta.joined',        'Joined'),         u.dateJoined  ? fmtShortDate(new Date(u.dateJoined + 'T00:00:00')) : '—'),
         _mr(t('profiles.meta.last_login',    'Last Login'),     u.lastLogin   ? fmtShortDate(new Date(u.lastLogin)) : '—'),
-        _mr(t('profiles.meta.platform',      'Platform'),       esc(u.lastPlatform || '—')),
+        _mr(t('profiles.meta.platform',      'Platform'),       esc(u.platform || u.lastPlatform || '—')),
+        _mr(t('profiles.meta.last_platform', 'Last Platform'),  esc(u.lastPlatform || '—')),
         _mr(t('profiles.meta.age_verified',  'Age Verified'),   u.ageVerified       ? t('common.yes','Yes') : t('common.no','No')),
         _mr(t('profiles.meta.avatar_cloning','Avatar Cloning'), u.allowAvatarCopying ? t('common.on','On')  : t('common.off','Off')),
         _mr(t('profiles.meta.booping',       'Booping'),        u.isBoopingEnabled   ? t('common.on','On')  : t('common.off','Off')),

@@ -721,6 +721,7 @@
   "profiles.meta.private_instance": "Private Instanz",
   "profiles.meta.traveling": "Reist...",
   "profiles.meta.platform": "Plattform",
+  "profiles.meta.last_platform": "Letzte Plattform",
   "profiles.meta.user_id": "Benutzer-ID",
   "profiles.meta.joined": "Beigetreten",
   "profiles.meta.last_login": "Letzter Login",

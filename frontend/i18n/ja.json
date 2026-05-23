@@ -721,6 +721,7 @@
   "profiles.meta.private_instance": "プライベートインスタンス",
   "profiles.meta.traveling": "移動中...",
   "profiles.meta.platform": "プラットフォーム",
+  "profiles.meta.last_platform": "前回のプラットフォーム",
   "profiles.meta.user_id": "ユーザーID",
   "profiles.meta.joined": "参加日",
   "profiles.meta.last_login": "最終ログイン",

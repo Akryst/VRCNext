@@ -722,6 +722,7 @@
   "profiles.meta.private_instance": "Приватный инстанс",
   "profiles.meta.traveling": "В пути",
   "profiles.meta.platform": "Платформа",
+  "profiles.meta.last_platform": "Последняя платформа",
   "profiles.meta.user_id": "ID пользователя",
   "profiles.meta.joined": "Присоединился",
   "profiles.meta.last_login": "Последний вход",

@@ -11,6 +11,7 @@
 * Slightly reduced memory usage as things have been moved to the backend.
 * Added missing i18n locals. for some keys.
 * Changed the "Join" "Request Invite" "Favorite" etc. buttons into icons with hover text to make the Ui clean.
+* Show "Platformn" and "Last Platform" on profiles instead of just using "Platform"
 
 **Changes**
 * Changed the bio length areound 20% before it gets scrollable.
@@ -25,3 +26,4 @@
 * Fixed an issue where buttons did not highlight correctly when hovering over them.
 * Fixed some SQLite related caching issues with FFC caching.
 * Fixed an issue when scaling the app up and down the badge information was moved weirdly in use rprofiles.
+* Fixed the "Platform" info text. It showed the last platform state instead of the actual one.

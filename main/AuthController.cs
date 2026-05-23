@@ -1128,6 +1128,7 @@ public class AuthController
             dateJoined        = user["date_joined"]?.ToString() ?? "",
             lastLogin         = user["last_login"]?.ToString() ?? "",
             lastPlatform      = user["last_platform"]?.ToString() ?? "",
+            platform          = user["platform"]?.ToString() ?? "",
             ageVerified       = user["ageVerified"]?.Value<bool>() ?? false,
             allowAvatarCopying = user["allowAvatarCopying"]?.Value<bool>() ?? false,
             isBoopingEnabled  = user["isBoopingEnabled"]?.Value<bool>() ?? false,

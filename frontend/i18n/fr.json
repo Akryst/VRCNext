@@ -721,6 +721,7 @@
   "profiles.meta.private_instance": "Instance privée",
   "profiles.meta.traveling": "En déplacement...",
   "profiles.meta.platform": "Plateforme",
+  "profiles.meta.last_platform": "Dernière plateforme",
   "profiles.meta.user_id": "ID utilisateur",
   "profiles.meta.joined": "Inscrit",
   "profiles.meta.last_login": "Dernière connexion",
