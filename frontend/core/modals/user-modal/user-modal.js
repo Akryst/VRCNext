@@ -261,7 +261,7 @@ function renderUserFavWorlds(payload) {
     groups.forEach((g, i) => {
         const label = esc(g.displayName || g.name);
         const count = g.worlds ? g.worlds.length : 0;
-        pillsHtml += `<button class="fd-tab fd-content-pill${i === activePill ? ' active' : ''}" onclick="switchFavPill(${i},this)">${label} (${count})</button>`;
+        pillsHtml += `<button class="fd-tab fd-content-pill${i === activePill ? ' active' : ''}" onclick="switchFavPill(${i},this)">${label} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${count}</span></button>`;
     });
     pillsHtml += `</div>`;
 
@@ -323,11 +323,11 @@ function renderFdUserAvatars(payload) {
     const avatars = payload.avatars || [];
 
     const avatarsPill = document.getElementById('fdAvatarsPill');
-    if (avatarsPill) avatarsPill.textContent = tf('profiles.content.avatars_pill', { count: avatars.length }, 'Avatars ({count})');
+    if (avatarsPill) avatarsPill.innerHTML = `${t('profiles.content.avatars_pill_label', 'Avatars')} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${avatars.length}</span>`;
 
     const worldsCount = Array.isArray(currentFriendDetail?.userWorlds) ? currentFriendDetail.userWorlds.length : 0;
     const contentTab = document.getElementById('fdTabContentBtn');
-    if (contentTab) contentTab.textContent = tf('profiles.tabs.content', { count: worldsCount + avatars.length }, 'Content ({count})');
+    if (contentTab) contentTab.innerHTML = `${t('profiles.tabs.content_label', 'Content')} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${worldsCount + avatars.length}</span>`;
 
     window._fdAllAvatars = avatars;
     window._fdAvatarsPage = 0;
@@ -711,8 +711,8 @@ function renderFriendDetail(d) {
 
     const mutualsContent = `
         <div class="fd-content-pills">
-            <button class="fd-tab fd-mutual-pill active" onclick="switchFdMutualsPill('friends',this)">${tf('profiles.mutuals.pill_friends', { count: allMutuals.length }, 'Friends ({count})')}</button>
-            <button class="fd-tab fd-mutual-pill" onclick="switchFdMutualsPill('groups',this)">${tf('profiles.mutuals.pill_groups', { count: allMutualGroups.length }, 'Groups ({count})')}</button>
+            <button class="fd-tab fd-mutual-pill active" onclick="switchFdMutualsPill('friends',this)">${t('profiles.mutuals.pill_friends_label', 'Friends')} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${allMutuals.length}</span></button>
+            <button class="fd-tab fd-mutual-pill" onclick="switchFdMutualsPill('groups',this)">${t('profiles.mutuals.pill_groups_label', 'Groups')} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${allMutualGroups.length}</span></button>
         </div>
         <div id="fdMutualsFriends">${mutualsFriendsHtml}</div>
         <div id="fdMutualsGroups" style="display:none;">${mutualsGroupsHtml}</div>`;
@@ -808,12 +808,13 @@ function renderFriendDetail(d) {
     const hasTabs = hasGroups || hasMutuals || hasContent;
     const groupsTabCount = (window._fdAllGroupsAll || allGroups).length;
 
+    const _tabBadge = (n) => `<span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${n}</span>`;
     let tabsHtml = '';
     if (hasTabs) {
         tabsHtml = `<div class="fd-tabs"><button class="fd-tab active" onclick="switchFdTab('info',this)">${t('profiles.tabs.info', 'Info')}</button>`;
-        if (hasGroups) tabsHtml += `<button class="fd-tab" onclick="switchFdTab('groups',this)">${tf('profiles.tabs.groups', { count: groupsTabCount }, 'Groups ({count})')}</button>`;
-        if (hasMutuals) tabsHtml += `<button class="fd-tab" onclick="switchFdTab('mutuals',this)">${tf('profiles.tabs.mutuals', { count: mutualTotal }, 'Mutuals ({count})')}</button>`;
-        tabsHtml += `<button class="fd-tab" id="fdTabContentBtn" onclick="switchFdTab('content',this)">${tf('profiles.tabs.content', { count: allUserWorlds.length }, 'Content ({count})')}</button>`;
+        if (hasGroups) tabsHtml += `<button class="fd-tab" onclick="switchFdTab('groups',this)">${t('profiles.tabs.groups_label', 'Groups')} ${_tabBadge(groupsTabCount)}</button>`;
+        if (hasMutuals) tabsHtml += `<button class="fd-tab" onclick="switchFdTab('mutuals',this)">${t('profiles.tabs.mutuals_label', 'Mutuals')} ${_tabBadge(mutualTotal)}</button>`;
+        tabsHtml += `<button class="fd-tab" id="fdTabContentBtn" onclick="switchFdTab('content',this)">${t('profiles.tabs.content_label', 'Content')} ${_tabBadge(allUserWorlds.length)}</button>`;
         tabsHtml += `<button class="fd-tab" onclick="switchFdTab('favs',this)">${t('profiles.tabs.favs', 'Favs.')}</button>`;
         tabsHtml += `<button class="fd-tab" onclick="switchFdTab('json',this)">Json</button>`;
         tabsHtml += `</div>`;
@@ -825,8 +826,8 @@ function renderFriendDetail(d) {
     const userId = d.id || '';
     const contentHtml = `
         <div class="fd-content-pills">
-            <button class="fd-tab fd-content-pill active" id="fdWorldsPill" onclick="switchFdContentPill('worlds',this)">${tf('profiles.content.worlds_pill', { count: allUserWorlds.length }, 'Worlds ({count})')}</button>
-            <button class="fd-tab fd-content-pill" id="fdAvatarsPill" onclick="switchFdContentPill('avatars',this)">${tf('profiles.content.avatars_pill', { count: 0 }, 'Avatars (0)')}</button>
+            <button class="fd-tab fd-content-pill active" id="fdWorldsPill" onclick="switchFdContentPill('worlds',this)">${t('profiles.content.worlds_pill_label', 'Worlds')} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${allUserWorlds.length}</span></button>
+            <button class="fd-tab fd-content-pill" id="fdAvatarsPill" onclick="switchFdContentPill('avatars',this)">${t('profiles.content.avatars_pill_label', 'Avatars')} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">0</span></button>
         </div>
         <div id="fdContentWorlds">
             <div id="fdWorldsGrid"></div>
