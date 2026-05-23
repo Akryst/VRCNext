@@ -9,6 +9,7 @@ function openMyProfileModal() {
     if (typeof navUpdateLabel === 'function') navUpdateLabel(currentVrcUser.displayName || '');
     renderMyProfileContent();
     m.style.display = 'flex';
+    sendToCS({ action: 'vrcGetRepresentedGroup' });
 }
 
 function closeMyProfile(fromNav = false) {

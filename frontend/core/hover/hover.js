@@ -22,12 +22,19 @@
         tip.style.left = '-9999px';
         tip.style.top  = '-9999px';
         requestAnimationFrame(() => {
+            const z = (typeof _guiZoom !== 'undefined' ? _guiZoom : 1) || 1;
             const tw = tip.offsetWidth;
             const th = tip.offsetHeight;
-            let left = rect.left + rect.width / 2 - tw / 2;
-            let top  = rect.bottom + 7;
-            if (top + th > window.innerHeight - 8) top = rect.top - th - 7;
-            left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+            const rLeft   = rect.left   / z;
+            const rTop    = rect.top    / z;
+            const rWidth  = rect.width  / z;
+            const rBottom = rect.bottom / z;
+            const vw = window.innerWidth  / z;
+            const vh = window.innerHeight / z;
+            let left = rLeft + rWidth / 2 - tw / 2;
+            let top  = rBottom + 7;
+            if (top + th > vh - 8) top = rTop - th - 7;
+            left = Math.max(8, Math.min(left, vw - tw - 8));
             tip.style.left = left + 'px';
             tip.style.top  = top + 'px';
         });

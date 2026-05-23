@@ -122,3 +122,166 @@
     line-height: 1.4;
     white-space: normal;
 }
+
+/*COMPACT MODE — two-column layout with left identity panel*/
+
+#modalFriendDetail.fd-style-compact .modal-box.wide { width: 1040px; }
+
+#modalFriendDetail.fd-style-compact #friendDetailContent {
+    padding: 0;
+    height: min(calc((100vh - var(--tb-h, 0px)) / var(--gui-zoom, 1) - 80px), 640px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+#modalFriendDetail.fd-style-compact #friendDetailContent .fd-modal-bar {
+    margin: 0;
+    border-radius: 0;
+    flex-shrink: 0;
+}
+
+#modalFriendDetail.fd-style-compact .fd-layout {
+    flex: 1 1 0;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 302px minmax(0, 1fr);
+    overflow: hidden;
+}
+
+#modalFriendDetail.fd-style-compact .fd-left {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--bg-card);
+    border-right: 1px solid var(--brd);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+#modalFriendDetail.fd-style-compact .fd-left-banner {
+    position: relative;
+    z-index: 0;
+    width: 100%;
+    height: 165px;
+    flex-shrink: 0;
+    background: var(--bg-hover);
+    overflow: hidden;
+}
+
+#modalFriendDetail.fd-style-compact .fd-left-banner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: brightness(0.72);
+}
+
+#modalFriendDetail.fd-style-compact .fd-left-banner .fd-banner-fade {
+    background: linear-gradient(to top, var(--bg-card) 0%, rgba(0,0,0,.08) 55%, transparent 100%);
+}
+
+#modalFriendDetail.fd-style-compact .fd-left-body {
+    position: relative;
+    z-index: 1;
+    margin-top: -58px;
+    padding: 0 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#modalFriendDetail.fd-style-compact .fd-left-id {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+#modalFriendDetail.fd-style-compact .fd-left-avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+}
+
+#modalFriendDetail.fd-style-compact .fd-left .fd-avatar {
+    position: relative;
+    z-index: 1;
+    width: 61px;
+    height: 61px;
+    border-radius: 14px;
+    flex-shrink: 0;
+}
+
+#modalFriendDetail.fd-style-compact .fd-left-status-dot {
+    position: absolute;
+    z-index: 2;
+    bottom: -2px;
+    right: -2px;
+    width: 11px !important;
+    height: 11px !important;
+    box-shadow: 0 0 0 2px var(--bg-card);
+}
+
+#modalFriendDetail.fd-style-compact .fd-left-status-dot.vrc-status-ring {
+    background: var(--bg-card);
+}
+
+#modalFriendDetail.fd-style-compact .fd-left-name-wrap {
+    min-width: 0;
+    padding-bottom: 2px;
+}
+
+#modalFriendDetail.fd-style-compact .fd-left .fd-pronouns { margin-top: 2px; }
+
+#modalFriendDetail.fd-style-compact .fd-left .fd-badges-row,
+#modalFriendDetail.fd-style-compact .fd-left .fd-lang-tags { margin-bottom: 0; }
+
+#modalFriendDetail.fd-style-compact .fd-left .fd-actions {
+    margin-bottom: 0;
+    gap: 6px;
+    flex-wrap: nowrap;
+}
+
+#modalFriendDetail.fd-style-compact .fd-left .fd-actions > button {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+}
+
+#modalFriendDetail.fd-style-compact .fd-right {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#modalFriendDetail.fd-style-compact .fd-right-scroll {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 18px;
+}
+
+#modalFriendDetail.fd-style-compact #fdTabJson > .json-viewer {
+    max-height: none !important;
+    height: min(calc((100vh - var(--tb-h, 0px)) / var(--gui-zoom, 1) - 160px), 560px) !important;
+    margin: 0 !important;
+}
+#modalFriendDetail.fd-style-compact .fd-modal-bar + .fd-layout #fdTabJson > .json-viewer {
+    height: min(calc((100vh - var(--tb-h, 0px)) / var(--gui-zoom, 1) - 204px), 516px) !important;
+}
+
+/* Tighter right sub-column so Current World / Biography get more breathing room */
+#modalFriendDetail.fd-style-compact .fd-info-cols {
+    grid-template-columns: minmax(0, 1fr) 212px;
+}
+
+/* Reset margin-bottom of nested user/group cards inside info cards
+   (their default 6/12px margins double up with the card padding) */
+#modalFriendDetail.fd-style-compact .fd-info-card .fd-group-card.fd-group-rep,
+#modalFriendDetail.fd-style-compact .fd-info-card .vrcn-user-item {
+    margin-bottom: 0;
+}

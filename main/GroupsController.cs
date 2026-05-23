@@ -200,6 +200,12 @@ public class GroupsController
                 break;
             }
 
+            case "vrcGetRepresentedGroup":
+            {
+                _ = Task.Run(FetchRepresentedGroupAsync);
+                break;
+            }
+
             case "vrcGetGroup":
             {
                 var ggId = msg["groupId"]?.ToString();

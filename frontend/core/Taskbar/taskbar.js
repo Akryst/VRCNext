@@ -29,7 +29,8 @@ function toggleHelpPanel() {
         var titleEl = document.getElementById('pageTitle');
         if (titleEl) {
             var r = titleEl.getBoundingClientRect();
-            panel.style.left = Math.max(8, r.left) + 'px';
+            var z = (typeof _guiZoom !== 'undefined' ? _guiZoom : 1) || 1;
+            panel.style.left = Math.max(8, r.left / z) + 'px';
         }
         var activeTab = document.querySelector('.tab.active');
         var tabIndex = activeTab ? (parseInt(activeTab.id.replace('tab', '')) || 0) : 0;
@@ -81,8 +82,9 @@ function tbToggleTools() {
         var drop = item.querySelector('.tb-dropdown');
         if (drop) {
             var r = item.getBoundingClientRect();
-            drop.style.top  = r.bottom + 'px';
-            drop.style.left = r.left + 'px';
+            var z = (typeof _guiZoom !== 'undefined' ? _guiZoom : 1) || 1;
+            drop.style.top  = (r.bottom / z) + 'px';
+            drop.style.left = (r.left / z) + 'px';
         }
         item.classList.add('open');
         _open = item;

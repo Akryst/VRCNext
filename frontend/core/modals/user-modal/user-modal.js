@@ -424,7 +424,8 @@ function getLanguages(tags) {
 }
 
 function fdToggleBio(btn) {
-    const bio = btn.closest('.fd-group-rep-label').nextElementSibling;
+    const bio = btn.closest('.fd-info-card')?.querySelector('.fd-bio');
+    if (!bio) return;
     const expanded = bio.classList.toggle('expanded');
     btn.querySelector('.msi').textContent = expanded ? 'expand_less' : 'chevron_right';
 }
@@ -456,6 +457,13 @@ function renderFriendDetail(d) {
     window._fdOwnGroupsPage = 0;
     window._fdAllAvatars = [];
     const c = document.getElementById('friendDetailContent');
+
+    // Classic = single-column layout with top banner (default, pre-refactor look).
+    // Compact = two-column layout with a left identity sidebar.
+    const useCompact = (typeof settings !== 'undefined' && settings.profileModalStyle === 'compact');
+    const _fdModal = document.getElementById('modalFriendDetail');
+    if (_fdModal) _fdModal.classList.toggle('fd-style-compact', useCompact);
+
     const img = d.image || '';
     const imgTag = img
         ? `<img class="fd-avatar" src="${img}" onerror="this.style.display='none'">`
@@ -564,20 +572,15 @@ function renderFriendDetail(d) {
     let actionsHtml = '<div class="fd-actions">';
     const loc = (d.location || '').replace(/'/g, "\\'");
     const uid = (d.id || '').replace(/'/g, "\\'");
-    const isBlocked = Array.isArray(blockedData) && blockedData.some(e => e.targetUserId === d.id);
-    const isMuted   = Array.isArray(mutedData)   && mutedData.some(e => e.targetUserId === d.id);
     if (d.isFriend) {
-        if (d.canJoin) actionsHtml += `<button class="vrcn-button-round vrcn-btn-join" onclick="friendAction('join','${loc}','${uid}')">${t('common.join', 'Join')}</button>`;
-        if (d.canRequestInvite) actionsHtml += `<button class="vrcn-button-round" onclick="friendAction('requestInvite','${loc}','${uid}')">${t('profiles.actions.request_invite', 'Request Invite')}</button>`;
+        if (d.canJoin) actionsHtml += `<button class="vrcn-button-round vrcn-btn-join" onclick="friendAction('join','${loc}','${uid}')" title="${esc(t('common.join', 'Join'))}"><span class="msi" style="font-size:16px;">login</span></button>`;
+        if (d.canRequestInvite) actionsHtml += `<button class="vrcn-button-round" onclick="friendAction('requestInvite','${loc}','${uid}')" title="${esc(t('profiles.actions.request_invite', 'Request Invite'))}"><span class="msi" style="font-size:16px;">outbox</span></button>`;
         const myInInstance = currentInstanceData && currentInstanceData.location && !currentInstanceData.empty && !currentInstanceData.error;
-        if (myInInstance) actionsHtml += `<button class="vrcn-button-round" onclick="openFriendInviteModal('${uid}','${esc(d.displayName).replace(/'/g, "\\'")}')">${t('instance.actions.invite', 'Invite')}</button>`;
-        const favFid = (d.favFriendId || '').replace(/'/g, "\\'");
-        actionsHtml += `<button class="vrcn-button-round${d.isFavorited ? ' active' : ''}" id="fdFavBtn" onclick="toggleFriendFavPicker('${uid}')" title="${d.isFavorited ? t('profiles.actions.unfavorite', 'Unfavorite') : t('profiles.actions.favorite', 'Favorite')}" style="margin-left:auto;"><span class="msi" style="font-size:16px;">${d.isFavorited ? 'star' : 'star_outline'}</span></button>`;
+        if (myInInstance) actionsHtml += `<button class="vrcn-button-round" onclick="openFriendInviteModal('${uid}','${esc(d.displayName).replace(/'/g, "\\'")}')" title="${esc(t('instance.actions.invite', 'Invite'))}"><span class="msi" style="font-size:16px;">mail</span></button>`;
+        actionsHtml += `<button class="vrcn-button-round${d.isFavorited ? ' active' : ''}" id="fdFavBtn" onclick="toggleFriendFavPicker('${uid}')" title="${d.isFavorited ? t('profiles.actions.unfavorite', 'Unfavorite') : t('profiles.actions.favorite', 'Favorite')}"><span class="msi" style="font-size:16px;">${d.isFavorited ? 'star' : 'star_outline'}</span></button>`;
     } else {
         actionsHtml += `<button class="vrcn-button-round vrcn-btn-primary" id="fdAddFriend" onclick="sendToCS({action:'vrcSendFriendRequest',userId:'${uid}'});this.disabled=true;this.textContent='${esc(t('profiles.actions.request_sent', 'Request Sent'))}';">${t('profiles.actions.add_friend', 'Add Friend')}</button>`;
     }
-    actionsHtml += `<button class="vrcn-button-round vrcn-btn-danger${isMuted ? ' active' : ''}" id="fdMuteBtn" onclick="toggleMod('${uid}','mute',this)" title="${isMuted ? t('profiles.actions.unmute', 'Unmute') : t('profiles.actions.mute', 'Mute')}"><span class="msi" style="font-size:16px;">mic${isMuted ? '_off' : ''}</span></button>`;
-    actionsHtml += `<button class="vrcn-button-round vrcn-btn-danger${isBlocked ? ' active' : ''}" id="fdBlockBtn" onclick="toggleMod('${uid}','block',this)" title="${isBlocked ? t('profiles.actions.unblock', 'Unblock') : t('profiles.actions.block', 'Block')}"><span class="msi" style="font-size:16px;">${isBlocked ? 'block' : 'shield'}</span></button>`;
     if (d.isFriend) actionsHtml += `<button class="vrcn-button-round vrcn-btn-danger" id="fdUnfriend" onclick="confirmUnfriend('${uid}','${esc(d.displayName).replace(/'/g, "\\'")}') " title="${t('profiles.actions.unfriend', 'Unfriend')}"><span class="msi" style="font-size:16px;">person_remove</span></button>`;
     actionsHtml += '</div>';
     const favPickerHtml = d.isFriend
@@ -593,7 +596,7 @@ function renderFriendDetail(d) {
     if (d.ageVerified) badgesHtml += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">verified</span>18+</span>`;
     const rank = getTrustRank(d.tags || []);
     if (rank) badgesHtml += `<span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>`;
-    if (d.id) badgesHtml += idBadge(d.id);
+    if (!useCompact && d.id) badgesHtml += idBadge(d.id);
     badgesHtml += '</div>';
 
     const vrcPlusBadge = (d.tags || []).includes('system_supporter') ? `<span class="vrcn-supporter-badge">VRC+</span>` : '';
@@ -608,12 +611,18 @@ function renderFriendDetail(d) {
         if (repFromList) repG = repFromList;
     }
 
+    let repGroupInfoHtml = '';
     let repGroupBadgeHtml = '';
     if (repG && repG.id) {
-        const badgeIcon = repG.iconUrl
+        const repIcon = repG.iconUrl ? `<img class="fd-group-icon" src="${repG.iconUrl}" onerror="this.style.display='none'">` : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">group</span></div>`;
+        repGroupInfoHtml = `<div class="fd-group-rep-label">${t('profiles.badges.representing', 'Representing')}</div><div class="fd-group-card fd-group-rep" onclick="navOpenModal('group','${jsq(repG.id)}','${jsq(repG.name || '')}')">
+            ${repIcon}<div class="fd-group-card-info"><div class="fd-group-card-name">${esc(repG.name)}</div><div class="fd-group-card-meta">${esc(repG.shortCode || '')}${repG.discriminator ? '.' + esc(repG.discriminator) : ''} &middot; ${esc(getGroupMemberText(repG.memberCount))}</div></div>
+        </div>`;
+        // Inline badge shown in the classic-mode status row (next to the status text).
+        const _repBadgeIcon = repG.iconUrl
             ? `<img class="fd-rep-group-badge-icon" src="${esc(repG.iconUrl)}" onerror="this.style.display='none'">`
             : `<span class="msi" style="font-size:13px;flex-shrink:0;">group</span>`;
-        repGroupBadgeHtml = `<div class="fd-rep-group-badge" onclick="navOpenModal('group','${jsq(repG.id)}','${jsq(repG.name || '')}')">${badgeIcon}<span class="fd-rep-group-badge-name">${esc(repG.name || '')}</span></div>`;
+        repGroupBadgeHtml = `<div class="fd-rep-group-badge" onclick="navOpenModal('group','${jsq(repG.id)}','${jsq(repG.name || '')}')">${_repBadgeIcon}<span class="fd-rep-group-badge-name">${esc(repG.name || '')}</span></div>`;
     }
 
     const vrcBadges = d.badges || [];
@@ -627,14 +636,6 @@ function renderFriendDetail(d) {
                 `<img class="fd-vrc-badge-icon" src="${esc(b.imageUrl)}" alt="${esc(b.name)}" onerror="this.closest('.fd-vrc-badge-wrap').style.display='none'">` +
             `</div>`
         ).join('')}</div>`;
-    }
-
-    let repGroupInfoHtml = '';
-    if (repG && repG.id) {
-        const repIcon = repG.iconUrl ? `<img class="fd-group-icon" src="${repG.iconUrl}" onerror="this.style.display='none'">` : `<div class="fd-group-icon fd-group-icon-empty"><span class="msi" style="font-size:18px;">group</span></div>`;
-        repGroupInfoHtml = `<div class="fd-group-rep-label">${t('profiles.badges.representing', 'Representing')}</div><div class="fd-group-card fd-group-rep" onclick="navOpenModal('group','${jsq(repG.id)}','${jsq(repG.name || '')}')">
-            ${repIcon}<div class="fd-group-card-info"><div class="fd-group-card-name">${esc(repG.name)}</div><div class="fd-group-card-meta">${esc(repG.shortCode || '')}${repG.discriminator ? '.' + esc(repG.discriminator) : ''} &middot; ${esc(getGroupMemberText(repG.memberCount))}</div></div>
-        </div>`;
     }
 
     window._fdRepGroup = (repG && repG.id) ? repG : null;
@@ -723,7 +724,6 @@ function renderFriendDetail(d) {
         <div id="fdUserActivity" style="max-height:160px;overflow-y:auto;display:none;"></div>`;
 
     const bannerSrc = d.profilePicOverride || d.currentAvatarImageUrl || d.image || '';
-    const bannerHtml = bannerSrc ? `<div class="fd-banner" id="fd-banner-slot"><div class="fd-banner-fade"></div></div>` : '';
     const fdHeaderActions = renderModalActions(_fdBuildTaskbarActions(d));
 
     const fdLocation = d.location || '';
@@ -754,30 +754,49 @@ function renderFriendDetail(d) {
         <div class="fd-group-rep-label">${t('instance.owner', 'Instance Owner')}</div>
         ${_ownerPartHtml}
     </div>` : '';
-    const _badgesCard = vrcBadgesRowHtml ? `<div class="fd-info-card">
-        <div class="fd-group-rep-label">${t('profiles.badges.badges', 'Badges')}</div>
-        ${vrcBadgesRowHtml}
-    </div>` : '';
-    const _bioCard = (d.bio || bioLinksHtml || langsHtml) ? `<div class="fd-info-card">
+    // Compact: id-badge sits at the top of the Biography card. Classic: id-badge
+    // is part of the top badge-row (see badgesHtml above) and the bio card holds
+    // languages instead.
+    const _bioIdHtml = (useCompact && d.id) ? `<div class="fd-badges-row" style="margin-bottom:10px;">${idBadge(d.id)}</div>` : '';
+    const _bioCardCondition = useCompact
+        ? (d.id || d.bio || bioLinksHtml)
+        : (d.bio || bioLinksHtml || langsHtml);
+    const _bioCard = _bioCardCondition ? `<div class="fd-info-card">
         <div class="fd-group-rep-label">${t('profiles.bio.title', 'Biography')}${d.bio ? `<button class="fd-bio-expand" onclick="fdToggleBio(this)" style="display:none"><span class="msi">chevron_right</span></button>` : ''}</div>
-        ${bioHtml}${bioLinksHtml}${langsHtml}
+        ${_bioIdHtml}${bioHtml}${bioLinksHtml}${useCompact ? '' : langsHtml}
     </div>` : '';
     const _noteCard = `<div class="fd-info-card">${vrcNoteHtml}</div>`;
     const _tlCard = `<div class="fd-info-card">${miniTlHtml}</div>`;
     const _infosCard = `<div class="fd-info-card">${_aboutRowsHtml}</div>`;
     const _trustCard = trustSideHtml ? `<div class="fd-info-card">${trustSideHtml}</div>` : '';
+    const _repCard = repGroupInfoHtml ? `<div class="fd-info-card">${repGroupInfoHtml}</div>` : '';
     const _modCard = `<div class="fd-info-card" id="fdModerationCard">${_buildModCardInner(d.id)}</div>`;
-    const infoContent = `<div class="fd-info-wrap">
-        <div class="fd-info-cols">
-            <div class="fd-info-left">
-                ${_currentWorldCard}${_badgesCard}${avatarRowHtml}${_bioCard}${_noteCard}
+    const _fdTrustBadgesCard = `<div class="fd-info-card">${badgesHtml}</div>`;
+    const _fdBadgesCard = vrcBadgesRowHtml ? `<div class="fd-info-card"><div class="fd-group-rep-label">${t('profiles.badges.badges', 'Badges')}</div>${vrcBadgesRowHtml}</div>` : '';
+    const _fdLangCard = langsHtml ? `<div class="fd-info-card"><div class="fd-group-rep-label">${t('profiles.my_profile.sections.languages', 'Languages')}</div>${langsHtml}</div>` : '';
+    const infoContent = useCompact
+        ? `<div class="fd-info-wrap">
+            <div class="fd-info-cols">
+                <div class="fd-info-left">
+                    ${_currentWorldCard}${avatarRowHtml}${_bioCard}${_noteCard}
+                </div>
+                <div class="fd-info-right">
+                    ${_ownerCard}${_repCard}${_trustCard}${_modCard}
+                </div>
             </div>
-            <div class="fd-info-right">
-                ${_ownerCard}${_infosCard}${_trustCard}${_modCard}
+            ${_tlCard}
+        </div>`
+        : `<div class="fd-info-wrap">
+            <div class="fd-info-cols">
+                <div class="fd-info-left">
+                    ${_currentWorldCard}${_fdBadgesCard}${avatarRowHtml}${_bioCard}${_noteCard}
+                </div>
+                <div class="fd-info-right">
+                    ${_ownerCard}${_infosCard}${_trustCard}${_modCard}
+                </div>
             </div>
-        </div>
-        ${_tlCard}
-    </div>`;
+            ${_tlCard}
+        </div>`;
 
     const hasGroups = allGroups.length > 0 || repG;
     const hasMutuals = d.mutuals !== undefined;
@@ -815,7 +834,34 @@ function renderFriendDetail(d) {
             <div id="fdAvatarsPageBar" class="mini-paginator"></div>
         </div>`;
 
-    c.innerHTML = `${fdHeaderActions}${bannerHtml}<div class="fd-content${bannerSrc ? ' fd-has-banner' : ''}"><div class="fd-header">${imgTag}<div><div class="fd-name" style="display:flex;align-items:center;gap:6px;">${esc(d.displayName)}${vrcPlusBadge}</div>${pronounsHtml}<div class="fd-status-row"><div class="fd-status" id="fd-live-status"><span class="${fdDotClass} ${fdStatusDotCls}" style="width:8px;height:8px;"></span>${fdIsOffline ? t('status.offline', 'Offline') : statusLabel(d.status)}${(!fdIsOffline && fdIsWeb) ? ' ' + t('profiles.friends.web_suffix', '(Web)') : ''}${(!fdIsOffline && d.statusDescription) ? ' - ' + esc(d.statusDescription) : ''}</div>${repGroupBadgeHtml}</div></div></div>${badgesHtml}${actionsHtml}${favPickerHtml}${tabsHtml}<div id="fdTabInfo">${infoContent}</div><div id="fdTabGroups" style="display:none;">${groupsContent}</div><div id="fdTabMutuals" style="display:none;">${mutualsContent}</div><div id="fdTabContent" style="display:none;">${contentHtml}</div><div id="fdTabFavs" style="display:none;" data-user-id="${esc(userId)}"></div><div id="fdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((d.id && _fdRawJsonCache[d.id]) || {})}</div></div></div>`;
+    // Status row & dot — classic embeds the dot inside the status text; compact
+    // moves the dot onto the avatar (#fd-live-dot) and shows only the user's
+    // status description (label/web suffix come from the avatar dot's color).
+    const _fdDotHtml = `<span class="${fdDotClass} ${fdStatusDotCls} fd-left-status-dot" id="fd-live-dot"></span>`;
+    const _fdStatusRowCompact = d.statusDescription
+        ? `<div class="fd-status-row"><div class="fd-status" id="fd-live-status">${esc(d.statusDescription)}</div></div>`
+        : `<div class="fd-status-row" style="display:none;"><div class="fd-status" id="fd-live-status"></div></div>`;
+    const _fdStatusRowClassic = `<div class="fd-status-row"><div class="fd-status" id="fd-live-status"><span class="${fdDotClass} ${fdStatusDotCls}" style="width:8px;height:8px;"></span>${fdIsOffline ? t('status.offline', 'Offline') : statusLabel(d.status)}${(!fdIsOffline && fdIsWeb) ? ' ' + t('profiles.friends.web_suffix', '(Web)') : ''}${(!fdIsOffline && d.statusDescription) ? ' - ' + esc(d.statusDescription) : ''}</div>${repGroupBadgeHtml}</div>`;
+
+    if (useCompact) {
+        const bannerSlotHtml = `<div class="fd-left-banner" id="fd-banner-slot">${bannerSrc ? '<div class="fd-banner-fade"></div>' : ''}</div>`;
+        const _fdLeftHtml = `<div class="fd-left">
+            ${bannerSlotHtml}
+            <div class="fd-left-body">
+                <div class="fd-left-id"><div class="fd-left-avatar-wrap">${imgTag}${_fdDotHtml}</div><div class="fd-left-name-wrap"><div class="fd-name" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${esc(d.displayName)}${vrcPlusBadge}</div>${pronounsHtml}${_fdStatusRowCompact}</div></div>
+                ${actionsHtml}${favPickerHtml}
+                ${_fdTrustBadgesCard}
+                ${_fdBadgesCard}
+                ${_fdLangCard}
+                ${_infosCard}
+            </div>
+        </div>`;
+        const _fdRightHtml = `<div class="fd-right"><div class="fd-right-scroll">${tabsHtml}<div id="fdTabInfo">${infoContent}</div><div id="fdTabGroups" style="display:none;">${groupsContent}</div><div id="fdTabMutuals" style="display:none;">${mutualsContent}</div><div id="fdTabContent" style="display:none;">${contentHtml}</div><div id="fdTabFavs" style="display:none;" data-user-id="${esc(userId)}"></div><div id="fdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((d.id && _fdRawJsonCache[d.id]) || {})}</div></div></div></div>`;
+        c.innerHTML = `${fdHeaderActions}<div class="fd-layout">${_fdLeftHtml}${_fdRightHtml}</div>`;
+    } else {
+        const bannerHtml = bannerSrc ? `<div class="fd-banner" id="fd-banner-slot"><div class="fd-banner-fade"></div></div>` : '';
+        c.innerHTML = `${fdHeaderActions}${bannerHtml}<div class="fd-content${bannerSrc ? ' fd-has-banner' : ''}"><div class="fd-header">${imgTag}<div><div class="fd-name" style="display:flex;align-items:center;gap:6px;">${esc(d.displayName)}${vrcPlusBadge}</div>${pronounsHtml}${_fdStatusRowClassic}</div></div>${badgesHtml}${actionsHtml}${favPickerHtml}${tabsHtml}<div id="fdTabInfo">${infoContent}</div><div id="fdTabGroups" style="display:none;">${groupsContent}</div><div id="fdTabMutuals" style="display:none;">${mutualsContent}</div><div id="fdTabContent" style="display:none;">${contentHtml}</div><div id="fdTabFavs" style="display:none;" data-user-id="${esc(userId)}"></div><div id="fdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((d.id && _fdRawJsonCache[d.id]) || {})}</div></div></div>`;
+    }
 
     if (bannerSrc) {
         const bannerSlot = document.getElementById('fd-banner-slot');
@@ -938,7 +984,9 @@ function patchFriendDetailLive(f) {
             if (currentFriendDetail.isFriend) html += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">check_circle</span>${t('profiles.badges.friend', 'Friend')}</span>`;
             if (ageVerified) html += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">verified</span>18+</span>`;
             if (rank) html += `<span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>`;
-            if (f.id) html += idBadge(f.id);
+            // Classic-mode keeps the id badge inline in the top badges row.
+            const _isCompact = document.getElementById('modalFriendDetail')?.classList.contains('fd-style-compact');
+            if (!_isCompact && f.id) html += idBadge(f.id);
             badgesRow.innerHTML = html;
         }
         currentFriendDetail.tags = f.tags;
@@ -1328,7 +1376,6 @@ function _fdBuildTaskbarActions(d) {
         { icon: 'share', title: t('common.share', 'Share'), label: t('common.share_profile', 'Share Profile'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(d.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
     ];
     if (_moreItems.length) out.push({ label: t('common.more', 'More'), dropdown: _moreItems });
-    out.push({ icon: 'close', title: t('common.close', 'Close'), onclick: `closeFriendDetail()`, header: true });
     return out;
 }
 
@@ -1376,15 +1423,23 @@ function handleUserBasic(payload) {
 
         t.style.opacity = '0';
         t.style.display = 'flex';
+        // tip lives inside the scaled body — offsetWidth/Height are CSS px.
         const tw = t.offsetWidth;
         const th = t.offsetHeight;
-
+        // rect / viewport come from the scaled coordinate space — convert to
+        // the same CSS-pixel space the tip is positioned in.
+        const z = (typeof _guiZoom !== 'undefined' ? _guiZoom : 1) || 1;
         const rect = wrap.getBoundingClientRect();
-        let x = rect.left + rect.width / 2 - tw / 2;
-        let y = rect.top - th - 8;
+        const rLeft  = rect.left  / z;
+        const rTop   = rect.top   / z;
+        const rWidth = rect.width / z;
+        const rBot   = rect.bottom / z;
+        const vw = window.innerWidth  / z;
+        let x = rLeft + rWidth / 2 - tw / 2;
+        let y = rTop - th - 8;
 
-        x = Math.max(8, Math.min(window.innerWidth - tw - 8, x));
-        if (y < 8) y = rect.bottom + 8;
+        x = Math.max(8, Math.min(vw - tw - 8, x));
+        if (y < 8) y = rBot + 8;
 
         t.style.left = x + 'px';
         t.style.top  = y + 'px';
