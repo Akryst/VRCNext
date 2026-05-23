@@ -6,8 +6,8 @@ if (typeof debounce === 'undefined') {
     };
 }
 
-const MINI_PG_SIZE = 12;         // groups, mutuals
-const MINI_CONTENT_PG_SIZE = 12; // worlds, avatars
+const MINI_PG_SIZE = 18;         // groups, mutuals
+const MINI_CONTENT_PG_SIZE = 18; // worlds, avatars
 const MINI_IMAGE_PG_SIZE = 10;   // images
 
 function _buildMiniPaginatorBtns(page, totalPages, onPageFn) {

@@ -733,6 +733,7 @@ public class UnifiedTimeEngine : IDisposable
         public int    ProfileIsFavorited      { get; set; }
         public string ProfileFavFriendId      { get; set; } = "";
         public string ProfileBadges           { get; set; } = "[]";
+        public string ProfileRepresentedGroup { get; set; } = "";
         public string GroupsJson              { get; set; } = "[]";
         public string GroupsCachedAt          { get; set; } = "";
         public string ContentJson             { get; set; } = "{}";
@@ -763,6 +764,7 @@ public class UnifiedTimeEngine : IDisposable
                     profile_last_platform, profile_platform, profile_user_note, profile_in_same_instance,
                     profile_pronouns, profile_age_verification, profile_age_verified,
                     profile_bio_links, profile_is_favorited, profile_fav_friend_id, profile_badges,
+                    profile_represented_group,
                     groups, groups_cached_at, content, content_cached_at,
                     mutuals, mutuals_cached_at, mutual_groups, mutual_groups_cached_at,
                     profile_current_avatar
@@ -814,6 +816,7 @@ public class UnifiedTimeEngine : IDisposable
                     ProfileIsFavorited     = I("profile_is_favorited"),
                     ProfileFavFriendId     = S("profile_fav_friend_id"),
                     ProfileBadges          = SA("profile_badges", "[]"),
+                    ProfileRepresentedGroup = S("profile_represented_group"),
                     GroupsJson             = SA("groups", "[]"),
                     GroupsCachedAt         = S("groups_cached_at"),
                     ContentJson            = SA("content", "{}"),
@@ -858,7 +861,8 @@ public class UnifiedTimeEngine : IDisposable
                     profile_state=$state, profile_last_platform=$lp, profile_platform=$pl, profile_user_note=$un,
                     profile_in_same_instance=$isi, profile_pronouns=$pro, profile_age_verification=$av,
                     profile_age_verified=$avd, profile_bio_links=$bl, profile_is_favorited=$ifav,
-                    profile_fav_friend_id=$ffid, profile_badges=$badges
+                    profile_fav_friend_id=$ffid, profile_badges=$badges,
+                    profile_represented_group=$rg
                     WHERE user_id=$id";
                 cmd.Parameters.AddWithValue("$id",    userId);
                 cmd.Parameters.AddWithValue("$dn",    p["displayName"]?.ToString() ?? "");
@@ -900,6 +904,7 @@ public class UnifiedTimeEngine : IDisposable
                 cmd.Parameters.AddWithValue("$ifav",  p["isFavorited"]?.Value<bool>() == true ? 1 : 0);
                 cmd.Parameters.AddWithValue("$ffid",  p["favFriendId"]?.ToString() ?? "");
                 cmd.Parameters.AddWithValue("$badges", p["badges"]?.ToString() ?? "[]");
+                cmd.Parameters.AddWithValue("$rg",     p["representedGroup"]?.Type == JTokenType.Object ? p["representedGroup"]!.ToString() : "");
                 cmd.ExecuteNonQuery();
             }
             catch { }
@@ -1714,6 +1719,7 @@ public class UnifiedTimeEngine : IDisposable
             "profile_is_favorited        INTEGER NOT NULL DEFAULT 0",
             "profile_fav_friend_id       TEXT    NOT NULL DEFAULT ''",
             "profile_badges              TEXT    NOT NULL DEFAULT '[]'",
+            "profile_represented_group   TEXT    NOT NULL DEFAULT ''",
             "groups                      TEXT    NOT NULL DEFAULT ''",
             "groups_cached_at            TEXT    NOT NULL DEFAULT ''",
             "content                     TEXT    NOT NULL DEFAULT ''",

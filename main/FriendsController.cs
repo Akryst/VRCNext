@@ -1484,7 +1484,8 @@ public class FriendsController
         var cachedEntry = _core.TimeEngine.GetUserProfileCache(userId);
         if (cachedEntry != null)
         {
-            var (cGroups, cRepGroup)       = BuildGroupsDisplay(TryParseJArray(cachedEntry.GroupsJson) ?? new JArray());
+            var (cGroups, _)               = BuildGroupsDisplay(TryParseJArray(cachedEntry.GroupsJson) ?? new JArray());
+            var cRepGroup                  = TryParseJObject(cachedEntry.ProfileRepresentedGroup);
             var cWorlds                    = BuildWorldsDisplay(TryParseJObject(cachedEntry.ContentJson)?["worlds"] as JArray ?? new JArray());
             var mutualsRaw                 = TryParseJObject(cachedEntry.MutualsJson) ?? new JObject();
             var cMutuals                   = BuildMutualsDisplay(mutualsRaw["mutuals"] as JArray ?? new JArray());
@@ -1566,7 +1567,7 @@ public class FriendsController
                 ["pronouns"]              = !string.IsNullOrEmpty(livePronouns) ? livePronouns : cachedEntry.ProfilePronouns,
                 ["ageVerificationStatus"] = !string.IsNullOrEmpty(liveAgeVerifStatus) ? liveAgeVerifStatus : cachedEntry.ProfileAgeVerification,
                 ["ageVerified"]           = liveAgeVerified ?? cachedEntry.ProfileAgeVerified != 0,
-                ["representedGroup"]      = cRepGroup != null ? JToken.FromObject(cRepGroup) : JValue.CreateNull(),
+                ["representedGroup"]      = (JToken?)cRepGroup ?? JValue.CreateNull(),
                 ["userGroups"]            = JArray.FromObject(cGroups),
                 ["mutuals"]               = JArray.FromObject(cMutuals),
                 ["mutualGroups"]          = JArray.FromObject(cMutualGroups),
@@ -1666,7 +1667,7 @@ public class FriendsController
         return "";
     }
 
-    private (List<object> userGroups, object? representedGroup) BuildGroupsDisplay(JArray raw)
+    private (List<object> userGroups, object? representedGroup) BuildGroupsDisplay(JArray raw, string? overrideRepId = null)
     {
         var userGroups = new List<object>();
         object? representedGroup = null;
@@ -1674,7 +1675,11 @@ public class FriendsController
         {
             var gid = g["groupId"]?.ToString() ?? g["id"]?.ToString() ?? "";
             if (string.IsNullOrEmpty(gid)) continue;
-            var isRep = g["isRepresenting"]?.Value<bool>() ?? false;
+            // overrideRepId comes from a fresh /users/{id}/groups/represented call
+            // so the cached groups list (1-day TTL) doesn't pin a stale rep group.
+            var isRep = overrideRepId != null
+                ? gid == overrideRepId
+                : (g["isRepresenting"]?.Value<bool>() ?? false);
             userGroups.Add(new
             {
                 id = gid, name = g["name"]?.ToString() ?? "",
@@ -1791,55 +1796,38 @@ public class FriendsController
         var (worldId, instanceId, instanceType) = VRChatApiService.ParseLocation(location);
         bool hasWorld = !string.IsNullOrEmpty(worldId) && worldId.StartsWith("wrld_");
 
-        // Check per-user caches (TTL 1 day) via SQLite
         var profileTtl = TimeSpan.FromDays(1);
         var dbCache = _core.TimeEngine.GetUserProfileCache(userId);
-        JArray? cachedGroups      = IsDbCacheFresh(dbCache?.GroupsCachedAt,       profileTtl)           ? TryParseJArray(dbCache!.GroupsJson)      : null;
         JObject? cachedContent    = IsDbCacheFresh(dbCache?.ContentCachedAt,      profileTtl)           ? TryParseJObject(dbCache!.ContentJson)    : null;
         JArray? cachedWorlds      = cachedContent?["worlds"] as JArray;
-        JArray? cachedMutualGroups = IsDbCacheFresh(dbCache?.MutualGroupsCachedAt, TimeSpan.FromDays(1)) ? TryParseJArray(dbCache!.MutualGroupsJson) : null;
-        JObject? cachedMutualsRaw = IsDbCacheFresh(dbCache?.MutualsCachedAt,      TimeSpan.FromDays(1)) ? TryParseJObject(dbCache!.MutualsJson)    : null;
-        var cachedMutuals = cachedMutualsRaw != null
-            ? (cachedMutualsRaw["mutuals"] as JArray ?? new JArray(), cachedMutualsRaw["optedOut"]?.Value<bool>() ?? false)
-            : ((JArray?)null, false);
 
         var instTask           = hasWorld ? _core.Instances.GetInstanceAsync(location) : Task.FromResult<JObject?>(null);
-        var grpsTask           = cachedGroups != null
-            ? Task.FromResult(cachedGroups)
-            : _core.Users.GetUserGroupsByIdAsync(userId);
+        var grpsTask           = _core.Users.GetUserGroupsByIdAsync(userId);
         var worldsTask         = cachedWorlds != null
             ? Task.FromResult(cachedWorlds)
             : _core.World.GetUserWorldsAsync(userId);
-        var mutualsTask        = cachedMutuals.Item1 != null
-            ? Task.FromResult((cachedMutuals.Item1, cachedMutuals.Item2))
-            : _core.Users.GetUserMutualsAsync(userId);
-        var mutualGroupsTask   = cachedMutualGroups != null
-            ? Task.FromResult(cachedMutualGroups)
-            : _core.Users.GetUserMutualGroupsAsync(userId);
+        var mutualsTask        = _core.Users.GetUserMutualsAsync(userId);
+        var mutualGroupsTask   = _core.Users.GetUserMutualGroupsAsync(userId);
+        var repGroupTask       = _core.Users.GetUserRepresentedGroupAsync(userId);
 
-        await Task.WhenAll(new Task[] { instTask, grpsTask, worldsTask, mutualsTask, mutualGroupsTask }
+        await Task.WhenAll(new Task[] { instTask, grpsTask, worldsTask, mutualsTask, mutualGroupsTask, repGroupTask }
             .Select(t => t.ContinueWith(_ => { })));
 
         var inst = instTask.IsCompletedSuccessfully ? instTask.Result : null;
         var groups = grpsTask.IsCompletedSuccessfully ? grpsTask.Result : new JArray();
         var worlds = worldsTask.IsCompletedSuccessfully ? worldsTask.Result : new JArray();
         var mutualGroupsArr = mutualGroupsTask.IsCompletedSuccessfully ? mutualGroupsTask.Result : new JArray();
+        var freshRepGroup = repGroupTask.IsCompletedSuccessfully ? repGroupTask.Result : null;
 
-        // Save fresh fetches to SQLite sub-caches
-        if (cachedGroups == null && grpsTask.IsCompletedSuccessfully)
-            _core.TimeEngine.SaveUserGroupsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(groups));
+        // Save fresh worlds fetch to SQLite (groups/mutuals are no longer cached)
         if (cachedWorlds == null && worldsTask.IsCompletedSuccessfully)
         {
             var cf = (cachedContent ?? new JObject());
             cf["worlds"] = JToken.FromObject(worlds);
             _core.TimeEngine.SaveUserContentCache(userId, cf.ToString(Newtonsoft.Json.Formatting.None));
         }
-        if (cachedMutualGroups == null && mutualGroupsTask.IsCompletedSuccessfully)
-            _core.TimeEngine.SaveUserMutualGroupsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(mutualGroupsArr));
         var (mutualsArr, mutualsOptedOut) = mutualsTask.IsCompletedSuccessfully
             ? mutualsTask.Result : (new JArray(), false);
-        if (cachedMutuals.Item1 == null && mutualsTask.IsCompletedSuccessfully)
-            _core.TimeEngine.SaveUserMutualsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(new { mutuals = mutualsArr, optedOut = mutualsOptedOut }));
         var badgesArr = user["badges"] as JArray ?? new JArray();
 
         if (instanceType == "private" && inst?["canRequestInvite"]?.Value<bool>() == true)
@@ -1857,7 +1845,30 @@ public class FriendsController
         bool canRequestInvite = instanceType is "private" or "invite_plus";
         bool isInWorld = !string.IsNullOrEmpty(worldId) && location != "private" && location != "offline" && location != "traveling";
 
-        var (userGroups, representedGroup) = BuildGroupsDisplay(groups);
+        JObject? cachedRepGroup = null;
+        if (freshRepGroup == null && !string.IsNullOrEmpty(dbCache?.ProfileRepresentedGroup))
+            cachedRepGroup = TryParseJObject(dbCache!.ProfileRepresentedGroup);
+        var repSrc = freshRepGroup ?? cachedRepGroup;
+
+        var freshRepGid = repSrc?["groupId"]?.ToString()
+                       ?? repSrc?["id"]?.ToString();
+        if (string.IsNullOrEmpty(freshRepGid)) freshRepGid = null;
+
+        var (userGroups, representedGroup) = BuildGroupsDisplay(groups, freshRepGid);
+        if (representedGroup == null && repSrc != null && freshRepGid != null)
+        {
+            representedGroup = new
+            {
+                id = freshRepGid,
+                name = repSrc["name"]?.ToString() ?? "",
+                shortCode = repSrc["shortCode"]?.ToString() ?? "",
+                discriminator = repSrc["discriminator"]?.ToString() ?? "",
+                iconUrl = ImageCacheHelper.GetGroupUrl(freshRepGid, repSrc["iconUrl"]?.ToString()),
+                bannerUrl = ImageCacheHelper.NormalizeTo512(repSrc["bannerUrl"]?.ToString() ?? ""),
+                memberCount = repSrc["memberCount"]?.Value<int>() ?? 0,
+            };
+        }
+
         var userWorlds                     = BuildWorldsDisplay(worlds);
         var mutualGroupsList               = BuildMutualGroupsDisplay(mutualGroupsArr);
         var mutualsList                    = BuildMutualsDisplay(mutualsArr);

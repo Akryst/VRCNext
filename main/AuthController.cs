@@ -1128,6 +1128,7 @@ public class AuthController
             dateJoined        = user["date_joined"]?.ToString() ?? "",
             lastLogin         = user["last_login"]?.ToString() ?? "",
             lastPlatform      = user["last_platform"]?.ToString() ?? "",
+            platform          = user["platform"]?.ToString() ?? "",
             ageVerified       = user["ageVerified"]?.Value<bool>() ?? false,
             allowAvatarCopying = user["allowAvatarCopying"]?.Value<bool>() ?? false,
             isBoopingEnabled  = user["isBoopingEnabled"]?.Value<bool>() ?? false,
@@ -1634,6 +1635,7 @@ public class AuthController
             _core.Settings.FriendOnlineToastFavOnly = data["friendOnlineToastFavOnly"]?.Value<bool>() ?? false;
             _core.Settings.FriendsSidebarLocationOnly = data["friendsSidebarLocationOnly"]?.Value<bool>() ?? true;
             _core.Settings.DirectModalNav = data["directModalNav"]?.Value<bool>() ?? false;
+            _core.Settings.ProfileModalStyle = data["profileModalStyle"]?.ToString() ?? "classic";
             _core.Settings.MinimizeToTray = data["minimizeToTray"]?.Value<bool>() ?? false;
             _core.Settings.TrayNotificationsEnabled = data["trayNotificationsEnabled"]?.Value<bool>() ?? false;
 #if WINDOWS

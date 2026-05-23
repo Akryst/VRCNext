@@ -253,6 +253,71 @@
                         <div class="set-desc" data-i18n="settings.navigation.direct_desc">When enabled, the breadcrumb history and all modal actions are shown in a bar at the top of the modal instead of in the taskbar. This makes navigating easier in fullscreen or on larger screens. It's recommended to leave this off when not running VRCNext in fullscreen.</div>
                     </div>
 
+                    <!-- PROFILE MODAL STYLE -->
+                    <div class="vrcn-panel-card" data-section="navigation" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">badge</span> <span data-i18n="settings.navigation.profile_style.title">Profile Modal Style</span></div>
+                        <div class="set-desc" style="margin-bottom:14px;" data-i18n="settings.navigation.profile_style.desc">Choose how user profiles are laid out. Classic shows a wide top banner with a single column below. Compact splits identity onto a left sidebar with the content area on the right.</div>
+                        <div class="profile-style-picker" id="profileStylePicker">
+                            <button type="button" class="profile-style-option" data-style="classic" onclick="setProfileModalStyle('classic')">
+                                <div class="profile-style-skeleton sk-classic">
+                                    <div class="sk-banner"></div>
+                                    <div class="sk-row sk-row-header">
+                                        <div class="sk-avatar"></div>
+                                        <div class="sk-name-block">
+                                            <div class="sk-name"></div>
+                                            <div class="sk-line short"></div>
+                                        </div>
+                                    </div>
+                                    <div class="sk-badges">
+                                        <div class="sk-chip"></div>
+                                        <div class="sk-chip"></div>
+                                        <div class="sk-chip"></div>
+                                    </div>
+                                    <div class="sk-tabs">
+                                        <div class="sk-tab"></div>
+                                        <div class="sk-tab"></div>
+                                        <div class="sk-tab"></div>
+                                    </div>
+                                    <div class="sk-content">
+                                        <div class="sk-block"></div>
+                                        <div class="sk-block short"></div>
+                                    </div>
+                                </div>
+                                <div class="profile-style-label" data-i18n="settings.navigation.profile_style.classic">Classic</div>
+                            </button>
+                            <button type="button" class="profile-style-option" data-style="compact" onclick="setProfileModalStyle('compact')">
+                                <div class="profile-style-skeleton sk-compact">
+                                    <div class="sk-left">
+                                        <div class="sk-banner sk-banner-left"></div>
+                                        <div class="sk-row sk-row-tight">
+                                            <div class="sk-avatar small"></div>
+                                            <div class="sk-name-block">
+                                                <div class="sk-name short"></div>
+                                                <div class="sk-line tiny"></div>
+                                            </div>
+                                        </div>
+                                        <div class="sk-mini-card"></div>
+                                        <div class="sk-mini-card short"></div>
+                                        <div class="sk-mini-card"></div>
+                                    </div>
+                                    <div class="sk-right">
+                                        <div class="sk-tabs">
+                                            <div class="sk-tab"></div>
+                                            <div class="sk-tab"></div>
+                                            <div class="sk-tab"></div>
+                                        </div>
+                                        <div class="sk-content">
+                                            <div class="sk-block"></div>
+                                            <div class="sk-block short"></div>
+                                            <div class="sk-block"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="profile-style-label" data-i18n="settings.navigation.profile_style.compact">Compact</div>
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- SOUNDS -->
                     <div class="vrcn-panel-card" data-section="notifications" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">volume_up</span> <span data-i18n="settings.sounds.title">Sounds</span></div>

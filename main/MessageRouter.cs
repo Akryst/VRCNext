@@ -1799,6 +1799,10 @@ public partial class AppShell
                     await _groups.HandleMessage(action, msg);
                     break;
 
+                case "vrcGetRepresentedGroup":
+                    await _groups.HandleMessage(action, msg);
+                    break;
+
                 case "vrcGetGroup":
                     await _groups.HandleMessage(action, msg);
                     break;

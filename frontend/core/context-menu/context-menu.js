@@ -478,9 +478,10 @@
             return buildSelfItems();
         }
 
-        // Image context menu: banner or profile/group icon inside detail modals
         if (el.closest('#modalFriendDetail, #modalMyProfile, #modalDetail, #modalWorldDetail, #modalAvatarDetail')) {
-            const bannerDiv = el.closest('.fd-banner');
+            // .fd-banner = classic profile banner / other modals
+            // .fd-left-banner = compact profile banner inside the left sidebar
+            const bannerDiv = el.closest('.fd-banner, .fd-left-banner');
             if (bannerDiv) {
                 const img = bannerDiv.querySelector('img');
                 if (img?.src) return buildModalImageItems(img.src);

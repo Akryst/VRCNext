@@ -112,6 +112,7 @@ function saveSettings() {
             friendOnlineToastFavOnly: document.getElementById('setFriendOnlineToastFavOnly')?.checked ?? false,
             friendsSidebarLocationOnly: document.getElementById('setFriendsSidebarLocationOnly')?.checked ?? true,
             directModalNav: document.getElementById('setDirectModalNav')?.checked ?? false,
+            profileModalStyle: settings.profileModalStyle || 'classic',
             language: currentLanguage,
             theme: currentTheme,
             specialTheme: currentSpecialTheme,
@@ -326,6 +327,8 @@ function loadSettingsToUI(s) {
     settings.directModalNav = s.DirectModalNav ?? s.directModalNav ?? false;
     const _dmnEl = document.getElementById('setDirectModalNav');
     if (_dmnEl) _dmnEl.checked = settings.directModalNav;
+    settings.profileModalStyle = s.ProfileModalStyle ?? s.profileModalStyle ?? 'classic';
+    if (typeof _applyProfileModalStyleUI === 'function') _applyProfileModalStyleUI(settings.profileModalStyle);
     settings.folders = s.WatchFolders || s.watchFolders || s.folders || [];
     settings.relayEnabledFolders = s.RelayEnabledFolders ?? s.relayEnabledFolders ?? null;
     settings.extraExe = s.ExtraExe || s.extraExe || [];
@@ -1311,4 +1314,25 @@ function _fotUpdateFavOnly() {
     const enabled = document.getElementById('setFriendOnlineToastEnabled')?.checked ?? false;
     const row = document.getElementById('fotFavRow');
     if (row) row.classList.toggle('disabled', !enabled);
+}
+
+function _applyProfileModalStyleUI(style) {
+    const picker = document.getElementById('profileStylePicker');
+    if (!picker) return;
+    picker.querySelectorAll('.profile-style-option').forEach(el => {
+        el.classList.toggle('active', el.dataset.style === style);
+    });
+}
+
+function setProfileModalStyle(style) {
+    if (style !== 'classic' && style !== 'compact') style = 'classic';
+    settings.profileModalStyle = style;
+    _applyProfileModalStyleUI(style);
+    if (typeof autoSave === 'function') autoSave();
+    // Live-re-render the friend detail modal if it's currently open.
+    const m = document.getElementById('modalFriendDetail');
+    if (m && m.style.display !== 'none' && typeof currentFriendDetail !== 'undefined' && currentFriendDetail
+        && typeof renderFriendDetail === 'function') {
+        renderFriendDetail(currentFriendDetail);
+    }
 }
