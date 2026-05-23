@@ -12,6 +12,9 @@
 * Added missing i18n locals. for some keys.
 * Changed the "Join" "Request Invite" "Favorite" etc. buttons into icons with hover text to make the Ui clean.
 
+**Changes**
+* Changed the bio length areound 20% before it gets scrollable.
+
 **Fixes**
 * Fixed an issue where changing your represented group was not shown in your profile until restarting.
 * Fixed an issue where another user's represented group was not shown correctly, or the previous group was still displayed.

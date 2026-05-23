@@ -596,7 +596,7 @@ function renderFriendDetail(d) {
     if (d.ageVerified) badgesHtml += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">verified</span>18+</span>`;
     const rank = getTrustRank(d.tags || []);
     if (rank) badgesHtml += `<span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>`;
-    if (!useCompact && d.id) badgesHtml += idBadge(d.id);
+    if (d.id) badgesHtml += idBadge(d.id);
     badgesHtml += '</div>';
 
     const vrcPlusBadge = (d.tags || []).includes('system_supporter') ? `<span class="vrcn-supporter-badge">VRC+</span>` : '';
@@ -754,16 +754,18 @@ function renderFriendDetail(d) {
         <div class="fd-group-rep-label">${t('instance.owner', 'Instance Owner')}</div>
         ${_ownerPartHtml}
     </div>` : '';
-    // Compact: id-badge sits at the top of the Biography card. Classic: id-badge
-    // is part of the top badge-row (see badgesHtml above) and the bio card holds
-    // languages instead.
-    const _bioIdHtml = (useCompact && d.id) ? `<div class="fd-badges-row" style="margin-bottom:10px;">${idBadge(d.id)}</div>` : '';
+    // Compact: trust badges (PC/Friend/18+/Trusted/User-ID) sit at the top of
+    // the Biography card; the id-badge truncates with ellipsis to keep them on
+    // one row. Classic: badges live in the top row, bio holds languages instead.
+    const _bioBadgesHtml = useCompact
+        ? badgesHtml.replace('<div class="fd-badges-row">', '<div class="fd-badges-row fd-bio-badges-row" style="margin-bottom:10px;">')
+        : '';
     const _bioCardCondition = useCompact
         ? (d.id || d.bio || bioLinksHtml)
         : (d.bio || bioLinksHtml || langsHtml);
     const _bioCard = _bioCardCondition ? `<div class="fd-info-card">
         <div class="fd-group-rep-label">${t('profiles.bio.title', 'Biography')}${d.bio ? `<button class="fd-bio-expand" onclick="fdToggleBio(this)" style="display:none"><span class="msi">chevron_right</span></button>` : ''}</div>
-        ${_bioIdHtml}${bioHtml}${bioLinksHtml}${useCompact ? '' : langsHtml}
+        ${_bioBadgesHtml}${bioHtml}${bioLinksHtml}${useCompact ? '' : langsHtml}
     </div>` : '';
     const _noteCard = `<div class="fd-info-card">${vrcNoteHtml}</div>`;
     const _tlCard = `<div class="fd-info-card">${miniTlHtml}</div>`;
@@ -850,7 +852,6 @@ function renderFriendDetail(d) {
             <div class="fd-left-body">
                 <div class="fd-left-id"><div class="fd-left-avatar-wrap">${imgTag}${_fdDotHtml}</div><div class="fd-left-name-wrap"><div class="fd-name" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${esc(d.displayName)}${vrcPlusBadge}</div>${pronounsHtml}${_fdStatusRowCompact}</div></div>
                 ${actionsHtml}${favPickerHtml}
-                ${_fdTrustBadgesCard}
                 ${_fdBadgesCard}
                 ${_fdLangCard}
                 ${_infosCard}
@@ -984,9 +985,7 @@ function patchFriendDetailLive(f) {
             if (currentFriendDetail.isFriend) html += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">check_circle</span>${t('profiles.badges.friend', 'Friend')}</span>`;
             if (ageVerified) html += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">verified</span>18+</span>`;
             if (rank) html += `<span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>`;
-            // Classic-mode keeps the id badge inline in the top badges row.
-            const _isCompact = document.getElementById('modalFriendDetail')?.classList.contains('fd-style-compact');
-            if (!_isCompact && f.id) html += idBadge(f.id);
+            if (f.id) html += idBadge(f.id);
             badgesRow.innerHTML = html;
         }
         currentFriendDetail.tags = f.tags;
