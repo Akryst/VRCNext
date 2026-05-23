@@ -1,29 +1,29 @@
-**2026.26.7**
+**2026.27.0**
 
-**Compact Profiles**
-* Added Compact Profiles to Settings > Navigation.
-* Compact Profiles can show more information when opening a user profile.
-* Compact Profiles use 3 rows instead of 2.
-* The first row displays the user banner, profile image, and key profile information.
-* You can switch between Classic and Compact Profiles in the settings menu.
+**Biography Translation**
 
-**Improvements**
-* Slightly reduced memory usage as things have been moved to the backend.
-* Added missing i18n locals. for some keys.
-* Changed the "Join" "Request Invite" "Favorite" etc. buttons into icons with hover text to make the Ui clean.
-* Show "Platformn" and "Last Platform" on profiles instead of just using "Platform"
+* Biographies can now be translated by AI.
+* To use this feature, open **Kikitan XD** in the left sidebar.
+* Add a Groq API key, then scroll down to the **Profile Translation Card** section.
+* Choose your target language. The default is English.
+* After setup, you can open any user profile and let AI translate the biography into your selected language.
 
-**Changes**
-* Changed the bio length areound 20% before it gets scrollable.
+* Added AI translation for Group Modals
+-- Descriptions
+-- Rules
 
-**Fixes**
-* Fixed an issue where changing your represented group was not shown in your profile until restarting.
-* Fixed an issue where another user's represented group was not shown correctly, or the previous group was still displayed.
-* Fixed an issue where hover info boxes moved incorrectly when scaling the app up or down.
-* Fixed an issue where some profile elements, info boxes, and sub modals moved incorrectly when scaling the app up or down.
-* Fixed an odd VRChat API conflict affecting groups and some profile elements.
-* Fixed an issue where some buttons still used old colors from a previous version.
-* Fixed an issue where buttons did not highlight correctly when hovering over them.
-* Fixed some SQLite related caching issues with FFC caching.
-* Fixed an issue when scaling the app up and down the badge information was moved weirdly in use rprofiles.
-* Fixed the "Platform" info text. It showed the last platform state instead of the actual one.
+* Added AI translations for Profile Modals
+-- Biography
+
+* Added AI translation for World Modals
+-- Description
+
+**World Modal**
+
+* Added a count badge to the Instances tab instead of showing the count as `(x)`.
+
+**Profile Modal**
+
+* Added count badges to all tabs instead of showing counts as `(x)`.
+* Added sorting filters for Mutual Friends: Alphabetical and Favorites.
+* Added sorting filters for Groups and Mutual Groups: Alphabetical and Member Count.

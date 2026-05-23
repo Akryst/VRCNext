@@ -168,6 +168,24 @@ function populateKxdDevices(p) {
         if (tgtSel._vnRefresh) tgtSel._vnRefresh();
     }
 
+    const profTgtSel = document.getElementById('kxdProfileTargetLang');
+    if (profTgtSel) {
+        if (!profTgtSel.dataset.built) {
+            profTgtSel.innerHTML = buildKxdLangOptions(KXD_TARGET_LANGS, p.profileTargetLang || 'en');
+            profTgtSel.dataset.built = '1';
+        } else if (p.profileTargetLang) {
+            profTgtSel.value = p.profileTargetLang;
+        }
+        if (profTgtSel._vnRefresh) profTgtSel._vnRefresh();
+    }
+
+    const profTransToggle = document.getElementById('kxdProfileTransToggle');
+    if (profTransToggle && p.profileTranslationEnabled != null) profTransToggle.checked = !!p.profileTranslationEnabled;
+
+    window._kxdProfileTranslationEnabled = p.profileTranslationEnabled !== false;
+    window._kxdProfileTargetLang = p.profileTargetLang || 'en';
+    window._kxdApiKeyPresent = !!(p.apiKey && p.apiKey.length > 0);
+
     const transToggle = document.getElementById('kxdTranslateToggle');
     if (transToggle && p.translateEnabled != null) transToggle.checked = !!p.translateEnabled;
 
@@ -233,7 +251,14 @@ function kxdSaveSettings() {
     const targetLang = tgtSel ? tgtSel.value : 'en';
     const translateEnabled = !!(document.getElementById('kxdTranslateToggle')?.checked);
     const oscEnabled = !!(document.getElementById('kxdOscToggle')?.checked);
-    sendToCS({ action: 'kxdSaveSettings', apiKey, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct });
+    const profileTransToggle = document.getElementById('kxdProfileTransToggle');
+    const profileTargetSel = document.getElementById('kxdProfileTargetLang');
+    const profileTranslationEnabled = profileTransToggle ? !!profileTransToggle.checked : (window._kxdProfileTranslationEnabled !== false);
+    const profileTargetLang = profileTargetSel?.value || window._kxdProfileTargetLang || 'en';
+    window._kxdProfileTranslationEnabled = profileTranslationEnabled;
+    window._kxdProfileTargetLang = profileTargetLang;
+    window._kxdApiKeyPresent = !!apiKey;
+    sendToCS({ action: 'kxdSaveSettings', apiKey, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct, profileTranslationEnabled, profileTargetLang });
 }
 
 function buildKxdLangOptions(langs, selectedCode) {

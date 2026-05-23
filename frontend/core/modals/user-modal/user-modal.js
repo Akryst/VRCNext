@@ -1,6 +1,92 @@
 /* === User Modal (Friend / Profile Detail) === */
 const _fdRawJsonCache = {};
 
+let _fdGroupsSortMode = 'alpha';
+let _fdMutualsSortMode = 'alpha';
+let _fdMutualsGroupsSortMode = 'alpha';
+
+function _fdSortGroups(arr, mode) {
+    const a = (arr || []).slice();
+    if (mode === 'members') {
+        a.sort((x, y) => (y.memberCount || 0) - (x.memberCount || 0));
+    } else {
+        a.sort((x, y) => (x.name || '').localeCompare(y.name || '', undefined, { sensitivity: 'base' }));
+    }
+    return a;
+}
+
+function _fdSortMutuals(arr, mode) {
+    const a = (arr || []).slice();
+    if (mode === 'favorites') {
+        const favIds = new Set((typeof favFriendsData !== 'undefined' ? favFriendsData : []).map(f => f.favoriteId));
+        a.sort((x, y) => {
+            const fx = favIds.has(x.id) ? 0 : 1;
+            const fy = favIds.has(y.id) ? 0 : 1;
+            if (fx !== fy) return fx - fy;
+            return (x.displayName || '').localeCompare(y.displayName || '', undefined, { sensitivity: 'base' });
+        });
+    } else {
+        a.sort((x, y) => (x.displayName || '').localeCompare(y.displayName || '', undefined, { sensitivity: 'base' }));
+    }
+    return a;
+}
+
+function setFdGroupsSort(v) { _fdGroupsSortMode = v; window._fdGroupsPage = 0; window._fdOwnGroupsPage = 0; filterFdGroups(); filterFdOwnGroups(); }
+function setFdMutualsSort(v) { _fdMutualsSortMode = v; window._fdMutualsPage = 0; filterFdMutuals(); }
+function setFdMutualsGroupsSort(v) { _fdMutualsGroupsSortMode = v; window._fdMutualsGroupsPage = 0; filterFdMutualsGroups(); }
+
+const _fdBioTransReqs = {};
+
+function fdTranslateBio(btn) {
+    const card = btn.closest('.fd-info-card');
+    const targetSel = btn.dataset.fdTransTarget || '.fd-bio';
+    const bioEl = card?.querySelector(targetSel);
+    if (!bioEl) return;
+
+    if (bioEl.dataset.fdBioTranslated === '1' && bioEl.dataset.fdBioOriginal != null) {
+        bioEl.textContent = bioEl.dataset.fdBioOriginal;
+        bioEl.dataset.fdBioTranslated = '0';
+        btn.classList.remove('active');
+        const ic = btn.querySelector('.msi'); if (ic) ic.textContent = 'translate';
+        return;
+    }
+
+    const original = bioEl.dataset.fdBioOriginal != null ? bioEl.dataset.fdBioOriginal : (bioEl.textContent || '');
+    if (!original.trim()) return;
+
+    if (!window._kxdApiKeyPresent) {
+        if (typeof showToast === 'function') showToast(false, t('profiles.bio.translate_no_key', 'Set your Groq API key in Kikitan XD first.'));
+        if (typeof navClear === 'function') navClear();
+        if (typeof showTab === 'function') showTab(22);
+        return;
+    }
+
+    const reqId = 'bt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    bioEl.dataset.fdBioOriginal = original;
+    _fdBioTransReqs[reqId] = { btn, bioEl };
+    const ic = btn.querySelector('.msi'); if (ic) ic.textContent = 'progress_activity';
+    btn.disabled = true;
+    sendToCS({ action: 'kxdTranslateProfileText', reqId, text: original, targetLang: window._kxdProfileTargetLang || 'en' });
+}
+
+function handleKxdProfileTranslated(p) {
+    const reqId = p && p.reqId;
+    const ctx = reqId && _fdBioTransReqs[reqId];
+    if (!ctx) return;
+    delete _fdBioTransReqs[reqId];
+    const { btn, bioEl } = ctx;
+    btn.disabled = false;
+    const ic = btn.querySelector('.msi'); if (ic) ic.textContent = 'translate';
+    if (!p.ok || !p.text) {
+        if (typeof showToast === 'function') showToast(false, t('profiles.bio.translate_failed', 'Translation failed.'));
+        return;
+    }
+    if (!bioEl.isConnected) return;
+    bioEl.dataset.fdBioTranslated = '1';
+    bioEl.textContent = p.text;
+    btn.classList.add('active');
+}
+
 function fdEditNote() {
     document.getElementById('fdVrcNoteView')?.style.setProperty('display', 'none');
     const edit = document.getElementById('fdVrcNoteEdit');
@@ -86,7 +172,7 @@ function filterFdGroups() {
     if (!grid) return;
     const all = window._fdAllGroupsAll || window._fdAllGroups || [];
     const filtered = q ? all.filter(g => (g.name || '').toLowerCase().includes(q)) : all;
-    const otherGroups = filtered;
+    const otherGroups = _fdSortGroups(filtered, _fdGroupsSortMode);
     const totalPages = Math.ceil(otherGroups.length / MINI_PG_SIZE) || 1;
     if ((window._fdGroupsPage || 0) >= totalPages) window._fdGroupsPage = totalPages - 1;
     const page = window._fdGroupsPage || 0;
@@ -108,7 +194,7 @@ function fdGroupsGoPage(page) {
     if (page < 0) return;
     const q = (document.getElementById('fdGroupsSearch')?.value || '').toLowerCase();
     const all = window._fdAllGroupsAll || window._fdAllGroups || [];
-    const filtered = q ? all.filter(g => (g.name||'').toLowerCase().includes(q)) : all;
+    const filtered = _fdSortGroups(q ? all.filter(g => (g.name||'').toLowerCase().includes(q)) : all, _fdGroupsSortMode);
     const totalPages = Math.ceil(filtered.length / MINI_PG_SIZE) || 1;
     if (page >= totalPages) return;
     window._fdGroupsPage = page;
@@ -118,7 +204,7 @@ function fdGroupsGoPage(page) {
 function filterFdOwnGroups() {
     const grid = document.getElementById('fdOwnGroupsGrid');
     if (!grid) return;
-    const all = window._fdAllOwnGroups || [];
+    const all = _fdSortGroups(window._fdAllOwnGroups || [], _fdGroupsSortMode);
     const totalPages = Math.ceil(all.length / MINI_PG_SIZE) || 1;
     if ((window._fdOwnGroupsPage || 0) >= totalPages) window._fdOwnGroupsPage = totalPages - 1;
     const page = window._fdOwnGroupsPage || 0;
@@ -149,7 +235,7 @@ function filterFdMutualsGroups() {
     const grid = document.getElementById('fdMutualsGroupsGrid');
     if (!grid) return;
     const all = window._fdAllMutualGroups || [];
-    const filtered = q ? all.filter(g => (g.name || '').toLowerCase().includes(q)) : all;
+    const filtered = _fdSortGroups(q ? all.filter(g => (g.name || '').toLowerCase().includes(q)) : all, _fdMutualsGroupsSortMode);
     const totalPages = Math.ceil(filtered.length / MINI_PG_SIZE) || 1;
     if ((window._fdMutualsGroupsPage || 0) >= totalPages) window._fdMutualsGroupsPage = totalPages - 1;
     const page = window._fdMutualsGroupsPage || 0;
@@ -176,7 +262,7 @@ function fdMutualsGroupsGoPage(page) {
     if (page < 0) return;
     const q = (document.getElementById('fdMutualsGroupsSearch')?.value || '').toLowerCase();
     const all = window._fdAllMutualGroups || [];
-    const filtered = q ? all.filter(g => (g.name||'').toLowerCase().includes(q)) : all;
+    const filtered = _fdSortGroups(q ? all.filter(g => (g.name||'').toLowerCase().includes(q)) : all, _fdMutualsGroupsSortMode);
     const totalPages = Math.ceil(filtered.length / MINI_PG_SIZE) || 1;
     if (page >= totalPages) return;
     window._fdMutualsGroupsPage = page;
@@ -188,7 +274,7 @@ function filterFdMutuals() {
     const grid = document.getElementById('fdMutualsGrid');
     if (!grid) return;
     const all = window._fdAllMutuals || [];
-    const filtered = q ? all.filter(m => (m.displayName || '').toLowerCase().includes(q)) : all;
+    const filtered = _fdSortMutuals(q ? all.filter(m => (m.displayName || '').toLowerCase().includes(q)) : all, _fdMutualsSortMode);
     const totalPages = Math.ceil(filtered.length / MINI_PG_SIZE) || 1;
     if ((window._fdMutualsPage || 0) >= totalPages) window._fdMutualsPage = totalPages - 1;
     const page = window._fdMutualsPage || 0;
@@ -207,7 +293,7 @@ function fdMutualsGoPage(page) {
     if (page < 0) return;
     const q = (document.getElementById('fdMutualsSearch')?.value || '').toLowerCase();
     const all = window._fdAllMutuals || [];
-    const filtered = q ? all.filter(m => (m.displayName||'').toLowerCase().includes(q)) : all;
+    const filtered = _fdSortMutuals(q ? all.filter(m => (m.displayName||'').toLowerCase().includes(q)) : all, _fdMutualsSortMode);
     const totalPages = Math.ceil(filtered.length / MINI_PG_SIZE) || 1;
     if (page >= totalPages) return;
     window._fdMutualsPage = page;
@@ -261,7 +347,7 @@ function renderUserFavWorlds(payload) {
     groups.forEach((g, i) => {
         const label = esc(g.displayName || g.name);
         const count = g.worlds ? g.worlds.length : 0;
-        pillsHtml += `<button class="fd-tab fd-content-pill${i === activePill ? ' active' : ''}" onclick="switchFavPill(${i},this)">${label} (${count})</button>`;
+        pillsHtml += `<button class="fd-tab fd-content-pill${i === activePill ? ' active' : ''}" onclick="switchFavPill(${i},this)">${label} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${count}</span></button>`;
     });
     pillsHtml += `</div>`;
 
@@ -323,11 +409,11 @@ function renderFdUserAvatars(payload) {
     const avatars = payload.avatars || [];
 
     const avatarsPill = document.getElementById('fdAvatarsPill');
-    if (avatarsPill) avatarsPill.textContent = tf('profiles.content.avatars_pill', { count: avatars.length }, 'Avatars ({count})');
+    if (avatarsPill) avatarsPill.innerHTML = `${t('profiles.content.avatars_pill_label', 'Avatars')} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${avatars.length}</span>`;
 
     const worldsCount = Array.isArray(currentFriendDetail?.userWorlds) ? currentFriendDetail.userWorlds.length : 0;
     const contentTab = document.getElementById('fdTabContentBtn');
-    if (contentTab) contentTab.textContent = tf('profiles.tabs.content', { count: worldsCount + avatars.length }, 'Content ({count})');
+    if (contentTab) contentTab.innerHTML = `${t('profiles.tabs.content_label', 'Content')} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${worldsCount + avatars.length}</span>`;
 
     window._fdAllAvatars = avatars;
     window._fdAvatarsPage = 0;
@@ -651,6 +737,10 @@ function renderFriendDetail(d) {
         groupsContent += `<div class="search-bar-row" style="margin-bottom:6px;">
             <span class="msi search-ico">search</span>
             <input id="fdGroupsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.groups.search_placeholder', 'Search groups by name...'))}" style="background:var(--bg-input);" oninput="_dbFdGroups()">
+            <select id="fdGroupsSort" class="vrcn-dropdown" style="flex-shrink:0;" onchange="setFdGroupsSort(this.value)">
+                <option value="alpha">${esc(t('profiles.sort.alphabetical', 'Alphabetical'))}</option>
+                <option value="members">${esc(t('profiles.sort.members', 'Members'))}</option>
+            </select>
         </div>`;
         const ownGroups = window._fdAllOwnGroups || [];
         if (ownGroups.length > 0) {
@@ -689,6 +779,10 @@ function renderFriendDetail(d) {
         mutualsFriendsHtml = `<div class="search-bar-row" style="margin-bottom:6px;">
             <span class="msi search-ico">search</span>
             <input id="fdMutualsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.mutuals.search_placeholder', 'Search users by name...'))}" style="background:var(--bg-input);" oninput="_dbFdMutuals()">
+            <select id="fdMutualsSort" class="vrcn-dropdown" style="flex-shrink:0;" onchange="setFdMutualsSort(this.value)">
+                <option value="alpha">${esc(t('profiles.sort.alphabetical', 'Alphabetical'))}</option>
+                <option value="favorites">${esc(t('profiles.sort.favorites', 'Favorites'))}</option>
+            </select>
         </div>`;
         mutualsFriendsHtml += '<div id="fdMutualsGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;column-gap:6px;"></div>';
         mutualsFriendsHtml += '<div id="fdMutualsPageBar" class="mini-paginator"></div>';
@@ -704,6 +798,10 @@ function renderFriendDetail(d) {
         mutualsGroupsHtml = `<div class="search-bar-row" style="margin-bottom:6px;">
             <span class="msi search-ico">search</span>
             <input id="fdMutualsGroupsSearch" type="text" class="vrcn-input" placeholder="${esc(t('profiles.mutuals.groups_search_placeholder', 'Search groups by name...'))}" style="background:var(--bg-input);" oninput="_dbFdMutualsGroups()">
+            <select id="fdMutualsGroupsSort" class="vrcn-dropdown" style="flex-shrink:0;" onchange="setFdMutualsGroupsSort(this.value)">
+                <option value="alpha">${esc(t('profiles.sort.alphabetical', 'Alphabetical'))}</option>
+                <option value="members">${esc(t('profiles.sort.members', 'Members'))}</option>
+            </select>
         </div>`;
         mutualsGroupsHtml += '<div id="fdMutualsGroupsGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;"></div>';
         mutualsGroupsHtml += '<div id="fdMutualsGroupsPageBar" class="mini-paginator"></div>';
@@ -711,8 +809,8 @@ function renderFriendDetail(d) {
 
     const mutualsContent = `
         <div class="fd-content-pills">
-            <button class="fd-tab fd-mutual-pill active" onclick="switchFdMutualsPill('friends',this)">${tf('profiles.mutuals.pill_friends', { count: allMutuals.length }, 'Friends ({count})')}</button>
-            <button class="fd-tab fd-mutual-pill" onclick="switchFdMutualsPill('groups',this)">${tf('profiles.mutuals.pill_groups', { count: allMutualGroups.length }, 'Groups ({count})')}</button>
+            <button class="fd-tab fd-mutual-pill active" onclick="switchFdMutualsPill('friends',this)">${t('profiles.mutuals.pill_friends_label', 'Friends')} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${allMutuals.length}</span></button>
+            <button class="fd-tab fd-mutual-pill" onclick="switchFdMutualsPill('groups',this)">${t('profiles.mutuals.pill_groups_label', 'Groups')} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${allMutualGroups.length}</span></button>
         </div>
         <div id="fdMutualsFriends">${mutualsFriendsHtml}</div>
         <div id="fdMutualsGroups" style="display:none;">${mutualsGroupsHtml}</div>`;
@@ -764,8 +862,11 @@ function renderFriendDetail(d) {
     const _bioCardCondition = useCompact
         ? (d.id || d.bio || bioLinksHtml)
         : (d.bio || bioLinksHtml || langsHtml);
+    const _bioTransBtn = (d.bio && window._kxdProfileTranslationEnabled !== false)
+        ? `<button class="fd-bio-translate myp-edit-btn" onclick="fdTranslateBio(this)" title="${esc(t('profiles.bio.translate', 'Translate'))}"><span class="msi" style="font-size:14px;">translate</span></button>`
+        : '';
     const _bioCard = _bioCardCondition ? `<div class="fd-info-card">
-        <div class="fd-group-rep-label">${t('profiles.bio.title', 'Biography')}${d.bio ? `<button class="fd-bio-expand" onclick="fdToggleBio(this)" style="display:none"><span class="msi">chevron_right</span></button>` : ''}</div>
+        <div class="fd-group-rep-label">${t('profiles.bio.title', 'Biography')}${d.bio ? `<button class="fd-bio-expand" onclick="fdToggleBio(this)" style="display:none"><span class="msi">chevron_right</span></button>` : ''}${_bioTransBtn}</div>
         ${_bioBadgesHtml}${bioHtml}${bioLinksHtml}${useCompact ? '' : langsHtml}
     </div>` : '';
     const _noteCard = `<div class="fd-info-card">${vrcNoteHtml}</div>`;
@@ -808,12 +909,13 @@ function renderFriendDetail(d) {
     const hasTabs = hasGroups || hasMutuals || hasContent;
     const groupsTabCount = (window._fdAllGroupsAll || allGroups).length;
 
+    const _tabBadge = (n) => `<span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${n}</span>`;
     let tabsHtml = '';
     if (hasTabs) {
         tabsHtml = `<div class="fd-tabs"><button class="fd-tab active" onclick="switchFdTab('info',this)">${t('profiles.tabs.info', 'Info')}</button>`;
-        if (hasGroups) tabsHtml += `<button class="fd-tab" onclick="switchFdTab('groups',this)">${tf('profiles.tabs.groups', { count: groupsTabCount }, 'Groups ({count})')}</button>`;
-        if (hasMutuals) tabsHtml += `<button class="fd-tab" onclick="switchFdTab('mutuals',this)">${tf('profiles.tabs.mutuals', { count: mutualTotal }, 'Mutuals ({count})')}</button>`;
-        tabsHtml += `<button class="fd-tab" id="fdTabContentBtn" onclick="switchFdTab('content',this)">${tf('profiles.tabs.content', { count: allUserWorlds.length }, 'Content ({count})')}</button>`;
+        if (hasGroups) tabsHtml += `<button class="fd-tab" onclick="switchFdTab('groups',this)">${t('profiles.tabs.groups_label', 'Groups')} ${_tabBadge(groupsTabCount)}</button>`;
+        if (hasMutuals) tabsHtml += `<button class="fd-tab" onclick="switchFdTab('mutuals',this)">${t('profiles.tabs.mutuals_label', 'Mutuals')} ${_tabBadge(mutualTotal)}</button>`;
+        tabsHtml += `<button class="fd-tab" id="fdTabContentBtn" onclick="switchFdTab('content',this)">${t('profiles.tabs.content_label', 'Content')} ${_tabBadge(allUserWorlds.length)}</button>`;
         tabsHtml += `<button class="fd-tab" onclick="switchFdTab('favs',this)">${t('profiles.tabs.favs', 'Favs.')}</button>`;
         tabsHtml += `<button class="fd-tab" onclick="switchFdTab('json',this)">Json</button>`;
         tabsHtml += `</div>`;
@@ -825,8 +927,8 @@ function renderFriendDetail(d) {
     const userId = d.id || '';
     const contentHtml = `
         <div class="fd-content-pills">
-            <button class="fd-tab fd-content-pill active" id="fdWorldsPill" onclick="switchFdContentPill('worlds',this)">${tf('profiles.content.worlds_pill', { count: allUserWorlds.length }, 'Worlds ({count})')}</button>
-            <button class="fd-tab fd-content-pill" id="fdAvatarsPill" onclick="switchFdContentPill('avatars',this)">${tf('profiles.content.avatars_pill', { count: 0 }, 'Avatars (0)')}</button>
+            <button class="fd-tab fd-content-pill active" id="fdWorldsPill" onclick="switchFdContentPill('worlds',this)">${t('profiles.content.worlds_pill_label', 'Worlds')} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${allUserWorlds.length}</span></button>
+            <button class="fd-tab fd-content-pill" id="fdAvatarsPill" onclick="switchFdContentPill('avatars',this)">${t('profiles.content.avatars_pill_label', 'Avatars')} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">0</span></button>
         </div>
         <div id="fdContentWorlds">
             <div id="fdWorldsGrid"></div>
@@ -870,6 +972,12 @@ function renderFriendDetail(d) {
         const bannerImg = _getFdBannerImg(d.id, bannerSrc);
         if (bannerSlot && bannerImg) bannerSlot.insertBefore(bannerImg, bannerSlot.firstChild);
     }
+
+    // Enhance sort dropdowns into custom vn-select
+    ['fdGroupsSort', 'fdMutualsSort', 'fdMutualsGroupsSort'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (sel && typeof initVnSelect === 'function') initVnSelect(sel);
+    });
 
     // Populate paginated grids
     filterFdGroups();

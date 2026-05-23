@@ -1891,6 +1891,7 @@ public partial class AppShell
                 // Kikitan XD
                 case "kxdGetDevices":
                 case "kxdSaveSettings":
+                case "kxdTranslateProfileText":
                     _kxdCtrl.HandleMessage(action, msg);
                     break;
 

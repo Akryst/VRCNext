@@ -35,7 +35,9 @@ public class KikitanXDController : IDisposable
                     targetLang = _settings.TargetLang,
                     translateEnabled = _settings.TranslateEnabled,
                     oscEnabled = _settings.OscEnabled,
-                    noiseGatePct = _settings.NoiseGatePercent
+                    noiseGatePct = _settings.NoiseGatePercent,
+                    profileTranslationEnabled = _settings.ProfileTranslationEnabled,
+                    profileTargetLang = _settings.ProfileTargetLang
                 });
                 break;
             }
@@ -85,10 +87,35 @@ public class KikitanXDController : IDisposable
                 if (msg["translateEnabled"] is JToken te) _settings.TranslateEnabled = te.Value<bool>();
                 if (msg["oscEnabled"] is JToken oe) _settings.OscEnabled = oe.Value<bool>();
                 if (msg["noiseGatePct"] is JToken ng) _settings.NoiseGatePercent = ng.Value<int>();
+                if (msg["profileTranslationEnabled"] is JToken pte) _settings.ProfileTranslationEnabled = pte.Value<bool>();
+                if (msg["profileTargetLang"] is JToken ptl) _settings.ProfileTargetLang = ptl.ToString();
                 _settings.Save();
                 _core.SendToJS("toast", new { ok = true, msg = "Saved" });
                 _service?.UpdateSettings(_settings.ApiKey, _settings.SourceLang, _settings.TargetLang,
                     _settings.TranslateEnabled, _settings.OscEnabled, _settings.NoiseGatePercent);
+                break;
+            }
+
+            case "kxdTranslateProfileText":
+            {
+                string text = msg["text"]?.ToString() ?? "";
+                string reqId = msg["reqId"]?.ToString() ?? "";
+                string targetLang = !string.IsNullOrEmpty(msg["targetLang"]?.ToString())
+                    ? msg["targetLang"]!.ToString()
+                    : _settings.ProfileTargetLang;
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var translated = await KikitanXDService.TranslateStandaloneAsync(
+                            _settings.ApiKey, text, "auto", targetLang);
+                        _core.SendToJS("kxdProfileTranslated", new { reqId, text = translated, ok = !string.IsNullOrWhiteSpace(translated) });
+                    }
+                    catch (Exception ex)
+                    {
+                        _core.SendToJS("kxdProfileTranslated", new { reqId, text = "", ok = false, error = ex.Message });
+                    }
+                });
                 break;
             }
         }
