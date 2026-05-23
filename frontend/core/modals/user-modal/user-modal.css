@@ -1,5 +1,10 @@
 /* === User Modal (Friend/Profile Detail) === */
 
+#modalFriendDetail .search-bar-row .vn-select .vn-select-trigger { background: var(--bg-input); }
+#modalFriendDetail .search-bar-row .vn-select .vn-select-trigger:hover,
+#modalFriendDetail .search-bar-row .vn-select.vn-open .vn-select-trigger { background: var(--bg-input); filter: brightness(1.08); }
+
+
 .fd-info-wrap {
     display: flex;
     flex-direction: column;
@@ -69,6 +74,12 @@
     margin-bottom: 10px;
     border-bottom: 1px solid var(--brd);
 }
+
+.fd-bio-translate { margin-left: auto; }
+.fd-bio-translate.active { color: var(--accent); }
+.fd-bio-translate[disabled] { opacity: .6; cursor: default; }
+.fd-bio-translate[disabled] .msi { animation: fd-bio-trans-spin 1s linear infinite; }
+@keyframes fd-bio-trans-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 .fd-owner-col .vrcn-user-item-avatar {
     width: 48px;

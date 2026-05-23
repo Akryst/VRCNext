@@ -15,6 +15,8 @@ public class KikitanXDSettings
     public bool TranslateEnabled { get; set; } = true;
     public bool OscEnabled { get; set; } = true;
     public int NoiseGatePercent { get; set; } = 10;
+    public bool ProfileTranslationEnabled { get; set; } = true;
+    public string ProfileTargetLang { get; set; } = "en";
 
     public static KikitanXDSettings Load()
     {

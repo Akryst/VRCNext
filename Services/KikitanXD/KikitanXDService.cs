@@ -25,6 +25,7 @@ public sealed class KikitanXDService : IDisposable
     public void Start(int deviceIndex, string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled) { }
     public void Stop() { }
     public void Dispose() { }
+    public static Task<string> TranslateStandaloneAsync(string apiKey, string text, string sourceLang, string targetLang) => Task.FromResult("");
 }
 #else
 
@@ -278,6 +279,53 @@ public sealed class KikitanXDService : IDisposable
         }
         var json = JObject.Parse(await resp.Content.ReadAsStringAsync());
         return json["text"]?.ToString()?.Trim() ?? "";
+    }
+
+    private static readonly Dictionary<string, string> LangNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["en"] = "English", ["ja"] = "Japanese", ["zh"] = "Chinese", ["ko"] = "Korean",
+        ["de"] = "German", ["fr"] = "French", ["es"] = "Spanish", ["pt"] = "Portuguese",
+        ["ru"] = "Russian", ["ar"] = "Arabic", ["it"] = "Italian", ["nl"] = "Dutch",
+        ["pl"] = "Polish", ["sv"] = "Swedish", ["tr"] = "Turkish", ["id"] = "Indonesian",
+        ["fi"] = "Finnish", ["no"] = "Norwegian", ["cs"] = "Czech", ["hu"] = "Hungarian",
+        ["ro"] = "Romanian", ["uk"] = "Ukrainian", ["th"] = "Thai", ["vi"] = "Vietnamese",
+        ["hi"] = "Hindi"
+    };
+
+    public static async Task<string> TranslateStandaloneAsync(string apiKey, string text, string sourceLang, string targetLang)
+    {
+        if (string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(targetLang))
+            return "";
+
+        string targetName = LangNames.TryGetValue(targetLang, out var tn) ? tn : targetLang;
+
+        string systemPrompt =
+            $"You are a translation engine. Translate the user's text into {targetName}. " +
+            "Auto-detect the source language. Output ONLY the translated text. " +
+            "Do not add prefixes, suffixes, explanations, quotes, or notes. " +
+            $"If the source text is already in {targetName}, output it unchanged.";
+
+        var body = new JObject
+        {
+            ["model"] = "llama-3.3-70b-versatile",
+            ["temperature"] = 0.2,
+            ["max_completion_tokens"] = 1024,
+            ["messages"] = new JArray
+            {
+                new JObject { ["role"] = "system", ["content"] = systemPrompt },
+                new JObject { ["role"] = "user", ["content"] = text }
+            }
+        };
+
+        using var req = new HttpRequestMessage(HttpMethod.Post,
+            "https://api.groq.com/openai/v1/chat/completions");
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        req.Content = new StringContent(body.ToString(), System.Text.Encoding.UTF8, "application/json");
+
+        var resp = await _http.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return "";
+        var json = JObject.Parse(await resp.Content.ReadAsStringAsync());
+        return json["choices"]?[0]?["message"]?["content"]?.ToString()?.Trim() ?? "";
     }
 
     private async Task<string> TranslateAsync(string text, string source, string target)

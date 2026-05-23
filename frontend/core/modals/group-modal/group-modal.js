@@ -133,7 +133,10 @@ function renderGroupDetail(g) {
                 <div class="fd-info-card">
                     <div class="myp-section-header">
                         <span class="myp-section-title">${t('groups.sections.description', 'Description')}</span>
-                        ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('desc')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
+                        <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
+                            ${g.description && window._kxdProfileTranslationEnabled !== false ? `<button class="myp-edit-btn" onclick="fdTranslateBio(this)" title="${esc(t('profiles.bio.translate', 'Translate'))}"><span class="msi" style="font-size:14px;">translate</span></button>` : ''}
+                            ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('desc')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
+                        </div>
                     </div>
                     <div id="gdescDescView">
                         ${g.description ? `<div class="fd-bio">${esc(g.description)}</div>` : `<div class="myp-empty">${t('groups.empty.no_description', 'No description')}</div>`}
@@ -189,7 +192,10 @@ function renderGroupDetail(g) {
                 <div class="fd-info-card">
                     <div class="myp-section-header">
                         <span class="myp-section-title">${t('groups.sections.rules', 'Rules')}</span>
-                        ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('rules')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
+                        <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
+                            ${g.rules && window._kxdProfileTranslationEnabled !== false ? `<button class="myp-edit-btn" onclick="fdTranslateBio(this)" title="${esc(t('profiles.bio.translate', 'Translate'))}"><span class="msi" style="font-size:14px;">translate</span></button>` : ''}
+                            ${canEdit ? `<button class="myp-edit-btn" onclick="editGroupField('rules')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
+                        </div>
                     </div>
                     <div id="gdescRulesView">
                         ${g.rules ? `<div class="fd-bio">${esc(g.rules)}</div>` : `<div class="myp-empty">${t('groups.empty.no_rules', 'No rules set')}</div>`}

@@ -42,6 +42,17 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Profile Translation -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">translate</span> <span data-i18n="kikitan.profile_translation.title">Profile Translation</span></div>
+                        <div class="sf-toggle-row" style="margin-top:8px;">
+                            <span><span class="msi" style="font-size:16px;vertical-align:middle;">translate</span> <span data-i18n="kikitan.profile_translation.enable">Enable Profile Translation</span></span>
+                            <label class="toggle"><input type="checkbox" id="kxdProfileTransToggle" checked onchange="kxdSaveSettings()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div style="font-size:11px;color:var(--tx3);margin-top:8px;line-height:1.5;" data-i18n="kikitan.profile_translation.hint">When Profile Translation is enabled you will see a "Translate" icon in the Biography section. Clicking this will translate it to your target language.</div>
+                        <div class="vrcn-panel-card-header" style="margin-top:12px;margin-bottom:6px;"><span class="msi">translate</span> <span data-i18n="kikitan.profile_translation.target_lang">Target Language</span></div>
+                        <select id="kxdProfileTargetLang" class="lib-filter-select" style="width:100%;" onchange="kxdSaveSettings()"></select>
+                    </div>
                     <!-- Options -->
                     <div class="vrcn-panel-card">
                         <div class="sf-toggle-row">
