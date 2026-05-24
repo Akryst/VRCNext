@@ -847,13 +847,13 @@ html.text-tools-active * { user-select: text !important; }
     margin-bottom: 14px;
 }
 .iim-list {
-    --iim-grid-cols: 40px 70px minmax(130px, 1.2fr) 110px minmax(120px, 170px) 46px 62px minmax(82px, .8fr);
-    min-width: 860px;
+    --iim-grid-cols: 40px 70px minmax(78px, .72fr) 110px minmax(120px, 170px) 46px 62px minmax(82px, .8fr);
+    min-width: 808px;
     width: 100%;
 }
 .iim-list.has-timers {
-    --iim-grid-cols: 40px 72px 70px minmax(130px, 1.2fr) 110px minmax(120px, 170px) 46px 62px minmax(82px, .8fr);
-    min-width: 940px;
+    --iim-grid-cols: 40px 72px 70px minmax(78px, .72fr) 110px minmax(120px, 170px) 46px 62px minmax(82px, .8fr);
+    min-width: 888px;
 }
 .iim-list-head,
 .iim-user-row {
