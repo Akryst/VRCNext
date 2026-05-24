@@ -37,7 +37,8 @@ public class KikitanXDController : IDisposable
                     oscEnabled = _settings.OscEnabled,
                     noiseGatePct = _settings.NoiseGatePercent,
                     profileTranslationEnabled = _settings.ProfileTranslationEnabled,
-                    profileTargetLang = _settings.ProfileTargetLang
+                    profileTargetLang = _settings.ProfileTargetLang,
+                    personality = _settings.Personality
                 });
                 break;
             }
@@ -51,6 +52,7 @@ public class KikitanXDController : IDisposable
                 bool translate = msg["translateEnabled"]?.Value<bool>() ?? _settings.TranslateEnabled;
                 bool osc = msg["oscEnabled"]?.Value<bool>() ?? _settings.OscEnabled;
                 int gate = msg["noiseGatePct"]?.Value<int>() ?? _settings.NoiseGatePercent;
+                string personality = msg["personality"]?.ToString() ?? _settings.Personality;
 
                 _settings.InputDeviceIndex = devIdx;
                 _settings.ApiKey = apiKey;
@@ -59,6 +61,7 @@ public class KikitanXDController : IDisposable
                 _settings.TranslateEnabled = translate;
                 _settings.OscEnabled = osc;
                 _settings.NoiseGatePercent = gate;
+                _settings.Personality = personality;
                 _settings.Save();
 
                 _service?.Dispose();
@@ -68,7 +71,7 @@ public class KikitanXDController : IDisposable
                     Invoke(() => _core.SendToJS("kxdRecognized", new { text, isPartial }));
                 _service.OnTranslated += text =>
                     Invoke(() => _core.SendToJS("kxdTranslated", new { text }));
-                _service.Start(devIdx, apiKey, srcLang, tgtLang, translate, osc, gate);
+                _service.Start(devIdx, apiKey, srcLang, tgtLang, translate, osc, gate, personality);
                 _core.SendToJS("kxdState", new { running = true });
                 break;
             }
@@ -89,10 +92,11 @@ public class KikitanXDController : IDisposable
                 if (msg["noiseGatePct"] is JToken ng) _settings.NoiseGatePercent = ng.Value<int>();
                 if (msg["profileTranslationEnabled"] is JToken pte) _settings.ProfileTranslationEnabled = pte.Value<bool>();
                 if (msg["profileTargetLang"] is JToken ptl) _settings.ProfileTargetLang = ptl.ToString();
+                if (msg["personality"] is JToken pers) _settings.Personality = pers.ToString();
                 _settings.Save();
                 _core.SendToJS("toast", new { ok = true, msg = "Saved" });
                 _service?.UpdateSettings(_settings.ApiKey, _settings.SourceLang, _settings.TargetLang,
-                    _settings.TranslateEnabled, _settings.OscEnabled, _settings.NoiseGatePercent);
+                    _settings.TranslateEnabled, _settings.OscEnabled, _settings.NoiseGatePercent, _settings.Personality);
                 break;
             }
 
@@ -139,7 +143,7 @@ public class KikitanXDController : IDisposable
             _service.OnTranslated += text =>
                 Invoke(() => _core.SendToJS("kxdTranslated", new { text }));
             _service.Start(_settings.InputDeviceIndex, _settings.ApiKey, _settings.SourceLang,
-                _settings.TargetLang, _settings.TranslateEnabled, _settings.OscEnabled, _settings.NoiseGatePercent);
+                _settings.TargetLang, _settings.TranslateEnabled, _settings.OscEnabled, _settings.NoiseGatePercent, _settings.Personality);
             _core.SendToJS("kxdState", new { running = true });
         }
     }

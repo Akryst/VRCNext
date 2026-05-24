@@ -22,7 +22,8 @@ public sealed class KikitanXDService : IDisposable
     public bool IsRunning => false;
     public float MeterLevel => 0f;
     public static string[] GetInputDevices() => [];
-    public void Start(int deviceIndex, string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled) { }
+    public void Start(int deviceIndex, string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality) { }
+    public void UpdateSettings(string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality) { }
     public void Stop() { }
     public void Dispose() { }
     public static Task<string> TranslateStandaloneAsync(string apiKey, string text, string sourceLang, string targetLang) => Task.FromResult("");
@@ -50,6 +51,7 @@ public sealed class KikitanXDService : IDisposable
     private string _targetLang = "en";
     private bool _translateEnabled;
     private bool _oscEnabled;
+    private string _personality = "raw";
 
     private static readonly HttpClient _http = new();
 
@@ -63,20 +65,40 @@ public sealed class KikitanXDService : IDisposable
     private const int MinSpeechMs = 250;
     private const int MaxSegmentMs = 10000;
 
-    public void UpdateSettings(string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct)
+    public void UpdateSettings(string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality)
     {
         _apiKey = apiKey;
         _sourceLang = sourceLang;
         _targetLang = targetLang;
         _translateEnabled = translate;
         _oscEnabled = oscEnabled;
+        _personality = personality ?? "raw";
         _silenceThreshold = Math.Clamp(noiseGatePct / 100f / 6f, 0.001f, 0.5f);
     }
 
-    private static readonly string TranslateSystemPrompt =
+    private const string TranslateSystemPromptRaw =
         "You are a raw linguistic parsing protocol. Your only function is to convert text from [LANG_SRC] to [LANG_TARGET]. " +
         "Output only the direct translation. No pre-text, no post-text, no explanations. " +
         "If the text is already in [LANG_TARGET], output it unchanged.";
+
+    private const string KawaiPersonalityAddon =
+        " After the translated sentence, append EXACTLY ONE single kaomoji (Japanese-style text emoticon built from punctuation/letters/symbols, like ^-^ or (>﹏<)) on the same line that matches the emotional mood of the sentence. " +
+        "Never output more than one kaomoji. Never output zero — always exactly one. Do not add explanations or labels — just the kaomoji at the very end. " +
+        "Output ONLY kaomojis (text emoticons). NEVER output Unicode emoji like 😀 ❤️ 😢 — only ASCII/punctuation-based kaomojis. " +
+        "You may use the examples below OR freestyle your own kaomoji — be creative and pick whichever fits the mood best. " +
+        "Mood reference pools (just examples — feel free to invent new ones):\n" +
+        "Happy / cheerful / positive: ^-^   ^^   ♡(>ᴗ•)   (✿◕‿◕)   (≧◡≦)\n" +
+        "Love / affection / romantic: ♡   (♡˙︶˙♡)   ( ˘ ³˘)♥\n" +
+        "Sad / disappointed / down: (ノ_<。)   ｡ﾟ･ (>﹏<) ･ﾟ｡   (╥﹏╥)\n" +
+        "Embarrassed / shy / pain / 'ahhhh' / frustrated: ( 〃▽〃)   !!>_<!!   >_<   (x_x)⌒☆   (╯°□°)╯\n" +
+        "Surprised / shocked: w(°ｏ°)w   (×_×)   Σ(°ロ°)";
+
+    private static string BuildTranslateSystemPrompt(string personality)
+    {
+        return string.Equals(personality, "kawai", StringComparison.OrdinalIgnoreCase)
+            ? TranslateSystemPromptRaw + KawaiPersonalityAddon
+            : TranslateSystemPromptRaw;
+    }
 
     public static string[] GetInputDevices()
     {
@@ -87,7 +109,7 @@ public sealed class KikitanXDService : IDisposable
         return names;
     }
 
-    public void Start(int deviceIndex, string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct)
+    public void Start(int deviceIndex, string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality)
     {
         Stop();
         _apiKey = apiKey;
@@ -95,6 +117,7 @@ public sealed class KikitanXDService : IDisposable
         _targetLang = targetLang;
         _translateEnabled = translate;
         _oscEnabled = oscEnabled;
+        _personality = personality ?? "raw";
         _silenceThreshold = Math.Clamp(noiseGatePct / 100f / 6f, 0.001f, 0.5f);
 
         _waveIn = new WaveInEvent
@@ -238,7 +261,13 @@ public sealed class KikitanXDService : IDisposable
 
             if (!_translateEnabled || string.IsNullOrWhiteSpace(_targetLang))
             {
-                if (_oscEnabled) SendChatbox(srcText);
+                string outText = srcText;
+                if (string.Equals(_personality, "kawai", StringComparison.OrdinalIgnoreCase))
+                {
+                    string withKaomoji = AppendKaomojiAsync(srcText).GetAwaiter().GetResult();
+                    if (!string.IsNullOrWhiteSpace(withKaomoji)) outText = withKaomoji;
+                }
+                if (_oscEnabled) SendChatbox(outText);
                 return;
             }
 
@@ -328,6 +357,48 @@ public sealed class KikitanXDService : IDisposable
         return json["choices"]?[0]?["message"]?["content"]?.ToString()?.Trim() ?? "";
     }
 
+    private const string KaomojiOnlySystemPrompt =
+        "You append exactly one kaomoji (Japanese-style text emoticon built from punctuation/letters/symbols, like ^-^ or (>﹏<)) to the end of the user's text. " +
+        "Output the original text UNCHANGED (same language, same words, same punctuation), then a single space, then the kaomoji on the same line. " +
+        "Never translate. Never modify the original text. Never output more than one kaomoji. Never output zero. No explanations. " +
+        "Output ONLY kaomojis (text emoticons). NEVER output Unicode emoji like 😀 ❤️ 😢 — only ASCII/punctuation-based kaomojis. " +
+        "You may use the examples below OR freestyle your own kaomoji — be creative and pick whichever fits the mood best. " +
+        "Mood reference pools (just examples — feel free to invent new ones):\n" +
+        "Happy / cheerful / positive: ^-^   ^^   ♡(>ᴗ•)   (✿◕‿◕)   (≧◡≦)\n" +
+        "Love / affection / romantic: ♡   (♡˙︶˙♡)   ( ˘ ³˘)♥\n" +
+        "Sad / disappointed / down: (ノ_<。)   ｡ﾟ･ (>﹏<) ･ﾟ｡   (╥﹏╥)\n" +
+        "Embarrassed / shy / pain / 'ahhhh' / frustrated: ( 〃▽〃)   !!>_<!!   >_<   (x_x)⌒☆   (╯°□°)╯\n" +
+        "Surprised / shocked: w(°ｏ°)w   (×_×)   Σ(°ロ°)";
+
+    private async Task<string> AppendKaomojiAsync(string text)
+    {
+        var body = new JObject
+        {
+            ["model"] = "llama-3.3-70b-versatile",
+            ["temperature"] = 0.5,
+            ["max_completion_tokens"] = 256,
+            ["messages"] = new JArray
+            {
+                new JObject { ["role"] = "system", ["content"] = KaomojiOnlySystemPrompt },
+                new JObject { ["role"] = "user", ["content"] = text }
+            }
+        };
+
+        using var req = new HttpRequestMessage(HttpMethod.Post,
+            "https://api.groq.com/openai/v1/chat/completions");
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+        req.Content = new StringContent(body.ToString(), System.Text.Encoding.UTF8, "application/json");
+
+        var resp = await _http.SendAsync(req);
+        if (!resp.IsSuccessStatusCode)
+        {
+            Log($"Kikitan XD: kaomoji error {(int)resp.StatusCode}");
+            return "";
+        }
+        var json = JObject.Parse(await resp.Content.ReadAsStringAsync());
+        return json["choices"]?[0]?["message"]?["content"]?.ToString()?.Trim() ?? "";
+    }
+
     private async Task<string> TranslateAsync(string text, string source, string target)
     {
         var body = new JObject
@@ -337,7 +408,7 @@ public sealed class KikitanXDService : IDisposable
             ["max_completion_tokens"] = 512,
             ["messages"] = new JArray
             {
-                new JObject { ["role"] = "system", ["content"] = TranslateSystemPrompt },
+                new JObject { ["role"] = "system", ["content"] = BuildTranslateSystemPrompt(_personality) },
                 new JObject { ["role"] = "user", ["content"] = $"{source} | {target} | {text}" }
             }
         };

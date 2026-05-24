@@ -17,6 +17,7 @@ public class KikitanXDSettings
     public int NoiseGatePercent { get; set; } = 10;
     public bool ProfileTranslationEnabled { get; set; } = true;
     public string ProfileTargetLang { get; set; } = "en";
+    public string Personality { get; set; } = "raw";
 
     public static KikitanXDSettings Load()
     {
