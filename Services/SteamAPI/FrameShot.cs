@@ -501,10 +501,7 @@ namespace VRCNext.Services
                 PlaySoundAsync("Start.wav");
             }
             if (!IsFraming) _framingBasisLocked = false;
-
-            // Recording: only valid while framing. Auto-stop flag from the
-            // capture loop ends the recording even if the user is still holding
-            // the record button (after GIF_MAX_MS or GIF_MAX_FRAMES).
+            if (!recHeld) _gifAutoStop = false;
             bool nowRecording = IsFraming && recHeld && !_gifAutoStop;
             IsRecording = nowRecording;
 
