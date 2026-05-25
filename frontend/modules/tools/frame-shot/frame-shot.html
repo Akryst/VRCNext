@@ -79,16 +79,16 @@
                     <!-- GIF Quality -->
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">movie</span> <span data-i18n="frameshot.gif.title">GIF Quality</span></div>
-                        <div class="sf-row">
-                            <label data-i18n="frameshot.gif.max_resolution">Max Resolution</label>
+                        <div class="fs-gif-grid fs-gif-head">
+                            <span data-i18n="frameshot.gif.max_resolution">Max Resolution</span>
+                            <span data-i18n="frameshot.gif.max_fps">Max FPS</span>
+                        </div>
+                        <div class="fs-gif-grid">
                             <select id="fsGifMaxResolution" class="vrcn-select" onchange="fsAutoSave()">
                                 <option value="256">256 px</option>
                                 <option value="512" selected>512 px</option>
                                 <option value="1024">1024 px</option>
                             </select>
-                        </div>
-                        <div class="sf-row">
-                            <label data-i18n="frameshot.gif.max_fps">Max FPS</label>
                             <select id="fsGifMaxFps" class="vrcn-select" onchange="fsAutoSave()">
                                 <option value="8">8 FPS</option>
                                 <option value="10" selected>10 FPS</option>

@@ -18,9 +18,9 @@
 * Added world location support to Discord Presence.
   Suggested by @octomiku01: *Add option to show Discord Presence like in the picture*
 
-  **FrameShot**
-  * Added Fps settings for GIFs.
-  * Added Resolution settings for GIFs.
+**FrameShot**
+* Added Fps settings for GIFs.
+* Added Resolution settings for GIFs.
 
 **Fixes**
 * Fixed an issue where the KikitanXD mic input was reset after restarting.
@@ -30,3 +30,4 @@
 * Fixed an issue where recording a FrameShot GIF for longer than 8 seconds could start another recording.
 * Fixed an issue where FrameShot GIF recordings showed the red frame inside the recorded GIF.
 * Fixed an issue when starting FrameShot and try to record a GIF it will fail and crash.
+* Fixed some ui align issues related to FrameShot, KikitanXD, Voice Fight.
