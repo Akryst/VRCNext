@@ -600,6 +600,11 @@ namespace VRCNext.Services
                 _recordFrames.Clear();
             }
             _gifAutoStop = false;
+            if (_lastDrawnW > 0 && _lastDrawnH > 0)
+            {
+                DrawFrameTexture(_lastDrawnW, _lastDrawnH, true);
+                _lastDrawnRed = true;
+            }
             _recordCts   = new CancellationTokenSource();
             _ = Task.Run(() => RecordCaptureLoopAsync(_recordCts.Token));
             StartRecordSoundLoop("Record.wav");
@@ -613,6 +618,9 @@ namespace VRCNext.Services
                 _gifAutoStop = true;
                 return;
             }
+
+            try { await Task.Delay(120, ct); }
+            catch (OperationCanceledException) { return; }
 
             var start = DateTime.UtcNow;
             int frameIdx = 0;
