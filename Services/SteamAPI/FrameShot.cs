@@ -726,13 +726,33 @@ namespace VRCNext.Services
                     finally { bmp.UnlockBits(bData); }
                 }
                 finally { _d3dContext.Unmap(_mirrorStaging, 0); }
-                return bmp;
+                return DownscaleIfNeeded(bmp, GIF_MAX_DIM);
             }
             catch (Exception ex)
             {
                 _log($"[FrameShot] CaptureMirrorCrop: {ex.Message}");
                 return null;
             }
+        }
+
+        // Cap GIF frame dimensions so file size stays sane even when the user
+        // recorded a huge 2000+ px frame. Keeps aspect ratio.
+        private const int GIF_MAX_DIM = 512;
+        private static Bitmap DownscaleIfNeeded(Bitmap src, int maxDim)
+        {
+            if (src.Width <= maxDim && src.Height <= maxDim) return src;
+            double scale = Math.Min((double)maxDim / src.Width, (double)maxDim / src.Height);
+            int tw = Math.Max(1, (int)Math.Round(src.Width  * scale));
+            int th = Math.Max(1, (int)Math.Round(src.Height * scale));
+            var dst = new Bitmap(tw, th, PixelFormat.Format32bppArgb);
+            using (var g = Graphics.FromImage(dst))
+            {
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear;
+                g.PixelOffsetMode   = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                g.DrawImage(src, 0, 0, tw, th);
+            }
+            src.Dispose();
+            return dst;
         }
 
         private void SaveAnimatedGif(List<Bitmap> frames)
