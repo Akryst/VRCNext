@@ -35,6 +35,7 @@
   "frameshot.activation.label": "Max Hand Distance",
   "frameshot.gif.title": "GIF Quality",
   "frameshot.gif.max_resolution": "Max Resolution",
+  "frameshot.gif.max_fps": "Max FPS",
   "nav.osc_tool": "OSC Tool",
   "nav.youtube_fix": "YouTube Fix",
   "nav.activity_log": "Activity Log",
