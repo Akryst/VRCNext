@@ -19,3 +19,4 @@ This is mostly a useless, but funny and cute feature.
 
 **Fixes**
 * Fixed crucial duplication bug in timeline > photos.
+* Fixed an issue when "Optimized Database" was disabled it won't show the "From" "To" parameters in friends timeline.

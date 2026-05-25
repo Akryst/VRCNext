@@ -87,8 +87,6 @@ public class PhotosController
     public async Task BootstrapPhotoTimeline()
     {
         // Serialize concurrent calls so the existingFiles snapshot stays consistent
-        // with what's actually in the DB. Without this, rapid getTimeline calls
-        // race and insert the same photo multiple times (each with a fresh GUID).
         await _photoBootstrapLock.WaitAsync();
         try
         {

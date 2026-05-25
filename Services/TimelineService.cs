@@ -1341,11 +1341,11 @@ public class TimelineService : IDisposable
             var hasType = !string.IsNullOrEmpty(type) && type != "all";
             cmd.CommandText = hasType
                 ? @"SELECT id,type,timestamp,friend_id,friend_name,friend_image,
-                       world_id,world_name,world_thumb,location,old_value,new_value
+                       world_id,world_name,world_thumb,location,old_value,new_value,left_at,tracked
                        FROM friend_events WHERE type=$type
                        ORDER BY timestamp DESC LIMIT $limit OFFSET $offset"
                 : @"SELECT id,type,timestamp,friend_id,friend_name,friend_image,
-                       world_id,world_name,world_thumb,location,old_value,new_value
+                       world_id,world_name,world_thumb,location,old_value,new_value,left_at,tracked
                        FROM friend_events
                        ORDER BY timestamp DESC LIMIT $limit OFFSET $offset";
             cmd.Parameters.AddWithValue("$limit",  limit + 1);
@@ -1367,6 +1367,8 @@ public class TimelineService : IDisposable
                     Location    = r.GetString(9),
                     OldValue    = r.GetString(10),
                     NewValue    = r.GetString(11),
+                    LeftAt      = r.IsDBNull(12) ? "" : r.GetString(12),
+                    Tracked     = r.GetInt32(13),
                 });
         }
         catch { }
