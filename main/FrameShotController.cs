@@ -64,7 +64,7 @@ public class FrameShotController : IDisposable
                 var host = EnsureHost();
                 var (auth, tfa) = _core.VrcApi.GetCookies();
                 host.EnsureRunning("", _core.HttpPort, auth, tfa);
-                host.FsConnect(_core.Settings.FsLeftButton, _core.Settings.FsRightButton, _core.Settings.FsOutputDevice, _core.Settings.FsActivationRadius);
+                host.FsConnect(_core.Settings.FsLeftButton, _core.Settings.FsRightButton, _core.Settings.FsOutputDevice, _core.Settings.FsActivationRadius, _core.Settings.FsLeftRecordButton, _core.Settings.FsRightRecordButton);
                 _vroCtrl.UpdateToolStates();
                 break;
             }
@@ -100,10 +100,12 @@ public class FrameShotController : IDisposable
 
             case "fsConfig":
             {
-                var lb = (uint)(msg["leftButton"]?.Value<int>()  ?? 2);
-                var rb = (uint)(msg["rightButton"]?.Value<int>() ?? 2);
-                var ar = msg["activationRadius"]?.Value<int>()   ?? 15;
-                _core.VrOverlay?.FsConfig(lb, rb, ar);
+                var lb  = (uint)(msg["leftButton"]?.Value<int>()        ?? 2);
+                var rb  = (uint)(msg["rightButton"]?.Value<int>()       ?? 2);
+                var ar  = msg["activationRadius"]?.Value<int>()         ?? 15;
+                var lrb = (uint)(msg["leftRecordButton"]?.Value<int>()  ?? 0);
+                var rrb = (uint)(msg["rightRecordButton"]?.Value<int>() ?? 0);
+                _core.VrOverlay?.FsConfig(lb, rb, ar, lrb, rrb);
                 break;
             }
 #endif
@@ -129,7 +131,7 @@ public class FrameShotController : IDisposable
             var host = EnsureHost();
             var (auth, tfa) = _core.VrcApi.GetCookies();
             host.EnsureRunning("", _core.HttpPort, auth, tfa);
-            host.FsConnect(_core.Settings.FsLeftButton, _core.Settings.FsRightButton, _core.Settings.FsOutputDevice, _core.Settings.FsActivationRadius);
+            host.FsConnect(_core.Settings.FsLeftButton, _core.Settings.FsRightButton, _core.Settings.FsOutputDevice, _core.Settings.FsActivationRadius, _core.Settings.FsLeftRecordButton, _core.Settings.FsRightRecordButton);
         }
         _vroCtrl.UpdateToolStates();
 #endif

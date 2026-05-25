@@ -355,6 +355,8 @@ public class AppSettings
     public bool   FsAutoStartVR      { get; set; }
     public string FsOutputDevice     { get; set; } = ""; // empty = system default
     public int    FsActivationRadius { get; set; } = 15; // cm, 5–30
+    public uint   FsLeftRecordButton  { get; set; } = 0; // 0 = none
+    public uint   FsRightRecordButton { get; set; } = 0; // 0 = none
 
     // Auto-start flags (legacy — kept for JSON compat, no longer acted on)
     public bool ChatboxAutoStart { get; set; }

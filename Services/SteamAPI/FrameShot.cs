@@ -8,6 +8,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 using NAudio.Wave;
 using Valve.VR;
 using Vortice.Direct3D;
@@ -21,6 +22,9 @@ namespace VRCNext.Services
         // Config
         public uint LeftButtonId  { get; private set; } = (uint)EVRButtonId.k_EButton_Grip;
         public uint RightButtonId { get; private set; } = (uint)EVRButtonId.k_EButton_Grip;
+        // 0 = "None" — no record button assigned for that hand
+        public uint LeftRecordButton  { get; private set; } = 0;
+        public uint RightRecordButton { get; private set; } = 0;
         // Activation radius in metres: framing only starts while hands are within
         // this distance of each other. Once framing has started, the user can
         // pull hands apart freely without losing the frame.
@@ -29,6 +33,7 @@ namespace VRCNext.Services
         // State
         public bool IsConnected { get; private set; }
         public bool IsFraming   { get; private set; }
+        public bool IsRecording { get; private set; }
         public string? LastError { get; private set; }
 
         // Events
@@ -55,6 +60,21 @@ namespace VRCNext.Services
         private bool _rightHeld;
         private bool _leftHeldPrev;
         private bool _rightHeldPrev;
+        private bool _leftRecHeld;
+        private bool _rightRecHeld;
+
+        // Recording state — captured frames + locked geometry at record-start
+        private const int  GIF_FPS        = 10;
+        private const int  GIF_FRAME_MS   = 1000 / GIF_FPS;
+        private const int  GIF_MAX_MS     = 8_000;
+        private const int  GIF_MAX_FRAMES = GIF_FPS * GIF_MAX_MS / 1000;
+        private readonly List<Bitmap> _recordFrames = new();
+        private CancellationTokenSource? _recordCts;
+        private Vector3 _recordHeadLocalOffset;
+        private float   _recordLockedWidth;
+        private float   _recordLockedHeight;
+        private System.Drawing.Rectangle _recordCrop;
+        private volatile bool _gifAutoStop;
 
         // Frame geometry (cached for capture after release)
         private Vector3 _lastLeftPos;
@@ -79,8 +99,9 @@ namespace VRCNext.Services
         private const int FRAME_TEX_H = 1024;
         private readonly byte[] _frameUploadBuf = new byte[FRAME_TEX_W * FRAME_TEX_H * 4];
         private Bitmap? _frameBitmap;
-        private int _lastDrawnW = -1;
-        private int _lastDrawnH = -1;
+        private int _lastDrawnW   = -1;
+        private int _lastDrawnH   = -1;
+        private bool _lastDrawnRed = false;
 
         // Mirror texture for capture — acquired ONCE per session and reused across captures.
         // Per OpenVR docs the compositor continuously updates the texture content, so the
@@ -158,6 +179,70 @@ namespace VRCNext.Services
                 }
                 catch (Exception ex) { _log($"[FrameShot] Sound '{fileName}': {ex.Message}"); }
             });
+        }
+
+        // Looping playback used for the recording sound — runs from record start
+        // until StopRecordSoundLoop() is called.
+        private WaveOutEvent? _recordWaveOut;
+        private WaveStream?   _recordWaveReader;
+
+        private sealed class LoopWaveStream : WaveStream
+        {
+            private readonly WaveStream _src;
+            public LoopWaveStream(WaveStream src) { _src = src; }
+            public override WaveFormat WaveFormat => _src.WaveFormat;
+            public override long Length => long.MaxValue;
+            public override long Position { get => _src.Position; set => _src.Position = value; }
+            public override int Read(byte[] buf, int offset, int count)
+            {
+                int total = 0;
+                while (total < count)
+                {
+                    int read = _src.Read(buf, offset + total, count - total);
+                    if (read == 0)
+                    {
+                        if (_src.Position == 0) break; // empty source
+                        _src.Position = 0;
+                        continue;
+                    }
+                    total += read;
+                }
+                return total;
+            }
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing) _src?.Dispose();
+                base.Dispose(disposing);
+            }
+        }
+
+        private void StartRecordSoundLoop(string fileName)
+        {
+            var path = Path.Combine(SoundDir, fileName);
+            if (!File.Exists(path)) return;
+            int devIdx = _outputDeviceIndex;
+            // Run on thread pool so file IO + device init doesn't stall the poll loop.
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    StopRecordSoundLoop(); // safety: kill any previous loop
+                    _recordWaveReader = new LoopWaveStream(new WaveFileReader(path));
+                    _recordWaveOut    = new WaveOutEvent { DeviceNumber = devIdx };
+                    _recordWaveOut.Init(_recordWaveReader);
+                    _recordWaveOut.Play();
+                }
+                catch (Exception ex) { _log($"[FrameShot] Record loop sound: {ex.Message}"); }
+            });
+        }
+
+        private void StopRecordSoundLoop()
+        {
+            try { _recordWaveOut?.Stop();    } catch { }
+            try { _recordWaveOut?.Dispose(); } catch { }
+            try { _recordWaveReader?.Dispose(); } catch { }
+            _recordWaveOut    = null;
+            _recordWaveReader = null;
         }
 
         public FrameShotService(Action<string> log) => _log = log;
@@ -266,6 +351,9 @@ namespace VRCNext.Services
         public void Disconnect()
         {
             StopPolling();
+            try { _recordCts?.Cancel(); } catch { }
+            _recordCts = null;
+            StopRecordSoundLoop();
             if (!IsConnected) return;
 
             if (_overlayHandle != 0 && OpenVR.Overlay != null)
@@ -321,11 +409,14 @@ namespace VRCNext.Services
             _pollTask = null;
         }
 
-        public void ApplyConfig(uint leftButton, uint rightButton, float activationRadius)
+        public void ApplyConfig(uint leftButton, uint rightButton, float activationRadius,
+                                uint leftRecordButton, uint rightRecordButton)
         {
-            LeftButtonId     = leftButton;
-            RightButtonId    = rightButton;
-            ActivationRadius = Math.Clamp(activationRadius, 0.05f, 0.30f);
+            LeftButtonId       = leftButton;
+            RightButtonId      = rightButton;
+            LeftRecordButton   = leftRecordButton;
+            RightRecordButton  = rightRecordButton;
+            ActivationRadius   = Math.Clamp(activationRadius, 0.05f, 0.30f);
         }
 
         private async Task PollLoopAsync(CancellationToken ct)
@@ -376,11 +467,15 @@ namespace VRCNext.Services
 
             _leftHeldPrev  = _leftHeld;
             _rightHeldPrev = _rightHeld;
-            _leftHeld  = IsButtonHeld(_leftIdx,  LeftButtonId);
-            _rightHeld = IsButtonHeld(_rightIdx, RightButtonId);
+            _leftHeld     = IsButtonHeld(_leftIdx,  LeftButtonId);
+            _rightHeld    = IsButtonHeld(_rightIdx, RightButtonId);
+            _leftRecHeld  = LeftRecordButton  != 0 && IsButtonHeld(_leftIdx,  LeftRecordButton);
+            _rightRecHeld = RightRecordButton != 0 && IsButtonHeld(_rightIdx, RightRecordButton);
 
-            bool wasFraming = IsFraming;
-            bool keysHeld   = _leftHeld && _rightHeld;
+            bool wasFraming   = IsFraming;
+            bool wasRecording = IsRecording;
+            bool keysHeld     = _leftHeld && _rightHeld;
+            bool recHeld      = _leftRecHeld || _rightRecHeld;
 
             // Activation: only START framing when hands are within ActivationRadius.
             // Once framing has begun, the user is free to pull hands apart — the
@@ -415,6 +510,21 @@ namespace VRCNext.Services
             }
             if (!IsFraming) _framingBasisLocked = false;
 
+            // Recording: only valid while framing. Auto-stop flag from the
+            // capture loop ends the recording even if the user is still holding
+            // the record button (after GIF_MAX_MS or GIF_MAX_FRAMES).
+            bool nowRecording = IsFraming && recHeld && !_gifAutoStop;
+            IsRecording = nowRecording;
+
+            if (IsRecording && !wasRecording)
+            {
+                StartRecording();
+            }
+            if (!IsRecording && wasRecording)
+            {
+                StopRecordingAndSave();
+            }
+
             if (IsFraming)
             {
                 UpdateFrameAndRender();
@@ -432,9 +542,12 @@ namespace VRCNext.Services
 
                 if (rightReleased && !leftReleased)
                 {
-                    // Right released first — take the shot
-                    PlaySoundAsync("Shot.wav");
-                    _ = Task.Run(CaptureAndSave);
+                    // If we were just recording, the GIF replaces the photo.
+                    if (!wasRecording)
+                    {
+                        PlaySoundAsync("Shot.wav");
+                        _ = Task.Run(CaptureAndSave);
+                    }
                 }
                 else if (leftReleased)
                 {
@@ -453,6 +566,228 @@ namespace VRCNext.Services
             var L = PosFromMatrix(_poses[_leftIdx].mDeviceToAbsoluteTracking);
             var R = PosFromMatrix(_poses[_rightIdx].mDeviceToAbsoluteTracking);
             return (R - L).Length() <= ActivationRadius;
+        }
+
+        // Recording: GIF capture loop. Frame geometry is locked at record-start
+        // (head-relative position + size). Crop on the mirror is constant since
+        // the head-local frame doesn't move relative to the eye.
+        private void StartRecording()
+        {
+            uint hmdIdx = (uint)OpenVR.k_unTrackedDeviceIndex_Hmd;
+            if (!_poses[hmdIdx].bPoseIsValid)
+            {
+                IsRecording = false;
+                return;
+            }
+
+            // Snapshot head-local offset of current hand midpoint
+            var hmdM   = _poses[hmdIdx].mDeviceToAbsoluteTracking;
+            var hmdPos = PosFromMatrix(hmdM);
+            var hmdRot = RotFromMatrix(hmdM);
+            var right  = Vector3.Transform(Vector3.UnitX,  hmdRot);
+            var up     = Vector3.Transform(Vector3.UnitY,  hmdRot);
+            var fwd    = Vector3.Transform(-Vector3.UnitZ, hmdRot);
+            var mid    = (_lastLeftPos + _lastRightPos) * 0.5f;
+            var off    = mid - hmdPos;
+            _recordHeadLocalOffset = new Vector3(
+                Vector3.Dot(off, right),
+                Vector3.Dot(off, up),
+                Vector3.Dot(off, fwd));
+
+            _recordLockedWidth  = _lastFrameWidth;
+            _recordLockedHeight = _lastFrameHeight;
+
+            // Compute crop rect once — head-locked geometry produces constant
+            // mirror-space pixels, so we don't need to re-project per frame.
+            if (EnsureMirrorPipeline())
+            {
+                var (px0, py0, px1, py1) = ProjectFrameToMirror(_mirrorW, _mirrorH);
+                int x0 = Math.Clamp(Math.Min(px0, px1), 0, _mirrorW - 1);
+                int y0 = Math.Clamp(Math.Min(py0, py1), 0, _mirrorH - 1);
+                int x1 = Math.Clamp(Math.Max(px0, px1), 0, _mirrorW - 1);
+                int y1 = Math.Clamp(Math.Max(py0, py1), 0, _mirrorH - 1);
+                _recordCrop = new System.Drawing.Rectangle(x0, y0,
+                    Math.Max(2, x1 - x0), Math.Max(2, y1 - y0));
+            }
+
+            lock (_recordFrames)
+            {
+                foreach (var b in _recordFrames) { try { b.Dispose(); } catch { } }
+                _recordFrames.Clear();
+            }
+            _gifAutoStop = false;
+            _recordCts   = new CancellationTokenSource();
+            _ = Task.Run(() => RecordCaptureLoopAsync(_recordCts.Token));
+            StartRecordSoundLoop("Record.wav");
+            _log("[FrameShot] Recording started");
+        }
+
+        private async Task RecordCaptureLoopAsync(CancellationToken ct)
+        {
+            var start = DateTime.UtcNow;
+            int frameIdx = 0;
+            try
+            {
+                while (!ct.IsCancellationRequested)
+                {
+                    double elapsedMs = (DateTime.UtcNow - start).TotalMilliseconds;
+                    if (elapsedMs > GIF_MAX_MS) { _gifAutoStop = true; break; }
+                    if (frameIdx >= GIF_MAX_FRAMES) { _gifAutoStop = true; break; }
+
+                    var bmp = CaptureMirrorCrop(_recordCrop);
+                    if (bmp != null)
+                    {
+                        lock (_recordFrames) _recordFrames.Add(bmp);
+                        frameIdx++;
+                    }
+
+                    double nextAt = frameIdx * GIF_FRAME_MS;
+                    double wait = nextAt - (DateTime.UtcNow - start).TotalMilliseconds;
+                    if (wait > 0) await Task.Delay((int)wait, ct);
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex) { _log($"[FrameShot] Record loop: {ex.Message}"); }
+        }
+
+        private void StopRecordingAndSave()
+        {
+            try { _recordCts?.Cancel(); } catch { }
+            _recordCts = null;
+            StopRecordSoundLoop();
+
+            List<Bitmap> frames;
+            lock (_recordFrames)
+            {
+                frames = new List<Bitmap>(_recordFrames);
+                _recordFrames.Clear();
+            }
+            _gifAutoStop = false;
+
+            // Hide overlay during the brief save window
+            if (OpenVR.Overlay != null && _overlayHandle != 0)
+            {
+                try { OpenVR.Overlay.HideOverlay(_overlayHandle); } catch { }
+            }
+
+            if (frames.Count < 2)
+            {
+                foreach (var f in frames) { try { f.Dispose(); } catch { } }
+                _log($"[FrameShot] Recording too short ({frames.Count} frame), discarded");
+                return;
+            }
+
+            PlaySoundAsync("Record_Done.wav");
+            _ = Task.Run(() => SaveAnimatedGif(frames));
+        }
+
+        private Bitmap? CaptureMirrorCrop(System.Drawing.Rectangle crop)
+        {
+            if (_d3dContext == null || _mirrorStaging == null || _mirrorTexCached == null) return null;
+            try
+            {
+                _d3dContext.CopyResource(_mirrorStaging, _mirrorTexCached);
+                var box = _d3dContext.Map(_mirrorStaging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
+                Bitmap? bmp = null;
+                try
+                {
+                    bmp = new Bitmap(crop.Width, crop.Height, PixelFormat.Format32bppArgb);
+                    var rect  = new System.Drawing.Rectangle(0, 0, crop.Width, crop.Height);
+                    var bData = bmp.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+                    try
+                    {
+                        var fmtName = _mirrorSrvFormat.ToString();
+                        bool swapRB = !fmtName.StartsWith("B8G8R8A8", StringComparison.Ordinal);
+                        var rowBuf  = new byte[crop.Width * 4];
+                        for (int y = 0; y < crop.Height; y++)
+                        {
+                            var srcRowPtr = box.DataPointer
+                                            + (nint)((long)(y + crop.Y) * box.RowPitch)
+                                            + (nint)(crop.X * 4);
+                            Marshal.Copy(srcRowPtr, rowBuf, 0, crop.Width * 4);
+                            if (swapRB)
+                            {
+                                for (int x = 0; x < crop.Width; x++)
+                                {
+                                    byte r = rowBuf[x * 4 + 0];
+                                    byte b = rowBuf[x * 4 + 2];
+                                    rowBuf[x * 4 + 0] = b;
+                                    rowBuf[x * 4 + 2] = r;
+                                    rowBuf[x * 4 + 3] = 255;
+                                }
+                            }
+                            else
+                            {
+                                for (int x = 0; x < crop.Width; x++) rowBuf[x * 4 + 3] = 255;
+                            }
+                            Marshal.Copy(rowBuf, 0, bData.Scan0 + (nint)(y * bData.Stride), crop.Width * 4);
+                        }
+                    }
+                    finally { bmp.UnlockBits(bData); }
+                }
+                finally { _d3dContext.Unmap(_mirrorStaging, 0); }
+                return bmp;
+            }
+            catch (Exception ex)
+            {
+                _log($"[FrameShot] CaptureMirrorCrop: {ex.Message}");
+                return null;
+            }
+        }
+
+        private void SaveAnimatedGif(List<Bitmap> frames)
+        {
+            try
+            {
+                try { Directory.CreateDirectory(OutputDir); } catch { }
+                var path = Path.Combine(OutputDir, $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.gif");
+
+                int delayCs = Math.Max(1, GIF_FRAME_MS / 10);
+                var delayBytes = new byte[frames.Count * 4];
+                for (int i = 0; i < frames.Count; i++)
+                {
+                    delayBytes[i * 4 + 0] = (byte)(delayCs & 0xFF);
+                    delayBytes[i * 4 + 1] = (byte)((delayCs >> 8) & 0xFF);
+                    delayBytes[i * 4 + 2] = 0;
+                    delayBytes[i * 4 + 3] = 0;
+                }
+
+                var delayProp = (PropertyItem)RuntimeHelpers.GetUninitializedObject(typeof(PropertyItem));
+                delayProp.Id   = 0x5100; // FrameDelay
+                delayProp.Type = 4;
+                delayProp.Len  = delayBytes.Length;
+                delayProp.Value = delayBytes;
+
+                var loopProp = (PropertyItem)RuntimeHelpers.GetUninitializedObject(typeof(PropertyItem));
+                loopProp.Id   = 0x5101; // LoopCount (0 = infinite)
+                loopProp.Type = 3;
+                loopProp.Len  = 2;
+                loopProp.Value = new byte[] { 0, 0 };
+
+                frames[0].SetPropertyItem(delayProp);
+                frames[0].SetPropertyItem(loopProp);
+
+                var codec = ImageCodecInfo.GetImageEncoders().First(c => c.FormatID == ImageFormat.Gif.Guid);
+                var p = new EncoderParameters(1);
+                p.Param[0] = new EncoderParameter(Encoder.SaveFlag, (long)EncoderValue.MultiFrame);
+                frames[0].Save(path, codec, p);
+
+                p.Param[0] = new EncoderParameter(Encoder.SaveFlag, (long)EncoderValue.FrameDimensionTime);
+                for (int i = 1; i < frames.Count; i++) frames[0].SaveAdd(frames[i], p);
+
+                p.Param[0] = new EncoderParameter(Encoder.SaveFlag, (long)EncoderValue.Flush);
+                frames[0].SaveAdd(p);
+
+                _log($"[FrameShot] Saved {path} ({frames.Count} frames)");
+            }
+            catch (Exception ex)
+            {
+                _log($"[FrameShot] GIF save failed: {ex.Message}");
+            }
+            finally
+            {
+                foreach (var f in frames) { try { f.Dispose(); } catch { } }
+            }
         }
 
         private bool IsButtonHeld(uint deviceIdx, uint buttonId)
@@ -513,29 +848,46 @@ namespace VRCNext.Services
 
             var L = PosFromMatrix(_poses[_leftIdx].mDeviceToAbsoluteTracking);
             var R = PosFromMatrix(_poses[_rightIdx].mDeviceToAbsoluteTracking);
-            var hmdRot = RotFromMatrix(_poses[hmdIdx].mDeviceToAbsoluteTracking);
-
-            // SIZE: hand-to-hand vector projected onto the LOCKED basis so head
-            // rotation cannot stretch/shrink the frame. Hand movement still does.
-            Vector3 diff   = R - L;
-            float widthM   = MathF.Max(0.02f, MathF.Abs(Vector3.Dot(diff, _framingRight)));
-            float heightM  = MathF.Max(0.02f, MathF.Abs(Vector3.Dot(diff, _framingUp)));
+            var hmdM   = _poses[hmdIdx].mDeviceToAbsoluteTracking;
+            var hmdPos = PosFromMatrix(hmdM);
+            var hmdRot = RotFromMatrix(hmdM);
 
             // ORIENTATION: current HMD basis — frame always faces the user.
             Vector3 hmdRight = Vector3.Transform(Vector3.UnitX,  hmdRot);
             Vector3 hmdUp    = Vector3.Transform(Vector3.UnitY,  hmdRot);
             Vector3 hmdFwd   = Vector3.Transform(-Vector3.UnitZ, hmdRot);
 
-            // POSITION: live hand midpoint in WORLD space. The frame stays glued
-            // to the hands — head rotation does not pull it around. (Trade-off:
-            // if the user turns far enough that the hands leave their FOV, the
-            // frame also leaves the view — expected.)
-            Vector3 center = (L + R) * 0.5f;
+            float widthM, heightM;
+            Vector3 center;
 
-            _lastLeftPos     = L;
-            _lastRightPos    = R;
-            _lastFrameWidth  = widthM;
-            _lastFrameHeight = heightM;
+            if (IsRecording)
+            {
+                // Recording: size and HEAD-LOCAL position locked at record-start.
+                // Frame follows head movement; hand movement is ignored.
+                widthM  = _recordLockedWidth;
+                heightM = _recordLockedHeight;
+                center  = hmdPos
+                        + hmdRight * _recordHeadLocalOffset.X
+                        + hmdUp    * _recordHeadLocalOffset.Y
+                        + hmdFwd   * _recordHeadLocalOffset.Z;
+                // _lastLeftPos / _lastRightPos / _lastFrameWidth/Height intentionally
+                // NOT updated here — the locked snapshot must stay intact.
+            }
+            else
+            {
+                // SIZE: hand-to-hand vector on LOCKED basis (head rotation invariant)
+                Vector3 diff = R - L;
+                widthM  = MathF.Max(0.02f, MathF.Abs(Vector3.Dot(diff, _framingRight)));
+                heightM = MathF.Max(0.02f, MathF.Abs(Vector3.Dot(diff, _framingUp)));
+
+                // POSITION: live hand midpoint in WORLD space — frame stays at the hands.
+                center = (L + R) * 0.5f;
+
+                _lastLeftPos     = L;
+                _lastRightPos    = R;
+                _lastFrameWidth  = widthM;
+                _lastFrameHeight = heightM;
+            }
 
             // Compute drawn pixel rect once, here — used for both texture redraw
             // AND for SetOverlayTextureBounds. Tracking the integer pixel dims (not
@@ -547,11 +899,13 @@ namespace VRCNext.Services
             int drawH = (int)MathF.Round(FRAME_TEX_W * aspect);
             if (drawH > FRAME_TEX_H) { drawH = FRAME_TEX_H; drawW = (int)MathF.Round(FRAME_TEX_H / aspect); }
 
-            if (drawW != _lastDrawnW || drawH != _lastDrawnH)
+            bool red = IsRecording;
+            if (drawW != _lastDrawnW || drawH != _lastDrawnH || red != _lastDrawnRed)
             {
-                DrawFrameTexture(drawW, drawH);
-                _lastDrawnW = drawW;
-                _lastDrawnH = drawH;
+                DrawFrameTexture(drawW, drawH, red);
+                _lastDrawnW   = drawW;
+                _lastDrawnH   = drawH;
+                _lastDrawnRed = red;
             }
 
             // Overlay width in meters
@@ -570,7 +924,7 @@ namespace VRCNext.Services
             OpenVR.Overlay.ShowOverlay(_overlayHandle);
         }
 
-        private void DrawFrameTexture(int drawW, int drawH)
+        private void DrawFrameTexture(int drawW, int drawH, bool recording)
         {
             if (_frameBitmap == null || _d3dContext == null || _stagingTex == null || _overlayTex == null) return;
 
@@ -579,8 +933,11 @@ namespace VRCNext.Services
                 g.SmoothingMode = SmoothingMode.AntiAlias;
                 g.Clear(Color.Transparent);
 
-                // Light-blue border
-                using var pen = new Pen(Color.FromArgb(255, 130, 210, 255), 8f);
+                // Border colour: red while recording (GIF), light-blue otherwise.
+                var borderColor = recording
+                    ? Color.FromArgb(255, 255, 70, 70)
+                    : Color.FromArgb(255, 130, 210, 255);
+                using var pen = new Pen(borderColor, 8f);
                 int inset = 4;
                 g.DrawRectangle(pen, inset, inset, drawW - inset * 2 - 1, drawH - inset * 2 - 1);
 
@@ -799,10 +1156,13 @@ namespace VRCNext.Services
             float halfW = _lastFrameWidth  * 0.5f;
             float halfH = _lastFrameHeight * 0.5f;
 
-            // Inset a couple cm so the frame border itself isn't part of the crop
-            float inset = 0.005f;
-            halfW = MathF.Max(0.01f, halfW - inset);
-            halfH = MathF.Max(0.01f, halfH - inset);
+            // Inset by ~1.5% of frame size (plus 1cm minimum) so the visible border
+            // and antialiased edges are NEVER captured. Especially important for
+            // GIF recording where the overlay can't be hidden during capture.
+            float insetW = MathF.Max(0.010f, _lastFrameWidth  * 0.015f);
+            float insetH = MathF.Max(0.010f, _lastFrameHeight * 0.015f);
+            halfW = MathF.Max(0.01f, halfW - insetW);
+            halfH = MathF.Max(0.01f, halfH - insetH);
 
             Vector3[] corners =
             {

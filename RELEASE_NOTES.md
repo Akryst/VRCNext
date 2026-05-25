@@ -8,6 +8,7 @@
 * Release the left controller keybind to cancel.
 * The frame shows exactly what will be saved from your VR view.
 * Photos are saved to **Pictures/VRCN/FrameShots/**.
+* You can also record GIF files (Max 8 seconds)
 * Keybinds, sounds, audio output, and auto-start with VRChat can be configured.
 
 **VR Wrist Overlay**

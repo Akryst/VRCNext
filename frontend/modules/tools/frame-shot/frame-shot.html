@@ -26,7 +26,13 @@
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">gamepad</span> <span data-i18n="frameshot.keybind.title">Frame Keybind</span></div>
 
-                        <div class="sf-row">
+                        <div class="fs-keybind-grid fs-keybind-head">
+                            <span></span>
+                            <span data-i18n="frameshot.keybind.frame">Frame</span>
+                            <span data-i18n="frameshot.keybind.record">Record (GIF)</span>
+                        </div>
+
+                        <div class="fs-keybind-grid">
                             <label data-i18n="common.left_hand">Left Hand</label>
                             <select id="fsLeftButton" class="vrcn-select" onchange="fsAutoSave()">
                                 <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
@@ -35,11 +41,27 @@
                                 <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
                                 <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
                             </select>
+                            <select id="fsLeftRecord" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="0"  data-i18n="frameshot.keybind.none">None</option>
+                                <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
+                                <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
+                                <option value="32" data-i18n="vro.keybind.button.thumbstick">Stick</option>
+                                <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
+                                <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
+                            </select>
                         </div>
 
-                        <div class="sf-row">
+                        <div class="fs-keybind-grid">
                             <label data-i18n="common.right_hand">Right Hand</label>
                             <select id="fsRightButton" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
+                                <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
+                                <option value="32" data-i18n="vro.keybind.button.thumbstick">Stick</option>
+                                <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
+                                <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
+                            </select>
+                            <select id="fsRightRecord" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="0"  data-i18n="frameshot.keybind.none">None</option>
                                 <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
                                 <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
                                 <option value="32" data-i18n="vro.keybind.button.thumbstick">Stick</option>

@@ -1717,6 +1717,8 @@ public class AuthController
             _core.Settings.FsRightButton           = (uint)(data["fsRightButton"]?.Value<int>()     ?? 2);
             _core.Settings.FsOutputDevice          = data["fsOutputDevice"]?.Value<string>()        ?? "";
             _core.Settings.FsActivationRadius      = data["fsActivationRadius"]?.Value<int>()       ?? 15;
+            _core.Settings.FsLeftRecordButton      = (uint)(data["fsLeftRecordButton"]?.Value<int>()  ?? 0);
+            _core.Settings.FsRightRecordButton     = (uint)(data["fsRightRecordButton"]?.Value<int>() ?? 0);
             _core.Settings.RelayAutoStartVR        = data["relayAutoStartVR"]?.Value<bool>()        ?? false;
             _core.Settings.RelayAutoStartDesktop   = data["relayAutoStartDesktop"]?.Value<bool>()   ?? false;
             _core.Settings.YtAutoStartVR           = data["ytAutoStartVR"]?.Value<bool>()           ?? false;

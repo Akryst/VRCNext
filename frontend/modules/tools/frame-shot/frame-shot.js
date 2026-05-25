@@ -29,9 +29,11 @@ function fsConnect() {
 function fsSendConfig() {
     sendToCS({
         action: 'fsConfig',
-        leftButton:       parseInt(document.getElementById('fsLeftButton')?.value       ?? '2',  10),
-        rightButton:      parseInt(document.getElementById('fsRightButton')?.value      ?? '2',  10),
-        activationRadius: parseInt(document.getElementById('fsActivationRadius')?.value ?? '15', 10),
+        leftButton:        parseInt(document.getElementById('fsLeftButton')?.value        ?? '2',  10),
+        rightButton:       parseInt(document.getElementById('fsRightButton')?.value       ?? '2',  10),
+        leftRecordButton:  parseInt(document.getElementById('fsLeftRecord')?.value        ?? '0',  10),
+        rightRecordButton: parseInt(document.getElementById('fsRightRecord')?.value       ?? '0',  10),
+        activationRadius:  parseInt(document.getElementById('fsActivationRadius')?.value  ?? '15', 10),
     });
 }
 
