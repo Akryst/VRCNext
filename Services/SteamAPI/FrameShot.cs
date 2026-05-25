@@ -583,6 +583,17 @@ namespace VRCNext.Services
             _recordLockedWidth  = _lastFrameWidth;
             _recordLockedHeight = _lastFrameHeight;
 
+            if (OpenVR.Overlay != null && _overlayHandle != 0)
+            {
+                var hmdLocal = new HmdMatrix34_t
+                {
+                    m0 = 1, m1 = 0, m2 = 0, m3 = _recordHeadLocalOffset.X,
+                    m4 = 0, m5 = 1, m6 = 0, m7 = _recordHeadLocalOffset.Y,
+                    m8 = 0, m9 = 0, m10 = 1, m11 = -_recordHeadLocalOffset.Z,
+                };
+                OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(_overlayHandle, hmdIdx, ref hmdLocal);
+            }
+
             lock (_recordFrames)
             {
                 foreach (var b in _recordFrames) { try { b.Dispose(); } catch { } }
@@ -966,18 +977,19 @@ namespace VRCNext.Services
                 _lastDrawnRed = red;
             }
 
-            // Overlay width in meters
             OpenVR.Overlay.SetOverlayWidthInMeters(_overlayHandle, widthM);
 
-            // Build world transform: orient with HMD basis, position at center
-            var transform = new HmdMatrix34_t
+            if (!IsRecording)
             {
-                m0 = hmdRight.X, m1 = hmdUp.X, m2 = -hmdFwd.X, m3 = center.X,
-                m4 = hmdRight.Y, m5 = hmdUp.Y, m6 = -hmdFwd.Y, m7 = center.Y,
-                m8 = hmdRight.Z, m9 = hmdUp.Z, m10 = -hmdFwd.Z, m11 = center.Z,
-            };
-            OpenVR.Overlay.SetOverlayTransformAbsolute(_overlayHandle,
-                ETrackingUniverseOrigin.TrackingUniverseStanding, ref transform);
+                var transform = new HmdMatrix34_t
+                {
+                    m0 = hmdRight.X, m1 = hmdUp.X, m2 = -hmdFwd.X, m3 = center.X,
+                    m4 = hmdRight.Y, m5 = hmdUp.Y, m6 = -hmdFwd.Y, m7 = center.Y,
+                    m8 = hmdRight.Z, m9 = hmdUp.Z, m10 = -hmdFwd.Z, m11 = center.Z,
+                };
+                OpenVR.Overlay.SetOverlayTransformAbsolute(_overlayHandle,
+                    ETrackingUniverseOrigin.TrackingUniverseStanding, ref transform);
+            }
 
             OpenVR.Overlay.ShowOverlay(_overlayHandle);
         }
