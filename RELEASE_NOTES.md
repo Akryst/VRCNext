@@ -16,3 +16,6 @@ This is mostly a useless, but funny and cute feature.
 **Instance List Modal**
 
 * Reduced the display name cell length to make more space for other cells.
+
+**Fixes**
+* Fixed crucial duplication bug in timeline > photos.

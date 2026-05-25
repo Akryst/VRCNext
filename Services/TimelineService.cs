@@ -242,6 +242,31 @@ public class TimelineService : IDisposable
             ws.ExecuteNonQuery();
         }
         catch { }
+        // Dedupe photo events caused by concurrent BootstrapPhotoTimeline runs.
+        try
+        {
+            using var tx = _db.BeginTransaction();
+            using var ddCmd = _db.CreateCommand();
+            ddCmd.Transaction = tx;
+            ddCmd.CommandText = @"
+                DELETE FROM events
+                WHERE type = 'photo'
+                  AND photo_path != ''
+                  AND rowid NOT IN (
+                    SELECT MIN(rowid) FROM events
+                    WHERE type = 'photo' AND photo_path != ''
+                    GROUP BY photo_path
+                  )";
+            ddCmd.ExecuteNonQuery();
+
+            using var orphanCmd = _db.CreateCommand();
+            orphanCmd.Transaction = tx;
+            orphanCmd.CommandText = "DELETE FROM event_players WHERE event_id NOT IN (SELECT id FROM events)";
+            orphanCmd.ExecuteNonQuery();
+
+            tx.Commit();
+        }
+        catch { }
     }
 
     private void MigrateFromJson()
