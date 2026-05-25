@@ -411,7 +411,7 @@ public class InstanceController
                         var wVer    = firstWorld["version"]?.Value<int>()               ?? 0;
 
                         _core.TimeEngine.SaveWorldDetail(wid, wName, wThumb, wDesc, wImg, wAuth, wAId, wPub, wUpd,
-                            wCap, wRCap, wTags, wFav, wVis, 0, 0, wHeat, wPop, wPubOcc, wPriOcc, wVer);
+                            wCap, wRCap, wTags, wFav, wVis, 0, 0, 0, wHeat, wPop, wPubOcc, wPriOcc, wVer);
 
                         worldPayload = new
                         {

@@ -991,6 +991,7 @@ public partial class AppShell
                                 updatedAt           = wdCached.Updated,
                                 pcSize              = wdCached.PcSize,
                                 androidSize         = wdCached.AndroidSize,
+                                iosSize             = wdCached.IosSize,
                                 tags                = wdCached.Tags,
                                 instances           = new List<object>(),
                                 worldTimeSeconds    = wdCached.TotalSeconds,
@@ -1147,7 +1148,7 @@ public partial class AppShell
                                 return 0;
                             }
 
-                            string pcAssetUrl = "", androidAssetUrl = "";
+                            string pcAssetUrl = "", androidAssetUrl = "", iosAssetUrl = "";
                             var unityPkgs = world["unityPackages"] as JArray ?? new JArray();
                             foreach (var pkg in unityPkgs)
                             {
@@ -1156,24 +1157,27 @@ public partial class AppShell
                                 if (string.IsNullOrEmpty(url)) continue;
                                 if (platform == "standalonewindows" && string.IsNullOrEmpty(pcAssetUrl)) pcAssetUrl = url;
                                 else if (platform == "android" && string.IsNullOrEmpty(androidAssetUrl)) androidAssetUrl = url;
+                                else if (platform == "ios" && string.IsNullOrEmpty(iosAssetUrl)) iosAssetUrl = url;
                             }
 
                             var (pcFileId, pcVer) = ParseAssetUrl(pcAssetUrl);
                             var (andFileId, andVer) = ParseAssetUrl(androidAssetUrl);
+                            var (iosFileId, iosVer) = ParseAssetUrl(iosAssetUrl);
 
-                            // Use cached sizes when world version hasn't changed — skips 2 file API calls.
+                            // Use cached sizes when world version hasn't changed — skips file API calls.
                             var newVersion = world["version"]?.Value<int>() ?? 0;
                             var sizeCache  = _core.TimeEngine.GetWorldDetail(world["id"]?.ToString() ?? "");
-                            long pcSize, androidSize;
+                            long pcSize, androidSize, iosSize;
                             if (sizeCache != null && sizeCache.Version == newVersion
-                                && (sizeCache.PcSize > 0 || sizeCache.AndroidSize > 0))
+                                && (sizeCache.PcSize > 0 || sizeCache.AndroidSize > 0 || sizeCache.IosSize > 0))
                             {
                                 pcSize      = sizeCache.PcSize;
                                 androidSize = sizeCache.AndroidSize;
+                                iosSize     = sizeCache.IosSize;
                             }
                             else
                             {
-                                JObject? pcFileObj = null, andFileObj = null;
+                                JObject? pcFileObj = null, andFileObj = null, iosFileObj = null;
                                 var fileTasks = new List<Task>();
                                 if (!string.IsNullOrEmpty(pcFileId))
                                     fileTasks.Add(Task.Run(async () => pcFileObj = await _core.Files.GetFileAsync(pcFileId)));
@@ -1181,9 +1185,16 @@ public partial class AppShell
                                     fileTasks.Add(Task.Run(async () => andFileObj = await _core.Files.GetFileAsync(andFileId)));
                                 else if (andFileId == pcFileId)
                                     fileTasks.Add(Task.Run(() => { andFileObj = pcFileObj; return Task.CompletedTask; }));
+                                if (!string.IsNullOrEmpty(iosFileId) && iosFileId != pcFileId && iosFileId != andFileId)
+                                    fileTasks.Add(Task.Run(async () => iosFileObj = await _core.Files.GetFileAsync(iosFileId)));
+                                else if (iosFileId == pcFileId)
+                                    fileTasks.Add(Task.Run(() => { iosFileObj = pcFileObj; return Task.CompletedTask; }));
+                                else if (iosFileId == andFileId)
+                                    fileTasks.Add(Task.Run(() => { iosFileObj = andFileObj; return Task.CompletedTask; }));
                                 if (fileTasks.Count > 0) await Task.WhenAll(fileTasks);
                                 pcSize      = ExtractSizeFromFile(pcFileObj, pcVer);
                                 androidSize = ExtractSizeFromFile(andFileObj, andVer);
+                                iosSize     = ExtractSizeFromFile(iosFileObj, iosVer);
                             }
                             static string ToIso(JToken? t)
                             {
@@ -1210,6 +1221,7 @@ public partial class AppShell
                                 visits:              world["visits"]?.Value<int>() ?? 0,
                                 pcSize:              pcSize,
                                 androidSize:         androidSize,
+                                iosSize:             iosSize,
                                 heat:                world["heat"]?.Value<int>() ?? 0,
                                 popularity:          world["popularity"]?.Value<int>() ?? 0,
                                 publicOccupants:     world["publicOccupants"]?.Value<int>() ?? 0,
@@ -1239,6 +1251,7 @@ public partial class AppShell
                                 updatedAt = ToIso(world["updated_at"]),
                                 pcSize,
                                 androidSize,
+                                iosSize,
                                 tags,
                                 instances,
                                 worldTimeSeconds = wTimeSeconds,

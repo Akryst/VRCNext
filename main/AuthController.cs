@@ -1705,6 +1705,10 @@ public class AuthController
             _core.Settings.SfLeftHand = data["sfLeftHand"]?.Value<bool>() ?? false;
             _core.Settings.SfRightHand = data["sfRightHand"]?.Value<bool>() ?? true;
             _core.Settings.SfUseGrip = data["sfUseGrip"]?.Value<bool>() ?? true;
+            _core.Settings.SfLeftResetButton  = (uint)(data["sfLeftResetBtn"]?.Value<int>()  ?? 32);
+            _core.Settings.SfRightResetButton = (uint)(data["sfRightResetBtn"]?.Value<int>() ?? 0);
+            _core.Settings.SfLeftDragButton   = (uint)(data["sfLeftDragBtn"]?.Value<int>()   ?? 0);
+            _core.Settings.SfRightDragButton  = (uint)(data["sfRightDragBtn"]?.Value<int>()  ?? 32);
             _core.Settings.ChatboxAutoStart = data["chatboxAutoStart"]?.Value<bool>() ?? false;
             _core.Settings.SfAutoStart = data["sfAutoStart"]?.Value<bool>() ?? false;
             _core.Settings.DiscordPresenceAutoStart = data["discordPresenceAutoStart"]?.Value<bool>() ?? false;
@@ -1719,6 +1723,8 @@ public class AuthController
             _core.Settings.FsActivationRadius      = data["fsActivationRadius"]?.Value<int>()       ?? 15;
             _core.Settings.FsLeftRecordButton      = (uint)(data["fsLeftRecordButton"]?.Value<int>()  ?? 0);
             _core.Settings.FsRightRecordButton     = (uint)(data["fsRightRecordButton"]?.Value<int>() ?? 0);
+            _core.Settings.FsGifMaxResolution      = data["fsGifMaxResolution"]?.Value<int>()         ?? 512;
+            _core.Settings.FsGifMaxFps             = data["fsGifMaxFps"]?.Value<int>()                ?? 10;
             _core.Settings.RelayAutoStartVR        = data["relayAutoStartVR"]?.Value<bool>()        ?? false;
             _core.Settings.RelayAutoStartDesktop   = data["relayAutoStartDesktop"]?.Value<bool>()   ?? false;
             _core.Settings.YtAutoStartVR           = data["ytAutoStartVR"]?.Value<bool>()           ?? false;

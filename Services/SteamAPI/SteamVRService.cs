@@ -15,9 +15,12 @@ namespace VRCNext.Services
         public bool LockX { get; set; }
         public bool LockY { get; set; }
         public bool LockZ { get; set; }
-        public bool LeftHandEnabled { get; set; }
-        public bool RightHandEnabled { get; set; } = true;
-        public bool UseGripButton { get; set; } = true;
+        // Per-hand button assignments — 0 means "None" (that hand has no action).
+        // Defaults: left Thumbstick = Reset, right Thumbstick = Drag.
+        public uint LeftResetButton  { get; set; } = (uint)EVRButtonId.k_EButton_Axis0; // 32
+        public uint RightResetButton { get; set; } = 0;
+        public uint LeftDragButton   { get; set; } = 0;
+        public uint RightDragButton  { get; set; } = (uint)EVRButtonId.k_EButton_Axis0; // 32
 
         public bool IsConnected { get; private set; }
         public bool IsDragging { get; private set; }
@@ -39,6 +42,9 @@ namespace VRCNext.Services
         private Vector3 _rightRawAnchor;
         private Vector3 _leftOffsetAtGrab;
         private Vector3 _rightOffsetAtGrab;
+        // Edge detection for Reset — fire ResetOffset once per press, not every poll.
+        private bool _leftResetHeldPrev;
+        private bool _rightResetHeldPrev;
 
         private uint _leftIdx = OpenVR.k_unTrackedDeviceIndexInvalid;
         private uint _rightIdx = OpenVR.k_unTrackedDeviceIndexInvalid;
@@ -279,8 +285,6 @@ namespace VRCNext.Services
             _running = false;
         }
 
-        private ulong GetDragMask() => UseGripButton ? GRIP_MASK : STICK_CLICK_MASK;
-
         private void ProcessFrame()
         {
             if (_vrQuit || _vrSystem == null) return;
@@ -305,59 +309,69 @@ namespace VRCNext.Services
             _vrSystem.GetDeviceToAbsoluteTrackingPose(ETrackingUniverseOrigin.TrackingUniverseRawAndUncalibrated, 0, _rawPoses);
             UpdateControllerIndices();
 
-            var mask = GetDragMask();
-            bool rp = false;
-            bool lp = false;
-            Vector3 rRaw = default;
-            Vector3 lRaw = default;
+            // Read controller states once per hand
+            ulong leftBtns  = ReadButtons(_leftIdx);
+            ulong rightBtns = ReadButtons(_rightIdx);
 
-            if (_rightIdx != OpenVR.k_unTrackedDeviceIndexInvalid && RightHandEnabled)
+            // RESET — edge-triggered, fires once per press (any configured hand)
+            bool leftResetHeld  = IsBitSet(leftBtns,  LeftResetButton);
+            bool rightResetHeld = IsBitSet(rightBtns, RightResetButton);
+            if (leftResetHeld  && !_leftResetHeldPrev)  ResetOffset();
+            if (rightResetHeld && !_rightResetHeldPrev) ResetOffset();
+            _leftResetHeldPrev  = leftResetHeld;
+            _rightResetHeldPrev = rightResetHeld;
+
+            // DRAG — per hand, held while button is pressed
+            bool lp = false, rp = false;
+            Vector3 lRaw = default, rRaw = default;
+
+            if (LeftDragButton != 0 && _leftIdx != OpenVR.k_unTrackedDeviceIndexInvalid)
             {
-                var s = new VRControllerState_t();
-                if (_vrSystem.GetControllerState(_rightIdx, ref s, (uint)Marshal.SizeOf<VRControllerState_t>()))
+                lp = IsBitSet(leftBtns, LeftDragButton);
+                if (lp) lRaw = GetRawPos(_leftIdx);
+                if (lp && !_loggedLeftPress)
                 {
-                    rp = (s.ulButtonPressed & mask) != 0;
-                    rRaw = GetRawPos(_rightIdx);
-                    if (rp && !_loggedRightPress)
-                    {
-                        _loggedRightPress = true;
-                        _log($"[SteamVR] R-DRAG raw=({rRaw.X:F3},{rRaw.Y:F3},{rRaw.Z:F3})");
-                    }
-                    if (!rp) _loggedRightPress = false;
+                    _loggedLeftPress = true;
+                    _log($"[SteamVR] L-DRAG raw=({lRaw.X:F3},{lRaw.Y:F3},{lRaw.Z:F3})");
                 }
+                if (!lp) _loggedLeftPress = false;
+            }
+            if (RightDragButton != 0 && _rightIdx != OpenVR.k_unTrackedDeviceIndexInvalid)
+            {
+                rp = IsBitSet(rightBtns, RightDragButton);
+                if (rp) rRaw = GetRawPos(_rightIdx);
+                if (rp && !_loggedRightPress)
+                {
+                    _loggedRightPress = true;
+                    _log($"[SteamVR] R-DRAG raw=({rRaw.X:F3},{rRaw.Y:F3},{rRaw.Z:F3})");
+                }
+                if (!rp) _loggedRightPress = false;
             }
 
-            if (_leftIdx != OpenVR.k_unTrackedDeviceIndexInvalid)
-            {
-                var s = new VRControllerState_t();
-                if (_vrSystem.GetControllerState(_leftIdx, ref s, (uint)Marshal.SizeOf<VRControllerState_t>()))
-                {
-                    if ((s.ulButtonPressed & STICK_CLICK_MASK) != 0)
-                        ResetOffset();
-
-                    if (LeftHandEnabled)
-                    {
-                        lp = (s.ulButtonPressed & mask) != 0;
-                        lRaw = GetRawPos(_leftIdx);
-                        if (lp && !_loggedLeftPress)
-                        {
-                            _loggedLeftPress = true;
-                            _log($"[SteamVR] L-DRAG raw=({lRaw.X:F3},{lRaw.Y:F3},{lRaw.Z:F3})");
-                        }
-                        if (!lp) _loggedLeftPress = false;
-                    }
-                }
-            }
-
-            HandleHandDrag(ref _rightDragging, rp, rRaw, ref _rightRawAnchor, ref _rightOffsetAtGrab);
-
-            if (LeftHandEnabled)
+            if (LeftDragButton != 0)
                 HandleHandDrag(ref _leftDragging, lp, lRaw, ref _leftRawAnchor, ref _leftOffsetAtGrab);
             else
                 _leftDragging = false;
 
+            if (RightDragButton != 0)
+                HandleHandDrag(ref _rightDragging, rp, rRaw, ref _rightRawAnchor, ref _rightOffsetAtGrab);
+            else
+                _rightDragging = false;
+
             IsDragging = _rightDragging || _leftDragging;
         }
+
+        private ulong ReadButtons(uint deviceIdx)
+        {
+            if (_vrSystem == null || deviceIdx == OpenVR.k_unTrackedDeviceIndexInvalid) return 0;
+            var s = new VRControllerState_t();
+            return _vrSystem.GetControllerState(deviceIdx, ref s, (uint)Marshal.SizeOf<VRControllerState_t>())
+                ? s.ulButtonPressed
+                : 0;
+        }
+
+        private static bool IsBitSet(ulong buttons, uint buttonId)
+            => buttonId != 0 && (buttons & (1UL << (int)buttonId)) != 0;
 
         private void HandleHandDrag(ref bool wasDragging, bool pressed, Vector3 rawPos, ref Vector3 rawAnchor, ref Vector3 offsetAtGrab)
         {
@@ -514,15 +528,18 @@ namespace VRCNext.Services
             });
         }
 
-        public void ApplyConfig(float dragMultiplier, bool lockX, bool lockY, bool lockZ, bool leftHand, bool rightHand, bool useGrip)
+        public void ApplyConfig(float dragMultiplier, bool lockX, bool lockY, bool lockZ,
+                                uint leftResetBtn, uint rightResetBtn,
+                                uint leftDragBtn,  uint rightDragBtn)
         {
-            DragMultiplier = Math.Clamp(dragMultiplier, 0.1f, 100f);
-            LockX = lockX;
-            LockY = lockY;
-            LockZ = lockZ;
-            LeftHandEnabled = leftHand;
-            RightHandEnabled = rightHand;
-            UseGripButton = useGrip;
+            DragMultiplier    = Math.Clamp(dragMultiplier, 0.1f, 100f);
+            LockX             = lockX;
+            LockY             = lockY;
+            LockZ             = lockZ;
+            LeftResetButton   = leftResetBtn;
+            RightResetButton  = rightResetBtn;
+            LeftDragButton    = leftDragBtn;
+            RightDragButton   = rightDragBtn;
         }
 
         // Monitors vrserver.exe with WaitForExitAsync — zero overhead in the poll loop.

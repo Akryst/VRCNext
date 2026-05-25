@@ -33,10 +33,56 @@
                         <div class="sf-toggle-row"><span data-i18n="steamvr.settings.lock_x">Lock X</span><label class="toggle"><input type="checkbox" id="sfLockX" onchange="sfAutoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
                         <div class="sf-toggle-row"><span data-i18n="steamvr.settings.lock_y">Lock Y</span><label class="toggle"><input type="checkbox" id="sfLockY" onchange="sfAutoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
                         <div class="sf-toggle-row"><span data-i18n="steamvr.settings.lock_z">Lock Z</span><label class="toggle"><input type="checkbox" id="sfLockZ" onchange="sfAutoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
-                        <div class="sf-section-label" data-i18n="steamvr.settings.hands">Hands</div>
-                        <div class="sf-toggle-row"><span data-i18n="steamvr.settings.left_hand">Left Hand</span><label class="toggle"><input type="checkbox" id="sfLeftHand" onchange="sfAutoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
-                        <div class="sf-toggle-row"><span data-i18n="steamvr.settings.right_hand">Right Hand</span><label class="toggle"><input type="checkbox" id="sfRightHand" checked onchange="sfAutoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
-                        <div class="sf-section-label" data-i18n="steamvr.settings.drag_button">Drag Button</div>
-                        <div class="sf-toggle-row"><span data-i18n="steamvr.settings.use_grip">Use Grip</span><label class="toggle"><input type="checkbox" id="sfUseGrip" checked onchange="sfAutoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">gamepad</span> <span data-i18n="steamvr.controls.title">Controls</span></div>
+
+                        <div class="sf-ctrl-grid sf-ctrl-head">
+                            <span></span>
+                            <span data-i18n="steamvr.controls.reset_position">Reset Position</span>
+                            <span data-i18n="steamvr.controls.drag_control">Drag Control</span>
+                        </div>
+
+                        <div class="sf-ctrl-grid">
+                            <label data-i18n="common.left_hand">Left Hand</label>
+                            <select id="sfLeftReset" class="vrcn-select" onchange="sfAutoSave()">
+                                <option value="0"  data-i18n="frameshot.keybind.none">None</option>
+                                <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
+                                <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
+                                <option value="32" data-i18n="vro.keybind.button.thumbstick">Thumbstick</option>
+                                <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
+                                <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
+                            </select>
+                            <select id="sfLeftDrag" class="vrcn-select" onchange="sfAutoSave()">
+                                <option value="0"  data-i18n="frameshot.keybind.none">None</option>
+                                <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
+                                <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
+                                <option value="32" data-i18n="vro.keybind.button.thumbstick">Thumbstick</option>
+                                <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
+                                <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
+                            </select>
+                        </div>
+
+                        <div class="sf-ctrl-grid">
+                            <label data-i18n="common.right_hand">Right Hand</label>
+                            <select id="sfRightReset" class="vrcn-select" onchange="sfAutoSave()">
+                                <option value="0"  data-i18n="frameshot.keybind.none">None</option>
+                                <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
+                                <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
+                                <option value="32" data-i18n="vro.keybind.button.thumbstick">Thumbstick</option>
+                                <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
+                                <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
+                            </select>
+                            <select id="sfRightDrag" class="vrcn-select" onchange="sfAutoSave()">
+                                <option value="0"  data-i18n="frameshot.keybind.none">None</option>
+                                <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
+                                <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
+                                <option value="32" data-i18n="vro.keybind.button.thumbstick">Thumbstick</option>
+                                <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
+                                <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
+                            </select>
+                        </div>
                     </div>
                 </div>

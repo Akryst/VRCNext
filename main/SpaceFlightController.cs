@@ -66,7 +66,8 @@ public class SpaceFlightController : IDisposable
                 host.SfConnect(
                     _core.Settings.SfMultiplier,
                     _core.Settings.SfLockX, _core.Settings.SfLockY, _core.Settings.SfLockZ,
-                    _core.Settings.SfLeftHand, _core.Settings.SfRightHand, _core.Settings.SfUseGrip);
+                    _core.Settings.SfLeftResetButton, _core.Settings.SfRightResetButton,
+                    _core.Settings.SfLeftDragButton,  _core.Settings.SfRightDragButton);
                 _vroCtrl.UpdateToolStates();
                 break;
             }
@@ -97,10 +98,11 @@ public class SpaceFlightController : IDisposable
                 var lx   = msg["lockX"]?.Value<bool>() ?? false;
                 var ly   = msg["lockY"]?.Value<bool>() ?? false;
                 var lz   = msg["lockZ"]?.Value<bool>() ?? false;
-                var lh   = msg["leftHand"]?.Value<bool>() ?? false;
-                var rh   = msg["rightHand"]?.Value<bool>() ?? true;
-                var grip = msg["useGrip"]?.Value<bool>() ?? true;
-                _core.VrOverlay?.SfConfig(mult, lx, ly, lz, lh, rh, grip);
+                var lr   = (uint)(msg["leftResetBtn"]?.Value<int>()  ?? 32);
+                var rr   = (uint)(msg["rightResetBtn"]?.Value<int>() ?? 0);
+                var ld   = (uint)(msg["leftDragBtn"]?.Value<int>()   ?? 0);
+                var rd   = (uint)(msg["rightDragBtn"]?.Value<int>()  ?? 32);
+                _core.VrOverlay?.SfConfig(mult, lx, ly, lz, lr, rr, ld, rd);
                 break;
             }
 #endif
@@ -130,7 +132,8 @@ public class SpaceFlightController : IDisposable
             host.SfConnect(
                 _core.Settings.SfMultiplier,
                 _core.Settings.SfLockX, _core.Settings.SfLockY, _core.Settings.SfLockZ,
-                _core.Settings.SfLeftHand, _core.Settings.SfRightHand, _core.Settings.SfUseGrip);
+                _core.Settings.SfLeftResetButton, _core.Settings.SfRightResetButton,
+                _core.Settings.SfLeftDragButton,  _core.Settings.SfRightDragButton);
         }
 #endif
     }

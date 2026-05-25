@@ -43,5 +43,29 @@
     text-transform: uppercase;
     color: var(--tx3);
     letter-spacing: 0.5px;
-    text-align: center;
+    text-align: left;
+}
+
+.fs-gif-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.fs-gif-head {
+    margin-bottom: 4px;
+}
+.fs-gif-head > span {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--tx3);
+    letter-spacing: 0.5px;
+    text-align: left;
+    line-height: 1.25;
+}
+.fs-gif-grid .vrcn-select {
+    width: 100%;
+    min-width: 0;
 }

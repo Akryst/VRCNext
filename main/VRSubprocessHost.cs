@@ -316,10 +316,10 @@ public sealed class VRSubprocessHost : IDisposable
         => Send("vro_tool_states", new { discord, voice, kikitan, space, relay, chatbox, frameShot });
 
     public void SfConnect(float multiplier, bool lockX, bool lockY, bool lockZ,
-        bool leftHand, bool rightHand, bool useGrip)
+        uint leftResetBtn, uint rightResetBtn, uint leftDragBtn, uint rightDragBtn)
     {
         SfConnected = true;
-        Send("sf_connect", new { multiplier, lockX, lockY, lockZ, leftHand, rightHand, useGrip });
+        Send("sf_connect", new { multiplier, lockX, lockY, lockZ, leftResetBtn, rightResetBtn, leftDragBtn, rightDragBtn });
     }
 
     public void SfDisconnect()
@@ -330,16 +330,17 @@ public sealed class VRSubprocessHost : IDisposable
     }
 
     public void SfConfig(float multiplier, bool lockX, bool lockY, bool lockZ,
-        bool leftHand, bool rightHand, bool useGrip)
-        => Send("sf_config", new { multiplier, lockX, lockY, lockZ, leftHand, rightHand, useGrip });
+        uint leftResetBtn, uint rightResetBtn, uint leftDragBtn, uint rightDragBtn)
+        => Send("sf_config", new { multiplier, lockX, lockY, lockZ, leftResetBtn, rightResetBtn, leftDragBtn, rightDragBtn });
 
     public void SfReset() => Send("sf_reset");
 
     public void FsConnect(uint leftButton, uint rightButton, string outputDevice, int activationRadius,
-                          uint leftRecordButton, uint rightRecordButton)
+                          uint leftRecordButton, uint rightRecordButton,
+                          int gifMaxDim, int gifFps)
     {
         FsConnected = true;
-        Send("fs_connect", new { leftButton, rightButton, outputDevice, activationRadius, leftRecordButton, rightRecordButton });
+        Send("fs_connect", new { leftButton, rightButton, outputDevice, activationRadius, leftRecordButton, rightRecordButton, gifMaxDim, gifFps });
     }
 
     public void FsDisconnect()
@@ -350,8 +351,9 @@ public sealed class VRSubprocessHost : IDisposable
     }
 
     public void FsConfig(uint leftButton, uint rightButton, int activationRadius,
-                         uint leftRecordButton, uint rightRecordButton)
-        => Send("fs_config", new { leftButton, rightButton, activationRadius, leftRecordButton, rightRecordButton });
+                         uint leftRecordButton, uint rightRecordButton,
+                         int gifMaxDim, int gifFps)
+        => Send("fs_config", new { leftButton, rightButton, activationRadius, leftRecordButton, rightRecordButton, gifMaxDim, gifFps });
 
     public void FsSetOutput(string deviceName)
         => Send("fs_set_output", new { deviceName });
@@ -403,13 +405,13 @@ public sealed class VRSubprocessHost : IDisposable
     public void SetOnlineFriends(System.Collections.Generic.IReadOnlyList<(string, string, string, string, string, string, string)> entries) { }
     public void UpdateMediaInfo(string a, string b, double c, double d, bool e) { }
     public void SetToolStates(bool a, bool b, bool c, bool d, bool e, bool f, bool g) { }
-    public void SfConnect(float a, bool b, bool c, bool d, bool e, bool f, bool g) { }
+    public void SfConnect(float a, bool b, bool c, bool d, uint e, uint f, uint g, uint h) { }
     public void SfDisconnect() { }
-    public void SfConfig(float a, bool b, bool c, bool d, bool e, bool f, bool g) { }
+    public void SfConfig(float a, bool b, bool c, bool d, uint e, uint f, uint g, uint h) { }
     public void SfReset() { }
-    public void FsConnect(uint a, uint b, string c, int d, uint e, uint f) { }
+    public void FsConnect(uint a, uint b, string c, int d, uint e, uint f, int g, int h) { }
     public void FsDisconnect() { }
-    public void FsConfig(uint a, uint b, int c, uint d, uint e) { }
+    public void FsConfig(uint a, uint b, int c, uint d, uint e, int f, int g) { }
     public void FsSetOutput(string a) { }
     public void FsGetDevices() { }
     public event System.Action<Newtonsoft.Json.Linq.JObject>? OnFsUpdate;

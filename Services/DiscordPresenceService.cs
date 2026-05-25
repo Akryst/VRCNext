@@ -89,11 +89,12 @@ public class DiscordPresenceService : IDisposable
 
             _client.SetPresence(new RichPresence
             {
-                Details    = worldName,
-                State      = instanceState,
-                Assets     = assets,
-                Timestamps = new Timestamps(joinedAt.ToUniversalTime()),
-                Buttons    = buttons,
+                Details       = worldName,
+                State         = instanceState,
+                Assets        = assets,
+                Timestamps    = new Timestamps(joinedAt.ToUniversalTime()),
+                Buttons       = buttons,
+                StatusDisplay = StatusDisplayType.Details,
             });
             _client.Invoke();
         }

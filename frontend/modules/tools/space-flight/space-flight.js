@@ -37,9 +37,10 @@ function sfSendConfig() {
         lockX: document.getElementById('sfLockX').checked,
         lockY: document.getElementById('sfLockY').checked,
         lockZ: document.getElementById('sfLockZ').checked,
-        leftHand: document.getElementById('sfLeftHand').checked,
-        rightHand: document.getElementById('sfRightHand').checked,
-        useGrip: document.getElementById('sfUseGrip').checked
+        leftResetBtn:  parseInt(document.getElementById('sfLeftReset')?.value  ?? '32', 10),
+        rightResetBtn: parseInt(document.getElementById('sfRightReset')?.value ?? '0',  10),
+        leftDragBtn:   parseInt(document.getElementById('sfLeftDrag')?.value   ?? '0',  10),
+        rightDragBtn:  parseInt(document.getElementById('sfRightDrag')?.value  ?? '32', 10),
     });
 }
 

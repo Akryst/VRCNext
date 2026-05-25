@@ -342,12 +342,19 @@ public class AppSettings
 
     // Space Flight settings
     public float SfMultiplier { get; set; } = 1f;
-    public bool SfLockX { get; set; }
-    public bool SfLockY { get; set; }
-    public bool SfLockZ { get; set; }
-    public bool SfLeftHand { get; set; }
-    public bool SfRightHand { get; set; } = true;
-    public bool SfUseGrip { get; set; } = true;
+    public bool  SfLockX { get; set; }
+    public bool  SfLockY { get; set; }
+    public bool  SfLockZ { get; set; }
+    // Legacy fields kept for JSON compatibility — superseded by per-hand button assignments
+    public bool  SfLeftHand   { get; set; }
+    public bool  SfRightHand  { get; set; } = true;
+    public bool  SfUseGrip    { get; set; } = true;
+    // Per-hand button assignments. 0 = "None".
+    // Defaults: Left Thumbstick = Reset, Right Thumbstick = Drag.
+    public uint  SfLeftResetButton  { get; set; } = 32; // Axis0 / Thumbstick
+    public uint  SfRightResetButton { get; set; } = 0;
+    public uint  SfLeftDragButton   { get; set; } = 0;
+    public uint  SfRightDragButton  { get; set; } = 32; // Axis0 / Thumbstick
 
     // FrameShot settings
     public uint   FsLeftButton       { get; set; } = 2;  // EVRButtonId.k_EButton_Grip
@@ -357,6 +364,8 @@ public class AppSettings
     public int    FsActivationRadius { get; set; } = 15; // cm, 5–30
     public uint   FsLeftRecordButton  { get; set; } = 0; // 0 = none
     public uint   FsRightRecordButton { get; set; } = 0; // 0 = none
+    public int    FsGifMaxResolution  { get; set; } = 512;
+    public int    FsGifMaxFps         { get; set; } = 10;
 
     // Auto-start flags (legacy — kept for JSON compat, no longer acted on)
     public bool ChatboxAutoStart { get; set; }

@@ -1,52 +1,33 @@
-**2026.27.6**
+**2026.27.7**
 
-**Hotfixes**
-* Limit GIFs to max 512x512px limits to prevent huge file sizes.
-* Removed how to use card and moved it to tab infos.
-* Added tab infos for FrameShots.
-* FrameShots show metadata now in Media Library.
+# Community Suggested Changes
 
-**2026.27.5**
+**Space Flight**
+* Space Flight now uses custom keys for resetting position and dragging.
+  Suggested by @evexxiv: *Space Flight Custom Drag Button*
 
-**FrameShot (New Tool)**
+**Custom Chatbox**
+* Added a resend button to the Live Chat feature inside Custom Chatbox.
+  Suggested by @notd3vil: *Add a "resend" button to messages sent in the chatbox*
 
-* Added **FrameShot**, a new SteamVR photo tool that works in any VR game.
-* Create a photo frame by holding both hands close together, pressing the controller keybinds, and pulling your hands apart.
-* Release the right controller keybind to take the photo.
-* Release the left controller keybind to cancel.
-* The frame shows exactly what will be saved from your VR view.
-* Photos are saved to **Pictures/VRCN/FrameShots/**.
-* You can also record GIF files (Max 8 seconds)
-* Keybinds, sounds, audio output, and auto-start with VRChat can be configured.
+**World Modal**
+* Added the iOS world size badge to the World Modal.
+  Suggested by @octomiku01: *Add iOS download size to world modal*
 
-**VR Wrist Overlay**
+**Discord Presence**
+* Added world location support to Discord Presence.
+  Suggested by @octomiku01: *Add option to show Discord Presence like in the picture*
 
-* The Tools tab is now scrollable, so adding more tools (like FrameShot)
-
-**Kikitan XD**
-
-* Added a new **Personalities** setting.
-* You can now choose between **Raw** (default) and **Kawai**.
-* When using **Kawai Mode**, the AI adds a fitting kaomoji or cute expression to every message based on what you say.
-
-Example:
-
-Raw: I want to give you a hug.
-Kawai: I want to give you a hug <3!!
-
-This is mostly a useless, but funny and cute feature.
-
-**Instance List Modal**
-
-* Reduced the display name cell length to make more space for other cells.
-
-**Improvements**
-
-* The **Today** button in the Timeline now works as a toggle.
-* When **Today** is active, the Timeline will always show today’s entries.
-* When the date changes, it will automatically switch to the new day instead of requiring you to click the button manually.
+**FrameShot**
+* Added Fps settings for GIFs.
+* Added Resolution settings for GIFs.
 
 **Fixes**
-
-* Fixed a crucial duplication bug in **Timeline > Photos**.
-* Fixed an issue where **From** and **To** values were not shown in the Friends Timeline when **Optimized Database** was disabled.
+* Fixed an issue where the KikitanXD mic input was reset after restarting.
+* Fixed an issue where the Voice Fight input device was reset after restarting.
+* Added missing i18n.
+* Fixed an issue where spinning while using a FrameShot frame could cause it to flip around.
+* Fixed an issue where recording a FrameShot GIF for longer than 8 seconds could start another recording.
+* Fixed an issue where FrameShot GIF recordings showed the red frame inside the recorded GIF.
+* Fixed an issue when starting FrameShot and try to record a GIF it will fail and crash.
+* Fixed some ui align issues related to FrameShot, KikitanXD, Voice Fight.

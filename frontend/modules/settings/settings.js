@@ -129,9 +129,13 @@ function saveSettings() {
             sfLockX: document.getElementById('sfLockX').checked,
             sfLockY: document.getElementById('sfLockY').checked,
             sfLockZ: document.getElementById('sfLockZ').checked,
-            sfLeftHand: document.getElementById('sfLeftHand').checked,
-            sfRightHand: document.getElementById('sfRightHand').checked,
-            sfUseGrip: document.getElementById('sfUseGrip').checked,
+            sfLeftHand: false,  // legacy
+            sfRightHand: true,  // legacy
+            sfUseGrip: true,    // legacy
+            sfLeftResetBtn:  parseInt(document.getElementById('sfLeftReset')?.value  ?? '32', 10),
+            sfRightResetBtn: parseInt(document.getElementById('sfRightReset')?.value ?? '0',  10),
+            sfLeftDragBtn:   parseInt(document.getElementById('sfLeftDrag')?.value   ?? '0',  10),
+            sfRightDragBtn:  parseInt(document.getElementById('sfRightDrag')?.value  ?? '32', 10),
             chatboxAutoStart: false, // legacy
             chatboxAutoStartVR:       document.getElementById('setCbAutoStartVR')?.checked        ?? false,
             chatboxAutoStartDesktop:  document.getElementById('setCbAutoStartDesktop')?.checked   ?? false,
@@ -144,6 +148,8 @@ function saveSettings() {
             fsActivationRadius:       parseInt(document.getElementById('fsActivationRadius')?.value ?? '15', 10),
             fsLeftRecordButton:       parseInt(document.getElementById('fsLeftRecord')?.value      ?? '0',  10),
             fsRightRecordButton:      parseInt(document.getElementById('fsRightRecord')?.value     ?? '0',  10),
+            fsGifMaxResolution:       parseInt(document.getElementById('fsGifMaxResolution')?.value ?? '512', 10),
+            fsGifMaxFps:              parseInt(document.getElementById('fsGifMaxFps')?.value        ?? '10', 10),
             ytAutoStartVR:            document.getElementById('setYtAutoStartVR')?.checked        ?? false,
             ytAutoStartDesktop:       document.getElementById('setYtAutoStartDesktop')?.checked   ?? false,
             vfAutoStartVR:            document.getElementById('setVfAutoStartVR')?.checked        ?? false,
@@ -428,9 +434,14 @@ function loadSettingsToUI(s) {
     document.getElementById('sfLockX').checked = s.SfLockX ?? s.sfLockX ?? false;
     document.getElementById('sfLockY').checked = s.SfLockY ?? s.sfLockY ?? false;
     document.getElementById('sfLockZ').checked = s.SfLockZ ?? s.sfLockZ ?? false;
-    document.getElementById('sfLeftHand').checked = s.SfLeftHand ?? s.sfLeftHand ?? false;
-    document.getElementById('sfRightHand').checked = s.SfRightHand ?? s.sfRightHand ?? true;
-    document.getElementById('sfUseGrip').checked = s.SfUseGrip ?? s.sfUseGrip ?? true;
+    const _sfLR = document.getElementById('sfLeftReset');
+    const _sfRR = document.getElementById('sfRightReset');
+    const _sfLD = document.getElementById('sfLeftDrag');
+    const _sfRD = document.getElementById('sfRightDrag');
+    if (_sfLR) _sfLR.value = String(s.SfLeftResetButton  ?? s.sfLeftResetButton  ?? 32);
+    if (_sfRR) _sfRR.value = String(s.SfRightResetButton ?? s.sfRightResetButton ?? 0);
+    if (_sfLD) _sfLD.value = String(s.SfLeftDragButton   ?? s.sfLeftDragButton   ?? 0);
+    if (_sfRD) _sfRD.value = String(s.SfRightDragButton  ?? s.sfRightDragButton  ?? 32);
 
     // Restore VR/Desktop auto-start flags
     const _set = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
@@ -446,6 +457,10 @@ function loadSettingsToUI(s) {
     const _fsRR = document.getElementById('fsRightRecord');
     if (_fsLR) _fsLR.value = String(s.FsLeftRecordButton  ?? s.fsLeftRecordButton  ?? 0);
     if (_fsRR) _fsRR.value = String(s.FsRightRecordButton ?? s.fsRightRecordButton ?? 0);
+    const _fsGR = document.getElementById('fsGifMaxResolution');
+    const _fsGF = document.getElementById('fsGifMaxFps');
+    if (_fsGR) _fsGR.value = String(s.FsGifMaxResolution ?? s.fsGifMaxResolution ?? 512);
+    if (_fsGF) _fsGF.value = String(s.FsGifMaxFps        ?? s.fsGifMaxFps        ?? 10);
     if (typeof _fsSavedDevice !== 'undefined') _fsSavedDevice = s.FsOutputDevice ?? s.fsOutputDevice ?? '';
     if (typeof fsRequestDevices === 'function') fsRequestDevices();
     const _fsAr = document.getElementById('fsActivationRadius');

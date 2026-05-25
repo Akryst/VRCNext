@@ -266,7 +266,12 @@ function kxdSaveSettings() {
     window._kxdProfileTargetLang = profileTargetLang;
     window._kxdApiKeyPresent = !!apiKey;
     const personality = document.getElementById('kxdPersonality')?.value || 'raw';
-    sendToCS({ action: 'kxdSaveSettings', apiKey, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct, profileTranslationEnabled, profileTargetLang, personality });
+    const devSel = document.getElementById('kxdDeviceSelect');
+    const payload = { action: 'kxdSaveSettings', apiKey, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct, profileTranslationEnabled, profileTargetLang, personality };
+    if (devSel && devSel.value !== '' && !isNaN(parseInt(devSel.value, 10))) {
+        payload.deviceIndex = parseInt(devSel.value, 10);
+    }
+    sendToCS(payload);
 }
 
 function buildKxdLangOptions(langs, selectedCode) {

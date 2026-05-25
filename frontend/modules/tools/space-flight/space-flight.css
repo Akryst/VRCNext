@@ -100,3 +100,28 @@
     opacity: 0.4;
     pointer-events: none;
 }
+
+.sf-ctrl-grid {
+    display: grid;
+    grid-template-columns: 90px 1fr 1fr;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: var(--tx1);
+}
+.sf-ctrl-grid label {
+    font-size: 11px;
+    color: var(--tx3);
+}
+.sf-ctrl-head {
+    margin-bottom: 4px;
+}
+.sf-ctrl-head > span {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--tx3);
+    letter-spacing: 0.5px;
+    text-align: left;
+}

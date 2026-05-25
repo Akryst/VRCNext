@@ -102,7 +102,7 @@ public class DiscordController : IDisposable
 
         var stateParts = new System.Text.StringBuilder(typeLabel);
         if (!hideInstId)  stateParts.Append($" #{shortId}");
-        if (!hidePlayers) stateParts.Append($" ({nUsers}/{_instance.CachedInstCapacity})");
+        if (!hidePlayers) stateParts.Append($" · ({nUsers}/{_instance.CachedInstCapacity})");
         var state = stateParts.ToString();
 
         var worldName  = hideLoc ? "" : _instance.CachedInstWorldName;
