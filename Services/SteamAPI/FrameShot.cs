@@ -83,13 +83,10 @@ namespace VRCNext.Services
         private float _lastFrameWidth;
         private float _lastFrameHeight;
 
-        // Locked frame-plane basis — captured at the moment framing starts.
-        // Used ONLY for projecting hand distance onto stable axes so that head
-        // rotation doesn't change the frame's size. Orientation/position of the
-        // visible overlay use the CURRENT HMD pose (head-locked frame).
-        private Vector3 _framingRight;
-        private Vector3 _framingUp;
-        private bool    _framingBasisLocked;
+        // Latched flag: framing started with a valid HMD pose. Used as a guard
+        // in UpdateFrameAndRender so we don't render before the HMD pose was
+        // ever valid (transient init period).
+        private bool _framingBasisLocked;
 
         // D3D11 — overlay frame texture (light blue border)
         private ID3D11Device?        _d3dDevice;
@@ -497,16 +494,10 @@ namespace VRCNext.Services
             if (IsFraming && !wasFraming)
             {
                 // Lock SIZE basis (head rotation must not affect frame size) and
-                // snapshot the average hand→HMD distance (locks how far in front
-                // of the user the head-locked frame floats).
+                // Wait for a valid HMD pose before allowing the overlay to render.
                 uint hmdIdx = (uint)OpenVR.k_unTrackedDeviceIndex_Hmd;
                 if (_poses[hmdIdx].bPoseIsValid)
-                {
-                    var hmdRot = RotFromMatrix(_poses[hmdIdx].mDeviceToAbsoluteTracking);
-                    _framingRight = Vector3.Transform(Vector3.UnitX, hmdRot);
-                    _framingUp    = Vector3.Transform(Vector3.UnitY, hmdRot);
                     _framingBasisLocked = true;
-                }
                 PlaySoundAsync("Start.wav");
             }
             if (!IsFraming) _framingBasisLocked = false;
@@ -897,10 +888,14 @@ namespace VRCNext.Services
             }
             else
             {
-                // SIZE: hand-to-hand vector on LOCKED basis (head rotation invariant)
+                // SIZE: project hand-to-hand vector on the CURRENT HMD basis so
+                // the frame stays the same size when the user turns body + hands
+                // together (e.g. 90° rotation). Projecting onto a locked basis
+                // would shrink/distort it because the world-space hand vector
+                // rotates with the user but the locked axes don't.
                 Vector3 diff = R - L;
-                widthM  = MathF.Max(0.02f, MathF.Abs(Vector3.Dot(diff, _framingRight)));
-                heightM = MathF.Max(0.02f, MathF.Abs(Vector3.Dot(diff, _framingUp)));
+                widthM  = MathF.Max(0.02f, MathF.Abs(Vector3.Dot(diff, hmdRight)));
+                heightM = MathF.Max(0.02f, MathF.Abs(Vector3.Dot(diff, hmdUp)));
 
                 // POSITION: live hand midpoint in WORLD space — frame stays at the hands.
                 center = (L + R) * 0.5f;

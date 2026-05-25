@@ -27,3 +27,4 @@
 * Fixed an issue where the KikitanXD mic input was reset after restarting.
 * Fixed an issue where the Voice Fight input device was reset after restarting.
 * Added missing i18n.
+* Fixed an issue when spinning while using a FrameShot frame it was causing to flip around.
