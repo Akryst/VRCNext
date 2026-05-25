@@ -33,6 +33,8 @@
   "frameshot.audio.default": "System Default",
   "frameshot.activation.title": "Activation Radius",
   "frameshot.activation.label": "Max Hand Distance",
+  "frameshot.gif.title": "GIF Quality",
+  "frameshot.gif.max_resolution": "Max Resolution",
   "nav.osc_tool": "OSC Tool",
   "nav.youtube_fix": "YouTube Fix",
   "nav.activity_log": "Activity Log",

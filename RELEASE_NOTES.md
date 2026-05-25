@@ -18,6 +18,10 @@
 * Added world location support to Discord Presence.
   Suggested by @octomiku01: *Add option to show Discord Presence like in the picture*
 
+  **FrameShot**
+  * Added Fps settings for GIFs.
+  * Added Resolution settings for GIFs.
+
 **Fixes**
 * Fixed an issue where the KikitanXD mic input was reset after restarting.
 * Fixed an issue where the Voice Fight input device was reset after restarting.

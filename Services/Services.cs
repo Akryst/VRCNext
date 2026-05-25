@@ -364,6 +364,8 @@ public class AppSettings
     public int    FsActivationRadius { get; set; } = 15; // cm, 5–30
     public uint   FsLeftRecordButton  { get; set; } = 0; // 0 = none
     public uint   FsRightRecordButton { get; set; } = 0; // 0 = none
+    public int    FsGifMaxResolution  { get; set; } = 512;
+    public int    FsGifMaxFps         { get; set; } = 10;
 
     // Auto-start flags (legacy — kept for JSON compat, no longer acted on)
     public bool ChatboxAutoStart { get; set; }

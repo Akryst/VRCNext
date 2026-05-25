@@ -148,6 +148,8 @@ function saveSettings() {
             fsActivationRadius:       parseInt(document.getElementById('fsActivationRadius')?.value ?? '15', 10),
             fsLeftRecordButton:       parseInt(document.getElementById('fsLeftRecord')?.value      ?? '0',  10),
             fsRightRecordButton:      parseInt(document.getElementById('fsRightRecord')?.value     ?? '0',  10),
+            fsGifMaxResolution:       parseInt(document.getElementById('fsGifMaxResolution')?.value ?? '512', 10),
+            fsGifMaxFps:              parseInt(document.getElementById('fsGifMaxFps')?.value        ?? '10', 10),
             ytAutoStartVR:            document.getElementById('setYtAutoStartVR')?.checked        ?? false,
             ytAutoStartDesktop:       document.getElementById('setYtAutoStartDesktop')?.checked   ?? false,
             vfAutoStartVR:            document.getElementById('setVfAutoStartVR')?.checked        ?? false,
@@ -455,6 +457,10 @@ function loadSettingsToUI(s) {
     const _fsRR = document.getElementById('fsRightRecord');
     if (_fsLR) _fsLR.value = String(s.FsLeftRecordButton  ?? s.fsLeftRecordButton  ?? 0);
     if (_fsRR) _fsRR.value = String(s.FsRightRecordButton ?? s.fsRightRecordButton ?? 0);
+    const _fsGR = document.getElementById('fsGifMaxResolution');
+    const _fsGF = document.getElementById('fsGifMaxFps');
+    if (_fsGR) _fsGR.value = String(s.FsGifMaxResolution ?? s.fsGifMaxResolution ?? 512);
+    if (_fsGF) _fsGF.value = String(s.FsGifMaxFps        ?? s.fsGifMaxFps        ?? 10);
     if (typeof _fsSavedDevice !== 'undefined') _fsSavedDevice = s.FsOutputDevice ?? s.fsOutputDevice ?? '';
     if (typeof fsRequestDevices === 'function') fsRequestDevices();
     const _fsAr = document.getElementById('fsActivationRadius');

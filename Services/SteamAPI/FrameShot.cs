@@ -61,11 +61,12 @@ namespace VRCNext.Services
         private bool _rightRecHeld;
 
         // Recording state — captured frames + locked geometry at record-start
-        private const int   GIF_FPS              = 10;
-        private const int   GIF_FRAME_MS         = 1000 / GIF_FPS;
         private const int   GIF_MAX_MS           = 8_000;
-        private const int   GIF_MAX_FRAMES       = GIF_FPS * GIF_MAX_MS / 1000;
         private const float RECORD_VISUAL_SCALE  = 1.15f;
+        private int _gifFps     = 10;
+        private int _gifMaxDim  = 512;
+        private int GifFrameMs  => 1000 / Math.Max(1, _gifFps);
+        private int GifMaxFrames => _gifFps * GIF_MAX_MS / 1000;
         private readonly List<Bitmap> _recordFrames = new();
         private CancellationTokenSource? _recordCts;
         private Vector3 _recordHeadLocalOffset;
@@ -405,13 +406,16 @@ namespace VRCNext.Services
         }
 
         public void ApplyConfig(uint leftButton, uint rightButton, float activationRadius,
-                                uint leftRecordButton, uint rightRecordButton)
+                                uint leftRecordButton, uint rightRecordButton,
+                                int gifMaxDim, int gifFps)
         {
             LeftButtonId       = leftButton;
             RightButtonId      = rightButton;
             LeftRecordButton   = leftRecordButton;
             RightRecordButton  = rightRecordButton;
             ActivationRadius   = Math.Clamp(activationRadius, 0.05f, 0.30f);
+            _gifMaxDim         = gifMaxDim > 0 ? gifMaxDim : 512;
+            _gifFps            = gifFps    > 0 ? gifFps    : 10;
         }
 
         private async Task PollLoopAsync(CancellationToken ct)
@@ -630,7 +634,7 @@ namespace VRCNext.Services
                 {
                     double elapsedMs = (DateTime.UtcNow - start).TotalMilliseconds;
                     if (elapsedMs > GIF_MAX_MS) { _gifAutoStop = true; break; }
-                    if (frameIdx >= GIF_MAX_FRAMES) { _gifAutoStop = true; break; }
+                    if (frameIdx >= GifMaxFrames) { _gifAutoStop = true; break; }
                     var crop = ComputeRecordingCrop(_mirrorW, _mirrorH);
                     var bmp = CaptureMirrorCrop(crop);
                     if (bmp != null)
@@ -639,7 +643,7 @@ namespace VRCNext.Services
                         frameIdx++;
                     }
 
-                    double nextAt = frameIdx * GIF_FRAME_MS;
+                    double nextAt = frameIdx * GifFrameMs;
                     double wait = nextAt - (DateTime.UtcNow - start).TotalMilliseconds;
                     if (wait > 0) await Task.Delay((int)wait, ct);
                 }
@@ -782,7 +786,7 @@ namespace VRCNext.Services
                     finally { bmp.UnlockBits(bData); }
                 }
                 finally { _d3dContext.Unmap(_mirrorStaging, 0); }
-                return DownscaleIfNeeded(bmp, GIF_MAX_DIM);
+                return DownscaleIfNeeded(bmp, _gifMaxDim);
             }
             catch (Exception ex)
             {
@@ -791,9 +795,6 @@ namespace VRCNext.Services
             }
         }
 
-        // Cap GIF frame dimensions so file size stays sane even when the user
-        // recorded a huge 2000+ px frame. Keeps aspect ratio.
-        private const int GIF_MAX_DIM = 512;
         private static Bitmap DownscaleIfNeeded(Bitmap src, int maxDim)
         {
             if (src.Width <= maxDim && src.Height <= maxDim) return src;
@@ -818,7 +819,7 @@ namespace VRCNext.Services
                 try { Directory.CreateDirectory(OutputDir); } catch { }
                 var path = Path.Combine(OutputDir, $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.gif");
 
-                int delayCs = Math.Max(1, GIF_FRAME_MS / 10);
+                int delayCs = Math.Max(1, GifFrameMs / 10);
                 var delayBytes = new byte[frames.Count * 4];
                 for (int i = 0; i < frames.Count; i++)
                 {

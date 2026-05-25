@@ -34,6 +34,8 @@ function fsSendConfig() {
         leftRecordButton:  parseInt(document.getElementById('fsLeftRecord')?.value        ?? '0',  10),
         rightRecordButton: parseInt(document.getElementById('fsRightRecord')?.value       ?? '0',  10),
         activationRadius:  parseInt(document.getElementById('fsActivationRadius')?.value  ?? '15', 10),
+        gifMaxResolution:  parseInt(document.getElementById('fsGifMaxResolution')?.value  ?? '512', 10),
+        gifMaxFps:         parseInt(document.getElementById('fsGifMaxFps')?.value         ?? '10', 10),
     });
 }
 

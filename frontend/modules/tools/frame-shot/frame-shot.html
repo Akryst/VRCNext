@@ -76,6 +76,29 @@
                         </div>
                     </div>
 
+                    <!-- GIF Quality -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">movie</span> <span data-i18n="frameshot.gif.title">GIF Quality</span></div>
+                        <div class="sf-row">
+                            <label data-i18n="frameshot.gif.max_resolution">Max Resolution</label>
+                            <select id="fsGifMaxResolution" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="256">256 px</option>
+                                <option value="512" selected>512 px</option>
+                                <option value="1024">1024 px</option>
+                            </select>
+                        </div>
+                        <div class="sf-row">
+                            <label data-i18n="frameshot.gif.max_fps">Max FPS</label>
+                            <select id="fsGifMaxFps" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="8">8 FPS</option>
+                                <option value="10" selected>10 FPS</option>
+                                <option value="15">15 FPS</option>
+                                <option value="20">20 FPS</option>
+                                <option value="30">30 FPS</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <!-- Activation Radius -->
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">adjust</span> <span data-i18n="frameshot.activation.title">Activation Radius</span></div>

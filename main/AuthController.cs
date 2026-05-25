@@ -1723,6 +1723,8 @@ public class AuthController
             _core.Settings.FsActivationRadius      = data["fsActivationRadius"]?.Value<int>()       ?? 15;
             _core.Settings.FsLeftRecordButton      = (uint)(data["fsLeftRecordButton"]?.Value<int>()  ?? 0);
             _core.Settings.FsRightRecordButton     = (uint)(data["fsRightRecordButton"]?.Value<int>() ?? 0);
+            _core.Settings.FsGifMaxResolution      = data["fsGifMaxResolution"]?.Value<int>()         ?? 512;
+            _core.Settings.FsGifMaxFps             = data["fsGifMaxFps"]?.Value<int>()                ?? 10;
             _core.Settings.RelayAutoStartVR        = data["relayAutoStartVR"]?.Value<bool>()        ?? false;
             _core.Settings.RelayAutoStartDesktop   = data["relayAutoStartDesktop"]?.Value<bool>()   ?? false;
             _core.Settings.YtAutoStartVR           = data["ytAutoStartVR"]?.Value<bool>()           ?? false;
