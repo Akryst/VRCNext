@@ -1,0 +1,112 @@
+                <div class="sf-layout">
+
+                    <!-- Status card -->
+                    <div class="vrcn-panel-card status">
+                        <div class="sf-status-row">
+                            <div class="sf-status">
+                                <span class="sf-dot offline" id="fsDot"></span>
+                                <span id="fsStatusText" data-i18n="frameshot.status.not_connected">Not Connected</span>
+                            </div>
+                            <button class="vrcn-button" id="fsConnBtn" onclick="fsConnect()">
+                                <span class="msi" style="font-size:16px;">link</span> <span data-i18n="common.connect">Connect</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Launch -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">power_settings_new</span> <span data-i18n="common.launch">Launch</span></div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="common.start_with_vrchat_vr">Start when launching VRChat in VR</span>
+                            <label class="toggle"><input type="checkbox" id="setFsAutoStartVR" onchange="fsAutoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                    </div>
+
+                    <!-- Frame Keybind -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">gamepad</span> <span data-i18n="frameshot.keybind.title">Frame Keybind</span></div>
+
+                        <div class="fs-keybind-grid fs-keybind-head">
+                            <span></span>
+                            <span data-i18n="frameshot.keybind.frame">Frame</span>
+                            <span data-i18n="frameshot.keybind.record">Record (GIF)</span>
+                        </div>
+
+                        <div class="fs-keybind-grid">
+                            <label data-i18n="common.left_hand">Left Hand</label>
+                            <select id="fsLeftButton" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
+                                <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
+                                <option value="32" data-i18n="vro.keybind.button.thumbstick">Stick</option>
+                                <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
+                                <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
+                            </select>
+                            <select id="fsLeftRecord" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="0"  data-i18n="frameshot.keybind.none">None</option>
+                                <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
+                                <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
+                                <option value="32" data-i18n="vro.keybind.button.thumbstick">Stick</option>
+                                <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
+                                <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
+                            </select>
+                        </div>
+
+                        <div class="fs-keybind-grid">
+                            <label data-i18n="common.right_hand">Right Hand</label>
+                            <select id="fsRightButton" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
+                                <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
+                                <option value="32" data-i18n="vro.keybind.button.thumbstick">Stick</option>
+                                <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
+                                <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
+                            </select>
+                            <select id="fsRightRecord" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="0"  data-i18n="frameshot.keybind.none">None</option>
+                                <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
+                                <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
+                                <option value="32" data-i18n="vro.keybind.button.thumbstick">Stick</option>
+                                <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
+                                <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
+                            </select>
+                        </div>
+
+                        <div class="sf-controllers" style="margin-top:10px;">
+                            <div class="sf-ctrl" id="fsCtrlL"><span class="msi" style="font-size:14px;">back_hand</span> <span data-i18n="common.left">Left</span></div>
+                            <div class="sf-ctrl" id="fsCtrlR"><span class="msi" style="font-size:14px;">front_hand</span> <span data-i18n="common.right">Right</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Activation Radius -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">adjust</span> <span data-i18n="frameshot.activation.title">Activation Radius</span></div>
+                        <div class="sf-row">
+                            <label data-i18n="frameshot.activation.label">Max Hand Distance</label>
+                            <input type="range" id="fsActivationRadius" min="5" max="30" step="1" value="15" oninput="fsUpdateActivationRadius()">
+                            <span id="fsActivationRadiusVal" style="font-size:11px;color:var(--tx2);min-width:42px;text-align:right;">15 cm</span>
+                        </div>
+                    </div>
+
+                    <!-- Audio Output -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">volume_up</span> <span data-i18n="frameshot.audio.title">Sound Output</span></div>
+                        <div class="sf-row">
+                            <label data-i18n="frameshot.audio.device">Output Device</label>
+                            <select id="fsOutputDevice" class="vrcn-select" onchange="fsOutputDeviceChange()">
+                                <option value="" data-i18n="frameshot.audio.default">System Default</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- How to use -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">info</span> <span data-i18n="frameshot.howto.title">How to use</span></div>
+                        <ol class="fs-howto">
+                            <li data-i18n="frameshot.howto.step1">Bring both hands together.</li>
+                            <li data-i18n="frameshot.howto.step2">Hold the frame keybind on both controllers.</li>
+                            <li data-i18n="frameshot.howto.step3">Pull your hands apart a light-blue frame appears between them.</li>
+                            <li data-i18n="frameshot.howto.step4">Release the right keybind to take the photo.</li>
+                            <li data-i18n="frameshot.howto.step5">Release the left keybind to cancel.</li>
+                        </ol>
+                        <div class="fs-savepath" data-i18n="frameshot.howto.save_path">Photos are saved to Pictures/VRCN/FrameShots/</div>
+                    </div>
+                </div>

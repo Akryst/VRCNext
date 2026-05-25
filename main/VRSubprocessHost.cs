@@ -26,6 +26,7 @@ public sealed class VRSubprocessHost : IDisposable
 
     public bool VroConnected { get; private set; }
     public bool SfConnected  { get; private set; }
+    public bool FsConnected  { get; private set; }
 
     // Events fired when the subprocess sends a message over stdout.
     public event Action<JObject>? OnVroState;
@@ -42,6 +43,9 @@ public sealed class VRSubprocessHost : IDisposable
     public event Action? OnVroQuit;
     public event Action<JObject>? OnSfUpdate;
     public event Action? OnSfQuit;
+    public event Action<JObject>? OnFsUpdate;
+    public event Action? OnFsQuit;
+    public event Action<List<string>>? OnFsDevices;
 
     public VRSubprocessHost(Action<string> log) => _log = log;
 
@@ -91,11 +95,14 @@ public sealed class VRSubprocessHost : IDisposable
         _log("[VRSub] Subprocess exited");
         bool wasVro = VroConnected;
         bool wasSf  = SfConnected;
+        bool wasFs  = FsConnected;
         VroConnected = false;
         SfConnected  = false;
+        FsConnected  = false;
         lock (_stdinLock) _stdin = null;
         if (wasVro) OnVroQuit?.Invoke();
         if (wasSf)  OnSfQuit?.Invoke();
+        if (wasFs)  OnFsQuit?.Invoke();
     }
 
     private void Kill()
@@ -202,6 +209,12 @@ public sealed class VRSubprocessHost : IDisposable
             case "sf_update":
                 OnSfUpdate?.Invoke(msg);
                 break;
+            case "fs_update":
+                OnFsUpdate?.Invoke(msg);
+                break;
+            case "fs_devices":
+                OnFsDevices?.Invoke(msg["devices"]?.ToObject<List<string>>() ?? new());
+                break;
         }
     }
 
@@ -215,7 +228,7 @@ public sealed class VRSubprocessHost : IDisposable
     {
         VroConnected = false;
         Send("vro_disconnect");
-        if (!SfConnected) Kill();
+        if (!SfConnected && !FsConnected) Kill();
     }
 
     public void VroShow()            => Send("vro_show");
@@ -295,8 +308,8 @@ public sealed class VRSubprocessHost : IDisposable
     public void UpdateMediaInfo(string title, string artist, double position, double duration, bool playing)
         => Send("vro_update_media", new { title, artist, position, duration, playing });
 
-    public void SetToolStates(bool discord, bool voice, bool kikitan, bool space, bool relay, bool chatbox)
-        => Send("vro_tool_states", new { discord, voice, kikitan, space, relay, chatbox });
+    public void SetToolStates(bool discord, bool voice, bool kikitan, bool space, bool relay, bool chatbox, bool frameShot)
+        => Send("vro_tool_states", new { discord, voice, kikitan, space, relay, chatbox, frameShot });
 
     public void SfConnect(float multiplier, bool lockX, bool lockY, bool lockZ,
         bool leftHand, bool rightHand, bool useGrip)
@@ -309,7 +322,7 @@ public sealed class VRSubprocessHost : IDisposable
     {
         SfConnected = false;
         Send("sf_disconnect");
-        if (!VroConnected) Kill();
+        if (!VroConnected && !FsConnected) Kill();
     }
 
     public void SfConfig(float multiplier, bool lockX, bool lockY, bool lockZ,
@@ -317,6 +330,30 @@ public sealed class VRSubprocessHost : IDisposable
         => Send("sf_config", new { multiplier, lockX, lockY, lockZ, leftHand, rightHand, useGrip });
 
     public void SfReset() => Send("sf_reset");
+
+    public void FsConnect(uint leftButton, uint rightButton, string outputDevice, int activationRadius,
+                          uint leftRecordButton, uint rightRecordButton)
+    {
+        FsConnected = true;
+        Send("fs_connect", new { leftButton, rightButton, outputDevice, activationRadius, leftRecordButton, rightRecordButton });
+    }
+
+    public void FsDisconnect()
+    {
+        FsConnected = false;
+        Send("fs_disconnect");
+        if (!VroConnected && !SfConnected) Kill();
+    }
+
+    public void FsConfig(uint leftButton, uint rightButton, int activationRadius,
+                         uint leftRecordButton, uint rightRecordButton)
+        => Send("fs_config", new { leftButton, rightButton, activationRadius, leftRecordButton, rightRecordButton });
+
+    public void FsSetOutput(string deviceName)
+        => Send("fs_set_output", new { deviceName });
+
+    public void FsGetDevices()
+        => Send("fs_get_devices");
 
     public void TrimMemory() => Send("trim");
 
@@ -336,6 +373,7 @@ public sealed class VRSubprocessHost : IDisposable
 {
     public bool VroConnected { get; private set; }
     public bool SfConnected  { get; private set; }
+    public bool FsConnected  { get; private set; }
 
     public VRSubprocessHost(Action<string> log) { }
     public void EnsureRunning(string c, int p, string? a, string? t) { }
@@ -360,11 +398,19 @@ public sealed class VRSubprocessHost : IDisposable
     public void SetFriendLocations(System.Collections.Generic.IReadOnlyList<(string, string, string, string, string, string, string, string)> entries) { }
     public void SetOnlineFriends(System.Collections.Generic.IReadOnlyList<(string, string, string, string, string, string, string)> entries) { }
     public void UpdateMediaInfo(string a, string b, double c, double d, bool e) { }
-    public void SetToolStates(bool a, bool b, bool c, bool d, bool e, bool f) { }
+    public void SetToolStates(bool a, bool b, bool c, bool d, bool e, bool f, bool g) { }
     public void SfConnect(float a, bool b, bool c, bool d, bool e, bool f, bool g) { }
     public void SfDisconnect() { }
     public void SfConfig(float a, bool b, bool c, bool d, bool e, bool f, bool g) { }
     public void SfReset() { }
+    public void FsConnect(uint a, uint b, string c, int d, uint e, uint f) { }
+    public void FsDisconnect() { }
+    public void FsConfig(uint a, uint b, int c, uint d, uint e) { }
+    public void FsSetOutput(string a) { }
+    public void FsGetDevices() { }
+    public event System.Action<Newtonsoft.Json.Linq.JObject>? OnFsUpdate;
+    public event System.Action? OnFsQuit;
+    public event System.Action<System.Collections.Generic.List<string>>? OnFsDevices;
     public void TrimMemory() { }
     public void VroWaterConfig(bool enabled, int intervalSec) { }
     public void VroScaleConfig(bool a0, bool a, bool b, System.Collections.Generic.List<uint> c, int d, float e, int f = 25) { }

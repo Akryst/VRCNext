@@ -42,6 +42,15 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Personality -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">mood</span> <span data-i18n="kikitan.personality.title">Personality</span></div>
+                        <select id="kxdPersonality" class="lib-filter-select" style="width:100%;" onchange="kxdSaveSettings()">
+                            <option value="raw" data-i18n="kikitan.personality.raw">Raw (Default)</option>
+                            <option value="kawai" data-i18n="kikitan.personality.kawai">Kawai</option>
+                        </select>
+                        <div style="font-size:11px;color:var(--tx3);margin-top:8px;line-height:1.5;" data-i18n="kikitan.personality.hint">Kawai appends one mood-matching kaomoji at the end of every translated sentence. Affects only speech translation — not profile, world or group description translations.</div>
+                    </div>
                     <!-- Profile Translation -->
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">translate</span> <span data-i18n="kikitan.profile_translation.title">Profile Translation</span></div>

@@ -1,29 +1,44 @@
-**2026.27.0**
+**2026.27.2**
 
-**Biography Translation**
+**FrameShot (New Tool)**
 
-* Biographies can now be translated by AI.
-* To use this feature, open **Kikitan XD** in the left sidebar.
-* Add a Groq API key, then scroll down to the **Profile Translation Card** section.
-* Choose your target language. The default is English.
-* After setup, you can open any user profile and let AI translate the biography into your selected language.
+* Added **FrameShot**, a new SteamVR photo tool that works in any VR game.
+* Create a photo frame by holding both hands close together, pressing the controller keybinds, and pulling your hands apart.
+* Release the right controller keybind to take the photo.
+* Release the left controller keybind to cancel.
+* The frame shows exactly what will be saved from your VR view.
+* Photos are saved to **Pictures/VRCN/FrameShots/**.
+* You can also record GIF files (Max 8 seconds)
+* Keybinds, sounds, audio output, and auto-start with VRChat can be configured.
 
-* Added AI translation for Group Modals
--- Descriptions
--- Rules
+**VR Wrist Overlay**
 
-* Added AI translations for Profile Modals
--- Biography
+* The Tools tab is now scrollable, so adding more tools (like FrameShot)
 
-* Added AI translation for World Modals
--- Description
+**Kikitan XD**
 
-**World Modal**
+* Added a new **Personalities** setting.
+* You can now choose between **Raw** (default) and **Kawai**.
+* When using **Kawai Mode**, the AI adds a fitting kaomoji or cute expression to every message based on what you say.
 
-* Added a count badge to the Instances tab instead of showing the count as `(x)`.
+Example:
 
-**Profile Modal**
+Raw: I want to give you a hug.
+Kawai: I want to give you a hug <3!!
 
-* Added count badges to all tabs instead of showing counts as `(x)`.
-* Added sorting filters for Mutual Friends: Alphabetical and Favorites.
-* Added sorting filters for Groups and Mutual Groups: Alphabetical and Member Count.
+This is mostly a useless, but funny and cute feature.
+
+**Instance List Modal**
+
+* Reduced the display name cell length to make more space for other cells.
+
+**Improvements**
+
+* The **Today** button in the Timeline now works as a toggle.
+* When **Today** is active, the Timeline will always show today’s entries.
+* When the date changes, it will automatically switch to the new day instead of requiring you to click the button manually.
+
+**Fixes**
+
+* Fixed a crucial duplication bug in **Timeline > Photos**.
+* Fixed an issue where **From** and **To** values were not shown in the Friends Timeline when **Optimized Database** was disabled.

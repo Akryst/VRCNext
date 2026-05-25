@@ -25,6 +25,7 @@ public class PhotosController
     private readonly List<WebhookService.PostRecord> _postHistory = new();
     private int _fileCount;
     private double _totalSizeMB;
+    private readonly SemaphoreSlim _photoBootstrapLock = new(1, 1);
 
     // Library file cache entry
     public record LibFileEntry(FileInfo Fi, int FolderIndex, string Folder);
@@ -85,6 +86,8 @@ public class PhotosController
     // Imports existing photo_players.json entries not yet in timeline
     public async Task BootstrapPhotoTimeline()
     {
+        // Serialize concurrent calls so the existingFiles snapshot stays consistent
+        await _photoBootstrapLock.WaitAsync();
         try
         {
             // Build set of filenames already in timeline
@@ -171,6 +174,10 @@ public class PhotosController
         catch (Exception ex)
         {
             try { _core.SendToJS("log", new { msg = $"[TIMELINE] Bootstrap error: {ex.Message}", color = "err" }); } catch { }
+        }
+        finally
+        {
+            _photoBootstrapLock.Release();
         }
     }
 

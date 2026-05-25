@@ -137,6 +137,13 @@ function saveSettings() {
             chatboxAutoStartDesktop:  document.getElementById('setCbAutoStartDesktop')?.checked   ?? false,
             sfAutoStart: false, // legacy
             sfAutoStartVR:            document.getElementById('setSfAutoStartVR')?.checked        ?? false,
+            fsAutoStartVR:            document.getElementById('setFsAutoStartVR')?.checked        ?? false,
+            fsLeftButton:             parseInt(document.getElementById('fsLeftButton')?.value     ?? '2', 10),
+            fsRightButton:            parseInt(document.getElementById('fsRightButton')?.value    ?? '2', 10),
+            fsOutputDevice:           document.getElementById('fsOutputDevice')?.value            ?? '',
+            fsActivationRadius:       parseInt(document.getElementById('fsActivationRadius')?.value ?? '15', 10),
+            fsLeftRecordButton:       parseInt(document.getElementById('fsLeftRecord')?.value      ?? '0',  10),
+            fsRightRecordButton:      parseInt(document.getElementById('fsRightRecord')?.value     ?? '0',  10),
             ytAutoStartVR:            document.getElementById('setYtAutoStartVR')?.checked        ?? false,
             ytAutoStartDesktop:       document.getElementById('setYtAutoStartDesktop')?.checked   ?? false,
             vfAutoStartVR:            document.getElementById('setVfAutoStartVR')?.checked        ?? false,
@@ -430,6 +437,23 @@ function loadSettingsToUI(s) {
     _set('setCbAutoStartVR',      s.ChatboxAutoStartVR      ?? s.chatboxAutoStartVR      ?? false);
     _set('setCbAutoStartDesktop', s.ChatboxAutoStartDesktop ?? s.chatboxAutoStartDesktop ?? false);
     _set('setSfAutoStartVR',      s.SfAutoStartVR           ?? s.sfAutoStartVR           ?? false);
+    _set('setFsAutoStartVR',      s.FsAutoStartVR           ?? s.fsAutoStartVR           ?? false);
+    const _fsLeftEl  = document.getElementById('fsLeftButton');
+    const _fsRightEl = document.getElementById('fsRightButton');
+    if (_fsLeftEl)  _fsLeftEl.value  = String(s.FsLeftButton  ?? s.fsLeftButton  ?? 2);
+    if (_fsRightEl) _fsRightEl.value = String(s.FsRightButton ?? s.fsRightButton ?? 2);
+    const _fsLR = document.getElementById('fsLeftRecord');
+    const _fsRR = document.getElementById('fsRightRecord');
+    if (_fsLR) _fsLR.value = String(s.FsLeftRecordButton  ?? s.fsLeftRecordButton  ?? 0);
+    if (_fsRR) _fsRR.value = String(s.FsRightRecordButton ?? s.fsRightRecordButton ?? 0);
+    if (typeof _fsSavedDevice !== 'undefined') _fsSavedDevice = s.FsOutputDevice ?? s.fsOutputDevice ?? '';
+    if (typeof fsRequestDevices === 'function') fsRequestDevices();
+    const _fsAr = document.getElementById('fsActivationRadius');
+    if (_fsAr) {
+        _fsAr.value = String(s.FsActivationRadius ?? s.fsActivationRadius ?? 15);
+        const _fsArV = document.getElementById('fsActivationRadiusVal');
+        if (_fsArV) _fsArV.textContent = `${_fsAr.value} cm`;
+    }
     _set('setYtAutoStartVR',      s.YtAutoStartVR           ?? s.ytAutoStartVR           ?? false);
     _set('setYtAutoStartDesktop', s.YtAutoStartDesktop      ?? s.ytAutoStartDesktop      ?? false);
     _set('setVfAutoStartVR',      s.VfAutoStartVR           ?? s.vfAutoStartVR           ?? false);

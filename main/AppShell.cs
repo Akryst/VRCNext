@@ -41,6 +41,7 @@ public partial class AppShell
     private TimelineController _timelineCtrl = null!;
     private VROverlayController _vroCtrl = null!;
     private SpaceFlightController _sfCtrl = null!;
+    private FrameShotController _fsCtrl = null!;
     private DiscordController _discordCtrl = null!;
     private ChatboxController _chatboxCtrl = null!;
     private VoiceFightController _vfCtrl = null!;
@@ -175,6 +176,7 @@ public partial class AppShell
         _timelineCtrl = new TimelineController(_core, _friends, _instance, _photos);
         _vroCtrl = new VROverlayController(_core, _friends);
         _sfCtrl = new SpaceFlightController(_core, _vroCtrl);
+        _fsCtrl = new FrameShotController(_core, _vroCtrl);
         _discordCtrl = new DiscordController(_core, _instance, _vroCtrl);
         _chatboxCtrl = new ChatboxController(_core, _vroCtrl);
         _vfCtrl = new VoiceFightController(_core, _vroCtrl);
@@ -201,7 +203,8 @@ public partial class AppShell
             _kxdCtrl.IsRunning,
             _sfCtrl.IsConnected,
             _relayCtrl.IsRunning,
-            _chatboxCtrl.IsEnabled);
+            _chatboxCtrl.IsEnabled,
+            _fsCtrl.IsConnected);
         _fileWatcher.NewFile += _photos.OnNewFile;
         _ = SQLiteMigrator.PruneOrphanedTimelinePhotosAsync(
             _core.Timeline,
@@ -557,6 +560,7 @@ public partial class AppShell
         _uptimeTimer2?.Dispose();
         _worldStatsTimer?.Dispose();
         _sfCtrl?.Dispose();
+        _fsCtrl?.Dispose();
         _vfCtrl?.Dispose();
         _kxdCtrl?.Dispose();
         _asCtrl?.Dispose();
@@ -775,6 +779,10 @@ public partial class AppShell
 
             case 5: // Custom Chatbox
                 _chatboxCtrl.Toggle();
+                break;
+
+            case 6: // FrameShot
+                _fsCtrl.Toggle();
                 break;
         }
         _vroCtrl.UpdateToolStates();

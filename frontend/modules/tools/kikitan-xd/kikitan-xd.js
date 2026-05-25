@@ -113,7 +113,8 @@ function kxdConnect() {
         return;
     }
 
-    sendToCS({ action: 'kxdStart', deviceIndex, apiKey, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct });
+    const personality = document.getElementById('kxdPersonality')?.value || _kxdDevicesPayload.personality || 'raw';
+    sendToCS({ action: 'kxdStart', deviceIndex, apiKey, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct, personality });
 }
 
 function populateKxdDevices(p) {
@@ -181,6 +182,12 @@ function populateKxdDevices(p) {
 
     const profTransToggle = document.getElementById('kxdProfileTransToggle');
     if (profTransToggle && p.profileTranslationEnabled != null) profTransToggle.checked = !!p.profileTranslationEnabled;
+
+    const persSel = document.getElementById('kxdPersonality');
+    if (persSel && p.personality) {
+        persSel.value = p.personality;
+        if (persSel._vnRefresh) persSel._vnRefresh();
+    }
 
     window._kxdProfileTranslationEnabled = p.profileTranslationEnabled !== false;
     window._kxdProfileTargetLang = p.profileTargetLang || 'en';
@@ -258,7 +265,8 @@ function kxdSaveSettings() {
     window._kxdProfileTranslationEnabled = profileTranslationEnabled;
     window._kxdProfileTargetLang = profileTargetLang;
     window._kxdApiKeyPresent = !!apiKey;
-    sendToCS({ action: 'kxdSaveSettings', apiKey, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct, profileTranslationEnabled, profileTargetLang });
+    const personality = document.getElementById('kxdPersonality')?.value || 'raw';
+    sendToCS({ action: 'kxdSaveSettings', apiKey, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct, profileTranslationEnabled, profileTargetLang, personality });
 }
 
 function buildKxdLangOptions(langs, selectedCode) {
