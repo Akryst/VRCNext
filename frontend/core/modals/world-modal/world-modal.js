@@ -279,6 +279,7 @@ function renderWorldSearchDetail(w) {
             <span class="vrcn-badge"><span class="msi" style="font-size:11px;">visibility</span> ${w.visits}</span>
             ${w.pcSize > 0 ? `<span class="vrcn-badge"><span class="msi" style="font-size:11px;">computer</span> ${formatFileSize(w.pcSize)}</span>` : ''}
             ${w.androidSize > 0 ? `<span class="vrcn-badge"><span class="msi" style="font-size:11px;">android</span> ${formatFileSize(w.androidSize)}</span>` : ''}
+            ${w.iosSize > 0 ? `<span class="vrcn-badge"><span class="msi" style="font-size:11px;">phone_iphone</span> ${formatFileSize(w.iosSize)}</span>` : ''}
             ${idBadge(wid)}
         </div>
         <div style="margin:10px 0 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">

@@ -228,6 +228,7 @@ public class UnifiedTimeEngine : IDisposable
         public int    Visits                { get; set; }
         public long   PcSize               { get; set; }
         public long   AndroidSize           { get; set; }
+        public long   IosSize               { get; set; }
         public int    Heat                  { get; set; }
         public int    Popularity            { get; set; }
         public int    PublicOccupants       { get; set; }
@@ -249,13 +250,13 @@ public class UnifiedTimeEngine : IDisposable
                 cmd.CommandText = @"SELECT world_name,world_thumb,world_description,world_image_url,
                     world_author_name,world_author_id,world_published,world_updated,
                     world_capacity,world_recommended_capacity,world_tags,
-                    world_favorites,world_visits,world_pc_size,world_android_size,
+                    world_favorites,world_visits,world_pc_size,world_android_size,world_ios_size,
                     world_heat,world_popularity,world_public_occupants,world_private_occupants,world_version,
                     total_seconds,visit_count,last_visited,detail_cached_at
                     FROM world_tracking WHERE world_id=$wid";
                 cmd.Parameters.AddWithValue("$wid", worldId);
                 using var r = cmd.ExecuteReader();
-                if (!r.Read() || string.IsNullOrEmpty(r.GetString(23))) return null;
+                if (!r.Read() || string.IsNullOrEmpty(r.GetString(24))) return null;
                 return new WorldDetailCache
                 {
                     WorldName           = r.GetString(0),
@@ -273,14 +274,15 @@ public class UnifiedTimeEngine : IDisposable
                     Visits              = r.GetInt32(12),
                     PcSize              = r.GetInt64(13),
                     AndroidSize         = r.GetInt64(14),
-                    Heat                = r.GetInt32(15),
-                    Popularity          = r.GetInt32(16),
-                    PublicOccupants     = r.GetInt32(17),
-                    PrivateOccupants    = r.GetInt32(18),
-                    Version             = r.GetInt32(19),
-                    TotalSeconds        = r.GetInt64(20),
-                    VisitCount          = r.GetInt32(21),
-                    LastVisited         = r.GetString(22),
+                    IosSize             = r.GetInt64(15),
+                    Heat                = r.GetInt32(16),
+                    Popularity          = r.GetInt32(17),
+                    PublicOccupants     = r.GetInt32(18),
+                    PrivateOccupants    = r.GetInt32(19),
+                    Version             = r.GetInt32(20),
+                    TotalSeconds        = r.GetInt64(21),
+                    VisitCount          = r.GetInt32(22),
+                    LastVisited         = r.GetString(23),
                 };
             }
             catch { return null; }
@@ -290,7 +292,7 @@ public class UnifiedTimeEngine : IDisposable
     public void SaveWorldDetail(string worldId, string name, string thumb, string description,
         string imageUrl, string authorName, string authorId, string published, string updated,
         int capacity, int recommendedCapacity, List<string> tags,
-        int favorites, int visits, long pcSize, long androidSize,
+        int favorites, int visits, long pcSize, long androidSize, long iosSize,
         int heat, int popularity, int publicOccupants, int privateOccupants, int version)
     {
         if (string.IsNullOrEmpty(worldId)) return;
@@ -303,9 +305,9 @@ public class UnifiedTimeEngine : IDisposable
                 using var cmd = _db.CreateCommand();
                 cmd.CommandText = @"INSERT INTO world_tracking(world_id,world_name,world_thumb,world_description,world_image_url,
                     world_author_name,world_author_id,world_published,world_updated,world_capacity,
-                    world_recommended_capacity,world_tags,world_favorites,world_visits,world_pc_size,world_android_size,
+                    world_recommended_capacity,world_tags,world_favorites,world_visits,world_pc_size,world_android_size,world_ios_size,
                     world_heat,world_popularity,world_public_occupants,world_private_occupants,world_version,detail_cached_at)
-                    VALUES($wid,$wn,$wt,$desc,$img,$an,$ai,$pub,$upd,$cap,$rcap,$tags,$fav,$vis,$pcs,$ands,$heat,$pop,$pubocc,$privocc,$ver,$cat)
+                    VALUES($wid,$wn,$wt,$desc,$img,$an,$ai,$pub,$upd,$cap,$rcap,$tags,$fav,$vis,$pcs,$ands,$ioss,$heat,$pop,$pubocc,$privocc,$ver,$cat)
                     ON CONFLICT(world_id) DO UPDATE SET
                         world_name=excluded.world_name, world_thumb=excluded.world_thumb,
                         world_description=excluded.world_description, world_image_url=excluded.world_image_url,
@@ -315,6 +317,7 @@ public class UnifiedTimeEngine : IDisposable
                         world_tags=excluded.world_tags, world_favorites=excluded.world_favorites,
                         world_visits=excluded.world_visits, world_pc_size=excluded.world_pc_size,
                         world_android_size=excluded.world_android_size,
+                        world_ios_size=excluded.world_ios_size,
                         world_heat=excluded.world_heat, world_popularity=excluded.world_popularity,
                         world_public_occupants=excluded.world_public_occupants,
                         world_private_occupants=excluded.world_private_occupants,
@@ -336,6 +339,7 @@ public class UnifiedTimeEngine : IDisposable
                 cmd.Parameters.AddWithValue("$vis",     visits);
                 cmd.Parameters.AddWithValue("$pcs",     pcSize);
                 cmd.Parameters.AddWithValue("$ands",    androidSize);
+                cmd.Parameters.AddWithValue("$ioss",    iosSize);
                 cmd.Parameters.AddWithValue("$heat",    heat);
                 cmd.Parameters.AddWithValue("$pop",     popularity);
                 cmd.Parameters.AddWithValue("$pubocc",  publicOccupants);
@@ -1919,6 +1923,7 @@ public class UnifiedTimeEngine : IDisposable
             "world_visits              INTEGER NOT NULL DEFAULT 0",
             "world_pc_size             INTEGER NOT NULL DEFAULT 0",
             "world_android_size        INTEGER NOT NULL DEFAULT 0",
+            "world_ios_size            INTEGER NOT NULL DEFAULT 0",
             "world_heat                INTEGER NOT NULL DEFAULT 0",
             "world_popularity          INTEGER NOT NULL DEFAULT 0",
             "world_public_occupants    INTEGER NOT NULL DEFAULT 0",
