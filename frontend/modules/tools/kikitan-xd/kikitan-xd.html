@@ -17,7 +17,7 @@
                     <!-- Mic + Volume -->
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">mic</span> <span data-i18n="kikitan.input_device">Input Device</span></div>
-                        <select id="kxdDeviceSelect" class="lib-filter-select" style="width:100%;margin-bottom:12px;"><option data-i18n="common.loading">Loading...</option></select>
+                        <select id="kxdDeviceSelect" class="lib-filter-select" style="width:100%;margin-bottom:12px;" onchange="kxdSaveSettings()"><option data-i18n="common.loading">Loading...</option></select>
                         <div class="vrcn-panel-card-header" style="margin-top:4px;"><span class="msi">graphic_eq</span> <span data-i18n="kikitan.mic_level">Mic Level</span></div>
                         <div class="vf-meter-wrap" style="position:relative;">
                             <div class="vf-meter-bar" id="kxdMeterBar"></div>

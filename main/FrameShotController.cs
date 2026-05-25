@@ -37,7 +37,7 @@ public class FrameShotController : IDisposable
 
             h.OnFsUpdate += d => _core.SendToJS("fsUpdate", d);
 
-            h.OnFsDevices += devices => _core.SendToJS("fsDevices", new { devices });
+            h.OnFsDevices += devices => _core.SendToJS("fsDevices", new { devices, savedDevice = _core.Settings.FsOutputDevice });
 
             h.OnFsPhotoSaved += path =>
             {

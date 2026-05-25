@@ -182,13 +182,28 @@ function renderChatboxHistory() {
         el.innerHTML = `<div class="osc-empty">${t('chatbox.live_chat.empty', 'No messages sent yet')}</div>`;
         return;
     }
-    el.innerHTML = _cbChatHistory.map(m =>
-        `<div class="msgr-msg msgr-mine">
+    el.innerHTML = _cbChatHistory.map((m, i) =>
+        `<div class="msgr-msg msgr-mine cb-msg-hoverable">
+            <button class="vrcn-resend-button" onclick="resendChatboxMessage(${i})" title="${esc(t('common.resend', 'Resend'))}"><span class="msi" style="font-size:14px;">refresh</span></button>
             <div class="msgr-bubble">${esc(m.text)}</div>
             <div class="msgr-time">${esc(m.ts)}</div>
         </div>`
     ).join('');
     el.scrollTop = el.scrollHeight;
+}
+
+function resendChatboxMessage(i) {
+    const m = _cbChatHistory[i];
+    if (!m) return;
+    const text = (m.text || '').slice(0, 144);
+    if (!text) return;
+    sendToCS({ action: 'chatboxDirectSend', text });
+    const now = new Date();
+    const ts = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    _cbChatHistory.push({ text, ts });
+    if (_cbChatHistory.length > CB_MAX_HISTORY) _cbChatHistory.shift();
+    renderChatboxHistory();
+    startCbPause();
 }
 
 function startCbPause() {

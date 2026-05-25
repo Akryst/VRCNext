@@ -285,7 +285,10 @@ static class VRSubprocess
                 {
                     sf.ApplyConfig(F(cmd, "multiplier", 1f),
                         B(cmd, "lockX"), B(cmd, "lockY"), B(cmd, "lockZ"),
-                        B(cmd, "leftHand"), B(cmd, "rightHand", true), B(cmd, "useGrip", true));
+                        (uint)I(cmd, "leftResetBtn",  32),
+                        (uint)I(cmd, "rightResetBtn",  0),
+                        (uint)I(cmd, "leftDragBtn",    0),
+                        (uint)I(cmd, "rightDragBtn",  32));
                     sf.StartPolling();
                 }
                 break;
@@ -298,7 +301,10 @@ static class VRSubprocess
             case "sf_config":
                 sf.ApplyConfig(F(cmd, "multiplier", 1f),
                     B(cmd, "lockX"), B(cmd, "lockY"), B(cmd, "lockZ"),
-                    B(cmd, "leftHand"), B(cmd, "rightHand", true), B(cmd, "useGrip", true));
+                    (uint)I(cmd, "leftResetBtn",  32),
+                    (uint)I(cmd, "rightResetBtn",  0),
+                    (uint)I(cmd, "leftDragBtn",    0),
+                    (uint)I(cmd, "rightDragBtn",  32));
                 break;
 
             case "sf_reset":

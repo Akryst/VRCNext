@@ -51,6 +51,7 @@ function handleFsDevices(payload) {
     const sel = document.getElementById('fsOutputDevice');
     if (!sel) return;
     const list = Array.isArray(payload?.devices) ? payload.devices : [];
+    if (typeof payload?.savedDevice === 'string' && !_fsSavedDevice) _fsSavedDevice = payload.savedDevice;
     // Keep current selection if it exists in new list, else fall back to saved
     const want = sel.value || _fsSavedDevice || '';
     sel.innerHTML = '';
@@ -70,6 +71,7 @@ function handleFsDevices(payload) {
         if (o.value === want || (want && want.startsWith(o.value))) { matched = o.value; break; }
     }
     sel.value = matched;
+    if (sel._vnRefresh) sel._vnRefresh();
 }
 
 function fsOutputDeviceChange() {

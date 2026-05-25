@@ -84,6 +84,7 @@ public class KikitanXDController : IDisposable
 
             case "kxdSaveSettings":
             {
+                if (msg["deviceIndex"] is JToken di) _settings.InputDeviceIndex = di.Value<int>();
                 if (msg["apiKey"] is JToken ak) _settings.ApiKey = ak.ToString();
                 if (msg["sourceLang"] is JToken sl) _settings.SourceLang = sl.ToString();
                 if (msg["targetLang"] is JToken tl) _settings.TargetLang = tl.ToString();
