@@ -2,8 +2,9 @@
 
 **Hotfixes**
 * Limit GIFs to max 512x512px limits to prevent huge file sizes.
-* Removed how to use card and moved it to tab infos
-* Added tab infos for FrameShots
+* Removed how to use card and moved it to tab infos.
+* Added tab infos for FrameShots.
+* FrameShots show metadata now in Media Library.
 
 **2026.27.5**
 

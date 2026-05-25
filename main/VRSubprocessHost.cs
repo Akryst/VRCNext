@@ -46,6 +46,7 @@ public sealed class VRSubprocessHost : IDisposable
     public event Action<JObject>? OnFsUpdate;
     public event Action? OnFsQuit;
     public event Action<List<string>>? OnFsDevices;
+    public event Action<string>? OnFsPhotoSaved;
 
     public VRSubprocessHost(Action<string> log) => _log = log;
 
@@ -214,6 +215,9 @@ public sealed class VRSubprocessHost : IDisposable
                 break;
             case "fs_devices":
                 OnFsDevices?.Invoke(msg["devices"]?.ToObject<List<string>>() ?? new());
+                break;
+            case "fs_photo_saved":
+                OnFsPhotoSaved?.Invoke(msg["path"]?.Value<string>() ?? "");
                 break;
         }
     }
@@ -411,6 +415,7 @@ public sealed class VRSubprocessHost : IDisposable
     public event System.Action<Newtonsoft.Json.Linq.JObject>? OnFsUpdate;
     public event System.Action? OnFsQuit;
     public event System.Action<System.Collections.Generic.List<string>>? OnFsDevices;
+    public event System.Action<string>? OnFsPhotoSaved;
     public void TrimMemory() { }
     public void VroWaterConfig(bool enabled, int intervalSec) { }
     public void VroScaleConfig(bool a0, bool a, bool b, System.Collections.Generic.List<uint> c, int d, float e, int f = 25) { }

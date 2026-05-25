@@ -105,6 +105,8 @@ static class VRSubprocess
             obj["t"] = "fs_update";
             SendLine(obj);
         };
+        fs.OnPhotoSaved += path =>
+            SendLine(new JObject { ["t"] = "fs_photo_saved", ["path"] = path });
         fs.OnVRQuit += () => Environment.Exit(0);
 
         string? line;

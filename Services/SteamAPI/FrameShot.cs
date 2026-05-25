@@ -39,6 +39,7 @@ namespace VRCNext.Services
         // Events
         public event Action<object>? OnStateUpdate;
         public event Action? OnVRQuit;
+        public event Action<string>? OnPhotoSaved;
 
         // OpenVR
         private CVRSystem? _vrSystem;
@@ -799,6 +800,7 @@ namespace VRCNext.Services
                 frames[0].SaveAdd(p);
 
                 _log($"[FrameShot] Saved {path} ({frames.Count} frames)");
+                try { OnPhotoSaved?.Invoke(path); } catch { }
             }
             catch (Exception ex)
             {
@@ -1104,6 +1106,7 @@ namespace VRCNext.Services
                     bmp.Save(path, ImageFormat.Png);
                     _log($"[FrameShot] Saved {path} ({cw}x{ch})");
                     bmp.Dispose();
+                    try { OnPhotoSaved?.Invoke(path); } catch { }
                 }
             }
             catch (Exception ex)

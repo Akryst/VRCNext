@@ -176,7 +176,7 @@ public partial class AppShell
         _timelineCtrl = new TimelineController(_core, _friends, _instance, _photos);
         _vroCtrl = new VROverlayController(_core, _friends);
         _sfCtrl = new SpaceFlightController(_core, _vroCtrl);
-        _fsCtrl = new FrameShotController(_core, _vroCtrl);
+        _fsCtrl = new FrameShotController(_core, _vroCtrl, _photos);
         _discordCtrl = new DiscordController(_core, _instance, _vroCtrl);
         _chatboxCtrl = new ChatboxController(_core, _vroCtrl);
         _vfCtrl = new VoiceFightController(_core, _vroCtrl);

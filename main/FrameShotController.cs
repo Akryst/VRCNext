@@ -9,14 +9,16 @@ public class FrameShotController : IDisposable
 {
     private readonly CoreLibrary _core;
     private readonly VROverlayController _vroCtrl;
+    private readonly PhotosController _photos;
     private bool _fsEventsWired;
 
     public bool IsConnected => _core.VrOverlay?.FsConnected ?? false;
 
-    public FrameShotController(CoreLibrary core, VROverlayController vroCtrl)
+    public FrameShotController(CoreLibrary core, VROverlayController vroCtrl, PhotosController photos)
     {
         _core    = core;
         _vroCtrl = vroCtrl;
+        _photos  = photos;
     }
 
 #if WINDOWS
@@ -36,6 +38,11 @@ public class FrameShotController : IDisposable
             h.OnFsUpdate += d => _core.SendToJS("fsUpdate", d);
 
             h.OnFsDevices += devices => _core.SendToJS("fsDevices", new { devices });
+
+            h.OnFsPhotoSaved += path =>
+            {
+                if (!string.IsNullOrEmpty(path)) _photos.HandleExternalSave(path);
+            };
 
             h.OnFsQuit += () =>
             {

@@ -181,6 +181,20 @@ public class PhotosController
         }
     }
 
+    public void HandleExternalSave(string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath)) return;
+            SnapshotPhotoPlayers(filePath);
+            AddFileToLibrary(filePath);
+        }
+        catch (Exception ex)
+        {
+            CrashHandler.WriteEntry("PhotosController.HandleExternalSave", ex);
+        }
+    }
+
     // File Watcher - Post to Discord
     public async void OnNewFile(object? sender, FileWatcherService.FileArg e)
     {
