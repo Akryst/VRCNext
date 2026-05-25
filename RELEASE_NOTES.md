@@ -17,6 +17,13 @@ This is mostly a useless, but funny and cute feature.
 
 * Reduced the display name cell length to make more space for other cells.
 
+**Improvements**
+
+* The **Today** button in the Timeline now works as a toggle.
+* When **Today** is active, the Timeline will always show today’s entries.
+* When the date changes, it will automatically switch to the new day instead of requiring you to click the button manually.
+
 **Fixes**
-* Fixed crucial duplication bug in timeline > photos.
-* Fixed an issue when "Optimized Database" was disabled it won't show the "From" "To" parameters in friends timeline.
+
+* Fixed a crucial duplication bug in **Timeline > Photos**.
+* Fixed an issue where **From** and **To** values were not shown in the Friends Timeline when **Optimized Database** was disabled.

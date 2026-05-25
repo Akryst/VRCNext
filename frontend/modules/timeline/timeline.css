@@ -146,6 +146,7 @@
 
 .tl-datebtn { padding: 0 10px; }
 #tlDateBtn.dp-active { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-lt); }
+#tlDpTodayBtn.active { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent-lt); border-color: var(--accent); }
 
 .tl-date-picker {
     position: fixed;

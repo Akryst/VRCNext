@@ -29,6 +29,9 @@ let _ftlPendingListPage = null;
 // Active date filter (ISO string like "2026-03-01", empty = no filter)
 let tlDateFilter = '';
 let tlTabInited  = false;
+// "Today" mode: when true, tlDateFilter tracks the current day and auto-switches at midnight
+let tlTodayMode         = false;
+let _todayMidnightTimer = null;
 
 // View mode: 'timeline' (card view) or 'list' (table view) — persisted in localStorage
 let tlViewMode = localStorage.getItem('tlViewMode') || 'timeline';
@@ -252,12 +255,10 @@ function refreshTimeline() {
     if (tlMode === 'friends') { refreshFriendTimeline(); return; }
     if (!tlTabInited) {
         tlTabInited = true;
-        const t = new Date();
-        applyTlDateFilter(`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`);
+        dpSelectToday();
         return;
     }
-    // If we're navigating to a specific event and already have data, skip re-fetching
-    // and render directly so _tlScrollTarget is consumed synchronously
+
     if (_tlScrollTarget && timelineEvents.length > 0) {
         filterTimeline();
         return;
@@ -269,7 +270,7 @@ function refreshTimeline() {
     tlRenderedCount = 100;
     tlListPage      = 0;
     tlTotal         = 0;
-    // If search is active, keep showing existing results during refresh instead of a loading flash
+
     const activeSearch = (document.getElementById('tlSearchInput')?.value ?? '').trim();
     const c = document.getElementById('tlContainer');
     if (c && !(_tlSearchMode && activeSearch)) {
@@ -670,12 +671,49 @@ function dpNavMonth(dir) {
 function selectDpDate(dateStr) {
     document.getElementById('tlDatePicker').style.display = 'none';
     document.removeEventListener('click', _closeDpOutside);
+    if (tlTodayMode && dateStr !== _todayDateStr()) _deactivateTodayMode();
     applyTlDateFilter(dateStr);
 }
 
-function dpSelectToday() {
+function _todayDateStr() {
     const t = new Date();
-    selectDpDate(_dpFmt(t.getFullYear(), t.getMonth(), t.getDate()));
+    return _dpFmt(t.getFullYear(), t.getMonth(), t.getDate());
+}
+
+function _setDpTodayBtnActive(active) {
+    const btn = document.getElementById('tlDpTodayBtn');
+    if (btn) btn.classList.toggle('active', active);
+}
+
+function _scheduleMidnightTodaySwitch() {
+    if (_todayMidnightTimer) { clearTimeout(_todayMidnightTimer); _todayMidnightTimer = null; }
+    const now  = new Date();
+    // Fire 1s after midnight to avoid edge-cases around the exact tick
+    const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+    _todayMidnightTimer = setTimeout(() => {
+        _todayMidnightTimer = null;
+        if (!tlTodayMode) return;
+        applyTlDateFilter(_todayDateStr());
+        _scheduleMidnightTodaySwitch();
+    }, next - now);
+}
+
+function _deactivateTodayMode() {
+    tlTodayMode = false;
+    if (_todayMidnightTimer) { clearTimeout(_todayMidnightTimer); _todayMidnightTimer = null; }
+    _setDpTodayBtnActive(false);
+}
+
+function dpSelectToday() {
+    // Toggle: if Today mode is already active, turn it off (clears the filter)
+    if (tlTodayMode) {
+        dpClear();
+        return;
+    }
+    tlTodayMode = true;
+    _setDpTodayBtnActive(true);
+    _scheduleMidnightTodaySwitch();
+    selectDpDate(_todayDateStr());
 }
 
 function dpClear() {
@@ -727,6 +765,7 @@ function applyTlDateFilter(dateStr) {
 
 function clearTlDateFilter() {
     tlDateFilter = '';
+    _deactivateTodayMode();
     const label = document.getElementById('tlDateLabel');
     const clear = document.getElementById('tlDateClear');
     const btn   = document.getElementById('tlDateBtn');
