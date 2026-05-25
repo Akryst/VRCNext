@@ -54,6 +54,9 @@ window.external.receiveMessage(rawMsg => {
                     () => { if (!chatboxEnabled) toggleChatbox(); });
                 // Space Flight (VR only)
                 trigger(vr && chk('setSfAutoStartVR'), sfConnect);
+                // FrameShot (VR only)
+                trigger(vr && chk('setFsAutoStartVR'),
+                    () => { if (typeof fsConnect === 'function') fsConnect(); });
                 // Media Relay
                 trigger(vr ? chk('setAutoStartVR') : chk('setAutoStartDesktop'),
                     () => sendToCS({ action: 'startRelay' }));
@@ -909,6 +912,12 @@ case 'vrcNews':
                 break;
             case 'sfUpdate':
                 handleSfUpdate(payload);
+                break;
+            case 'fsUpdate':
+                if (typeof handleFsUpdate === 'function') handleFsUpdate(payload);
+                break;
+            case 'fsDevices':
+                if (typeof handleFsDevices === 'function') handleFsDevices(payload);
                 break;
             case 'dpState': dpOnState(payload); break;
             case 'vfState': handleVfState(payload); break;

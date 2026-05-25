@@ -1424,6 +1424,7 @@ const _DASH_QC = [
     { id: 'dp',      icon: 'sensors',       labelKey: 'nav.discord_presence', defaultLabel: 'Discord',      isOn: () => typeof _dpRunning !== 'undefined' && _dpRunning,           toggle: () => dpToggle() },
     { id: 'yt',      icon: 'smart_display', labelKey: 'nav.youtube_fix',      defaultLabel: 'YouTube Fix',  isOn: () => typeof _vcLastState !== 'undefined' && !!_vcLastState?.running, toggle: () => toggleVc() },
     { id: 'sf',      icon: 'rocket_launch', labelKey: 'nav.space_flight',     defaultLabel: 'Space Flight', isOn: () => typeof sfConnected !== 'undefined' && sfConnected,         toggle: () => sfConnect() },
+    { id: 'fs',      icon: 'photo_camera',  labelKey: 'nav.frame_shot',       defaultLabel: 'FrameShot',    isOn: () => typeof fsConnected !== 'undefined' && fsConnected,         toggle: () => fsConnect() },
 ];
 
 function dashQcToggle(id) {

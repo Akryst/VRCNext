@@ -12,6 +12,7 @@ const NAV_ITEMS_DEF = {
     'chatbox':          { icon: 'chat',            tab: 5,  i18n: 'nav.custom_chatbox',     label: 'Custom Chatbox'   },
     'media-relay':      { icon: 'cell_tower',      tab: 6,  i18n: 'nav.media_relay',        label: 'Media Relay',      windowsOnly: true },
     'space-flight':     { icon: 'rocket_launch',   tab: 10, i18n: 'nav.space_flight',       label: 'Space Flight',     windowsOnly: true },
+    'frame-shot':       { icon: 'photo_camera',    tab: 26, i18n: 'nav.frame_shot',         label: 'FrameShot',        windowsOnly: true },
     'osc-tool':         { icon: 'tune',            tab: 11, i18n: 'nav.osc_tool',           label: 'OSC Tool',         windowsOnly: true },
     'youtube-fix':      { icon: 'smart_display',   tab: 14, i18n: 'nav.youtube_fix',        label: 'YouTube Fix',      windowsOnly: true },
     'activity-log':     { icon: 'article',         tab: 8,  i18n: 'nav.activity_log',       label: 'Activity Log'     },
@@ -31,6 +32,7 @@ const NAV_ICON_OPTIONS = [
     // Nav defaults
     'dashboard','travel_explore','groups','person_search','calendar_month','checkroom',
     'inventory_2','timeline','photo_library','settings','chat','cell_tower','rocket_launch',
+    'photo_camera',
     'tune','smart_display','article','hub','schedule','mic','sensors','watch','lock',
     'translate','gps_fixed','height','build','folder','star','favorite','bookmark',
     'home','explore','map','music_note','videocam','image','code','analytics','bar_chart',
@@ -77,7 +79,7 @@ const NAV_DEFAULT_LAYOUT = [
     {
         type: 'folder', id: 'folder-tools', name: 'Tools', icon: 'build',
         items: [
-            'chatbox','media-relay','space-flight','osc-tool','youtube-fix',
+            'chatbox','media-relay','space-flight','frame-shot','osc-tool','youtube-fix',
             'activity-log','mutual-network','time-spent','voice-fight',
             'discord-presence','vr-overlay','permini','kikitan-xd','event-snipe','avatar-scaling','action-flow',
         ],

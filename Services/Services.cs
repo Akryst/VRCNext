@@ -349,6 +349,13 @@ public class AppSettings
     public bool SfRightHand { get; set; } = true;
     public bool SfUseGrip { get; set; } = true;
 
+    // FrameShot settings
+    public uint   FsLeftButton       { get; set; } = 2;  // EVRButtonId.k_EButton_Grip
+    public uint   FsRightButton      { get; set; } = 2;  // EVRButtonId.k_EButton_Grip
+    public bool   FsAutoStartVR      { get; set; }
+    public string FsOutputDevice     { get; set; } = ""; // empty = system default
+    public int    FsActivationRadius { get; set; } = 15; // cm, 5–30
+
     // Auto-start flags (legacy — kept for JSON compat, no longer acted on)
     public bool ChatboxAutoStart { get; set; }
     public bool SfAutoStart { get; set; }

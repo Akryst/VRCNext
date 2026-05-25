@@ -65,6 +65,9 @@
   <None Include="Services\Assets\SystemTray\*.png" Condition="'$(_LinuxBuild)'!='true'" Link="tray\%(Filename)%(Extension)">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </None>
+  <None Include="Services\Assets\FrameShot\*.wav" Condition="'$(_LinuxBuild)'!='true'" Link="frameshot\%(Filename)%(Extension)">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
   <None Update="Services\OpenVR\openvr_api.dll" Condition="'$(_LinuxBuild)'!='true'" Link="openvr_api.dll">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </None>

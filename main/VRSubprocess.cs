@@ -46,6 +46,8 @@ static class VRSubprocess
 
         var sf = new SteamVRService(Log);
 
+        var fs = new FrameShotService(Log);
+
         vro.OnStateUpdate += d =>
         {
             var obj = JObject.FromObject(d);
@@ -96,6 +98,15 @@ static class VRSubprocess
             SendLine(obj);
         });
         sf.OnVRQuit += () => Environment.Exit(0);
+
+        fs.OnStateUpdate += d =>
+        {
+            var obj = JObject.FromObject(d);
+            obj["t"] = "fs_update";
+            SendLine(obj);
+        };
+        fs.OnVRQuit += () => Environment.Exit(0);
+
         string? line;
         while ((line = Console.ReadLine()) != null)
         {
@@ -103,16 +114,17 @@ static class VRSubprocess
             try
             {
                 var cmd = JObject.Parse(line);
-                Dispatch(cmd, vro, sf);
+                Dispatch(cmd, vro, sf, fs);
             }
             catch (Exception ex) { Log($"[Sub] Dispatch error: {ex.Message}"); }
         }
 
         try { vro.Dispose(); } catch { }
         try { sf.Dispose();  } catch { }
+        try { fs.Dispose();  } catch { }
     }
 
-    private static void Dispatch(JObject cmd, VROverlayService vro, SteamVRService sf)
+    private static void Dispatch(JObject cmd, VROverlayService vro, SteamVRService sf, FrameShotService fs)
     {
         var t = cmd["t"]?.Value<string>() ?? "";
 
@@ -188,7 +200,8 @@ static class VRSubprocess
             case "vro_tool_states":
                 vro.SetToolStates(
                     B(cmd, "discord"), B(cmd, "voice"), B(cmd, "kikitan"),
-                    B(cmd, "space"),   B(cmd, "relay"), B(cmd, "chatbox"));
+                    B(cmd, "space"),   B(cmd, "relay"), B(cmd, "chatbox"),
+                    B(cmd, "frameShot"));
                 break;
 
             case "vro_add_notif":
@@ -290,6 +303,47 @@ static class VRSubprocess
                 sf.ResetOffset();
                 break;
 
+            case "fs_connect":
+            {
+                bool ok = fs.Connect();
+                if (ok)
+                {
+                    fs.ApplyConfig(
+                        (uint)I(cmd, "leftButton",  2),
+                        (uint)I(cmd, "rightButton", 2),
+                        I(cmd, "activationRadius", 15) / 100f);
+                    fs.SetOutputDevice(FsFindDeviceIndex(S(cmd, "outputDevice")));
+                    fs.StartPolling();
+                }
+                break;
+            }
+
+            case "fs_disconnect":
+                fs.Disconnect();
+                break;
+
+            case "fs_config":
+                fs.ApplyConfig(
+                    (uint)I(cmd, "leftButton",  2),
+                    (uint)I(cmd, "rightButton", 2),
+                    I(cmd, "activationRadius", 15) / 100f);
+                break;
+
+            case "fs_set_output":
+                fs.SetOutputDevice(FsFindDeviceIndex(S(cmd, "deviceName")));
+                break;
+
+            case "fs_get_devices":
+            {
+                var devices = FrameShotService.GetOutputDevices();
+                SendLine(new JObject
+                {
+                    ["t"]       = "fs_devices",
+                    ["devices"] = JArray.FromObject(devices),
+                });
+                break;
+            }
+
             case "trim":
                 _ = Task.Run(() =>
                 {
@@ -327,6 +381,20 @@ static class VRSubprocess
     private static double D(JToken t, string k, double def = 0)     => t[k]?.Value<double>() ?? def;
     private static string S(JToken t, string k, string def = "")    => t[k]?.Value<string>() ?? def;
     private static string? SN(JToken t, string k) => t[k]?.Type == JTokenType.Null ? null : t[k]?.Value<string>();
+
+    private static int FsFindDeviceIndex(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return -1;
+        var devs = FrameShotService.GetOutputDevices();
+        for (int i = 0; i < devs.Length; i++)
+        {
+            // WinMM truncates device names to 31 chars — match by startswith so a
+            // saved long name still resolves after enumeration.
+            if (devs[i] == name || name.StartsWith(devs[i], StringComparison.Ordinal))
+                return i;
+        }
+        return -1;
+    }
 
     private static List<uint> UList(JToken t, string k)
     {

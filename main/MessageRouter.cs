@@ -1867,6 +1867,15 @@ public partial class AppShell
                     _sfCtrl.HandleMessage(action, msg);
                     break;
 
+                // FrameShot (in-VR photo)
+                case "fsConnect":
+                case "fsDisconnect":
+                case "fsConfig":
+                case "fsGetDevices":
+                case "fsSetOutput":
+                    _fsCtrl.HandleMessage(action, msg);
+                    break;
+
                 // Voice Fight
                 case "vfGetDevices":
                 case "vfGetItems":

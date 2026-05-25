@@ -142,12 +142,17 @@ namespace VRCNext.Services
         private bool     _dirty         = true;
 
         // Tool states
-        private bool _toolDiscord  = false;
-        private bool _toolVoice    = false;
-        private bool _toolKikitan  = false;
-        private bool _toolSpaceFlt = false;
-        private bool _toolRelay    = false;
-        private bool _toolChatbox  = false;
+        private bool _toolDiscord    = false;
+        private bool _toolVoice      = false;
+        private bool _toolKikitan    = false;
+        private bool _toolSpaceFlt   = false;
+        private bool _toolRelay      = false;
+        private bool _toolChatbox    = false;
+        private bool _toolFrameShot  = false;
+
+        // Tools tab scroll state (analog to _locationScrollY)
+        private float _toolsScrollY  = 0f;
+        private float _toolsScrollVY = 0f;
 
         // Toast notification overlay (HMD-attached)
         private ulong _toastHandle;
@@ -338,14 +343,15 @@ namespace VRCNext.Services
             OnWaterDismissed?.Invoke();
         }
 
-        public void SetToolStates(bool discord, bool voiceFight, bool kikitan, bool spaceFlight, bool relay, bool chatbox)
+        public void SetToolStates(bool discord, bool voiceFight, bool kikitan, bool spaceFlight, bool relay, bool chatbox, bool frameShot)
         {
-            _toolDiscord  = discord;
-            _toolVoice    = voiceFight;
-            _toolKikitan  = kikitan;
-            _toolSpaceFlt = spaceFlight;
-            _toolRelay    = relay;
-            _toolChatbox  = chatbox;
+            _toolDiscord    = discord;
+            _toolVoice      = voiceFight;
+            _toolKikitan    = kikitan;
+            _toolSpaceFlt   = spaceFlight;
+            _toolRelay      = relay;
+            _toolChatbox    = chatbox;
+            _toolFrameShot  = frameShot;
             _dirty = true;
         }
 
@@ -1403,6 +1409,12 @@ namespace VRCNext.Services
                                 _friendsScrollY   = Math.Clamp(_friendsScrollY + _friendsScrollVY, 0f, GetFriendsMaxScroll());
                                 _dirty = true;
                             }
+                            if (MathF.Abs(_toolsScrollVY) > 0.3f)
+                            {
+                                _toolsScrollVY *= 0.87f;
+                                _toolsScrollY   = Math.Clamp(_toolsScrollY + _toolsScrollVY, 0f, GetToolsMaxScroll());
+                                _dirty = true;
+                            }
                         }
 
                         // Re-apply transform if the active controller index just became
@@ -1536,7 +1548,7 @@ namespace VRCNext.Services
                     TickToast();
 
                     // Use minimal delay while scrolling to hit ~90fps; 11ms otherwise (~64fps steady)
-                    bool activeScroll = _scrollDragging || MathF.Abs(_locationScrollVY) > 0.5f || MathF.Abs(_friendsScrollVY) > 0.5f;
+                    bool activeScroll = _scrollDragging || MathF.Abs(_locationScrollVY) > 0.5f || MathF.Abs(_friendsScrollVY) > 0.5f || MathF.Abs(_toolsScrollVY) > 0.5f;
                     await Task.Delay(activeScroll ? 1 : 11, ct);
                 }
                 catch (OperationCanceledException) { break; }
@@ -1649,10 +1661,11 @@ namespace VRCNext.Services
                         // Kill inertia on touch-down for scroll tabs
                         if (_activeTab == 2) _locationScrollVY = 0f;
                         if (_activeTab == 5) _friendsScrollVY  = 0f;
+                        if (_activeTab == 4) _toolsScrollVY    = 0f;
                     }
                     else if (oType == EVREventType.VREvent_MouseMove)
                     {
-                        if (_mouseDown && (_activeTab == 2 || _activeTab == 5) && _mouseDownNY < 0.82f)
+                        if (_mouseDown && (_activeTab == 2 || _activeTab == 4 || _activeTab == 5) && _mouseDownNY < 0.82f)
                         {
                             var mu = evt.data.mouse;
                             float ny = mu.y / H;
@@ -1666,6 +1679,8 @@ namespace VRCNext.Services
                                 _scrollLastNY     = ny;
                                 if (_activeTab == 2)
                                     _locationScrollY = Math.Clamp(_locationScrollY + delta, 0f, GetLocationMaxScroll());
+                                else if (_activeTab == 4)
+                                    _toolsScrollY    = Math.Clamp(_toolsScrollY    + delta, 0f, GetToolsMaxScroll());
                                 else
                                     _friendsScrollY  = Math.Clamp(_friendsScrollY  + delta, 0f, GetFriendsMaxScroll());
                                 _dirty = true;
@@ -1680,6 +1695,7 @@ namespace VRCNext.Services
                         {
                             // Real scroll flick — seed inertia
                             if (_activeTab == 2) _locationScrollVY = _scrollLastDeltaY * 0.5f;
+                            if (_activeTab == 4) _toolsScrollVY    = _scrollLastDeltaY * 0.5f;
                             if (_activeTab == 5) _friendsScrollVY  = _scrollLastDeltaY * 0.5f;
                         }
                         else
@@ -1707,6 +1723,7 @@ namespace VRCNext.Services
                 _lastDisplayedSecond = -1;
                 _locationScrollY = 0f; _locationScrollVY = 0f;
                 _friendsScrollY  = 0f; _friendsScrollVY  = 0f;
+                _toolsScrollY    = 0f; _toolsScrollVY    = 0f;
                 _dirty = true;
                 return;
             }
@@ -1743,22 +1760,27 @@ namespace VRCNext.Services
                 else if (nx >= 0.60f && nx <= 0.73f) SendSmtcCommand("next");
             }
 
-            // Tools tab card clicks — same constants as DrawTools
+            // Tools tab card clicks — same constants as DrawTools, accounts for scroll
             if (_activeTab == 4)
             {
-                const int startY = 76, gap = 8, padX = 12;
-                int cardW = (W - padX * 2 - gap) / 2;
-                int cardH = (H - startY - padX - gap * 2) / 3;
+                int cardW = ToolsCardW;
+                int cardH = ToolsCardH;
                 int gdix  = (int)(nx * W);
                 int gdiy  = (int)((1f - ny) * H);
-                int col   = (gdix - padX) / (cardW + gap);
-                int row   = (gdiy - startY) / (cardH + gap);
-                if (col >= 0 && col < 2 && row >= 0 && row < 3)
+                if (gdiy >= ToolsStartY && gdiy < ToolsBottom)
                 {
-                    int localX = (gdix - padX) % (cardW + gap);
-                    int localY = (gdiy - startY) % (cardH + gap);
-                    if (localX < cardW && localY < cardH)
-                        OnToolToggle?.Invoke(row * 2 + col);
+                    int scrolledY = gdiy - ToolsStartY + (int)_toolsScrollY;
+                    int col   = (gdix - ToolsPadX) / (cardW + ToolsGap);
+                    int row   = scrolledY / (cardH + ToolsGap);
+                    int maxRows = (GetToolsCount() + 1) / 2;
+                    if (col >= 0 && col < 2 && row >= 0 && row < maxRows)
+                    {
+                        int localX = (gdix - ToolsPadX) % (cardW + ToolsGap);
+                        int localY = scrolledY % (cardH + ToolsGap);
+                        int idx = row * 2 + col;
+                        if (localX < cardW && localY < cardH && idx < GetToolsCount())
+                            OnToolToggle?.Invoke(idx);
+                    }
                 }
             }
 
@@ -3293,6 +3315,26 @@ namespace VRCNext.Services
             _         => StatusColorOffline,
         };
 
+        // Tools tab layout (shared between Draw + Click)
+        private const int ToolsStartY = 76;
+        private const int ToolsGap    = 8;
+        private const int ToolsPadX   = 12;
+        private const int ToolsBottom = H - 12;
+        private static int ToolsCardW => (W - ToolsPadX * 2 - ToolsGap) / 2;
+        private static int ToolsCardH => (H - ToolsStartY - ToolsPadX - ToolsGap * 2) / 3;
+        private static int ToolsViewportH => ToolsBottom - ToolsStartY;
+
+        private int GetToolsCount() =>
+            // discord, voice, kikitan, space, relay, chatbox, frameshot
+            7;
+
+        private float GetToolsMaxScroll()
+        {
+            int rows = (GetToolsCount() + 1) / 2;
+            int contentH = rows * ToolsCardH + (rows - 1) * ToolsGap;
+            return MathF.Max(0f, contentH - ToolsViewportH);
+        }
+
         private void DrawTools(Graphics g)
         {
             var th = _theme;
@@ -3301,6 +3343,13 @@ namespace VRCNext.Services
             const int padX   = 12;
             int cardW = (W - padX * 2 - gap) / 2;
             int cardH = (H - startY - padX - gap * 2) / 3;
+
+            // Scrollable: clip card region, offset y by scroll, draw scrollbar.
+            float maxScroll = GetToolsMaxScroll();
+            _toolsScrollY = Math.Clamp(_toolsScrollY, 0f, maxScroll);
+            int scrollY = (int)_toolsScrollY;
+            var oldClip = g.Clip;
+            g.SetClip(new System.Drawing.Rectangle(0, ToolsStartY, W, ToolsViewportH));
 
             // Layout: 2 cols × 3 rows
             // Icons: Material Symbols Rounded codepoints — 1:1 same as sidebar
@@ -3313,6 +3362,7 @@ namespace VRCNext.Services
                 ("\uEB9B", "Space Flight",     _toolSpaceFlt),
                 ("\uEBBA", "Media Relay",      _toolRelay),
                 ("\uE0C9", "Custom Chatbox",   _toolChatbox),
+                ("\uE412", "FrameShot",       _toolFrameShot),
             };
 
             for (int i = 0; i < tools.Length; i++)
@@ -3320,8 +3370,25 @@ namespace VRCNext.Services
                 int col = i % 2;
                 int row = i / 2;
                 int x   = padX + col * (cardW + gap);
-                int y   = startY + row * (cardH + gap);
+                int y   = startY + row * (cardH + gap) - scrollY;
+                if (y + cardH < ToolsStartY || y >= ToolsBottom) continue;
                 DrawToolCard(g, tools[i].Icon, tools[i].Label, tools[i].Active, x, y, cardW, cardH);
+            }
+
+            g.SetClip(oldClip, System.Drawing.Drawing2D.CombineMode.Replace);
+            oldClip.Dispose();
+
+            // Scrollbar strip (only on overflow)
+            if (maxScroll > 0)
+            {
+                float trackH = ToolsViewportH;
+                float thumbH = Math.Max(20f, trackH * trackH / (trackH + maxScroll));
+                float thumbY = ToolsStartY + (_toolsScrollY / maxScroll) * (trackH - thumbH);
+                int sbX = W - ToolsPadX / 2 - ScrollBarW;
+                using var trackBr = new SolidBrush(Color.FromArgb(25, th.Tx3));
+                g.FillRectangle(trackBr, sbX, ToolsStartY, ScrollBarW, (int)trackH);
+                using var thumbBr = new SolidBrush(Color.FromArgb(90, th.Tx2));
+                g.FillRectangle(thumbBr, sbX, (int)thumbY, ScrollBarW, (int)thumbH);
             }
         }
 

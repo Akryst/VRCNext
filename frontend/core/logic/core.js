@@ -294,6 +294,8 @@ function getPlatformBadgeHtml(platform) {
 }
 // Space Flight
 let sfConnected = false;
+// FrameShot
+let fsConnected = false;
 // Custom Chatbox OSC
 let chatboxEnabled = false;
 let chatboxCustomLines = [];
@@ -627,6 +629,7 @@ function getPageTitle(i) {
         t('page.event_snipe', 'Event Snipe'),
         t('page.avatar_scaling', 'Avatar Scaling'),
         t('page.action_flow', 'Action Flow'),
+        t('page.frame_shot', 'FrameShot'),
     ][i] ?? '';
 }
 

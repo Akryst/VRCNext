@@ -1,4 +1,18 @@
-**2026.27.1**
+**2026.27.2**
+
+**FrameShot (New Tool)**
+
+* Added **FrameShot**, a new SteamVR photo tool that works in any VR game.
+* Create a photo frame by holding both hands close together, pressing the controller keybinds, and pulling your hands apart.
+* Release the right controller keybind to take the photo.
+* Release the left controller keybind to cancel.
+* The frame shows exactly what will be saved from your VR view.
+* Photos are saved to **Pictures/VRCN/FrameShots/**.
+* Keybinds, sounds, audio output, and auto-start with VRChat can be configured.
+
+**VR Wrist Overlay**
+
+* The Tools tab is now scrollable, so adding more tools (like FrameShot)
 
 **Kikitan XD**
 

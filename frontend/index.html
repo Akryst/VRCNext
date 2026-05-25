@@ -31,6 +31,7 @@
     <link rel="stylesheet" href="modules/tools/chatbox/chatbox.css">
     <link rel="stylesheet" href="modules/tools/media-relay/media-relay.css">
     <link rel="stylesheet" href="modules/tools/space-flight/space-flight.css">
+    <link rel="stylesheet" href="modules/tools/frame-shot/frame-shot.css">
     <link rel="stylesheet" href="modules/tools/osc-tool/osc-tool.css">
     <link rel="stylesheet" href="modules/tools/avatar-scaling/avatar-scaling.css">
     <link rel="stylesheet" href="modules/tools/activity-log/activity-log.css">
@@ -136,6 +137,7 @@
                             <div class="tb-dd-item" onclick="showTab(5)"><span class="msi">chat</span><span data-i18n="nav.custom_chatbox">Custom Chatbox</span></div>
                             <div class="tb-dd-item" onclick="showTab(6)"><span class="msi">cell_tower</span><span data-i18n="nav.media_relay">Media Relay</span></div>
                             <div class="tb-dd-item" onclick="showTab(10)"><span class="msi">rocket_launch</span><span data-i18n="nav.space_flight">Space Flight</span></div>
+                            <div class="tb-dd-item" onclick="showTab(26)"><span class="msi">photo_camera</span><span data-i18n="nav.frame_shot">FrameShot</span></div>
                             <div class="tb-dd-item" onclick="showTab(11)"><span class="msi">tune</span><span data-i18n="nav.osc_tool">OSC Tool</span></div>
                             <div class="tb-dd-item" onclick="showTab(14)"><span class="msi">smart_display</span><span data-i18n="nav.youtube_fix">YouTube Fix</span></div>
                             <div class="tb-dd-sep"></div>
@@ -193,6 +195,7 @@
                     <button class="tb-sidebar-btn" id="badgeRelay" title="Media Relay" data-i18n-title="nav.media_relay" onclick="toggleRelay()"><span class="msi">cell_tower</span></button>
                     <button class="tb-sidebar-btn" id="badgeChatbox" title="Custom Chatbox" data-i18n-title="nav.custom_chatbox" onclick="toggleChatbox()"><span class="msi">chat</span></button>
                     <button class="tb-sidebar-btn" id="badgeSpace" title="Space Flight" data-i18n-title="nav.space_flight" onclick="sfConnect()"><span class="msi">rocket_launch</span></button>
+                    <button class="tb-sidebar-btn" id="badgeFrameShot" title="FrameShot" data-i18n-title="nav.frame_shot" onclick="fsConnect()"><span class="msi">photo_camera</span></button>
                     <button class="tb-sidebar-btn" id="badgeVoice" title="Voice Fight" data-i18n-title="nav.voice_fight" onclick="if(!vfRunning)vfOnTabOpen();vfConnect()"><span class="msi">mic</span></button>
                     <button class="tb-sidebar-btn" id="badgeDp" title="Discord Presence" data-i18n-title="nav.discord_presence" onclick="dpToggle()"><span class="msi">sensors</span></button>
                     <button class="tb-sidebar-btn" id="badgeYt" title="YouTube Fix" data-i18n-title="nav.youtube_fix" onclick="toggleVc()"><span class="msi">smart_display</span></button>
@@ -337,6 +340,9 @@
 
             <!-- Tab 25: Action Flow -->
             <div class="tab" id="tab25"></div>
+
+            <!-- Tab 26: FrameShot -->
+            <div class="tab" id="tab26" data-windows-only></div>
 
         </div>
     </div>
@@ -520,6 +526,7 @@
             tab23: 'modules/tools/event-snipe/event-snipe.html',
             tab24: 'modules/tools/avatar-scaling/avatar-scaling.html',
             tab25: 'modules/tools/action-flow/action-flow.html',
+            tab26: 'modules/tools/frame-shot/frame-shot.html',
         };
 
         const modalFragments = {
@@ -590,6 +597,7 @@
             'core/modals/invite-modal/invite-modal.js',
             'modules/tools/chatbox/chatbox.js',
             'modules/tools/space-flight/space-flight.js',
+            'modules/tools/frame-shot/frame-shot.js',
             'modules/tools/osc-tool/osc-tool.js',
             'modules/timeline/timeline.js',
             'modules/timeline/game-log.js',
