@@ -22,12 +22,8 @@ namespace VRCNext.Services
         // Config
         public uint LeftButtonId  { get; private set; } = (uint)EVRButtonId.k_EButton_Grip;
         public uint RightButtonId { get; private set; } = (uint)EVRButtonId.k_EButton_Grip;
-        // 0 = "None" — no record button assigned for that hand
         public uint LeftRecordButton  { get; private set; } = 0;
         public uint RightRecordButton { get; private set; } = 0;
-        // Activation radius in metres: framing only starts while hands are within
-        // this distance of each other. Once framing has started, the user can
-        // pull hands apart freely without losing the frame.
         public float ActivationRadius { get; private set; } = 0.15f;
 
         // State
@@ -65,10 +61,11 @@ namespace VRCNext.Services
         private bool _rightRecHeld;
 
         // Recording state — captured frames + locked geometry at record-start
-        private const int  GIF_FPS        = 10;
-        private const int  GIF_FRAME_MS   = 1000 / GIF_FPS;
-        private const int  GIF_MAX_MS     = 8_000;
-        private const int  GIF_MAX_FRAMES = GIF_FPS * GIF_MAX_MS / 1000;
+        private const int   GIF_FPS              = 10;
+        private const int   GIF_FRAME_MS         = 1000 / GIF_FPS;
+        private const int   GIF_MAX_MS           = 8_000;
+        private const int   GIF_MAX_FRAMES       = GIF_FPS * GIF_MAX_MS / 1000;
+        private const float RECORD_VISUAL_SCALE  = 1.15f;
         private readonly List<Bitmap> _recordFrames = new();
         private CancellationTokenSource? _recordCts;
         private Vector3 _recordHeadLocalOffset;
@@ -586,19 +583,6 @@ namespace VRCNext.Services
             _recordLockedWidth  = _lastFrameWidth;
             _recordLockedHeight = _lastFrameHeight;
 
-            // Compute crop rect once — head-locked geometry produces constant
-            // mirror-space pixels, so we don't need to re-project per frame.
-            if (EnsureMirrorPipeline())
-            {
-                var (px0, py0, px1, py1) = ProjectFrameToMirror(_mirrorW, _mirrorH);
-                int x0 = Math.Clamp(Math.Min(px0, px1), 0, _mirrorW - 1);
-                int y0 = Math.Clamp(Math.Min(py0, py1), 0, _mirrorH - 1);
-                int x1 = Math.Clamp(Math.Max(px0, px1), 0, _mirrorW - 1);
-                int y1 = Math.Clamp(Math.Max(py0, py1), 0, _mirrorH - 1);
-                _recordCrop = new System.Drawing.Rectangle(x0, y0,
-                    Math.Max(2, x1 - x0), Math.Max(2, y1 - y0));
-            }
-
             lock (_recordFrames)
             {
                 foreach (var b in _recordFrames) { try { b.Dispose(); } catch { } }
@@ -613,6 +597,12 @@ namespace VRCNext.Services
 
         private async Task RecordCaptureLoopAsync(CancellationToken ct)
         {
+            if (!EnsureMirrorPipeline())
+            {
+                _gifAutoStop = true;
+                return;
+            }
+
             var start = DateTime.UtcNow;
             int frameIdx = 0;
             try
@@ -622,8 +612,8 @@ namespace VRCNext.Services
                     double elapsedMs = (DateTime.UtcNow - start).TotalMilliseconds;
                     if (elapsedMs > GIF_MAX_MS) { _gifAutoStop = true; break; }
                     if (frameIdx >= GIF_MAX_FRAMES) { _gifAutoStop = true; break; }
-
-                    var bmp = CaptureMirrorCrop(_recordCrop);
+                    var crop = ComputeRecordingCrop(_mirrorW, _mirrorH);
+                    var bmp = CaptureMirrorCrop(crop);
                     if (bmp != null)
                     {
                         lock (_recordFrames) _recordFrames.Add(bmp);
@@ -638,6 +628,65 @@ namespace VRCNext.Services
             catch (OperationCanceledException) { }
             catch (Exception ex) { _log($"[FrameShot] Record loop: {ex.Message}"); }
         }
+        private System.Drawing.Rectangle ComputeRecordingCrop(int mw, int mh)
+        {
+            uint hmdIdx = (uint)OpenVR.k_unTrackedDeviceIndex_Hmd;
+            if (_vrSystem == null || !_poses[hmdIdx].bPoseIsValid)
+                return _recordCrop;
+
+            var hmdM   = _poses[hmdIdx].mDeviceToAbsoluteTracking;
+            var hmdRot = RotFromMatrix(hmdM);
+            var hmdPos = PosFromMatrix(hmdM);
+
+            Vector3 hmdRight = Vector3.Transform(Vector3.UnitX,  hmdRot);
+            Vector3 hmdUp    = Vector3.Transform(Vector3.UnitY,  hmdRot);
+            Vector3 hmdFwd   = Vector3.Transform(-Vector3.UnitZ, hmdRot);
+            Vector3 center = hmdPos
+                + hmdRight * _recordHeadLocalOffset.X
+                + hmdUp    * _recordHeadLocalOffset.Y
+                + hmdFwd   * _recordHeadLocalOffset.Z;
+
+            float halfW = _recordLockedWidth  * 0.5f;
+            float halfH = _recordLockedHeight * 0.5f;
+
+            var eyeToHead = _vrSystem.GetEyeToHeadTransform(EVREye.Eye_Left);
+            var hmdWorld  = ToMatrix4x4(hmdM);
+            var eyeOffset = ToMatrix4x4(eyeToHead);
+            var eyeWorld  = eyeOffset * hmdWorld;
+            Matrix4x4.Invert(eyeWorld, out var view);
+            var proj = ToMatrix4x4Proj(_vrSystem.GetProjectionMatrix(EVREye.Eye_Left, 0.05f, 50f));
+            var vp = view * proj;
+
+            Vector3[] corners =
+            {
+                center - hmdRight * halfW - hmdUp * halfH,
+                center + hmdRight * halfW - hmdUp * halfH,
+                center + hmdRight * halfW + hmdUp * halfH,
+                center - hmdRight * halfW + hmdUp * halfH,
+            };
+
+            int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
+            foreach (var w in corners)
+            {
+                var clip = Vector4.Transform(new Vector4(w, 1f), vp);
+                if (clip.W <= 0) continue;
+                float ndcX = clip.X / clip.W;
+                float ndcY = clip.Y / clip.W;
+                int px = (int)((ndcX * 0.5f + 0.5f) * mw);
+                int py = (int)((1f - (ndcY * 0.5f + 0.5f)) * mh);
+                if (px < minX) minX = px;
+                if (py < minY) minY = py;
+                if (px > maxX) maxX = px;
+                if (py > maxY) maxY = py;
+            }
+            if (minX == int.MaxValue) return _recordCrop;
+
+            int x0 = Math.Clamp(minX, 0, mw - 1);
+            int y0 = Math.Clamp(minY, 0, mh - 1);
+            int x1 = Math.Clamp(maxX, 0, mw - 1);
+            int y1 = Math.Clamp(maxY, 0, mh - 1);
+            return new System.Drawing.Rectangle(x0, y0, Math.Max(2, x1 - x0), Math.Max(2, y1 - y0));
+        }
 
         private void StopRecordingAndSave()
         {
@@ -651,7 +700,6 @@ namespace VRCNext.Services
                 frames = new List<Bitmap>(_recordFrames);
                 _recordFrames.Clear();
             }
-            _gifAutoStop = false;
 
             // Hide overlay during the brief save window
             if (OpenVR.Overlay != null && _overlayHandle != 0)
@@ -872,16 +920,12 @@ namespace VRCNext.Services
 
             if (IsRecording)
             {
-                // Recording: size and HEAD-LOCAL position locked at record-start.
-                // Frame follows head movement; hand movement is ignored.
-                widthM  = _recordLockedWidth;
-                heightM = _recordLockedHeight;
+                widthM  = _recordLockedWidth  * RECORD_VISUAL_SCALE;
+                heightM = _recordLockedHeight * RECORD_VISUAL_SCALE;
                 center  = hmdPos
                         + hmdRight * _recordHeadLocalOffset.X
                         + hmdUp    * _recordHeadLocalOffset.Y
                         + hmdFwd   * _recordHeadLocalOffset.Z;
-                // _lastLeftPos / _lastRightPos / _lastFrameWidth/Height intentionally
-                // NOT updated here — the locked snapshot must stay intact.
             }
             else
             {
