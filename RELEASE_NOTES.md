@@ -1,4 +1,4 @@
-**2026.27.8**
+**2026.28.0**
 
 **Frame Shot**
     *New*
@@ -7,6 +7,7 @@
     * Added two independent audio input slots (mix system audio + microphone via WASAPI loopback/capture).
     * Added Video Quality (720p / 1080p / 1440p), Bitrate Quality (Low / Medium / High) and Audio Quality (128 / 256 / 320 kbps) selectors.
     * Added video thumbnails in the Media Library.
+
     *Fixes*
     * Fixed an issue where the FrameShot frame rotated win a wrong way with the headset.
     * Fixed an 3D space issue with FrameShot

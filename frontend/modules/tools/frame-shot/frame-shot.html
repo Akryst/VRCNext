@@ -106,49 +106,51 @@
                     <!-- Video Settings -->
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">videocam</span> <span data-i18n="frameshot.video.title">Video Settings</span></div>
-                        <div class="sf-row">
-                            <label data-i18n="frameshot.video.input_a">Input Device A</label>
-                            <select id="fsVideoDeviceA" class="vrcn-select" onchange="fsAutoSave()">
-                                <option value="" data-i18n="frameshot.video.no_input">No input</option>
-                            </select>
-                        </div>
-                        <div class="sf-row">
-                            <label data-i18n="frameshot.video.input_b">Input Device B</label>
-                            <select id="fsVideoDeviceB" class="vrcn-select" onchange="fsAutoSave()">
-                                <option value="" data-i18n="frameshot.video.no_input">No input</option>
-                            </select>
-                        </div>
-                        <div class="sf-row">
-                            <label data-i18n="frameshot.video.target_fps">Target FPS</label>
-                            <select id="fsVideoFps" class="vrcn-select" onchange="fsAutoSave()">
-                                <option value="25">25</option>
-                                <option value="30" selected>30</option>
-                                <option value="60">60</option>
-                            </select>
-                        </div>
-                        <div class="sf-row">
-                            <label data-i18n="frameshot.video.video_quality">Video Quality</label>
-                            <select id="fsVideoQuality" class="vrcn-select" onchange="fsAutoSave()">
-                                <option value="720p">720p</option>
-                                <option value="1080p" selected>1080p</option>
-                                <option value="1440p">1440p</option>
-                            </select>
-                        </div>
-                        <div class="sf-row">
-                            <label data-i18n="frameshot.video.bitrate_quality">Bitrate Quality</label>
-                            <select id="fsVideoBitrateQuality" class="vrcn-select" onchange="fsAutoSave()">
-                                <option value="low"    data-i18n="frameshot.video.bitrate.low">Low</option>
-                                <option value="medium" selected data-i18n="frameshot.video.bitrate.medium">Medium</option>
-                                <option value="high"   data-i18n="frameshot.video.bitrate.high">High</option>
-                            </select>
-                        </div>
-                        <div class="sf-row">
-                            <label data-i18n="frameshot.video.audio_quality">Audio Quality</label>
-                            <select id="fsAudioKbps" class="vrcn-select" onchange="fsAutoSave()">
-                                <option value="128">128 kbps</option>
-                                <option value="256" selected>256 kbps</option>
-                                <option value="320">320 kbps (High)</option>
-                            </select>
+                        <div class="fs-video-grid">
+                            <div class="sf-row">
+                                <label data-i18n="frameshot.video.target_fps">Target FPS</label>
+                                <select id="fsVideoFps" class="vrcn-select" onchange="fsAutoSave()">
+                                    <option value="25">25</option>
+                                    <option value="30" selected>30</option>
+                                    <option value="60">60</option>
+                                </select>
+                            </div>
+                            <div class="sf-row">
+                                <label data-i18n="frameshot.video.video_quality">Video Quality</label>
+                                <select id="fsVideoQuality" class="vrcn-select" onchange="fsAutoSave()">
+                                    <option value="720p">720p</option>
+                                    <option value="1080p" selected>1080p</option>
+                                    <option value="1440p">1440p</option>
+                                </select>
+                            </div>
+                            <div class="sf-row">
+                                <label data-i18n="frameshot.video.input_a">Input Device A</label>
+                                <select id="fsVideoDeviceA" class="vrcn-select" onchange="fsAutoSave()">
+                                    <option value="" data-i18n="frameshot.video.no_input">No input</option>
+                                </select>
+                            </div>
+                            <div class="sf-row">
+                                <label data-i18n="frameshot.video.bitrate_quality">Bitrate Quality</label>
+                                <select id="fsVideoBitrateQuality" class="vrcn-select" onchange="fsAutoSave()">
+                                    <option value="low"    data-i18n="frameshot.video.bitrate.low">Low</option>
+                                    <option value="medium" selected data-i18n="frameshot.video.bitrate.medium">Medium</option>
+                                    <option value="high"   data-i18n="frameshot.video.bitrate.high">High</option>
+                                </select>
+                            </div>
+                            <div class="sf-row">
+                                <label data-i18n="frameshot.video.audio_quality">Audio Quality</label>
+                                <select id="fsAudioKbps" class="vrcn-select" onchange="fsAutoSave()">
+                                    <option value="128">128 kbps</option>
+                                    <option value="256" selected>256 kbps</option>
+                                    <option value="320">320 kbps (High)</option>
+                                </select>
+                            </div>
+                            <div class="sf-row">
+                                <label data-i18n="frameshot.video.input_b">Input Device B</label>
+                                <select id="fsVideoDeviceB" class="vrcn-select" onchange="fsAutoSave()">
+                                    <option value="" data-i18n="frameshot.video.no_input">No input</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="fs-help" data-i18n="frameshot.video.help">Record up to 30 seconds of MP4 video with two mixed audio inputs (e.g. system sound + microphone).</div>
                         <div style="margin-top:12px;padding:10px;background:var(--bg2);border-radius:6px;">

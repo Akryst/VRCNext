@@ -1682,6 +1682,7 @@ function initVnSelect(el) {
             span.className = 'vn-select-label';
             span.textContent = name;
             item.appendChild(span);
+            item.title = name;
 
             if (count) {
                 const countEl = document.createElement('span');
@@ -1727,6 +1728,12 @@ function initVnSelect(el) {
         const below = rect.bottom + 270 < window.innerHeight;
         panel.style.top    = below ? 'calc(100% + 4px)' : 'auto';
         panel.style.bottom = below ? 'auto' : 'calc(100% + 4px)';
+        // Flip right-aligned if panel would extend past viewport right edge
+        panel.style.left = '0'; panel.style.right = 'auto';
+        const panelRect = panel.getBoundingClientRect();
+        if (panelRect.right > window.innerWidth - 8) {
+            panel.style.left = 'auto'; panel.style.right = '0';
+        }
         setTimeout(() => document.addEventListener('click', onOutside, { once: true }), 0);
     }
 
