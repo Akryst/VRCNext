@@ -362,27 +362,29 @@ namespace VRCNext.Services
                 _overlayHandle = 0;
             }
 
-            // Tear down mirror pipeline in reverse order
-            try { _mirrorStaging?.Dispose();   } catch { } _mirrorStaging   = null;
-            try { _mirrorTexCached?.Dispose(); } catch { } _mirrorTexCached = null;
-            try { _mirrorSrvObj?.Dispose();    } catch { } _mirrorSrvObj    = null;
-            if (_mirrorSrv != IntPtr.Zero && OpenVR.Compositor != null)
+            lock (_d3dLock)
             {
-                try { OpenVR.Compositor.ReleaseMirrorTextureD3D11(_mirrorSrv); } catch { }
+                try { _mirrorStaging?.Dispose();   } catch { } _mirrorStaging   = null;
+                try { _mirrorTexCached?.Dispose(); } catch { } _mirrorTexCached = null;
+                try { _mirrorSrvObj?.Dispose();    } catch { } _mirrorSrvObj    = null;
+                if (_mirrorSrv != IntPtr.Zero && OpenVR.Compositor != null)
+                {
+                    try { OpenVR.Compositor.ReleaseMirrorTextureD3D11(_mirrorSrv); } catch { }
+                }
+                _mirrorSrv = IntPtr.Zero;
+
+                _stagingTex?.Dispose(); _stagingTex = null;
+                _overlayTex?.Dispose(); _overlayTex = null;
+                _d3dContext?.Dispose(); _d3dContext = null;
+                _d3dDevice?.Dispose();  _d3dDevice  = null;
+                _frameBitmap?.Dispose(); _frameBitmap = null;
             }
-            _mirrorSrv = IntPtr.Zero;
 
             if (_ownedInit)
             {
                 try { OpenVR.Shutdown(); } catch { }
                 _ownedInit = false;
             }
-
-            _stagingTex?.Dispose(); _stagingTex = null;
-            _overlayTex?.Dispose(); _overlayTex = null;
-            _d3dContext?.Dispose(); _d3dContext = null;
-            _d3dDevice?.Dispose();  _d3dDevice  = null;
-            _frameBitmap?.Dispose(); _frameBitmap = null;
 
             IsConnected = false;
             IsFraming   = false;
@@ -747,12 +749,12 @@ namespace VRCNext.Services
 
         private Bitmap? CaptureMirrorCrop(System.Drawing.Rectangle crop)
         {
-            if (_d3dContext == null || _mirrorStaging == null || _mirrorTexCached == null) return null;
             try
             {
                 Bitmap? bmp = null;
                 lock (_d3dLock)
                 {
+                    if (_d3dContext == null || _mirrorStaging == null || _mirrorTexCached == null) return null;
                     _d3dContext.CopyResource(_mirrorStaging, _mirrorTexCached);
                     var box = _d3dContext.Map(_mirrorStaging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
                     try
@@ -1036,6 +1038,7 @@ namespace VRCNext.Services
                 int srcStride = bData.Stride;
                 lock (_d3dLock)
                 {
+                    if (_d3dContext == null || _stagingTex == null || _overlayTex == null) return;
                     var box = _d3dContext.Map(_stagingTex, 0, MapMode.Write, Vortice.Direct3D11.MapFlags.None);
                     try
                     {
@@ -1068,7 +1071,7 @@ namespace VRCNext.Services
                 eColorSpace = EColorSpace.Auto,
             };
             OpenVR.Overlay?.SetOverlayTexture(_overlayHandle, ref vrTex);
-            lock (_d3dLock) _d3dContext.Flush();
+            lock (_d3dLock) { if (_d3dContext != null) _d3dContext.Flush(); }
         }
 
         private void CaptureAndSave()
@@ -1098,8 +1101,9 @@ namespace VRCNext.Services
                 Bitmap? bmp = null;
                 lock (_d3dLock)
                 {
-                    _d3dContext.CopyResource(_mirrorStaging!, _mirrorTexCached!);
-                    var box = _d3dContext.Map(_mirrorStaging!, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
+                    if (_d3dContext == null || _mirrorStaging == null || _mirrorTexCached == null) return;
+                    _d3dContext.CopyResource(_mirrorStaging, _mirrorTexCached);
+                    var box = _d3dContext.Map(_mirrorStaging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
                     try
                     {
                         bmp = new Bitmap(cw, ch, PixelFormat.Format32bppArgb);
@@ -1140,7 +1144,7 @@ namespace VRCNext.Services
                         }
                         finally { bmp.UnlockBits(bData); }
                     }
-                    finally { _d3dContext.Unmap(_mirrorStaging!, 0); }
+                    finally { _d3dContext.Unmap(_mirrorStaging, 0); }
                 }
 
                 if (bmp != null)
