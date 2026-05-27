@@ -23,7 +23,7 @@
 
 .fs-keybind-grid {
     display: grid;
-    grid-template-columns: 90px 1fr 1fr;
+    grid-template-columns: 90px 1fr 1fr 1fr;
     gap: 8px;
     align-items: center;
     margin-bottom: 6px;
@@ -36,6 +36,16 @@
 }
 .fs-keybind-head {
     margin-bottom: 4px;
+}
+
+.fs-help {
+    font-size: 11px;
+    color: var(--tx3);
+    line-height: 1.45;
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: var(--bg-input);
+    border-radius: 6px;
 }
 .fs-keybind-head > span {
     font-size: 10px;
@@ -55,6 +65,12 @@
 }
 .fs-gif-head {
     margin-bottom: 4px;
+}
+.fs-video-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 12px;
+    row-gap: 6px;
 }
 .fs-gif-head > span {
     font-size: 10px;

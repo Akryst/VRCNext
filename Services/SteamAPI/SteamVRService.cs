@@ -88,7 +88,6 @@ namespace VRCNext.Services
                 {
                     // OpenVR already initialized by another service (e.g., VROverlayService); reuse it
                     _vrSystem = OpenVR.System;
-                    _ownedInit = false;
                     _log("[SteamVR] Reusing existing OpenVR session");
                 }
                 else
@@ -113,8 +112,9 @@ namespace VRCNext.Services
                     {
                         _log("[SteamVR] Init: Overlay");
                     }
-                    _ownedInit = true;
                 }
+                OpenVRSession.Acquire();
+                _ownedInit = true;
 
                 if (OpenVR.Overlay != null)
                 {
@@ -227,7 +227,7 @@ namespace VRCNext.Services
 
             if (_ownedInit)
             {
-                try { OpenVR.Shutdown(); } catch { }
+                OpenVRSession.Release();
                 _ownedInit = false;
             }
 

@@ -624,15 +624,15 @@ namespace VRCNext.Services
                             return false;
                         }
                     }
-                    _ownedInit = true;
                     _log("[VROverlay] OpenVR initialized");
                 }
                 else
                 {
                     _vrSystem = OpenVR.System;
-                    _ownedInit = false;
                     _log("[VROverlay] Reusing existing OpenVR session");
                 }
+                OpenVRSession.Acquire();
+                _ownedInit = true;
 
                 if (OpenVR.Overlay == null)
                 {
@@ -794,7 +794,7 @@ namespace VRCNext.Services
 
             if (_ownedInit)
             {
-                try { OpenVR.Shutdown(); } catch { }
+                OpenVRSession.Release();
                 _ownedInit = false;
             }
 
