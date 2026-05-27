@@ -24,13 +24,16 @@ namespace VRCNext.Services
         public uint RightButtonId { get; private set; } = (uint)EVRButtonId.k_EButton_Grip;
         public uint LeftRecordButton  { get; private set; } = 0;
         public uint RightRecordButton { get; private set; } = 0;
+        public uint LeftVideoButton   { get; private set; } = 0;
+        public uint RightVideoButton  { get; private set; } = 0;
         public float ActivationRadius { get; private set; } = 0.15f;
         public bool  UseHmdRotations  { get; private set; } = false;
 
         // State
         public bool IsConnected { get; private set; }
         public bool IsFraming   { get; private set; }
-        public bool IsRecording { get; private set; }
+        public bool IsRecording      { get; private set; }
+        public bool IsVideoRecording { get; private set; }
         public string? LastError { get; private set; }
 
         // Events
@@ -60,6 +63,31 @@ namespace VRCNext.Services
         private bool _rightHeldPrev;
         private bool _leftRecHeld;
         private bool _rightRecHeld;
+        private bool _leftVidHeld;
+        private bool _rightVidHeld;
+
+        private string _videoDeviceA = "";
+        private string _videoDeviceB = "";
+        private int    _videoTargetW = 1920;
+        private int    _videoTargetH = 1080;
+        private string _videoBitrateQuality = "medium";
+        private int    _videoAudioKbps = 256;
+        private const int VIDEO_MAX_MS  = 30_000;
+        private const int VIDEO_FPS     = 30;
+        private const int VIDEO_FRAME_MS = 1000 / VIDEO_FPS;
+        private CancellationTokenSource? _videoCts;
+        private DateTime _videoStartUtc;
+        private FileStream? _videoRawStream;
+        private int _videoFrameCount;
+        private readonly object _videoRawLock = new();
+        private volatile bool _videoAutoStop;
+        private string?  _videoSessionDir;
+        private NAudio.Wave.IWaveIn? _audioCapA;
+        private NAudio.Wave.IWaveIn? _audioCapB;
+        private NAudio.Wave.WaveFileWriter? _audioWriterA;
+        private NAudio.Wave.WaveFileWriter? _audioWriterB;
+        private int _videoFrameWBytes;
+        private int _videoFrameHBytes;
 
         // Recording state — captured frames + locked geometry at record-start
         private const int   GIF_MAX_MS           = 8_000;
@@ -254,7 +282,6 @@ namespace VRCNext.Services
                 if (OpenVR.System != null)
                 {
                     _vrSystem  = OpenVR.System;
-                    _ownedInit = false;
                     _log("[FrameShot] Reusing existing OpenVR session");
                 }
                 else
@@ -273,9 +300,10 @@ namespace VRCNext.Services
                             return false;
                         }
                     }
-                    _ownedInit = true;
                     _log("[FrameShot] OpenVR initialized");
                 }
+                OpenVRSession.Acquire();
+                _ownedInit = true;
 
                 if (OpenVR.Overlay == null)
                 {
@@ -380,7 +408,7 @@ namespace VRCNext.Services
 
             if (_ownedInit)
             {
-                try { OpenVR.Shutdown(); } catch { }
+                OpenVRSession.Release();
                 _ownedInit = false;
             }
 
@@ -410,7 +438,10 @@ namespace VRCNext.Services
 
         public void ApplyConfig(uint leftButton, uint rightButton, float activationRadius,
                                 uint leftRecordButton, uint rightRecordButton,
-                                int gifMaxDim, int gifFps, bool useHmdRotations)
+                                int gifMaxDim, int gifFps, bool useHmdRotations,
+                                uint leftVideoButton, uint rightVideoButton,
+                                string videoDeviceA, string videoDeviceB,
+                                string videoQuality, string videoBitrateQuality, int audioKbps)
         {
             LeftButtonId       = leftButton;
             RightButtonId      = rightButton;
@@ -420,6 +451,18 @@ namespace VRCNext.Services
             _gifMaxDim         = gifMaxDim > 0 ? gifMaxDim : 512;
             _gifFps            = gifFps    > 0 ? gifFps    : 10;
             UseHmdRotations    = useHmdRotations;
+            LeftVideoButton    = leftVideoButton;
+            RightVideoButton   = rightVideoButton;
+            _videoDeviceA      = videoDeviceA ?? "";
+            _videoDeviceB      = videoDeviceB ?? "";
+            switch (videoQuality)
+            {
+                case "720p":  _videoTargetW = 1280; _videoTargetH = 720;  break;
+                case "1440p": _videoTargetW = 2560; _videoTargetH = 1440; break;
+                default:      _videoTargetW = 1920; _videoTargetH = 1080; break;
+            }
+            _videoBitrateQuality = string.IsNullOrEmpty(videoBitrateQuality) ? "medium" : videoBitrateQuality;
+            _videoAudioKbps      = audioKbps > 0 ? audioKbps : 256;
         }
 
         private async Task PollLoopAsync(CancellationToken ct)
@@ -474,11 +517,15 @@ namespace VRCNext.Services
             _rightHeld    = IsButtonHeld(_rightIdx, RightButtonId);
             _leftRecHeld  = LeftRecordButton  != 0 && IsButtonHeld(_leftIdx,  LeftRecordButton);
             _rightRecHeld = RightRecordButton != 0 && IsButtonHeld(_rightIdx, RightRecordButton);
+            _leftVidHeld  = LeftVideoButton   != 0 && IsButtonHeld(_leftIdx,  LeftVideoButton);
+            _rightVidHeld = RightVideoButton  != 0 && IsButtonHeld(_rightIdx, RightVideoButton);
 
-            bool wasFraming   = IsFraming;
-            bool wasRecording = IsRecording;
-            bool keysHeld     = _leftHeld && _rightHeld;
-            bool recHeld      = _leftRecHeld || _rightRecHeld;
+            bool wasFraming        = IsFraming;
+            bool wasRecording      = IsRecording;
+            bool wasVideoRecording = IsVideoRecording;
+            bool keysHeld          = _leftHeld && _rightHeld;
+            bool recHeld           = _leftRecHeld || _rightRecHeld;
+            bool vidHeld           = _leftVidHeld || _rightVidHeld;
 
             // Activation: only START framing when hands are within ActivationRadius.
             // Once framing has begun, the user is free to pull hands apart — the
@@ -504,17 +551,16 @@ namespace VRCNext.Services
             }
             if (!IsFraming) _framingBasisLocked = false;
             if (!recHeld) _gifAutoStop = false;
-            bool nowRecording = IsFraming && recHeld && !_gifAutoStop;
-            IsRecording = nowRecording;
+            if (!vidHeld) _videoAutoStop = false;
+            bool nowRecording      = IsFraming && recHeld && !_gifAutoStop && !IsVideoRecording;
+            bool nowVideoRecording = IsFraming && vidHeld && !_videoAutoStop && !IsRecording;
+            IsRecording      = nowRecording;
+            IsVideoRecording = nowVideoRecording;
 
-            if (IsRecording && !wasRecording)
-            {
-                StartRecording();
-            }
-            if (!IsRecording && wasRecording)
-            {
-                StopRecordingAndSave();
-            }
+            if (IsRecording && !wasRecording)             StartRecording();
+            if (!IsRecording && wasRecording)             StopRecordingAndSave();
+            if (IsVideoRecording && !wasVideoRecording)   StartVideoRecording();
+            if (!IsVideoRecording && wasVideoRecording)   StopVideoRecordingAndSave();
 
             if (IsFraming)
             {
@@ -739,7 +785,9 @@ namespace VRCNext.Services
             _ = Task.Run(() => SaveAnimatedGif(frames));
         }
 
-        private Bitmap? CaptureMirrorCrop(System.Drawing.Rectangle crop)
+        private Bitmap? CaptureMirrorCrop(System.Drawing.Rectangle crop) => CaptureMirrorCrop(crop, true);
+
+        private Bitmap? CaptureMirrorCrop(System.Drawing.Rectangle crop, bool applyGifDownscale)
         {
             try
             {
@@ -747,7 +795,8 @@ namespace VRCNext.Services
                 lock (_d3dLock)
                 {
                     if (_d3dContext == null || _mirrorStaging == null || _mirrorTexCached == null) return null;
-                    _d3dContext.CopyResource(_mirrorStaging, _mirrorTexCached);
+                    var srcBox = new Vortice.Mathematics.Box(crop.X, crop.Y, 0, crop.X + crop.Width, crop.Y + crop.Height, 1);
+                    _d3dContext.CopySubresourceRegion(_mirrorStaging, 0, (uint)crop.X, (uint)crop.Y, 0, _mirrorTexCached, 0, srcBox);
                     var box = _d3dContext.Map(_mirrorStaging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
                     try
                     {
@@ -787,7 +836,7 @@ namespace VRCNext.Services
                     }
                     finally { _d3dContext.Unmap(_mirrorStaging, 0); }
                 }
-                return DownscaleIfNeeded(bmp, _gifMaxDim);
+                return applyGifDownscale ? DownscaleIfNeeded(bmp, _gifMaxDim) : bmp;
             }
             catch (Exception ex)
             {
@@ -812,6 +861,365 @@ namespace VRCNext.Services
             src.Dispose();
             return dst;
         }
+
+        // ====================== VIDEO RECORDING (MP4) ======================
+
+        public static (string id, string label)[] GetAudioDevices()
+        {
+            var list = new List<(string, string)>();
+            try
+            {
+                var en = new NAudio.CoreAudioApi.MMDeviceEnumerator();
+                foreach (var d in en.EnumerateAudioEndPoints(NAudio.CoreAudioApi.DataFlow.Capture, NAudio.CoreAudioApi.DeviceState.Active))
+                    list.Add((d.ID, $"{d.FriendlyName}"));
+                foreach (var d in en.EnumerateAudioEndPoints(NAudio.CoreAudioApi.DataFlow.Render, NAudio.CoreAudioApi.DeviceState.Active))
+                    list.Add(($"loopback:{d.ID}", $"{d.FriendlyName} (System Audio)"));
+            }
+            catch { }
+            return list.ToArray();
+        }
+
+        private NAudio.Wave.IWaveIn? StartAudioCapture(string deviceId, string wavPath, out NAudio.Wave.WaveFileWriter? writer)
+        {
+            writer = null;
+            if (string.IsNullOrEmpty(deviceId)) return null;
+            try
+            {
+                var en = new NAudio.CoreAudioApi.MMDeviceEnumerator();
+                NAudio.Wave.IWaveIn cap;
+                if (deviceId.StartsWith("loopback:", StringComparison.Ordinal))
+                {
+                    var id = deviceId.Substring("loopback:".Length);
+                    var dev = en.GetDevice(id);
+                    cap = new NAudio.Wave.WasapiLoopbackCapture(dev);
+                }
+                else
+                {
+                    var dev = en.GetDevice(deviceId);
+                    cap = new NAudio.CoreAudioApi.WasapiCapture(dev);
+                }
+                var w = new NAudio.Wave.WaveFileWriter(wavPath, cap.WaveFormat);
+                writer = w;
+                cap.DataAvailable += (s, e) =>
+                {
+                    try { w.Write(e.Buffer, 0, e.BytesRecorded); } catch { }
+                };
+                cap.StartRecording();
+                return cap;
+            }
+            catch (Exception ex)
+            {
+                _log($"[FrameShot] Audio capture '{deviceId}': {ex.Message}");
+                return null;
+            }
+        }
+
+        private void StartVideoRecording()
+        {
+            uint hmdIdx = (uint)OpenVR.k_unTrackedDeviceIndex_Hmd;
+            if (!_poses[hmdIdx].bPoseIsValid) { IsVideoRecording = false; return; }
+            if (_lastFrameWidth <= 0.001f || _lastFrameHeight <= 0.001f) { IsVideoRecording = false; return; }
+
+            var hmdM   = _poses[hmdIdx].mDeviceToAbsoluteTracking;
+            var hmdPos = PosFromMatrix(hmdM);
+            var hmdRot = RotFromMatrix(hmdM);
+            var right  = Vector3.Transform(Vector3.UnitX,  hmdRot);
+            var up     = Vector3.Transform(Vector3.UnitY,  hmdRot);
+            var fwd    = Vector3.Transform(-Vector3.UnitZ, hmdRot);
+            var mid    = (_lastLeftPos + _lastRightPos) * 0.5f;
+            var off    = mid - hmdPos;
+            _recordHeadLocalOffset = new Vector3(
+                Vector3.Dot(off, right),
+                Vector3.Dot(off, up),
+                Vector3.Dot(off, fwd));
+            _recordLockedWidth  = _lastFrameWidth;
+            _recordLockedHeight = _lastFrameHeight;
+
+            float aspect = _lastFrameHeight / Math.Max(0.001f, _lastFrameWidth);
+            _videoFrameWBytes = _videoTargetW;
+            _videoFrameHBytes = Math.Max(2, (int)Math.Round(_videoTargetW * aspect));
+            if (_videoFrameHBytes > _videoTargetH)
+            {
+                _videoFrameHBytes = _videoTargetH;
+                _videoFrameWBytes = Math.Max(2, (int)Math.Round(_videoTargetH / aspect));
+            }
+            if ((_videoFrameWBytes & 1) == 1) _videoFrameWBytes++;
+            if ((_videoFrameHBytes & 1) == 1) _videoFrameHBytes++;
+
+            try
+            {
+                _videoSessionDir = Path.Combine(Path.GetTempPath(), "VRCNext_FrameShot_" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(_videoSessionDir);
+            }
+            catch (Exception ex)
+            {
+                _log($"[FrameShot] Video temp dir: {ex.Message}");
+                IsVideoRecording = false;
+                return;
+            }
+
+            if (OpenVR.Overlay != null && _overlayHandle != 0)
+            {
+                var hmdLocal = new HmdMatrix34_t
+                {
+                    m0 = 1, m1 = 0, m2 = 0, m3 = _recordHeadLocalOffset.X,
+                    m4 = 0, m5 = 1, m6 = 0, m7 = _recordHeadLocalOffset.Y,
+                    m8 = 0, m9 = 0, m10 = 1, m11 = -_recordHeadLocalOffset.Z,
+                };
+                OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(_overlayHandle, hmdIdx, ref hmdLocal);
+            }
+
+            _videoFrameCount = 0;
+            _videoAutoStop = false;
+            try
+            {
+                _videoRawStream = new FileStream(Path.Combine(_videoSessionDir, "v.raw"),
+                    FileMode.Create, FileAccess.Write, FileShare.Read, 1 << 20);
+            }
+            catch (Exception ex)
+            {
+                _log($"[FrameShot] Video raw open: {ex.Message}");
+                IsVideoRecording = false;
+                return;
+            }
+
+            if (_lastDrawnW > 0 && _lastDrawnH > 0) DrawFrameTexture(_lastDrawnW, _lastDrawnH, true);
+
+            PlaySoundAsync("Video_Start.wav");
+
+            _videoCts = new CancellationTokenSource();
+            var ct = _videoCts.Token;
+            string sessDir = _videoSessionDir;
+            _ = Task.Run(async () =>
+            {
+                try { await Task.Delay(500, ct); } catch (OperationCanceledException) { return; }
+                if (!EnsureMirrorPipeline()) { _videoAutoStop = true; return; }
+                try { await Task.Delay(120, ct); } catch (OperationCanceledException) { return; }
+                _audioCapA = StartAudioCapture(_videoDeviceA, Path.Combine(sessDir, "a.wav"), out _audioWriterA);
+                _audioCapB = StartAudioCapture(_videoDeviceB, Path.Combine(sessDir, "b.wav"), out _audioWriterB);
+                _videoStartUtc = DateTime.UtcNow;
+                await VideoCaptureLoopAsync(ct);
+            });
+            _log("[FrameShot] Video recording started");
+        }
+
+        private async Task VideoCaptureLoopAsync(CancellationToken ct)
+        {
+            var start = DateTime.UtcNow;
+            int frameIdx = 0;
+            try
+            {
+                while (!ct.IsCancellationRequested)
+                {
+                    double elapsedMs = (DateTime.UtcNow - start).TotalMilliseconds;
+                    if (elapsedMs > VIDEO_MAX_MS) { _videoAutoStop = true; break; }
+
+                    var crop = ComputeRecordingCrop(_mirrorW, _mirrorH);
+                    var bytes = CaptureMirrorCropRaw(crop, _videoFrameWBytes, _videoFrameHBytes);
+                    if (bytes != null)
+                    {
+                        lock (_videoRawLock)
+                        {
+                            try { _videoRawStream?.Write(bytes, 0, bytes.Length); _videoFrameCount++; frameIdx++; }
+                            catch (Exception ex) { _log($"[FrameShot] Video write: {ex.Message}"); _videoAutoStop = true; break; }
+                        }
+                    }
+
+                    double nextAt = frameIdx * VIDEO_FRAME_MS;
+                    double wait = nextAt - (DateTime.UtcNow - start).TotalMilliseconds;
+                    if (wait > 0) await Task.Delay((int)wait, ct);
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex) { _log($"[FrameShot] Video loop: {ex.Message}"); }
+        }
+
+        private byte[]? CaptureMirrorCropRaw(System.Drawing.Rectangle crop, int outW, int outH)
+        {
+            var bmp = CaptureMirrorCrop(crop, false);
+            if (bmp == null) return null;
+            try
+            {
+                Bitmap scaled = bmp;
+                if (bmp.Width != outW || bmp.Height != outH)
+                {
+                    scaled = new Bitmap(outW, outH, PixelFormat.Format32bppArgb);
+                    using (var g = Graphics.FromImage(scaled))
+                    {
+                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Bilinear;
+                        g.DrawImage(bmp, 0, 0, outW, outH);
+                    }
+                    bmp.Dispose();
+                }
+                var bytes = new byte[outW * outH * 4];
+                var bData = scaled.LockBits(new Rectangle(0, 0, outW, outH), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                try
+                {
+                    for (int y = 0; y < outH; y++)
+                        Marshal.Copy(bData.Scan0 + y * bData.Stride, bytes, y * outW * 4, outW * 4);
+                }
+                finally { scaled.UnlockBits(bData); }
+                scaled.Dispose();
+                return bytes;
+            }
+            catch (Exception ex)
+            {
+                _log($"[FrameShot] VideoFrame: {ex.Message}");
+                return null;
+            }
+        }
+
+        private void StopVideoRecordingAndSave()
+        {
+            try { _videoCts?.Cancel(); } catch { }
+            _videoCts = null;
+
+            try { _audioCapA?.StopRecording(); } catch { }
+            try { _audioCapB?.StopRecording(); } catch { }
+            try { _audioWriterA?.Dispose();   } catch { }
+            try { _audioWriterB?.Dispose();   } catch { }
+            try { _audioCapA?.Dispose();      } catch { }
+            try { _audioCapB?.Dispose();      } catch { }
+            _audioWriterA = null; _audioWriterB = null;
+            _audioCapA = null;    _audioCapB = null;
+
+            int frameCount;
+            lock (_videoRawLock)
+            {
+                try { _videoRawStream?.Flush(); _videoRawStream?.Dispose(); } catch { }
+                _videoRawStream = null;
+                frameCount = _videoFrameCount;
+            }
+            _videoAutoStop = false;
+
+            if (OpenVR.Overlay != null && _overlayHandle != 0)
+                try { OpenVR.Overlay.HideOverlay(_overlayHandle); } catch { }
+
+            if (frameCount < 2)
+            {
+                _log($"[FrameShot] Video too short ({frameCount} frame), discarded");
+                TryDeleteSessionDir();
+                return;
+            }
+
+            PlaySoundAsync("Video_Done.wav");
+            string sessionDir = _videoSessionDir ?? "";
+            int w = _videoFrameWBytes; int h = _videoFrameHBytes;
+            string bitrate = _videoBitrateQuality;
+            int audioKbps = _videoAudioKbps;
+            double realSec = Math.Max(0.1, (DateTime.UtcNow - _videoStartUtc).TotalSeconds);
+            double actualFps = Math.Max(1.0, frameCount / realSec);
+            _log($"[FrameShot] Captured {frameCount} frames in {realSec:0.00}s ({actualFps:0.0} fps, target 30)");
+            _ = Task.Run(() => SaveMp4(sessionDir, w, h, bitrate, audioKbps, actualFps));
+        }
+
+        private void TryDeleteSessionDir()
+        {
+            if (string.IsNullOrEmpty(_videoSessionDir)) return;
+            try { Directory.Delete(_videoSessionDir, true); } catch { }
+            _videoSessionDir = null;
+        }
+
+        private static string? FindFfmpegPath()
+        {
+            var local = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe");
+            if (File.Exists(local)) return local;
+            var sub = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg", "ffmpeg.exe");
+            if (File.Exists(sub)) return sub;
+            var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? "";
+            foreach (var dir in pathEnv.Split(';'))
+            {
+                if (string.IsNullOrWhiteSpace(dir)) continue;
+                try
+                {
+                    var candidate = Path.Combine(dir.Trim(), "ffmpeg.exe");
+                    if (File.Exists(candidate)) return candidate;
+                }
+                catch { }
+            }
+            return null;
+        }
+
+        private void SaveMp4(string sessionDir, int w, int h, string bitrate, int audioKbps, double inputFps)
+        {
+            try
+            {
+                var ffmpeg = FindFfmpegPath();
+                if (ffmpeg == null)
+                {
+                    _log("[FrameShot] ffmpeg.exe not found — install or place next to VRCNext.exe");
+                    return;
+                }
+
+                var rawPath = Path.Combine(sessionDir, "v.raw");
+
+                try { Directory.CreateDirectory(OutputDir); } catch { }
+                var finalName = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.mp4";
+                var outPath   = Path.Combine(OutputDir, finalName);
+                var tmpPath   = Path.Combine(sessionDir, "out.mp4");
+
+                int crf = bitrate switch { "low" => 28, "high" => 18, _ => 23 };
+                var aPath = Path.Combine(sessionDir, "a.wav");
+                var bPath = Path.Combine(sessionDir, "b.wav");
+                bool hasA = File.Exists(aPath) && new FileInfo(aPath).Length > 1024;
+                bool hasB = File.Exists(bPath) && new FileInfo(bPath).Length > 1024;
+
+                var args = new System.Text.StringBuilder();
+                string fpsStr = inputFps.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+                args.Append($"-hide_banner -loglevel error -nostats -y -f rawvideo -pix_fmt bgra -s {w}x{h} -r {fpsStr} -i \"{rawPath}\" ");
+                int audioCount = 0;
+                if (hasA) { args.Append($"-i \"{aPath}\" "); audioCount++; }
+                if (hasB) { args.Append($"-i \"{bPath}\" "); audioCount++; }
+                if (audioCount == 2)
+                    args.Append("-filter_complex \"[1:a][2:a]amix=inputs=2:duration=shortest:dropout_transition=0[a]\" -map 0:v -map \"[a]\" ");
+                else if (audioCount == 1)
+                    args.Append("-map 0:v -map 1:a ");
+                else
+                    args.Append("-map 0:v ");
+                args.Append($"-c:v libx264 -preset ultrafast -crf {crf} -pix_fmt yuv420p -movflags +faststart ");
+                if (audioCount > 0) args.Append($"-c:a aac -b:a {audioKbps}k ");
+                args.Append($"\"{tmpPath}\"");
+
+                var psi = new System.Diagnostics.ProcessStartInfo(ffmpeg, args.ToString())
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow  = true,
+                    RedirectStandardError  = true,
+                    RedirectStandardOutput = true,
+                };
+                using var proc = System.Diagnostics.Process.Start(psi);
+                if (proc == null) { _log("[FrameShot] ffmpeg start failed"); return; }
+                var errBuf = new System.Text.StringBuilder();
+                proc.ErrorDataReceived  += (_, e) => { if (e.Data != null) lock (errBuf) errBuf.AppendLine(e.Data); };
+                proc.OutputDataReceived += (_, _) => { };
+                proc.BeginErrorReadLine();
+                proc.BeginOutputReadLine();
+                proc.WaitForExit();
+                if (proc.ExitCode != 0)
+                {
+                    string err;
+                    lock (errBuf) err = errBuf.ToString();
+                    _log($"[FrameShot] ffmpeg failed ({proc.ExitCode}): {err.Substring(0, Math.Min(err.Length, 400))}");
+                    return;
+                }
+
+                try { File.Move(tmpPath, outPath); }
+                catch (Exception ex) { _log($"[FrameShot] MP4 move failed: {ex.Message}"); return; }
+
+                _log($"[FrameShot] Saved {outPath}");
+                try { OnPhotoSaved?.Invoke(outPath); } catch { }
+            }
+            catch (Exception ex)
+            {
+                _log($"[FrameShot] MP4 save failed: {ex.Message}");
+            }
+            finally
+            {
+                TryDeleteSessionDir();
+            }
+        }
+
+        // ====================== END VIDEO RECORDING ======================
 
         private void SaveAnimatedGif(List<Bitmap> frames)
         {
@@ -939,7 +1347,7 @@ namespace VRCNext.Services
             float widthM, heightM;
             Vector3 center;
 
-            if (IsRecording)
+            if (IsRecording || IsVideoRecording)
             {
                 hmdRight = hmdRightLive;
                 hmdUp    = hmdUpLive;
@@ -996,7 +1404,7 @@ namespace VRCNext.Services
 
             OpenVR.Overlay.SetOverlayWidthInMeters(_overlayHandle, widthM);
 
-            if (!IsRecording)
+            if (!IsRecording && !IsVideoRecording)
             {
                 var transform = new HmdMatrix34_t
                 {
@@ -1020,10 +1428,10 @@ namespace VRCNext.Services
                 g.SmoothingMode = SmoothingMode.AntiAlias;
                 g.Clear(Color.Transparent);
 
-                // Border colour: red while recording (GIF), light-blue otherwise.
-                var borderColor = recording
-                    ? Color.FromArgb(255, 255, 70, 70)
-                    : Color.FromArgb(255, 130, 210, 255);
+                Color borderColor;
+                if (IsVideoRecording)      borderColor = Color.FromArgb(255, 255, 170,  60); // orange (video)
+                else if (recording)        borderColor = Color.FromArgb(255, 255,  70,  70); // red (gif)
+                else                       borderColor = Color.FromArgb(255, 130, 210, 255); // light-blue (idle)
                 using var pen = new Pen(borderColor, 8f);
                 int inset = 4;
                 g.DrawRectangle(pen, inset, inset, drawW - inset * 2 - 1, drawH - inset * 2 - 1);

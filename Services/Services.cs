@@ -367,6 +367,13 @@ public class AppSettings
     public int    FsGifMaxResolution  { get; set; } = 512;
     public int    FsGifMaxFps         { get; set; } = 10;
     public bool   FsUseHmdRotations   { get; set; } = false;
+    public uint   FsLeftVideoButton   { get; set; } = 0;
+    public uint   FsRightVideoButton  { get; set; } = 0;
+    public string FsVideoDeviceA      { get; set; } = "";
+    public string FsVideoDeviceB      { get; set; } = "";
+    public string FsVideoQuality      { get; set; } = "1080p";
+    public string FsVideoBitrateQuality { get; set; } = "medium";
+    public int    FsAudioKbps         { get; set; } = 256;
 
     // Auto-start flags (legacy — kept for JSON compat, no longer acted on)
     public bool ChatboxAutoStart { get; set; }

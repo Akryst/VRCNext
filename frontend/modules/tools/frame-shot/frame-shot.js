@@ -37,7 +37,54 @@ function fsSendConfig() {
         gifMaxResolution:  parseInt(document.getElementById('fsGifMaxResolution')?.value  ?? '512', 10),
         gifMaxFps:         parseInt(document.getElementById('fsGifMaxFps')?.value         ?? '10', 10),
         useHmdRotations:   !!document.getElementById('fsUseHmdRotations')?.checked,
+        leftVideoButton:   parseInt(document.getElementById('fsLeftVideo')?.value         ?? '0', 10),
+        rightVideoButton:  parseInt(document.getElementById('fsRightVideo')?.value        ?? '0', 10),
+        videoDeviceA:      fsCurrentVideoDeviceA(),
+        videoDeviceB:      fsCurrentVideoDeviceB(),
+        videoQuality:      document.getElementById('fsVideoQuality')?.value               ?? '1080p',
+        videoBitrateQuality: document.getElementById('fsVideoBitrateQuality')?.value      ?? 'medium',
+        audioKbps:         parseInt(document.getElementById('fsAudioKbps')?.value         ?? '256', 10),
     });
+}
+
+let _fsSavedAudioA = '';
+let _fsSavedAudioB = '';
+let _fsAudioDevicesReady = false;
+function fsRequestAudioDevices() { sendToCS({ action: 'fsGetAudioDevices' }); }
+function fsCurrentVideoDeviceA() {
+    return _fsAudioDevicesReady ? (document.getElementById('fsVideoDeviceA')?.value ?? '') : _fsSavedAudioA;
+}
+function fsCurrentVideoDeviceB() {
+    return _fsAudioDevicesReady ? (document.getElementById('fsVideoDeviceB')?.value ?? '') : _fsSavedAudioB;
+}
+
+function handleFsAudioDevices(payload) {
+    const list = Array.isArray(payload?.devices) ? payload.devices : [];
+    if (typeof payload?.savedA === 'string' && !_fsSavedAudioA) _fsSavedAudioA = payload.savedA;
+    if (typeof payload?.savedB === 'string' && !_fsSavedAudioB) _fsSavedAudioB = payload.savedB;
+    const selA = document.getElementById('fsVideoDeviceA');
+    const selB = document.getElementById('fsVideoDeviceB');
+    const wantA = (selA?.value) || _fsSavedAudioA || '';
+    const wantB = (selB?.value) || _fsSavedAudioB || '';
+    for (const sel of [selA, selB]) {
+        if (!sel) continue;
+        sel.innerHTML = '';
+        const def = document.createElement('option');
+        def.value = '';
+        def.textContent = t('frameshot.video.no_input', 'No input');
+        sel.appendChild(def);
+        for (const d of list) {
+            const o = document.createElement('option');
+            o.value = d.id;
+            o.textContent = d.label;
+            sel.appendChild(o);
+        }
+    }
+    if (selA) { selA.value = wantA; if (selA._vnRefresh) selA._vnRefresh(); }
+    if (selB) { selB.value = wantB; if (selB._vnRefresh) selB._vnRefresh(); }
+    _fsSavedAudioA = wantA;
+    _fsSavedAudioB = wantB;
+    _fsAudioDevicesReady = true;
 }
 
 function fsUpdateActivationRadius() {

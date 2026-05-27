@@ -324,7 +324,14 @@ static class VRSubprocess
                         (uint)I(cmd, "rightRecordButton", 0),
                         I(cmd, "gifMaxDim", 512),
                         I(cmd, "gifFps", 10),
-                        B(cmd, "useHmdRotations"));
+                        B(cmd, "useHmdRotations"),
+                        (uint)I(cmd, "leftVideoButton",  0),
+                        (uint)I(cmd, "rightVideoButton", 0),
+                        S(cmd, "videoDeviceA"),
+                        S(cmd, "videoDeviceB"),
+                        S(cmd, "videoQuality", "1080p"),
+                        S(cmd, "videoBitrateQuality", "medium"),
+                        I(cmd, "audioKbps", 256));
                     fs.SetOutputDevice(FsFindDeviceIndex(S(cmd, "outputDevice")));
                     fs.StartPolling();
                 }
@@ -344,12 +351,29 @@ static class VRSubprocess
                     (uint)I(cmd, "rightRecordButton", 0),
                     I(cmd, "gifMaxDim", 512),
                     I(cmd, "gifFps", 10),
-                    B(cmd, "useHmdRotations"));
+                    B(cmd, "useHmdRotations"),
+                    (uint)I(cmd, "leftVideoButton",  0),
+                    (uint)I(cmd, "rightVideoButton", 0),
+                    S(cmd, "videoDeviceA"),
+                    S(cmd, "videoDeviceB"),
+                    S(cmd, "videoQuality", "1080p"),
+                    S(cmd, "videoBitrateQuality", "medium"),
+                    I(cmd, "audioKbps", 256));
                 break;
 
             case "fs_set_output":
                 fs.SetOutputDevice(FsFindDeviceIndex(S(cmd, "deviceName")));
                 break;
+
+            case "fs_get_audio_devices":
+            {
+                var devices = FrameShotService.GetAudioDevices();
+                var arr = new JArray();
+                foreach (var (id, label) in devices)
+                    arr.Add(new JObject { ["id"] = id, ["label"] = label });
+                SendLine(new JObject { ["t"] = "fs_audio_devices", ["devices"] = arr });
+                break;
+            }
 
             case "fs_get_devices":
             {

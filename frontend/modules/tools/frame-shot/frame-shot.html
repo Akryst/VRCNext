@@ -30,6 +30,7 @@
                             <span></span>
                             <span data-i18n="frameshot.keybind.frame">Frame</span>
                             <span data-i18n="frameshot.keybind.record">Record (GIF)</span>
+                            <span data-i18n="frameshot.keybind.video">Record (Video)</span>
                         </div>
 
                         <div class="fs-keybind-grid">
@@ -42,6 +43,14 @@
                                 <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
                             </select>
                             <select id="fsLeftRecord" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="0"  data-i18n="frameshot.keybind.none">None</option>
+                                <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
+                                <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
+                                <option value="32" data-i18n="vro.keybind.button.thumbstick">Stick</option>
+                                <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
+                                <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
+                            </select>
+                            <select id="fsLeftVideo" class="vrcn-select" onchange="fsAutoSave()">
                                 <option value="0"  data-i18n="frameshot.keybind.none">None</option>
                                 <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
                                 <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
@@ -68,6 +77,14 @@
                                 <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
                                 <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
                             </select>
+                            <select id="fsRightVideo" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="0"  data-i18n="frameshot.keybind.none">None</option>
+                                <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
+                                <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
+                                <option value="32" data-i18n="vro.keybind.button.thumbstick">Stick</option>
+                                <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
+                                <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
+                            </select>
                         </div>
 
                         <div class="sf-controllers" style="margin-top:10px;">
@@ -84,6 +101,48 @@
                             <label class="toggle"><input type="checkbox" id="fsUseHmdRotations" onchange="fsAutoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
                         </div>
                         <div class="fs-help" data-i18n="frameshot.photo.use_hmd_rotations.help">When enabled, the frame tilts and rotates together with your headset, including head roll. When disabled (default), the frame stays in a fixed upright rotation regardless of how you move your head recommended for clean, level photos.</div>
+                    </div>
+
+                    <!-- Video Settings -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">videocam</span> <span data-i18n="frameshot.video.title">Video Settings</span></div>
+                        <div class="sf-row">
+                            <label data-i18n="frameshot.video.input_a">Input Device A</label>
+                            <select id="fsVideoDeviceA" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="" data-i18n="frameshot.video.no_input">No input</option>
+                            </select>
+                        </div>
+                        <div class="sf-row">
+                            <label data-i18n="frameshot.video.input_b">Input Device B</label>
+                            <select id="fsVideoDeviceB" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="" data-i18n="frameshot.video.no_input">No input</option>
+                            </select>
+                        </div>
+                        <div class="sf-row">
+                            <label data-i18n="frameshot.video.video_quality">Video Quality</label>
+                            <select id="fsVideoQuality" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="720p">720p</option>
+                                <option value="1080p" selected>1080p</option>
+                                <option value="1440p">1440p</option>
+                            </select>
+                        </div>
+                        <div class="sf-row">
+                            <label data-i18n="frameshot.video.bitrate_quality">Bitrate Quality</label>
+                            <select id="fsVideoBitrateQuality" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="low"    data-i18n="frameshot.video.bitrate.low">Low</option>
+                                <option value="medium" selected data-i18n="frameshot.video.bitrate.medium">Medium</option>
+                                <option value="high"   data-i18n="frameshot.video.bitrate.high">High</option>
+                            </select>
+                        </div>
+                        <div class="sf-row">
+                            <label data-i18n="frameshot.video.audio_quality">Audio Quality</label>
+                            <select id="fsAudioKbps" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="128">128 kbps</option>
+                                <option value="256" selected>256 kbps</option>
+                                <option value="320">320 kbps (High)</option>
+                            </select>
+                        </div>
+                        <div class="fs-help" data-i18n="frameshot.video.help">Record up to 30 seconds of MP4 video with two mixed audio inputs (e.g. system sound + microphone). Requires ffmpeg.exe in PATH or next to VRCNext.exe.</div>
                     </div>
 
                     <!-- GIF Quality -->

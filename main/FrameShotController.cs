@@ -39,6 +39,17 @@ public class FrameShotController : IDisposable
 
             h.OnFsDevices += devices => _core.SendToJS("fsDevices", new { devices, savedDevice = _core.Settings.FsOutputDevice });
 
+            h.OnFsAudioDevices += list =>
+            {
+                var arr = list.Select(d => new { id = d.id, label = d.label }).ToList();
+                _core.SendToJS("fsAudioDevices", new
+                {
+                    devices  = arr,
+                    savedA   = _core.Settings.FsVideoDeviceA,
+                    savedB   = _core.Settings.FsVideoDeviceB,
+                });
+            };
+
             h.OnFsPhotoSaved += path =>
             {
                 if (!string.IsNullOrEmpty(path)) _photos.HandleExternalSave(path);
@@ -71,7 +82,7 @@ public class FrameShotController : IDisposable
                 var host = EnsureHost();
                 var (auth, tfa) = _core.VrcApi.GetCookies();
                 host.EnsureRunning("", _core.HttpPort, auth, tfa);
-                host.FsConnect(_core.Settings.FsLeftButton, _core.Settings.FsRightButton, _core.Settings.FsOutputDevice, _core.Settings.FsActivationRadius, _core.Settings.FsLeftRecordButton, _core.Settings.FsRightRecordButton, _core.Settings.FsGifMaxResolution, _core.Settings.FsGifMaxFps, _core.Settings.FsUseHmdRotations);
+                host.FsConnect(_core.Settings.FsLeftButton, _core.Settings.FsRightButton, _core.Settings.FsOutputDevice, _core.Settings.FsActivationRadius, _core.Settings.FsLeftRecordButton, _core.Settings.FsRightRecordButton, _core.Settings.FsGifMaxResolution, _core.Settings.FsGifMaxFps, _core.Settings.FsUseHmdRotations, _core.Settings.FsLeftVideoButton, _core.Settings.FsRightVideoButton, _core.Settings.FsVideoDeviceA, _core.Settings.FsVideoDeviceB, _core.Settings.FsVideoQuality, _core.Settings.FsVideoBitrateQuality, _core.Settings.FsAudioKbps);
                 _vroCtrl.UpdateToolStates();
                 break;
             }
@@ -115,9 +126,23 @@ public class FrameShotController : IDisposable
                 var gmd = msg["gifMaxResolution"]?.Value<int>()         ?? 512;
                 var gfp = msg["gifMaxFps"]?.Value<int>()                ?? 10;
                 var uhr = msg["useHmdRotations"]?.Value<bool>()         ?? false;
-                _core.VrOverlay?.FsConfig(lb, rb, ar, lrb, rrb, gmd, gfp, uhr);
+                var lvb = (uint)(msg["leftVideoButton"]?.Value<int>()   ?? 0);
+                var rvb = (uint)(msg["rightVideoButton"]?.Value<int>()  ?? 0);
+                var vda = msg["videoDeviceA"]?.Value<string>()          ?? "";
+                var vdb = msg["videoDeviceB"]?.Value<string>()          ?? "";
+                var vq  = msg["videoQuality"]?.Value<string>()          ?? "1080p";
+                var vbq = msg["videoBitrateQuality"]?.Value<string>()   ?? "medium";
+                var akb = msg["audioKbps"]?.Value<int>()                ?? 256;
+                _core.VrOverlay?.FsConfig(lb, rb, ar, lrb, rrb, gmd, gfp, uhr, lvb, rvb, vda, vdb, vq, vbq, akb);
                 break;
             }
+
+            case "fsGetAudioDevices":
+                EnsureHost();
+                var (auth3, tfa3) = _core.VrcApi.GetCookies();
+                _core.VrOverlay?.EnsureRunning("", _core.HttpPort, auth3, tfa3);
+                _core.VrOverlay?.FsGetAudioDevices();
+                break;
 #endif
         }
     }
@@ -141,7 +166,7 @@ public class FrameShotController : IDisposable
             var host = EnsureHost();
             var (auth, tfa) = _core.VrcApi.GetCookies();
             host.EnsureRunning("", _core.HttpPort, auth, tfa);
-            host.FsConnect(_core.Settings.FsLeftButton, _core.Settings.FsRightButton, _core.Settings.FsOutputDevice, _core.Settings.FsActivationRadius, _core.Settings.FsLeftRecordButton, _core.Settings.FsRightRecordButton, _core.Settings.FsGifMaxResolution, _core.Settings.FsGifMaxFps, _core.Settings.FsUseHmdRotations);
+            host.FsConnect(_core.Settings.FsLeftButton, _core.Settings.FsRightButton, _core.Settings.FsOutputDevice, _core.Settings.FsActivationRadius, _core.Settings.FsLeftRecordButton, _core.Settings.FsRightRecordButton, _core.Settings.FsGifMaxResolution, _core.Settings.FsGifMaxFps, _core.Settings.FsUseHmdRotations, _core.Settings.FsLeftVideoButton, _core.Settings.FsRightVideoButton, _core.Settings.FsVideoDeviceA, _core.Settings.FsVideoDeviceB, _core.Settings.FsVideoQuality, _core.Settings.FsVideoBitrateQuality, _core.Settings.FsAudioKbps);
         }
         _vroCtrl.UpdateToolStates();
 #endif

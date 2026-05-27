@@ -1886,6 +1886,7 @@ public partial class AppShell
                 case "fsConfig":
                 case "fsGetDevices":
                 case "fsSetOutput":
+                case "fsGetAudioDevices":
                     _fsCtrl.HandleMessage(action, msg);
                     break;
 

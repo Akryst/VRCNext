@@ -969,18 +969,96 @@ public partial class AppShell
     private static readonly SemaphoreSlim _thumbSem = new(2, 2);
     private static int _thumbGenCount = 0;
 
+    private static string? _cachedFfmpegPath;
+    private static string? FindFfmpegPath()
+    {
+        if (_cachedFfmpegPath != null) return _cachedFfmpegPath.Length == 0 ? null : _cachedFfmpegPath;
+        var local = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe");
+        if (File.Exists(local)) { _cachedFfmpegPath = local; return local; }
+        var sub = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg", "ffmpeg.exe");
+        if (File.Exists(sub)) { _cachedFfmpegPath = sub; return sub; }
+        var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? "";
+        foreach (var dir in pathEnv.Split(';'))
+        {
+            if (string.IsNullOrWhiteSpace(dir)) continue;
+            try
+            {
+                var candidate = Path.Combine(dir.Trim(), "ffmpeg.exe");
+                if (File.Exists(candidate)) { _cachedFfmpegPath = candidate; return candidate; }
+            }
+            catch { }
+        }
+        _cachedFfmpegPath = "";
+        return null;
+    }
+
+    private bool GenerateVideoThumb(string srcFile, string thumbPath)
+    {
+        var ffmpeg = FindFfmpegPath();
+        if (ffmpeg == null)
+        {
+            _core.SendToJS("log", new { msg = "[VideoThumb] ffmpeg.exe not found — install or place next to VRCNext.exe", color = "err" });
+            return false;
+        }
+        if (TryFfmpegThumb(ffmpeg, srcFile, thumbPath, useSeek: true))  return true;
+        if (TryFfmpegThumb(ffmpeg, srcFile, thumbPath, useSeek: false)) return true;
+        return false;
+    }
+
+    private bool TryFfmpegThumb(string ffmpeg, string srcFile, string thumbPath, bool useSeek)
+    {
+        try
+        {
+            var tmpPath = thumbPath + ".tmp";
+            try { if (File.Exists(tmpPath)) File.Delete(tmpPath); } catch { }
+            var seek = useSeek ? "-ss 00:00:01 " : "";
+            var psi = new System.Diagnostics.ProcessStartInfo(ffmpeg,
+                $"-hide_banner -nostats -y {seek}-i \"{srcFile}\" -frames:v 1 -an -vf scale=400:-2 -q:v 5 -f image2 \"{tmpPath}\"")
+            {
+                UseShellExecute = false,
+                CreateNoWindow  = true,
+                RedirectStandardError  = true,
+                RedirectStandardOutput = true,
+            };
+            using var proc = System.Diagnostics.Process.Start(psi);
+            if (proc == null) return false;
+            var errBuf = new System.Text.StringBuilder();
+            proc.ErrorDataReceived  += (_, e) => { if (e.Data != null) lock (errBuf) errBuf.AppendLine(e.Data); };
+            proc.OutputDataReceived += (_, _) => { };
+            proc.BeginErrorReadLine();
+            proc.BeginOutputReadLine();
+            if (!proc.WaitForExit(15_000)) { try { proc.Kill(); } catch { } return false; }
+            if (proc.ExitCode != 0 || !File.Exists(tmpPath))
+            {
+                string err; lock (errBuf) err = errBuf.ToString();
+                var tail = err.Length > 800 ? "..." + err[^800..] : err;
+                _core.SendToJS("log", new {
+                    msg = $"[VideoThumb] ffmpeg exit={proc.ExitCode} seek={useSeek} file={Path.GetFileName(srcFile)}: {tail}",
+                    color = "err"
+                });
+                return false;
+            }
+            File.Move(tmpPath, thumbPath, overwrite: true);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _core.SendToJS("log", new { msg = $"[VideoThumb] exception: {ex.Message}", color = "err" });
+            return false;
+        }
+    }
+
     private async Task ServeThumbAsync(System.Net.HttpListenerContext ctx, string file)
     {
         if (!File.Exists(file)) { ctx.Response.StatusCode = 404; return; }
         var ext = Path.GetExtension(file).ToLower();
-        // Only thumbnail images; serve other types (video etc.) as-is
-        if (ext is not (".jpg" or ".jpeg" or ".png" or ".webp"))
+        bool isVideo = ext is ".mp4" or ".webm" or ".mov" or ".mkv";
+        if (!isVideo && ext is not (".jpg" or ".jpeg" or ".png" or ".webp"))
         {
             await ServeFileAsync(ctx, file);
             return;
         }
 
-        // Cache key: MD5 of path, invalidate if source is newer
         var keyBytes  = System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(file));
         var thumbPath = Path.Combine(_thumbCacheDir, Convert.ToHexString(keyBytes) + ".jpg");
 
@@ -989,10 +1067,14 @@ public partial class AppShell
             await _thumbSem.WaitAsync();
             try
             {
-                // Double-check after acquiring semaphore (another thread may have generated it)
                 if (!File.Exists(thumbPath) || File.GetLastWriteTimeUtc(thumbPath) < File.GetLastWriteTimeUtc(file))
                 {
-                    // Image resize is CPU-bound — offload to thread pool
+                    if (isVideo)
+                    {
+                        var ok = await Task.Run(() => GenerateVideoThumb(file, thumbPath));
+                        if (!ok) { ctx.Response.StatusCode = 404; return; }
+                    }
+                    else
                     await Task.Run(() =>
                     {
                         var tmpPath = thumbPath + ".tmp";
