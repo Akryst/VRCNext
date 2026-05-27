@@ -85,10 +85,14 @@ namespace VRCNext.Services
         // in UpdateFrameAndRender so we don't render before the HMD pose was
         // ever valid (transient init period).
         private bool _framingBasisLocked;
+        private Vector3 _framingLockedRight;
+        private Vector3 _framingLockedUp;
+        private Vector3 _framingLockedFwd;
 
         // D3D11 — overlay frame texture (light blue border)
         private ID3D11Device?        _d3dDevice;
         private ID3D11DeviceContext? _d3dContext;
+        private readonly object _d3dLock = new();
         private ID3D11Texture2D?     _overlayTex;
         private ID3D11Texture2D?     _stagingTex;
         private const int FRAME_TEX_W = 1024;
@@ -97,7 +101,6 @@ namespace VRCNext.Services
         private Bitmap? _frameBitmap;
         private int _lastDrawnW   = -1;
         private int _lastDrawnH   = -1;
-        private bool _lastDrawnRed = false;
 
         // Mirror texture for capture — acquired ONCE per session and reused across captures.
         // Per OpenVR docs the compositor continuously updates the texture content, so the
@@ -304,7 +307,7 @@ namespace VRCNext.Services
                     _overlayTex = _d3dDevice!.CreateTexture2D(new Texture2DDescription
                     {
                         Width = FRAME_TEX_W, Height = FRAME_TEX_H, MipLevels = 1, ArraySize = 1,
-                        Format = Format.R8G8B8A8_UNorm,
+                        Format = Format.B8G8R8A8_UNorm,
                         SampleDescription = new SampleDescription(1, 0),
                         Usage = ResourceUsage.Default,
                         BindFlags = BindFlags.ShaderResource,
@@ -312,7 +315,7 @@ namespace VRCNext.Services
                     _stagingTex = _d3dDevice.CreateTexture2D(new Texture2DDescription
                     {
                         Width = FRAME_TEX_W, Height = FRAME_TEX_H, MipLevels = 1, ArraySize = 1,
-                        Format = Format.R8G8B8A8_UNorm,
+                        Format = Format.B8G8R8A8_UNorm,
                         SampleDescription = new SampleDescription(1, 0),
                         Usage = ResourceUsage.Staging,
                         CPUAccessFlags = CpuAccessFlags.Write,
@@ -494,11 +497,15 @@ namespace VRCNext.Services
 
             if (IsFraming && !wasFraming)
             {
-                // Lock SIZE basis (head rotation must not affect frame size) and
-                // Wait for a valid HMD pose before allowing the overlay to render.
                 uint hmdIdx = (uint)OpenVR.k_unTrackedDeviceIndex_Hmd;
                 if (_poses[hmdIdx].bPoseIsValid)
+                {
+                    var hmdRot = RotFromMatrix(_poses[hmdIdx].mDeviceToAbsoluteTracking);
+                    _framingLockedRight = Vector3.Transform(Vector3.UnitX,  hmdRot);
+                    _framingLockedUp    = Vector3.Transform(Vector3.UnitY,  hmdRot);
+                    _framingLockedFwd   = Vector3.Transform(-Vector3.UnitZ, hmdRot);
                     _framingBasisLocked = true;
+                }
                 PlaySoundAsync("Start.wav");
             }
             if (!IsFraming) _framingBasisLocked = false;
@@ -605,10 +612,7 @@ namespace VRCNext.Services
             }
             _gifAutoStop = false;
             if (_lastDrawnW > 0 && _lastDrawnH > 0)
-            {
                 DrawFrameTexture(_lastDrawnW, _lastDrawnH, true);
-                _lastDrawnRed = true;
-            }
             _recordCts   = new CancellationTokenSource();
             _ = Task.Run(() => RecordCaptureLoopAsync(_recordCts.Token));
             StartRecordSoundLoop("Record.wav");
@@ -746,46 +750,49 @@ namespace VRCNext.Services
             if (_d3dContext == null || _mirrorStaging == null || _mirrorTexCached == null) return null;
             try
             {
-                _d3dContext.CopyResource(_mirrorStaging, _mirrorTexCached);
-                var box = _d3dContext.Map(_mirrorStaging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
                 Bitmap? bmp = null;
-                try
+                lock (_d3dLock)
                 {
-                    bmp = new Bitmap(crop.Width, crop.Height, PixelFormat.Format32bppArgb);
-                    var rect  = new System.Drawing.Rectangle(0, 0, crop.Width, crop.Height);
-                    var bData = bmp.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+                    _d3dContext.CopyResource(_mirrorStaging, _mirrorTexCached);
+                    var box = _d3dContext.Map(_mirrorStaging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
                     try
                     {
-                        var fmtName = _mirrorSrvFormat.ToString();
-                        bool swapRB = !fmtName.StartsWith("B8G8R8A8", StringComparison.Ordinal);
-                        var rowBuf  = new byte[crop.Width * 4];
-                        for (int y = 0; y < crop.Height; y++)
+                        bmp = new Bitmap(crop.Width, crop.Height, PixelFormat.Format32bppArgb);
+                        var rect  = new System.Drawing.Rectangle(0, 0, crop.Width, crop.Height);
+                        var bData = bmp.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+                        try
                         {
-                            var srcRowPtr = box.DataPointer
-                                            + (nint)((long)(y + crop.Y) * box.RowPitch)
-                                            + (nint)(crop.X * 4);
-                            Marshal.Copy(srcRowPtr, rowBuf, 0, crop.Width * 4);
-                            if (swapRB)
+                            var fmtName = _mirrorSrvFormat.ToString();
+                            bool swapRB = !fmtName.StartsWith("B8G8R8A8", StringComparison.Ordinal);
+                            var rowBuf  = new byte[crop.Width * 4];
+                            for (int y = 0; y < crop.Height; y++)
                             {
-                                for (int x = 0; x < crop.Width; x++)
+                                var srcRowPtr = box.DataPointer
+                                                + (nint)((long)(y + crop.Y) * box.RowPitch)
+                                                + (nint)(crop.X * 4);
+                                Marshal.Copy(srcRowPtr, rowBuf, 0, crop.Width * 4);
+                                if (swapRB)
                                 {
-                                    byte r = rowBuf[x * 4 + 0];
-                                    byte b = rowBuf[x * 4 + 2];
-                                    rowBuf[x * 4 + 0] = b;
-                                    rowBuf[x * 4 + 2] = r;
-                                    rowBuf[x * 4 + 3] = 255;
+                                    for (int x = 0; x < crop.Width; x++)
+                                    {
+                                        byte r = rowBuf[x * 4 + 0];
+                                        byte b = rowBuf[x * 4 + 2];
+                                        rowBuf[x * 4 + 0] = b;
+                                        rowBuf[x * 4 + 2] = r;
+                                        rowBuf[x * 4 + 3] = 255;
+                                    }
                                 }
+                                else
+                                {
+                                    for (int x = 0; x < crop.Width; x++) rowBuf[x * 4 + 3] = 255;
+                                }
+                                Marshal.Copy(rowBuf, 0, bData.Scan0 + (nint)(y * bData.Stride), crop.Width * 4);
                             }
-                            else
-                            {
-                                for (int x = 0; x < crop.Width; x++) rowBuf[x * 4 + 3] = 255;
-                            }
-                            Marshal.Copy(rowBuf, 0, bData.Scan0 + (nint)(y * bData.Stride), crop.Width * 4);
                         }
+                        finally { bmp.UnlockBits(bData); }
                     }
-                    finally { bmp.UnlockBits(bData); }
+                    finally { _d3dContext.Unmap(_mirrorStaging, 0); }
                 }
-                finally { _d3dContext.Unmap(_mirrorStaging, 0); }
                 return DownscaleIfNeeded(bmp, _gifMaxDim);
             }
             catch (Exception ex)
@@ -930,35 +937,36 @@ namespace VRCNext.Services
             var hmdPos = PosFromMatrix(hmdM);
             var hmdRot = RotFromMatrix(hmdM);
 
-            // ORIENTATION: current HMD basis — frame always faces the user.
-            Vector3 hmdRight = Vector3.Transform(Vector3.UnitX,  hmdRot);
-            Vector3 hmdUp    = Vector3.Transform(Vector3.UnitY,  hmdRot);
-            Vector3 hmdFwd   = Vector3.Transform(-Vector3.UnitZ, hmdRot);
+            Vector3 hmdRightLive = Vector3.Transform(Vector3.UnitX,  hmdRot);
+            Vector3 hmdUpLive    = Vector3.Transform(Vector3.UnitY,  hmdRot);
+            Vector3 hmdFwdLive   = Vector3.Transform(-Vector3.UnitZ, hmdRot);
 
+            Vector3 hmdRight, hmdUp, hmdFwd;
             float widthM, heightM;
             Vector3 center;
 
             if (IsRecording)
             {
-                widthM  = _recordLockedWidth  * RECORD_VISUAL_SCALE;
-                heightM = _recordLockedHeight * RECORD_VISUAL_SCALE;
-                center  = hmdPos
-                        + hmdRight * _recordHeadLocalOffset.X
-                        + hmdUp    * _recordHeadLocalOffset.Y
-                        + hmdFwd   * _recordHeadLocalOffset.Z;
+                hmdRight = hmdRightLive;
+                hmdUp    = hmdUpLive;
+                hmdFwd   = hmdFwdLive;
+                widthM   = _recordLockedWidth  * RECORD_VISUAL_SCALE;
+                heightM  = _recordLockedHeight * RECORD_VISUAL_SCALE;
+                center   = hmdPos
+                         + hmdRight * _recordHeadLocalOffset.X
+                         + hmdUp    * _recordHeadLocalOffset.Y
+                         + hmdFwd   * _recordHeadLocalOffset.Z;
             }
             else
             {
-                // SIZE: project hand-to-hand vector on the CURRENT HMD basis so
-                // the frame stays the same size when the user turns body + hands
-                // together (e.g. 90° rotation). Projecting onto a locked basis
-                // would shrink/distort it because the world-space hand vector
-                // rotates with the user but the locked axes don't.
+                hmdRight = _framingLockedRight;
+                hmdUp    = _framingLockedUp;
+                hmdFwd   = _framingLockedFwd;
+
                 Vector3 diff = R - L;
                 widthM  = MathF.Max(0.02f, MathF.Abs(Vector3.Dot(diff, hmdRight)));
                 heightM = MathF.Max(0.02f, MathF.Abs(Vector3.Dot(diff, hmdUp)));
 
-                // POSITION: live hand midpoint in WORLD space — frame stays at the hands.
                 center = (L + R) * 0.5f;
 
                 _lastLeftPos     = L;
@@ -977,14 +985,9 @@ namespace VRCNext.Services
             int drawH = (int)MathF.Round(FRAME_TEX_W * aspect);
             if (drawH > FRAME_TEX_H) { drawH = FRAME_TEX_H; drawW = (int)MathF.Round(FRAME_TEX_H / aspect); }
 
-            bool red = IsRecording;
-            if (drawW != _lastDrawnW || drawH != _lastDrawnH || red != _lastDrawnRed)
-            {
-                DrawFrameTexture(drawW, drawH, red);
-                _lastDrawnW   = drawW;
-                _lastDrawnH   = drawH;
-                _lastDrawnRed = red;
-            }
+            DrawFrameTexture(drawW, drawH, IsRecording);
+            _lastDrawnW = drawW;
+            _lastDrawnH = drawH;
 
             OpenVR.Overlay.SetOverlayWidthInMeters(_overlayHandle, widthM);
 
@@ -1025,48 +1028,31 @@ namespace VRCNext.Services
                 g.DrawRectangle(pen2, inset + 6, inset + 6, drawW - inset * 2 - 13, drawH - inset * 2 - 13);
             }
 
-            // Copy bitmap → staging
             var rect = new Rectangle(0, 0, FRAME_TEX_W, FRAME_TEX_H);
             var bData = _frameBitmap.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
             try
             {
+                int rowBytes  = FRAME_TEX_W * 4;
                 int srcStride = bData.Stride;
-                // Convert BGRA→RGBA into upload buf
-                for (int y = 0; y < FRAME_TEX_H; y++)
+                lock (_d3dLock)
                 {
-                    nint srcRow = bData.Scan0 + y * srcStride;
-                    int dstOff = y * FRAME_TEX_W * 4;
-                    for (int x = 0; x < FRAME_TEX_W; x++)
+                    var box = _d3dContext.Map(_stagingTex, 0, MapMode.Write, Vortice.Direct3D11.MapFlags.None);
+                    try
                     {
-                        byte b = Marshal.ReadByte(srcRow, x * 4 + 0);
-                        byte g = Marshal.ReadByte(srcRow, x * 4 + 1);
-                        byte r = Marshal.ReadByte(srcRow, x * 4 + 2);
-                        byte a = Marshal.ReadByte(srcRow, x * 4 + 3);
-                        _frameUploadBuf[dstOff + x * 4 + 0] = r;
-                        _frameUploadBuf[dstOff + x * 4 + 1] = g;
-                        _frameUploadBuf[dstOff + x * 4 + 2] = b;
-                        _frameUploadBuf[dstOff + x * 4 + 3] = a;
+                        for (int y = 0; y < FRAME_TEX_H; y++)
+                        {
+                            Marshal.Copy(bData.Scan0 + y * srcStride, _frameUploadBuf, 0, rowBytes);
+                            Marshal.Copy(_frameUploadBuf, 0,
+                                box.DataPointer + (nint)((long)y * box.RowPitch),
+                                rowBytes);
+                        }
                     }
+                    finally { _d3dContext.Unmap(_stagingTex, 0); }
+                    _d3dContext.CopyResource(_overlayTex, _stagingTex);
                 }
             }
             finally { _frameBitmap.UnlockBits(bData); }
 
-            var box = _d3dContext.Map(_stagingTex, 0, MapMode.Write, Vortice.Direct3D11.MapFlags.None);
-            try
-            {
-                int rowBytes = FRAME_TEX_W * 4;
-                for (int y = 0; y < FRAME_TEX_H; y++)
-                {
-                    Marshal.Copy(_frameUploadBuf, y * rowBytes,
-                        box.DataPointer + (nint)((long)y * box.RowPitch),
-                        rowBytes);
-                }
-            }
-            finally { _d3dContext.Unmap(_stagingTex, 0); }
-
-            _d3dContext.CopyResource(_overlayTex, _stagingTex);
-
-            // Crop overlay bounds so the visible region matches the drawn aspect rectangle
             var bounds = new VRTextureBounds_t
             {
                 uMin = 0f, vMin = 0f,
@@ -1082,6 +1068,7 @@ namespace VRCNext.Services
                 eColorSpace = EColorSpace.Auto,
             };
             OpenVR.Overlay?.SetOverlayTexture(_overlayHandle, ref vrTex);
+            lock (_d3dLock) _d3dContext.Flush();
         }
 
         private void CaptureAndSave()
@@ -1100,9 +1087,6 @@ namespace VRCNext.Services
                 // Let compositor render at least a few frames without the (now-hidden) overlay
                 Thread.Sleep(80);
 
-                // CopyResource into our staging texture, then map and read the crop region.
-                _d3dContext.CopyResource(_mirrorStaging!, _mirrorTexCached!);
-
                 var (px0, py0, px1, py1) = ProjectFrameToMirror(_mirrorW, _mirrorH);
                 int x0 = Math.Clamp(Math.Min(px0, px1), 0, _mirrorW - 1);
                 int y0 = Math.Clamp(Math.Min(py0, py1), 0, _mirrorH - 1);
@@ -1111,49 +1095,53 @@ namespace VRCNext.Services
                 int cw = Math.Max(2, x1 - x0);
                 int ch = Math.Max(2, y1 - y0);
 
-                var box = _d3dContext.Map(_mirrorStaging!, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
                 Bitmap? bmp = null;
-                try
+                lock (_d3dLock)
                 {
-                    bmp = new Bitmap(cw, ch, PixelFormat.Format32bppArgb);
-                    var rect = new Rectangle(0, 0, cw, ch);
-                    var bData = bmp.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+                    _d3dContext.CopyResource(_mirrorStaging!, _mirrorTexCached!);
+                    var box = _d3dContext.Map(_mirrorStaging!, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
                     try
                     {
-                        var fmtName = _mirrorSrvFormat.ToString();
-                        bool swapRB = !fmtName.StartsWith("B8G8R8A8", StringComparison.Ordinal);
-
-                        var rowBuf = new byte[cw * 4];
-                        for (int y = 0; y < ch; y++)
+                        bmp = new Bitmap(cw, ch, PixelFormat.Format32bppArgb);
+                        var rect = new Rectangle(0, 0, cw, ch);
+                        var bData = bmp.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+                        try
                         {
-                            var srcRowPtr = box.DataPointer
-                                            + (nint)((long)(y + y0) * box.RowPitch)
-                                            + (nint)(x0 * 4);
-                            Marshal.Copy(srcRowPtr, rowBuf, 0, cw * 4);
-                            if (swapRB)
+                            var fmtName = _mirrorSrvFormat.ToString();
+                            bool swapRB = !fmtName.StartsWith("B8G8R8A8", StringComparison.Ordinal);
+
+                            var rowBuf = new byte[cw * 4];
+                            for (int y = 0; y < ch; y++)
                             {
-                                for (int x = 0; x < cw; x++)
+                                var srcRowPtr = box.DataPointer
+                                                + (nint)((long)(y + y0) * box.RowPitch)
+                                                + (nint)(x0 * 4);
+                                Marshal.Copy(srcRowPtr, rowBuf, 0, cw * 4);
+                                if (swapRB)
                                 {
-                                    byte r = rowBuf[x * 4 + 0];
-                                    byte b = rowBuf[x * 4 + 2];
-                                    rowBuf[x * 4 + 0] = b;
-                                    rowBuf[x * 4 + 2] = r;
-                                    rowBuf[x * 4 + 3] = 255;
+                                    for (int x = 0; x < cw; x++)
+                                    {
+                                        byte r = rowBuf[x * 4 + 0];
+                                        byte b = rowBuf[x * 4 + 2];
+                                        rowBuf[x * 4 + 0] = b;
+                                        rowBuf[x * 4 + 2] = r;
+                                        rowBuf[x * 4 + 3] = 255;
+                                    }
                                 }
+                                else
+                                {
+                                    for (int x = 0; x < cw; x++)
+                                        rowBuf[x * 4 + 3] = 255;
+                                }
+                                Marshal.Copy(rowBuf, 0,
+                                    bData.Scan0 + (nint)(y * bData.Stride),
+                                    cw * 4);
                             }
-                            else
-                            {
-                                for (int x = 0; x < cw; x++)
-                                    rowBuf[x * 4 + 3] = 255;
-                            }
-                            Marshal.Copy(rowBuf, 0,
-                                bData.Scan0 + (nint)(y * bData.Stride),
-                                cw * 4);
                         }
+                        finally { bmp.UnlockBits(bData); }
                     }
-                    finally { bmp.UnlockBits(bData); }
+                    finally { _d3dContext.Unmap(_mirrorStaging!, 0); }
                 }
-                finally { _d3dContext.Unmap(_mirrorStaging!, 0); }
 
                 if (bmp != null)
                 {
@@ -1235,14 +1223,6 @@ namespace VRCNext.Services
             Vector3 center   = (_lastLeftPos + _lastRightPos) * 0.5f;
             float halfW = _lastFrameWidth  * 0.5f;
             float halfH = _lastFrameHeight * 0.5f;
-
-            // Inset by ~1.5% of frame size (plus 1cm minimum) so the visible border
-            // and antialiased edges are NEVER captured. Especially important for
-            // GIF recording where the overlay can't be hidden during capture.
-            float insetW = MathF.Max(0.010f, _lastFrameWidth  * 0.015f);
-            float insetH = MathF.Max(0.010f, _lastFrameHeight * 0.015f);
-            halfW = MathF.Max(0.01f, halfW - insetW);
-            halfH = MathF.Max(0.01f, halfH - insetH);
 
             Vector3[] corners =
             {
