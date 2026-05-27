@@ -71,7 +71,7 @@ public class FrameShotController : IDisposable
                 var host = EnsureHost();
                 var (auth, tfa) = _core.VrcApi.GetCookies();
                 host.EnsureRunning("", _core.HttpPort, auth, tfa);
-                host.FsConnect(_core.Settings.FsLeftButton, _core.Settings.FsRightButton, _core.Settings.FsOutputDevice, _core.Settings.FsActivationRadius, _core.Settings.FsLeftRecordButton, _core.Settings.FsRightRecordButton, _core.Settings.FsGifMaxResolution, _core.Settings.FsGifMaxFps);
+                host.FsConnect(_core.Settings.FsLeftButton, _core.Settings.FsRightButton, _core.Settings.FsOutputDevice, _core.Settings.FsActivationRadius, _core.Settings.FsLeftRecordButton, _core.Settings.FsRightRecordButton, _core.Settings.FsGifMaxResolution, _core.Settings.FsGifMaxFps, _core.Settings.FsUseHmdRotations);
                 _vroCtrl.UpdateToolStates();
                 break;
             }
@@ -114,7 +114,8 @@ public class FrameShotController : IDisposable
                 var rrb = (uint)(msg["rightRecordButton"]?.Value<int>() ?? 0);
                 var gmd = msg["gifMaxResolution"]?.Value<int>()         ?? 512;
                 var gfp = msg["gifMaxFps"]?.Value<int>()                ?? 10;
-                _core.VrOverlay?.FsConfig(lb, rb, ar, lrb, rrb, gmd, gfp);
+                var uhr = msg["useHmdRotations"]?.Value<bool>()         ?? false;
+                _core.VrOverlay?.FsConfig(lb, rb, ar, lrb, rrb, gmd, gfp, uhr);
                 break;
             }
 #endif
@@ -140,7 +141,7 @@ public class FrameShotController : IDisposable
             var host = EnsureHost();
             var (auth, tfa) = _core.VrcApi.GetCookies();
             host.EnsureRunning("", _core.HttpPort, auth, tfa);
-            host.FsConnect(_core.Settings.FsLeftButton, _core.Settings.FsRightButton, _core.Settings.FsOutputDevice, _core.Settings.FsActivationRadius, _core.Settings.FsLeftRecordButton, _core.Settings.FsRightRecordButton, _core.Settings.FsGifMaxResolution, _core.Settings.FsGifMaxFps);
+            host.FsConnect(_core.Settings.FsLeftButton, _core.Settings.FsRightButton, _core.Settings.FsOutputDevice, _core.Settings.FsActivationRadius, _core.Settings.FsLeftRecordButton, _core.Settings.FsRightRecordButton, _core.Settings.FsGifMaxResolution, _core.Settings.FsGifMaxFps, _core.Settings.FsUseHmdRotations);
         }
         _vroCtrl.UpdateToolStates();
 #endif

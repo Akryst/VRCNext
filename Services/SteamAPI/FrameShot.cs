@@ -25,6 +25,7 @@ namespace VRCNext.Services
         public uint LeftRecordButton  { get; private set; } = 0;
         public uint RightRecordButton { get; private set; } = 0;
         public float ActivationRadius { get; private set; } = 0.15f;
+        public bool  UseHmdRotations  { get; private set; } = false;
 
         // State
         public bool IsConnected { get; private set; }
@@ -85,9 +86,6 @@ namespace VRCNext.Services
         // in UpdateFrameAndRender so we don't render before the HMD pose was
         // ever valid (transient init period).
         private bool _framingBasisLocked;
-        private Vector3 _framingLockedRight;
-        private Vector3 _framingLockedUp;
-        private Vector3 _framingLockedFwd;
 
         // D3D11 — overlay frame texture (light blue border)
         private ID3D11Device?        _d3dDevice;
@@ -412,7 +410,7 @@ namespace VRCNext.Services
 
         public void ApplyConfig(uint leftButton, uint rightButton, float activationRadius,
                                 uint leftRecordButton, uint rightRecordButton,
-                                int gifMaxDim, int gifFps)
+                                int gifMaxDim, int gifFps, bool useHmdRotations)
         {
             LeftButtonId       = leftButton;
             RightButtonId      = rightButton;
@@ -421,6 +419,7 @@ namespace VRCNext.Services
             ActivationRadius   = Math.Clamp(activationRadius, 0.05f, 0.30f);
             _gifMaxDim         = gifMaxDim > 0 ? gifMaxDim : 512;
             _gifFps            = gifFps    > 0 ? gifFps    : 10;
+            UseHmdRotations    = useHmdRotations;
         }
 
         private async Task PollLoopAsync(CancellationToken ct)
@@ -500,14 +499,7 @@ namespace VRCNext.Services
             if (IsFraming && !wasFraming)
             {
                 uint hmdIdx = (uint)OpenVR.k_unTrackedDeviceIndex_Hmd;
-                if (_poses[hmdIdx].bPoseIsValid)
-                {
-                    var hmdRot = RotFromMatrix(_poses[hmdIdx].mDeviceToAbsoluteTracking);
-                    _framingLockedRight = Vector3.Transform(Vector3.UnitX,  hmdRot);
-                    _framingLockedUp    = Vector3.Transform(Vector3.UnitY,  hmdRot);
-                    _framingLockedFwd   = Vector3.Transform(-Vector3.UnitZ, hmdRot);
-                    _framingBasisLocked = true;
-                }
+                if (_poses[hmdIdx].bPoseIsValid) _framingBasisLocked = true;
                 PlaySoundAsync("Start.wav");
             }
             if (!IsFraming) _framingBasisLocked = false;
@@ -961,11 +953,20 @@ namespace VRCNext.Services
             }
             else
             {
-                hmdFwd = hmdFwdLive;
-                Vector3 right = Vector3.Cross(hmdFwd, Vector3.UnitY);
-                if (right.LengthSquared() < 1e-6f) right = hmdRightLive;
-                hmdRight = Vector3.Normalize(right);
-                hmdUp    = Vector3.Normalize(Vector3.Cross(hmdRight, hmdFwd));
+                if (UseHmdRotations)
+                {
+                    hmdRight = hmdRightLive;
+                    hmdUp    = hmdUpLive;
+                    hmdFwd   = hmdFwdLive;
+                }
+                else
+                {
+                    hmdFwd = hmdFwdLive;
+                    Vector3 right = Vector3.Cross(hmdFwd, Vector3.UnitY);
+                    if (right.LengthSquared() < 1e-6f) right = hmdRightLive;
+                    hmdRight = Vector3.Normalize(right);
+                    hmdUp    = Vector3.Normalize(Vector3.Cross(hmdRight, hmdFwd));
+                }
 
                 center = (L + R) * 0.5f;
 
@@ -1085,22 +1086,19 @@ namespace VRCNext.Services
                     _log("[FrameShot] Capture skipped: no compositor/device");
                     return;
                 }
-
-                // Ensure mirror pipeline is initialized (once per session)
                 if (!EnsureMirrorPipeline()) return;
-
-                // Let compositor render at least a few frames without the (now-hidden) overlay
                 Thread.Sleep(80);
 
-                var (px0, py0, px1, py1) = ProjectFrameToMirror(_mirrorW, _mirrorH);
-                int x0 = Math.Clamp(Math.Min(px0, px1), 0, _mirrorW - 1);
-                int y0 = Math.Clamp(Math.Min(py0, py1), 0, _mirrorH - 1);
-                int x1 = Math.Clamp(Math.Max(px0, px1), 0, _mirrorW - 1);
-                int y1 = Math.Clamp(Math.Max(py0, py1), 0, _mirrorH - 1);
-                int cw = Math.Max(2, x1 - x0);
-                int ch = Math.Max(2, y1 - y0);
+                var corners = ProjectFrameCorners(_mirrorW, _mirrorH);
+                if (corners == null) return;
+                var tl = corners[0]; var tr = corners[1]; var br = corners[2]; var bl = corners[3];
 
-                Bitmap? bmp = null;
+                float topLen   = Distance(tl, tr);
+                float leftLen  = Distance(tl, bl);
+                int outW = Math.Max(2, (int)Math.Round(Math.Max(topLen, leftLen * _lastFrameWidth  / Math.Max(0.001f, _lastFrameHeight))));
+                int outH = Math.Max(2, (int)Math.Round(outW * _lastFrameHeight / Math.Max(0.001f, _lastFrameWidth)));
+
+                Bitmap? mirrorBmp = null;
                 lock (_d3dLock)
                 {
                     if (_d3dContext == null || _mirrorStaging == null || _mirrorTexCached == null) return;
@@ -1108,24 +1106,20 @@ namespace VRCNext.Services
                     var box = _d3dContext.Map(_mirrorStaging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
                     try
                     {
-                        bmp = new Bitmap(cw, ch, PixelFormat.Format32bppArgb);
-                        var rect = new Rectangle(0, 0, cw, ch);
-                        var bData = bmp.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+                        mirrorBmp = new Bitmap(_mirrorW, _mirrorH, PixelFormat.Format32bppArgb);
+                        var rect = new Rectangle(0, 0, _mirrorW, _mirrorH);
+                        var bData = mirrorBmp.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
                         try
                         {
                             var fmtName = _mirrorSrvFormat.ToString();
                             bool swapRB = !fmtName.StartsWith("B8G8R8A8", StringComparison.Ordinal);
-
-                            var rowBuf = new byte[cw * 4];
-                            for (int y = 0; y < ch; y++)
+                            var rowBuf = new byte[_mirrorW * 4];
+                            for (int y = 0; y < _mirrorH; y++)
                             {
-                                var srcRowPtr = box.DataPointer
-                                                + (nint)((long)(y + y0) * box.RowPitch)
-                                                + (nint)(x0 * 4);
-                                Marshal.Copy(srcRowPtr, rowBuf, 0, cw * 4);
+                                Marshal.Copy(box.DataPointer + (nint)((long)y * box.RowPitch), rowBuf, 0, _mirrorW * 4);
                                 if (swapRB)
                                 {
-                                    for (int x = 0; x < cw; x++)
+                                    for (int x = 0; x < _mirrorW; x++)
                                     {
                                         byte r = rowBuf[x * 4 + 0];
                                         byte b = rowBuf[x * 4 + 2];
@@ -1136,34 +1130,50 @@ namespace VRCNext.Services
                                 }
                                 else
                                 {
-                                    for (int x = 0; x < cw; x++)
-                                        rowBuf[x * 4 + 3] = 255;
+                                    for (int x = 0; x < _mirrorW; x++) rowBuf[x * 4 + 3] = 255;
                                 }
-                                Marshal.Copy(rowBuf, 0,
-                                    bData.Scan0 + (nint)(y * bData.Stride),
-                                    cw * 4);
+                                Marshal.Copy(rowBuf, 0, bData.Scan0 + (nint)(y * bData.Stride), _mirrorW * 4);
                             }
                         }
-                        finally { bmp.UnlockBits(bData); }
+                        finally { mirrorBmp.UnlockBits(bData); }
                     }
                     finally { _d3dContext.Unmap(_mirrorStaging, 0); }
                 }
 
-                if (bmp != null)
+                if (mirrorBmp == null) return;
+
+                using var outBmp = new Bitmap(outW, outH, PixelFormat.Format32bppArgb);
+                using (var g = Graphics.FromImage(outBmp))
                 {
-                    try { Directory.CreateDirectory(OutputDir); } catch { }
-                    var filename = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.png";
-                    var path = Path.Combine(OutputDir, filename);
-                    bmp.Save(path, ImageFormat.Png);
-                    _log($"[FrameShot] Saved {path} ({cw}x{ch})");
-                    bmp.Dispose();
-                    try { OnPhotoSaved?.Invoke(path); } catch { }
+                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    g.PixelOffsetMode   = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                    var destRect = new RectangleF(0, 0, outW, outH);
+                    var srcQuad  = new[] { tl, tr, bl };
+                    var mtx = new System.Drawing.Drawing2D.Matrix(destRect, srcQuad);
+                    mtx.Invert();
+                    g.Transform = mtx;
+                    g.DrawImage(mirrorBmp, 0, 0);
+                    mtx.Dispose();
                 }
+                mirrorBmp.Dispose();
+
+                try { Directory.CreateDirectory(OutputDir); } catch { }
+                var filename = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.png";
+                var path = Path.Combine(OutputDir, filename);
+                outBmp.Save(path, ImageFormat.Png);
+                _log($"[FrameShot] Saved {path} ({outW}x{outH})");
+                try { OnPhotoSaved?.Invoke(path); } catch { }
             }
             catch (Exception ex)
             {
                 _log($"[FrameShot] Capture failed: {ex.Message}");
             }
+        }
+
+        private static float Distance(PointF a, PointF b)
+        {
+            float dx = a.X - b.X, dy = a.Y - b.Y;
+            return MathF.Sqrt(dx * dx + dy * dy);
         }
 
         private bool EnsureMirrorPipeline()
@@ -1202,12 +1212,11 @@ namespace VRCNext.Services
             return true;
         }
 
-        // Project the 4 frame corners (in world space) onto the left-eye mirror image
-        private (int x0, int y0, int x1, int y1) ProjectFrameToMirror(int mw, int mh)
+
+        private PointF[]? ProjectFrameCorners(int mw, int mh)
         {
             uint hmdIdx = (uint)OpenVR.k_unTrackedDeviceIndex_Hmd;
-            if (_vrSystem == null) return (0, 0, mw, mh);
-
+            if (_vrSystem == null) return null;
             var hmdM = _poses[hmdIdx].mDeviceToAbsoluteTracking;
             var hmdRot = RotFromMatrix(hmdM);
 
@@ -1216,43 +1225,46 @@ namespace VRCNext.Services
             var eyeOffset = ToMatrix4x4(eyeToHead);
             var eyeWorld = eyeOffset * hmdWorld;
             Matrix4x4.Invert(eyeWorld, out var view);
-
             var proj = ToMatrix4x4Proj(_vrSystem.GetProjectionMatrix(EVREye.Eye_Left, 0.05f, 50f));
             var vp = view * proj;
 
-            Vector3 hmdFwd   = Vector3.Transform(-Vector3.UnitZ, hmdRot);
-            Vector3 right    = Vector3.Cross(hmdFwd, Vector3.UnitY);
-            if (right.LengthSquared() < 1e-6f) right = Vector3.Transform(Vector3.UnitX, hmdRot);
-            Vector3 hmdRight = Vector3.Normalize(right);
-            Vector3 hmdUp    = Vector3.Normalize(Vector3.Cross(hmdRight, hmdFwd));
+            Vector3 hmdRight, hmdUp, hmdFwd;
+            if (UseHmdRotations)
+            {
+                hmdRight = Vector3.Transform(Vector3.UnitX,  hmdRot);
+                hmdUp    = Vector3.Transform(Vector3.UnitY,  hmdRot);
+                hmdFwd   = Vector3.Transform(-Vector3.UnitZ, hmdRot);
+            }
+            else
+            {
+                hmdFwd = Vector3.Transform(-Vector3.UnitZ, hmdRot);
+                Vector3 right = Vector3.Cross(hmdFwd, Vector3.UnitY);
+                if (right.LengthSquared() < 1e-6f) right = Vector3.Transform(Vector3.UnitX, hmdRot);
+                hmdRight = Vector3.Normalize(right);
+                hmdUp    = Vector3.Normalize(Vector3.Cross(hmdRight, hmdFwd));
+            }
             Vector3 center   = (_lastLeftPos + _lastRightPos) * 0.5f;
             float halfW = _lastFrameWidth  * 0.5f;
             float halfH = _lastFrameHeight * 0.5f;
 
-            Vector3[] corners =
+            Vector3[] worldCorners =
             {
-                center - hmdRight * halfW - hmdUp * halfH,
-                center + hmdRight * halfW - hmdUp * halfH,
-                center + hmdRight * halfW + hmdUp * halfH,
-                center - hmdRight * halfW + hmdUp * halfH,
+                center - hmdRight * halfW + hmdUp * halfH, // TL
+                center + hmdRight * halfW + hmdUp * halfH, // TR
+                center + hmdRight * halfW - hmdUp * halfH, // BR
+                center - hmdRight * halfW - hmdUp * halfH, // BL
             };
 
-            int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
-            foreach (var w in corners)
+            var pts = new PointF[4];
+            for (int i = 0; i < 4; i++)
             {
-                var clip = Vector4.Transform(new Vector4(w, 1f), vp);
-                if (clip.W <= 0) continue;
+                var clip = Vector4.Transform(new Vector4(worldCorners[i], 1f), vp);
+                if (clip.W <= 0) return null;
                 float ndcX = clip.X / clip.W;
                 float ndcY = clip.Y / clip.W;
-                int px = (int)((ndcX * 0.5f + 0.5f) * mw);
-                int py = (int)((1f - (ndcY * 0.5f + 0.5f)) * mh);
-                if (px < minX) minX = px;
-                if (py < minY) minY = py;
-                if (px > maxX) maxX = px;
-                if (py > maxY) maxY = py;
+                pts[i] = new PointF((ndcX * 0.5f + 0.5f) * mw, (1f - (ndcY * 0.5f + 0.5f)) * mh);
             }
-            if (minX == int.MaxValue) return (0, 0, mw, mh);
-            return (minX, minY, maxX, maxY);
+            return pts;
         }
 
         private static Matrix4x4 ToMatrix4x4(in HmdMatrix34_t m) => new(

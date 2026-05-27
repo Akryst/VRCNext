@@ -37,6 +37,16 @@
 .fs-keybind-head {
     margin-bottom: 4px;
 }
+
+.fs-help {
+    font-size: 11px;
+    color: var(--tx3);
+    line-height: 1.45;
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: var(--bg-input);
+    border-radius: 6px;
+}
 .fs-keybind-head > span {
     font-size: 10px;
     font-weight: 700;

@@ -36,6 +36,7 @@ function fsSendConfig() {
         activationRadius:  parseInt(document.getElementById('fsActivationRadius')?.value  ?? '15', 10),
         gifMaxResolution:  parseInt(document.getElementById('fsGifMaxResolution')?.value  ?? '512', 10),
         gifMaxFps:         parseInt(document.getElementById('fsGifMaxFps')?.value         ?? '10', 10),
+        useHmdRotations:   !!document.getElementById('fsUseHmdRotations')?.checked,
     });
 }
 

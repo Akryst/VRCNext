@@ -76,6 +76,16 @@
                         </div>
                     </div>
 
+                    <!-- Photo Settings -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">photo_camera</span> <span data-i18n="frameshot.photo.title">Photo Settings</span></div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="frameshot.photo.use_hmd_rotations">Use HMD Rotations</span>
+                            <label class="toggle"><input type="checkbox" id="fsUseHmdRotations" onchange="fsAutoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="fs-help" data-i18n="frameshot.photo.use_hmd_rotations.help">When enabled, the frame tilts and rotates together with your headset, including head roll. When disabled (default), the frame stays in a fixed upright rotation regardless of how you move your head recommended for clean, level photos.</div>
+                    </div>
+
                     <!-- GIF Quality -->
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">movie</span> <span data-i18n="frameshot.gif.title">GIF Quality</span></div>

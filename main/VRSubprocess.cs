@@ -323,7 +323,8 @@ static class VRSubprocess
                         (uint)I(cmd, "leftRecordButton",  0),
                         (uint)I(cmd, "rightRecordButton", 0),
                         I(cmd, "gifMaxDim", 512),
-                        I(cmd, "gifFps", 10));
+                        I(cmd, "gifFps", 10),
+                        B(cmd, "useHmdRotations"));
                     fs.SetOutputDevice(FsFindDeviceIndex(S(cmd, "outputDevice")));
                     fs.StartPolling();
                 }
@@ -342,7 +343,8 @@ static class VRSubprocess
                     (uint)I(cmd, "leftRecordButton",  0),
                     (uint)I(cmd, "rightRecordButton", 0),
                     I(cmd, "gifMaxDim", 512),
-                    I(cmd, "gifFps", 10));
+                    I(cmd, "gifFps", 10),
+                    B(cmd, "useHmdRotations"));
                 break;
 
             case "fs_set_output":

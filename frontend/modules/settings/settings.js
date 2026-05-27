@@ -150,6 +150,7 @@ function saveSettings() {
             fsRightRecordButton:      parseInt(document.getElementById('fsRightRecord')?.value     ?? '0',  10),
             fsGifMaxResolution:       parseInt(document.getElementById('fsGifMaxResolution')?.value ?? '512', 10),
             fsGifMaxFps:              parseInt(document.getElementById('fsGifMaxFps')?.value        ?? '10', 10),
+            fsUseHmdRotations:        !!document.getElementById('fsUseHmdRotations')?.checked,
             ytAutoStartVR:            document.getElementById('setYtAutoStartVR')?.checked        ?? false,
             ytAutoStartDesktop:       document.getElementById('setYtAutoStartDesktop')?.checked   ?? false,
             vfAutoStartVR:            document.getElementById('setVfAutoStartVR')?.checked        ?? false,
@@ -461,6 +462,8 @@ function loadSettingsToUI(s) {
     const _fsGF = document.getElementById('fsGifMaxFps');
     if (_fsGR) _fsGR.value = String(s.FsGifMaxResolution ?? s.fsGifMaxResolution ?? 512);
     if (_fsGF) _fsGF.value = String(s.FsGifMaxFps        ?? s.fsGifMaxFps        ?? 10);
+    const _fsUhr = document.getElementById('fsUseHmdRotations');
+    if (_fsUhr) _fsUhr.checked = !!(s.FsUseHmdRotations ?? s.fsUseHmdRotations ?? false);
     if (typeof _fsSavedDevice !== 'undefined') _fsSavedDevice = s.FsOutputDevice ?? s.fsOutputDevice ?? '';
     if (typeof fsRequestDevices === 'function') fsRequestDevices();
     const _fsAr = document.getElementById('fsActivationRadius');
