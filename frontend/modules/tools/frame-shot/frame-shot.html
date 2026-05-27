@@ -119,6 +119,14 @@
                             </select>
                         </div>
                         <div class="sf-row">
+                            <label data-i18n="frameshot.video.target_fps">Target FPS</label>
+                            <select id="fsVideoFps" class="vrcn-select" onchange="fsAutoSave()">
+                                <option value="25">25</option>
+                                <option value="30" selected>30</option>
+                                <option value="60">60</option>
+                            </select>
+                        </div>
+                        <div class="sf-row">
                             <label data-i18n="frameshot.video.video_quality">Video Quality</label>
                             <select id="fsVideoQuality" class="vrcn-select" onchange="fsAutoSave()">
                                 <option value="720p">720p</option>
@@ -142,7 +150,24 @@
                                 <option value="320">320 kbps (High)</option>
                             </select>
                         </div>
-                        <div class="fs-help" data-i18n="frameshot.video.help">Record up to 30 seconds of MP4 video with two mixed audio inputs (e.g. system sound + microphone). Requires ffmpeg.exe in PATH or next to VRCNext.exe.</div>
+                        <div class="fs-help" data-i18n="frameshot.video.help">Record up to 30 seconds of MP4 video with two mixed audio inputs (e.g. system sound + microphone).</div>
+                        <div style="margin-top:12px;padding:10px;background:var(--bg2);border-radius:6px;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                                <span class="msi" style="font-size:16px;">video_settings</span>
+                                <span style="font-size:13px;font-weight:600;" data-i18n="frameshot.ffmpeg.title">Video Encoder (ffmpeg)</span>
+                                <span id="fsFfmpegStatus" style="font-size:11px;color:var(--tx3);margin-left:auto;"></span>
+                            </div>
+                            <div id="fsFfmpegProgressWrap" style="display:none;margin-bottom:8px;">
+                                <div style="font-size:11px;color:var(--tx2);margin-bottom:4px;" id="fsFfmpegProgressLabel" data-i18n="frameshot.ffmpeg.downloading">Downloading...</div>
+                                <div style="background:var(--brd);border-radius:4px;height:6px;overflow:hidden;">
+                                    <div id="fsFfmpegProgressBar" style="height:100%;background:var(--accent);width:0%;transition:width .3s;border-radius:4px;"></div>
+                                </div>
+                            </div>
+                            <button class="vrcn-button" id="fsFfmpegInstallBtn" onclick="fsInstallFfmpeg()">
+                                <span class="msi" style="font-size:16px;">download</span>
+                                <span data-i18n="frameshot.ffmpeg.install">Install ffmpeg</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- GIF Quality -->

@@ -922,6 +922,9 @@ case 'vrcNews':
             case 'fsAudioDevices':
                 if (typeof handleFsAudioDevices === 'function') handleFsAudioDevices(payload);
                 break;
+            case 'fsFfmpegState':
+                if (typeof handleFsFfmpegState === 'function') handleFsFfmpegState(payload);
+                break;
             case 'dpState': dpOnState(payload); break;
             case 'vfState': handleVfState(payload); break;
             case 'vfDevices': populateVfDevices(payload); break;

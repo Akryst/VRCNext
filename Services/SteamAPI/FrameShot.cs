@@ -73,11 +73,13 @@ namespace VRCNext.Services
         private string _videoBitrateQuality = "medium";
         private int    _videoAudioKbps = 256;
         private const int VIDEO_MAX_MS  = 30_000;
-        private const int VIDEO_FPS     = 30;
-        private const int VIDEO_FRAME_MS = 1000 / VIDEO_FPS;
+        private int _videoFps      = 30;
+        private int _videoFrameMs  = 1000 / 30;
         private CancellationTokenSource? _videoCts;
         private DateTime _videoStartUtc;
-        private FileStream? _videoRawStream;
+        private System.Diagnostics.Process? _videoFfmpegProc;
+        private Stream? _videoFfmpegStdin;
+        private string? _videoEncodedPath;
         private int _videoFrameCount;
         private readonly object _videoRawLock = new();
         private volatile bool _videoAutoStop;
@@ -441,7 +443,7 @@ namespace VRCNext.Services
                                 int gifMaxDim, int gifFps, bool useHmdRotations,
                                 uint leftVideoButton, uint rightVideoButton,
                                 string videoDeviceA, string videoDeviceB,
-                                string videoQuality, string videoBitrateQuality, int audioKbps)
+                                int videoFps, string videoQuality, string videoBitrateQuality, int audioKbps)
         {
             LeftButtonId       = leftButton;
             RightButtonId      = rightButton;
@@ -455,6 +457,8 @@ namespace VRCNext.Services
             RightVideoButton   = rightVideoButton;
             _videoDeviceA      = videoDeviceA ?? "";
             _videoDeviceB      = videoDeviceB ?? "";
+            _videoFps          = videoFps is 25 or 30 or 60 ? videoFps : 30;
+            _videoFrameMs      = 1000 / _videoFps;
             switch (videoQuality)
             {
                 case "720p":  _videoTargetW = 1280; _videoTargetH = 720;  break;
@@ -971,17 +975,9 @@ namespace VRCNext.Services
 
             _videoFrameCount = 0;
             _videoAutoStop = false;
-            try
-            {
-                _videoRawStream = new FileStream(Path.Combine(_videoSessionDir, "v.raw"),
-                    FileMode.Create, FileAccess.Write, FileShare.Read, 1 << 20);
-            }
-            catch (Exception ex)
-            {
-                _log($"[FrameShot] Video raw open: {ex.Message}");
-                IsVideoRecording = false;
-                return;
-            }
+            _videoFfmpegProc = null;
+            _videoFfmpegStdin = null;
+            _videoEncodedPath = Path.Combine(_videoSessionDir, "v-only.mp4");
 
             if (_lastDrawnW > 0 && _lastDrawnH > 0) DrawFrameTexture(_lastDrawnW, _lastDrawnH, true);
 
@@ -1007,6 +1003,7 @@ namespace VRCNext.Services
         {
             var start = DateTime.UtcNow;
             int frameIdx = 0;
+            int nativeW = 0, nativeH = 0;
             try
             {
                 while (!ct.IsCancellationRequested)
@@ -1015,17 +1012,30 @@ namespace VRCNext.Services
                     if (elapsedMs > VIDEO_MAX_MS) { _videoAutoStop = true; break; }
 
                     var crop = ComputeRecordingCrop(_mirrorW, _mirrorH);
-                    var bytes = CaptureMirrorCropRaw(crop, _videoFrameWBytes, _videoFrameHBytes);
+                    if (nativeW == 0)
+                    {
+                        nativeW = crop.Width  & ~1;
+                        nativeH = crop.Height & ~1;
+                        if (nativeW < 2 || nativeH < 2) { await Task.Delay(_videoFrameMs, ct); continue; }
+                        _videoFrameWBytes = nativeW;
+                        _videoFrameHBytes = nativeH;
+                        if (!StartLiveEncoder(nativeW, nativeH)) { _videoAutoStop = true; break; }
+                    }
+                    var lockedCrop = new System.Drawing.Rectangle(
+                        Math.Clamp(crop.X, 0, _mirrorW - nativeW),
+                        Math.Clamp(crop.Y, 0, _mirrorH - nativeH),
+                        nativeW, nativeH);
+                    var bytes = CaptureMirrorCropRaw(lockedCrop, nativeW, nativeH);
                     if (bytes != null)
                     {
                         lock (_videoRawLock)
                         {
-                            try { _videoRawStream?.Write(bytes, 0, bytes.Length); _videoFrameCount++; frameIdx++; }
+                            try { _videoFfmpegStdin?.Write(bytes, 0, bytes.Length); _videoFrameCount++; frameIdx++; }
                             catch (Exception ex) { _log($"[FrameShot] Video write: {ex.Message}"); _videoAutoStop = true; break; }
                         }
                     }
 
-                    double nextAt = frameIdx * VIDEO_FRAME_MS;
+                    double nextAt = frameIdx * _videoFrameMs;
                     double wait = nextAt - (DateTime.UtcNow - start).TotalMilliseconds;
                     if (wait > 0) await Task.Delay((int)wait, ct);
                 }
@@ -1084,10 +1094,15 @@ namespace VRCNext.Services
             _audioCapA = null;    _audioCapB = null;
 
             int frameCount;
+            System.Diagnostics.Process? encProc;
+            string? encodedPath;
             lock (_videoRawLock)
             {
-                try { _videoRawStream?.Flush(); _videoRawStream?.Dispose(); } catch { }
-                _videoRawStream = null;
+                try { _videoFfmpegStdin?.Flush(); _videoFfmpegStdin?.Close(); _videoFfmpegStdin?.Dispose(); } catch { }
+                _videoFfmpegStdin = null;
+                encProc = _videoFfmpegProc;
+                _videoFfmpegProc = null;
+                encodedPath = _videoEncodedPath;
                 frameCount = _videoFrameCount;
             }
             _videoAutoStop = false;
@@ -1104,13 +1119,15 @@ namespace VRCNext.Services
 
             PlaySoundAsync("Video_Done.wav");
             string sessionDir = _videoSessionDir ?? "";
-            int w = _videoFrameWBytes; int h = _videoFrameHBytes;
-            string bitrate = _videoBitrateQuality;
             int audioKbps = _videoAudioKbps;
             double realSec = Math.Max(0.1, (DateTime.UtcNow - _videoStartUtc).TotalSeconds);
             double actualFps = Math.Max(1.0, frameCount / realSec);
-            _log($"[FrameShot] Captured {frameCount} frames in {realSec:0.00}s ({actualFps:0.0} fps, target 30)");
-            _ = Task.Run(() => SaveMp4(sessionDir, w, h, bitrate, audioKbps, actualFps));
+            _log($"[FrameShot] Captured {frameCount} frames in {realSec:0.00}s ({actualFps:0.0} fps, target {_videoFps})");
+            _ = Task.Run(() =>
+            {
+                try { FinalizeVideo(encProc, encodedPath ?? "", sessionDir, audioKbps, actualFps); }
+                catch (Exception ex) { _log($"[FrameShot] Finalize task crashed: {ex.GetType().Name}: {ex.Message}"); }
+            });
         }
 
         private void TryDeleteSessionDir()
@@ -1140,33 +1157,94 @@ namespace VRCNext.Services
             return null;
         }
 
-        private void SaveMp4(string sessionDir, int w, int h, string bitrate, int audioKbps, double inputFps)
+        private bool StartLiveEncoder(int nativeW, int nativeH)
+        {
+            var ffmpeg = FindFfmpegPath();
+            if (ffmpeg == null)
+            {
+                _log("[FrameShot] ffmpeg.exe not found — install or place next to VRCNext.exe");
+                return false;
+            }
+            int targetW = _videoTargetW, targetH = _videoTargetH;
+            int crf = _videoBitrateQuality switch { "low" => 28, "high" => 18, _ => 23 };
+            string fpsStr = _videoFps.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+            var args = new System.Text.StringBuilder();
+            args.Append($"-hide_banner -loglevel error -nostats -y -f rawvideo -pix_fmt bgra -s {nativeW}x{nativeH} -r {fpsStr} -i pipe:0 ");
+            bool needScale = nativeW > targetW || nativeH > targetH;
+            if (needScale)
+                args.Append($"-vf \"scale={targetW}:{targetH}:force_original_aspect_ratio=decrease:force_divisible_by=2:flags=fast_bilinear\" ");
+            args.Append($"-an -c:v libx264 -preset ultrafast -tune zerolatency -threads 0 -crf {crf} -pix_fmt yuv420p -movflags +faststart \"{_videoEncodedPath}\"");
+
+            try
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo(ffmpeg, args.ToString())
+                {
+                    UseShellExecute        = false,
+                    CreateNoWindow         = true,
+                    RedirectStandardInput  = true,
+                    RedirectStandardError  = true,
+                    RedirectStandardOutput = true,
+                };
+                var proc = System.Diagnostics.Process.Start(psi);
+                if (proc == null) { _log("[FrameShot] live encoder start failed"); return false; }
+                proc.ErrorDataReceived  += (_, e) => { if (!string.IsNullOrEmpty(e.Data)) _log($"[FrameShot] enc: {e.Data}"); };
+                proc.OutputDataReceived += (_, _) => { };
+                proc.BeginErrorReadLine();
+                proc.BeginOutputReadLine();
+                _videoFfmpegProc  = proc;
+                _videoFfmpegStdin = proc.StandardInput.BaseStream;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _log($"[FrameShot] live encoder exception: {ex.Message}");
+                return false;
+            }
+        }
+
+        private void FinalizeVideo(System.Diagnostics.Process? encProc, string encodedPath, string sessionDir, int audioKbps, double actualFps)
         {
             try
             {
-                var ffmpeg = FindFfmpegPath();
-                if (ffmpeg == null)
+                if (encProc == null || string.IsNullOrEmpty(encodedPath))
                 {
-                    _log("[FrameShot] ffmpeg.exe not found — install or place next to VRCNext.exe");
+                    _log("[FrameShot] FinalizeVideo: no encoder state");
+                    TryDeleteSessionDir();
                     return;
                 }
 
-                var rawPath = Path.Combine(sessionDir, "v.raw");
+                if (!encProc.WaitForExit(15_000))
+                {
+                    try { encProc.Kill(); } catch { }
+                    _log("[FrameShot] live encoder timed out");
+                    TryDeleteSessionDir();
+                    return;
+                }
+                if (encProc.ExitCode != 0)
+                {
+                    _log($"[FrameShot] live encoder failed exit={encProc.ExitCode}");
+                    TryDeleteSessionDir();
+                    return;
+                }
+                try { encProc.Dispose(); } catch { }
+
+                var ffmpeg = FindFfmpegPath();
+                if (ffmpeg == null) { TryDeleteSessionDir(); return; }
 
                 try { Directory.CreateDirectory(OutputDir); } catch { }
                 var finalName = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.mp4";
                 var outPath   = Path.Combine(OutputDir, finalName);
                 var tmpPath   = Path.Combine(sessionDir, "out.mp4");
 
-                int crf = bitrate switch { "low" => 28, "high" => 18, _ => 23 };
                 var aPath = Path.Combine(sessionDir, "a.wav");
                 var bPath = Path.Combine(sessionDir, "b.wav");
                 bool hasA = File.Exists(aPath) && new FileInfo(aPath).Length > 1024;
                 bool hasB = File.Exists(bPath) && new FileInfo(bPath).Length > 1024;
 
+                string fpsStr = actualFps.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
                 var args = new System.Text.StringBuilder();
-                string fpsStr = inputFps.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
-                args.Append($"-hide_banner -loglevel error -nostats -y -f rawvideo -pix_fmt bgra -s {w}x{h} -r {fpsStr} -i \"{rawPath}\" ");
+                args.Append($"-hide_banner -loglevel error -nostats -y -r {fpsStr} -i \"{encodedPath}\" ");
                 int audioCount = 0;
                 if (hasA) { args.Append($"-i \"{aPath}\" "); audioCount++; }
                 if (hasB) { args.Append($"-i \"{bPath}\" "); audioCount++; }
@@ -1176,7 +1254,7 @@ namespace VRCNext.Services
                     args.Append("-map 0:v -map 1:a ");
                 else
                     args.Append("-map 0:v ");
-                args.Append($"-c:v libx264 -preset ultrafast -crf {crf} -pix_fmt yuv420p -movflags +faststart ");
+                args.Append("-c:v copy -movflags +faststart ");
                 if (audioCount > 0) args.Append($"-c:a aac -b:a {audioKbps}k ");
                 args.Append($"\"{tmpPath}\"");
 
@@ -1187,31 +1265,31 @@ namespace VRCNext.Services
                     RedirectStandardError  = true,
                     RedirectStandardOutput = true,
                 };
-                using var proc = System.Diagnostics.Process.Start(psi);
-                if (proc == null) { _log("[FrameShot] ffmpeg start failed"); return; }
+                using var muxProc = System.Diagnostics.Process.Start(psi);
+                if (muxProc == null) { _log("[FrameShot] mux start failed"); TryDeleteSessionDir(); return; }
                 var errBuf = new System.Text.StringBuilder();
-                proc.ErrorDataReceived  += (_, e) => { if (e.Data != null) lock (errBuf) errBuf.AppendLine(e.Data); };
-                proc.OutputDataReceived += (_, _) => { };
-                proc.BeginErrorReadLine();
-                proc.BeginOutputReadLine();
-                proc.WaitForExit();
-                if (proc.ExitCode != 0)
+                muxProc.ErrorDataReceived  += (_, e) => { if (e.Data != null) lock (errBuf) errBuf.AppendLine(e.Data); };
+                muxProc.OutputDataReceived += (_, _) => { };
+                muxProc.BeginErrorReadLine();
+                muxProc.BeginOutputReadLine();
+                muxProc.WaitForExit();
+                if (muxProc.ExitCode != 0)
                 {
-                    string err;
-                    lock (errBuf) err = errBuf.ToString();
-                    _log($"[FrameShot] ffmpeg failed ({proc.ExitCode}): {err.Substring(0, Math.Min(err.Length, 400))}");
+                    string err; lock (errBuf) err = errBuf.ToString();
+                    _log($"[FrameShot] mux failed ({muxProc.ExitCode}): {err.Substring(0, Math.Min(err.Length, 400))}");
+                    TryDeleteSessionDir();
                     return;
                 }
 
                 try { File.Move(tmpPath, outPath); }
-                catch (Exception ex) { _log($"[FrameShot] MP4 move failed: {ex.Message}"); return; }
+                catch (Exception ex) { _log($"[FrameShot] MP4 move failed: {ex.Message}"); TryDeleteSessionDir(); return; }
 
                 _log($"[FrameShot] Saved {outPath}");
                 try { OnPhotoSaved?.Invoke(outPath); } catch { }
             }
             catch (Exception ex)
             {
-                _log($"[FrameShot] MP4 save failed: {ex.Message}");
+                _log($"[FrameShot] FinalizeVideo failed: {ex.Message}");
             }
             finally
             {

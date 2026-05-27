@@ -1730,6 +1730,7 @@ public class AuthController
             _core.Settings.FsRightVideoButton      = (uint)(data["fsRightVideoButton"]?.Value<int>()  ?? 0);
             _core.Settings.FsVideoDeviceA          = data["fsVideoDeviceA"]?.Value<string>()          ?? "";
             _core.Settings.FsVideoDeviceB          = data["fsVideoDeviceB"]?.Value<string>()          ?? "";
+            _core.Settings.FsVideoFps              = data["fsVideoFps"]?.Value<int>()                 ?? 30;
             _core.Settings.FsVideoQuality          = data["fsVideoQuality"]?.Value<string>()          ?? "1080p";
             _core.Settings.FsVideoBitrateQuality   = data["fsVideoBitrateQuality"]?.Value<string>()   ?? "medium";
             _core.Settings.FsAudioKbps             = data["fsAudioKbps"]?.Value<int>()                ?? 256;

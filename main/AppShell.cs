@@ -972,7 +972,7 @@ public partial class AppShell
     private static string? _cachedFfmpegPath;
     private static string? FindFfmpegPath()
     {
-        if (_cachedFfmpegPath != null) return _cachedFfmpegPath.Length == 0 ? null : _cachedFfmpegPath;
+        if (!string.IsNullOrEmpty(_cachedFfmpegPath) && File.Exists(_cachedFfmpegPath)) return _cachedFfmpegPath;
         var local = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe");
         if (File.Exists(local)) { _cachedFfmpegPath = local; return local; }
         var sub = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg", "ffmpeg.exe");
@@ -988,7 +988,7 @@ public partial class AppShell
             }
             catch { }
         }
-        _cachedFfmpegPath = "";
+        _cachedFfmpegPath = null;
         return null;
     }
 

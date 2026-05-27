@@ -144,7 +144,7 @@ function saveSettings() {
             fsAutoStartVR:            document.getElementById('setFsAutoStartVR')?.checked        ?? false,
             fsLeftButton:             parseInt(document.getElementById('fsLeftButton')?.value     ?? '2', 10),
             fsRightButton:            parseInt(document.getElementById('fsRightButton')?.value    ?? '2', 10),
-            fsOutputDevice:           document.getElementById('fsOutputDevice')?.value            ?? '',
+            fsOutputDevice:           (typeof fsCurrentOutputDevice === 'function') ? fsCurrentOutputDevice() : (document.getElementById('fsOutputDevice')?.value ?? ''),
             fsActivationRadius:       parseInt(document.getElementById('fsActivationRadius')?.value ?? '15', 10),
             fsLeftRecordButton:       parseInt(document.getElementById('fsLeftRecord')?.value      ?? '0',  10),
             fsRightRecordButton:      parseInt(document.getElementById('fsRightRecord')?.value     ?? '0',  10),
@@ -155,6 +155,7 @@ function saveSettings() {
             fsRightVideoButton:       parseInt(document.getElementById('fsRightVideo')?.value         ?? '0',  10),
             fsVideoDeviceA:           (typeof fsCurrentVideoDeviceA === 'function') ? fsCurrentVideoDeviceA() : (document.getElementById('fsVideoDeviceA')?.value ?? ''),
             fsVideoDeviceB:           (typeof fsCurrentVideoDeviceB === 'function') ? fsCurrentVideoDeviceB() : (document.getElementById('fsVideoDeviceB')?.value ?? ''),
+            fsVideoFps:               parseInt(document.getElementById('fsVideoFps')?.value           ?? '30', 10),
             fsVideoQuality:           document.getElementById('fsVideoQuality')?.value                ?? '1080p',
             fsVideoBitrateQuality:    document.getElementById('fsVideoBitrateQuality')?.value         ?? 'medium',
             fsAudioKbps:              parseInt(document.getElementById('fsAudioKbps')?.value          ?? '256', 10),
@@ -478,14 +479,17 @@ function loadSettingsToUI(s) {
     if (typeof _fsSavedAudioA !== 'undefined') _fsSavedAudioA = s.FsVideoDeviceA ?? s.fsVideoDeviceA ?? '';
     if (typeof _fsSavedAudioB !== 'undefined') _fsSavedAudioB = s.FsVideoDeviceB ?? s.fsVideoDeviceB ?? '';
     if (typeof fsRequestAudioDevices === 'function') fsRequestAudioDevices();
+    const _fsVF  = document.getElementById('fsVideoFps');
     const _fsVQ  = document.getElementById('fsVideoQuality');
     const _fsVBQ = document.getElementById('fsVideoBitrateQuality');
     const _fsAK  = document.getElementById('fsAudioKbps');
+    if (_fsVF)  _fsVF.value  = String(s.FsVideoFps            ?? s.fsVideoFps            ?? 30);
     if (_fsVQ)  _fsVQ.value  = String(s.FsVideoQuality        ?? s.fsVideoQuality        ?? '1080p');
     if (_fsVBQ) _fsVBQ.value = String(s.FsVideoBitrateQuality ?? s.fsVideoBitrateQuality ?? 'medium');
     if (_fsAK)  _fsAK.value  = String(s.FsAudioKbps           ?? s.fsAudioKbps           ?? 256);
     if (typeof _fsSavedDevice !== 'undefined') _fsSavedDevice = s.FsOutputDevice ?? s.fsOutputDevice ?? '';
     if (typeof fsRequestDevices === 'function') fsRequestDevices();
+    if (typeof fsRequestFfmpegState === 'function') fsRequestFfmpegState();
     const _fsAr = document.getElementById('fsActivationRadius');
     if (_fsAr) {
         _fsAr.value = String(s.FsActivationRadius ?? s.fsActivationRadius ?? 15);

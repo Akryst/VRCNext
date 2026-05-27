@@ -329,6 +329,7 @@ static class VRSubprocess
                         (uint)I(cmd, "rightVideoButton", 0),
                         S(cmd, "videoDeviceA"),
                         S(cmd, "videoDeviceB"),
+                        I(cmd, "videoFps", 30),
                         S(cmd, "videoQuality", "1080p"),
                         S(cmd, "videoBitrateQuality", "medium"),
                         I(cmd, "audioKbps", 256));
@@ -356,6 +357,7 @@ static class VRSubprocess
                     (uint)I(cmd, "rightVideoButton", 0),
                     S(cmd, "videoDeviceA"),
                     S(cmd, "videoDeviceB"),
+                    I(cmd, "videoFps", 30),
                     S(cmd, "videoQuality", "1080p"),
                     S(cmd, "videoBitrateQuality", "medium"),
                     I(cmd, "audioKbps", 256));

@@ -371,6 +371,7 @@ public class AppSettings
     public uint   FsRightVideoButton  { get; set; } = 0;
     public string FsVideoDeviceA      { get; set; } = "";
     public string FsVideoDeviceB      { get; set; } = "";
+    public int    FsVideoFps          { get; set; } = 30;
     public string FsVideoQuality      { get; set; } = "1080p";
     public string FsVideoBitrateQuality { get; set; } = "medium";
     public int    FsAudioKbps         { get; set; } = 256;
