@@ -961,15 +961,17 @@ namespace VRCNext.Services
             }
             else
             {
-                hmdRight = _framingLockedRight;
-                hmdUp    = _framingLockedUp;
-                hmdFwd   = _framingLockedFwd;
+                hmdFwd = hmdFwdLive;
+                Vector3 right = Vector3.Cross(hmdFwd, Vector3.UnitY);
+                if (right.LengthSquared() < 1e-6f) right = hmdRightLive;
+                hmdRight = Vector3.Normalize(right);
+                hmdUp    = Vector3.Normalize(Vector3.Cross(hmdRight, hmdFwd));
+
+                center = (L + R) * 0.5f;
 
                 Vector3 diff = R - L;
                 widthM  = MathF.Max(0.02f, MathF.Abs(Vector3.Dot(diff, hmdRight)));
                 heightM = MathF.Max(0.02f, MathF.Abs(Vector3.Dot(diff, hmdUp)));
-
-                center = (L + R) * 0.5f;
 
                 _lastLeftPos     = L;
                 _lastRightPos    = R;
@@ -1206,11 +1208,9 @@ namespace VRCNext.Services
             uint hmdIdx = (uint)OpenVR.k_unTrackedDeviceIndex_Hmd;
             if (_vrSystem == null) return (0, 0, mw, mh);
 
-            // HMD pose at capture time
             var hmdM = _poses[hmdIdx].mDeviceToAbsoluteTracking;
             var hmdRot = RotFromMatrix(hmdM);
 
-            // Build view matrix (inverse of eyeWorld = hmdWorld * eyeToHead)
             var eyeToHead = _vrSystem.GetEyeToHeadTransform(EVREye.Eye_Left);
             var hmdWorld = ToMatrix4x4(hmdM);
             var eyeOffset = ToMatrix4x4(eyeToHead);
@@ -1220,10 +1220,11 @@ namespace VRCNext.Services
             var proj = ToMatrix4x4Proj(_vrSystem.GetProjectionMatrix(EVREye.Eye_Left, 0.05f, 50f));
             var vp = view * proj;
 
-            // Mirror exactly the same geometry the overlay uses: world hand
-            // midpoint as center, current HMD basis for orientation.
-            Vector3 hmdRight = Vector3.Transform(Vector3.UnitX,  hmdRot);
-            Vector3 hmdUp    = Vector3.Transform(Vector3.UnitY,  hmdRot);
+            Vector3 hmdFwd   = Vector3.Transform(-Vector3.UnitZ, hmdRot);
+            Vector3 right    = Vector3.Cross(hmdFwd, Vector3.UnitY);
+            if (right.LengthSquared() < 1e-6f) right = Vector3.Transform(Vector3.UnitX, hmdRot);
+            Vector3 hmdRight = Vector3.Normalize(right);
+            Vector3 hmdUp    = Vector3.Normalize(Vector3.Cross(hmdRight, hmdFwd));
             Vector3 center   = (_lastLeftPos + _lastRightPos) * 0.5f;
             float halfW = _lastFrameWidth  * 0.5f;
             float halfH = _lastFrameHeight * 0.5f;
