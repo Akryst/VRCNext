@@ -117,6 +117,10 @@ function openFriendDetail(userId) {
     const m = document.getElementById('modalFriendDetail');
     const c = document.getElementById('friendDetailContent');
     c.innerHTML = sk('content-modal');
+    if (typeof vrcnPlusOnProfileOpened === 'function') {
+        const _fdBox = m.querySelector('.modal-box');
+        if (_fdBox) vrcnPlusOnProfileOpened(userId, _fdBox);
+    }
     m.style.display = 'flex';
     sendToCS({ action: 'vrcGetFriendDetail', userId: userId });
 }
@@ -534,6 +538,10 @@ function _getFdBannerImg(userId, src) {
 function renderFriendDetail(d) {
     if (d.id && d.rawJson) _fdRawJsonCache[d.id] = d.rawJson;
     currentFriendDetail = d;
+    if (typeof vrcnPlusOnProfileOpened === 'function' && d.id) {
+        const _fdBox = document.querySelector('#modalFriendDetail .modal-box');
+        if (_fdBox) vrcnPlusOnProfileOpened(d.id, _fdBox);
+    }
     if (typeof navUpdateLabel === 'function') navUpdateLabel(d.displayName || '');
     window._fdGroupsPage = 0;
     window._fdMutualsPage = 0;
@@ -713,9 +721,12 @@ function renderFriendDetail(d) {
     }
 
     const vrcBadges = d.badges || [];
+    const _isVrcnPlusFd = (typeof vrcnPlusIsKnownPlus === 'function') && vrcnPlusIsKnownPlus(d.id);
     let vrcBadgesRowHtml = '';
-    if (vrcBadges.length > 0) {
-        vrcBadgesRowHtml = `<div class="fd-vrc-badges-row">${vrcBadges.map(b =>
+    if (vrcBadges.length > 0 || _isVrcnPlusFd) {
+        const vrcnPlusBadgeHtml = _isVrcnPlusFd && typeof window.vrcnPlusBadgeHtml === 'function'
+            ? window.vrcnPlusBadgeHtml() : '';
+        vrcBadgesRowHtml = `<div class="fd-vrc-badges-row">${vrcnPlusBadgeHtml}${vrcBadges.map(b =>
             `<div class="fd-vrc-badge-wrap"` +
                 ` data-badge-img="${esc(b.imageUrl)}"` +
                 ` data-badge-name="${encodeURIComponent(b.name)}"` +
@@ -1031,6 +1042,7 @@ function renderFriendDetail(d) {
             else { clearInterval(_fdLiveTimer); _fdLiveTimer = null; }
         }, 1000);
     }
+
 }
 
 function patchFriendDetailLive(f) {

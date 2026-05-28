@@ -50,6 +50,7 @@ public partial class AppShell
     private RelayController _relayCtrl = null!;
     private SnipeController _snipeCtrl = null!;
     private ActionFlowController _afCtrl = null!;
+    private VRCNPlusController _vrcnPlusCtrl = null!;
     private WindowController _windowCtrl = null!;
     private readonly CacheHandler _cache = new();
     // DB services live in CoreLibrary and are accessed via _core.TimeEngine, _core.PhotoPlayersStore and _core.Timeline.
@@ -184,6 +185,7 @@ public partial class AppShell
         _asCtrl = new AvatarScalingController(_core);
         _snipeCtrl = new SnipeController(_core);
         _afCtrl = new ActionFlowController(_core);
+        _vrcnPlusCtrl = new VRCNPlusController(_core);
 #if WINDOWS
         _afCtrl.TrayServiceProvider = () => _trayService;
 #endif
@@ -193,7 +195,11 @@ public partial class AppShell
         WindowController.OnMinimized = () => _memTrim.TrimNow();
 #endif
         _authCtrl = new AuthController(_core, _friends, _instance, _photos, _relayCtrl, _groups, _discordCtrl);
-        _relayCtrl.OnOwnUserUpdated = user => _authCtrl.SendVrcUserData(user);
+        _relayCtrl.OnOwnUserUpdated = user =>
+        {
+            _authCtrl.SendVrcUserData(user);
+            _vrcnPlusCtrl.OnOwnUserKnown(user?["id"]?.ToString() ?? "");
+        };
         _core.PushDiscordPresence = () => _discordCtrl.PushPresence();
         _vroCtrl.OnToolToggle    = ToggleToolFromOverlay;
         _vroCtrl.OnVrScaleChange = delta => _asCtrl.ApplyVrScaleDelta(delta);

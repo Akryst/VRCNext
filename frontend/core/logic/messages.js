@@ -1060,6 +1060,15 @@ case 'vrcNews':
         case 'afGameRunning':
             if (typeof window.__afHandleMessage === 'function') window.__afHandleMessage(type, payload);
             break;
+        case 'vrcnPlusTheme':
+            if (typeof window.vrcnPlusTheme === 'function') window.vrcnPlusTheme(payload);
+            break;
+        case 'vrcnPlusEntitlement':
+            if (typeof window.vrcnPlusEntitlement === 'function') window.vrcnPlusEntitlement(payload);
+            break;
+        case 'vrcnPlusSaveResult':
+            if (typeof window.vrcnPlusSaveResult === 'function') window.vrcnPlusSaveResult(payload);
+            break;
     }
 });
 // 'ready' and 'kxdGetDevices' are sent by the fragment loader at the end of

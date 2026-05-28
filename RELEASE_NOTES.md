@@ -1,14 +1,17 @@
-**2026.28.0**
+**2026.28.2**
 
-**Frame Shot**
-    *New*
-    * Added Rotation Switch for Photos
-    * Added MP4 video recording (up to 30 seconds) with a dedicated keybind per hand.
-    * Added two independent audio input slots (mix system audio + microphone via WASAPI loopback/capture).
-    * Added Video Quality (720p / 1080p / 1440p), Bitrate Quality (Low / Medium / High) and Audio Quality (128 / 256 / 320 kbps) selectors.
-    * Added video thumbnails in the Media Library.
+**VRCNext Plus**
 
-    *Fixes*
-    * Fixed an issue where the FrameShot frame rotated win a wrong way with the headset.
-    * Fixed an 3D space issue with FrameShot
-    * Fixed an issue where FrameShot photos were cropped more than the visible frame.
+VRCN+ is a subscription based on my Patreon. First of all: no existing feature is locked behind a paywall.
+
+With VRCN+, I want to give people who use VRCN a way to support the project if they want to. VRCN+ includes a few benefits:
+
+1. You will get a VRCN+ badge on your profile.
+2. You can customize your personal profile colors, and everyone using VRCNext will be able to see them.
+3. You will get a Discord role showing that you supported the project.
+4. You will get early access to new features before they are available to everyone.
+
+Note: These benefits are only visible to others if they use VRCNext as well.
+The badge will not appear on your actual VRChat profile.
+
+To get the benefits, support the Normal Tier on Patreon. After that, you can request access to VRCN+ on Discord.

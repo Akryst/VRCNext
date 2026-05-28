@@ -49,4 +49,20 @@ internal static class Database
 
         return conn;
     }
+
+    private static readonly string VRCNPlusDbPath = Path.Combine(BaseDir, "VRCNPlus.sqlite");
+
+    internal static SqliteConnection OpenVRCNPlusConnection()
+    {
+        if (!Directory.Exists(BaseDir)) Directory.CreateDirectory(BaseDir);
+
+        var conn = new SqliteConnection($"Data Source={VRCNPlusDbPath}");
+        conn.Open();
+
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;";
+        cmd.ExecuteNonQuery();
+
+        return conn;
+    }
 }
