@@ -711,6 +711,7 @@
   "profiles.friends.login_prompt": "Login to VRChat to see friends online",
   "profiles.friends.login_to_vrchat": "Login to VRChat",
   "profiles.friends.search_placeholder": "Search friends...",
+  "profiles.friends.refresh": "Refresh friends & group instances",
   "profiles.friends.location.web": "Web / Mobile",
   "profiles.friends.location.private": "Private Instance",
   "profiles.friends.location.world": "In World",

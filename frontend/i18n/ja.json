@@ -711,6 +711,7 @@
   "profiles.friends.login_prompt": "VRChatにログインしてオンラインのフレンドを表示",
   "profiles.friends.login_to_vrchat": "VRChatにログイン",
   "profiles.friends.search_placeholder": "フレンドを検索...",
+  "profiles.friends.refresh": "フレンドとグループインスタンスを更新",
   "profiles.friends.location.web": "Web / モバイル",
   "profiles.friends.location.private": "プライベートインスタンス",
   "profiles.friends.location.world": "ワールド内",

@@ -711,6 +711,7 @@
   "profiles.friends.login_prompt": "登录 VRChat 以查看在线好友",
   "profiles.friends.login_to_vrchat": "登录 VRChat",
   "profiles.friends.search_placeholder": "搜索好友...",
+  "profiles.friends.refresh": "刷新好友和群组实例",
   "profiles.friends.location.web": "网页 / 移动端",
   "profiles.friends.location.private": "私人实例",
   "profiles.friends.location.world": "在世界中",

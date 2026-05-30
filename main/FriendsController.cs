@@ -1819,15 +1819,20 @@ public class FriendsController
         var mutualGroupsArr = mutualGroupsTask.IsCompletedSuccessfully ? mutualGroupsTask.Result : new JArray();
         var freshRepGroup = repGroupTask.IsCompletedSuccessfully ? repGroupTask.Result : null;
 
-        // Save fresh worlds fetch to SQLite (groups/mutuals are no longer cached)
         if (cachedWorlds == null && worldsTask.IsCompletedSuccessfully)
         {
             var cf = (cachedContent ?? new JObject());
             cf["worlds"] = JToken.FromObject(worlds);
             _core.TimeEngine.SaveUserContentCache(userId, cf.ToString(Newtonsoft.Json.Formatting.None));
         }
+        if (mutualGroupsTask.IsCompletedSuccessfully && mutualGroupsArr.Count > 0)
+            _core.TimeEngine.SaveUserMutualGroupsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(mutualGroupsArr));
+
         var (mutualsArr, mutualsOptedOut) = mutualsTask.IsCompletedSuccessfully
             ? mutualsTask.Result : (new JArray(), false);
+
+        if (mutualsTask.IsCompletedSuccessfully && (mutualsArr.Count > 0 || mutualsOptedOut))
+            _core.TimeEngine.SaveUserMutualsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(new { mutuals = mutualsArr, optedOut = mutualsOptedOut }));
         var badgesArr = user["badges"] as JArray ?? new JArray();
 
         if (instanceType == "private" && inst?["canRequestInvite"]?.Value<bool>() == true)
