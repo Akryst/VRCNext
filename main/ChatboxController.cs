@@ -39,12 +39,13 @@ public class ChatboxController : IDisposable
                         try
                         {
                             var d = JObject.FromObject(data);
-                            _core.VrOverlay?.UpdateMediaInfo(
-                                d["currentTitle"]?.ToString() ?? "",
-                                d["currentArtist"]?.ToString() ?? "",
-                                d["currentPosition"]?.Value<double>() ?? 0,
-                                d["currentDuration"]?.Value<double>() ?? 0,
-                                d["isPlaying"]?.Value<bool>() ?? false);
+                            var title   = d["currentTitle"]?.ToString() ?? "";
+                            var artist  = d["currentArtist"]?.ToString() ?? "";
+                            var posMs   = d["positionMs"]?.Value<double>() ?? 0;
+                            var durMs   = d["durationMs"]?.Value<double>() ?? 0;
+                            var playing = d["isPlaying"]?.Value<bool>() ?? false;
+                            if (!string.IsNullOrEmpty(title))
+                                _core.VrOverlay?.UpdateMediaInfo(title, artist, posMs / 1000.0, durMs / 1000.0, playing);
                         }
                         catch { }
 #endif

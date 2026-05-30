@@ -1157,26 +1157,37 @@ namespace VRCNext.Services
         {
             try
             {
-                var mgr = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
-                var s = mgr.GetCurrentSession();
+                var mgr = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync()
+                    .AsTask().WaitAsync(TimeSpan.FromSeconds(5));
+                _smtcConsecFails = 0;
+                var sessions = mgr.GetSessions();
+                _log($"[VRO/SMTC] {sessions.Count} session(s) found");
+                foreach (var sess in sessions)
+                    _log($"[VRO/SMTC]   app={sess.SourceAppUserModelId} status={sess.GetPlaybackInfo()?.PlaybackStatus}");
+                var s = sessions.FirstOrDefault(sess =>
+                            sess.GetPlaybackInfo()?.PlaybackStatus ==
+                            GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                        ?? mgr.GetCurrentSession();
                 if (s == null)
                 {
+                    _log("[VRO/SMTC] No session selected → no media");
                     _smtcSession = null;
                     if (_mediaTitle != "") { _mediaTitle = ""; _mediaArtist = ""; _mediaPlaying = false; _dirty = true; }
                     return;
                 }
+                _log($"[VRO/SMTC] Using session: {s.SourceAppUserModelId}");
                 _smtcSession = s;
 
                 var playing = s.GetPlaybackInfo()?.PlaybackStatus ==
                               GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
-                var props = await s.TryGetMediaPropertiesAsync();
+                var props = await s.TryGetMediaPropertiesAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5));
                 var title  = props?.Title  ?? "";
                 var artist = props?.Artist ?? "";
+                _log($"[VRO/SMTC] title=\"{title}\" artist=\"{artist}\" playing={playing}");
                 var tl  = s.GetTimelineProperties();
                 var pos = tl?.Position.TotalSeconds ?? 0;
                 var dur = tl != null ? (tl.EndTime - tl.StartTime).TotalSeconds : 0;
 
-                // Record anchor for local interpolation
                 _mediaPositionAtPoll = pos;
                 _mediaLastPollTime   = DateTime.UtcNow;
                 _mediaDuration       = dur;
@@ -1196,14 +1207,14 @@ namespace VRCNext.Services
                 {
                     try
                     {
-                        using var ras    = await props.Thumbnail.OpenReadAsync();
+                        using var ras    = await props.Thumbnail.OpenReadAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5));
                         using var stream = ras.AsStreamForRead();
                         var newArt = new Bitmap(stream);
                         _albumArt?.Dispose();
                         _albumArt = newArt;
                         _dirty    = true;
                     }
-                    catch { _albumArt?.Dispose(); _albumArt = null; }
+                    catch (Exception ex) { _log($"[VRO/SMTC] Album art failed: {ex.Message}"); _albumArt?.Dispose(); _albumArt = null; }
                 }
                 else if (trackChanged)
                 {
@@ -1211,7 +1222,7 @@ namespace VRCNext.Services
                     _albumArt = null;
                 }
             }
-            catch { }
+            catch (Exception ex) { _log($"[VRO/SMTC] Exception: {ex.GetType().Name}: {ex.Message}"); }
         }
 
         private void SendSmtcCommand(string cmd)
