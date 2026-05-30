@@ -1159,7 +1159,6 @@ namespace VRCNext.Services
             {
                 var mgr = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync()
                     .AsTask().WaitAsync(TimeSpan.FromSeconds(5));
-                _smtcConsecFails = 0;
                 var sessions = mgr.GetSessions();
                 _log($"[VRO/SMTC] {sessions.Count} session(s) found");
                 foreach (var sess in sessions)
