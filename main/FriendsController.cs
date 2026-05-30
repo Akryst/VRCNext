@@ -156,7 +156,7 @@ public class FriendsController
                         contextId         = ubCtx,
                         id                = ubId,
                         displayName       = ubLive["displayName"]?.ToString() ?? "",
-                        image             = ImageCacheHelper.GetUserUrl(ubId, VRChatApiService.GetUserImage(ubLive)),
+                        image             = await ResolveUserImageAsync(ubId, VRChatApiService.GetUserImage(ubLive)),
                         status            = ubLive["status"]?.ToString() ?? "offline",
                         statusDescription = ubLive["statusDescription"]?.ToString() ?? "",
                     });
@@ -171,24 +171,50 @@ public class FriendsController
                         contextId         = ubCtx,
                         id                = ubId,
                         displayName       = ubCache.DisplayName,
-                        image             = ubCache.Image,
+                        image             = await ResolveUserImageAsync(ubId, ubCache.Image),
                         status            = ubCache.ProfileStatus,
                         statusDescription = ubCache.ProfileStatusDesc,
                     });
                     break;
                 }
 
-                // 3. API fallback
                 var ubUser = await _core.Users.GetUserAsync(ubId);
                 if (ubUser != null)
+                {
+                    var ubRawImg = VRChatApiService.GetUserImage(ubUser);
+                    var ubImg = await ResolveUserImageAsync(ubId, ubRawImg);
+                    var ubName = ubUser["displayName"]?.ToString() ?? "";
+                    var ubStatus = ubUser["status"]?.ToString() ?? "offline";
+                    var ubStatusDesc = ubUser["statusDescription"]?.ToString() ?? "";
+
+                    _core.TimeEngine.SaveUserProfileCache(ubId, new JObject
+                    {
+                        ["id"]                    = ubId,
+                        ["displayName"]           = ubName,
+                        ["image"]                 = ubImg,
+                        ["status"]                = ubStatus,
+                        ["statusDescription"]     = ubStatusDesc,
+                        ["bio"]                   = ubUser["bio"]?.ToString() ?? "",
+                        ["dateJoined"]            = ubUser["date_joined"]?.ToString() ?? "",
+                        ["lastLogin"]             = ParseIsoDate(ubUser["last_login"]),
+                        ["lastActivity"]          = ParseIsoDate(ubUser["last_activity"]),
+                        ["currentAvatarId"]       = ubUser["currentAvatar"]?.ToString() ?? "",
+                        ["currentAvatarImageUrl"] = ImageCacheHelper.GetAvatarUrl(ubUser["currentAvatar"]?.ToString(), ubUser["currentAvatarImageUrl"]?.ToString()),
+                        ["profilePicOverride"]    = ImageCacheHelper.GetUserBannerUrl(ubId, ubUser["profilePicOverride"]?.ToString()),
+                        ["pronouns"]              = ubUser["pronouns"]?.ToString() ?? "",
+                        ["tags"]                  = ubUser["tags"] as JArray ?? new JArray(),
+                        ["badges"]                = ubUser["badges"] as JArray ?? new JArray(),
+                    }.ToString());
+
                     _core.SendToJS("vrcUserBasic", new {
                         contextId         = ubCtx,
                         id                = ubId,
-                        displayName       = ubUser["displayName"]?.ToString() ?? "",
-                        image             = ImageCacheHelper.GetUserUrl(ubId, VRChatApiService.GetUserImage(ubUser)),
-                        status            = ubUser["status"]?.ToString() ?? "offline",
-                        statusDescription = ubUser["statusDescription"]?.ToString() ?? "",
+                        displayName       = ubName,
+                        image             = ubImg,
+                        status            = ubStatus,
+                        statusDescription = ubStatusDesc,
                     });
+                }
                 break;
             }
 
@@ -1650,6 +1676,19 @@ public class FriendsController
         if (string.IsNullOrEmpty(s)) return "";
         if (DateTime.TryParse(s, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dt))
             return dt.ToString("o");
+        return "";
+    }
+
+    private static async Task<string> ResolveUserImageAsync(string userId, string? rawImageUrl)
+    {
+        var cached = ImageCacheHelper.GetUserCached(userId);
+        if (cached != null) return ImageCacheHelper.ToLocalUrl(cached);
+        if (!string.IsNullOrWhiteSpace(rawImageUrl))
+        {
+            await ImageCacheHelper.CacheUserAsync(userId, rawImageUrl);
+            cached = ImageCacheHelper.GetUserCached(userId);
+            if (cached != null) return ImageCacheHelper.ToLocalUrl(cached);
+        }
         return "";
     }
 
