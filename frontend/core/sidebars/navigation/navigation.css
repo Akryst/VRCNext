@@ -278,6 +278,84 @@
     display: none;
 }
 
+.nav.modern-folders .nav-group-items { display: none; }
+.nav.modern-folders .nav-group-arrow { transform: rotate(-90deg); }
+.nav.modern-folders .nav-group.popout-open > .nav-group-btn {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: var(--accent-lt);
+}
+
+.nav-folder-popout {
+    position: fixed;
+    z-index: 4000;
+    width: 264px;
+    max-width: calc(100vw - 16px);
+    background: var(--bg-card);
+    border: 1px solid var(--brd-lt);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.25);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    animation: navPopIn .12s ease;
+}
+@keyframes navPopIn {
+    from { opacity: 0; transform: translateX(-4px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+.nav-folder-popout-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--tx3);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    padding: 2px 4px 8px;
+}
+.nav-folder-popout-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.nav-folder-popout-grid.has-scroll { padding-right: 8px; }
+.nav-folder-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 76px;
+    padding: 6px 4px;
+    border: none;
+    border-radius: 9px;
+    background: rgba(255,255,255,.03);
+    color: var(--tx2);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .15s, color .15s;
+}
+.nav-folder-cell:hover { background: var(--bg-hover); color: var(--tx0); }
+.nav-folder-cell.active {
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--accent-lt);
+}
+.nav-folder-cell-icon { font-size: 22px; min-height: 22px; }
+.nav-folder-cell-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    white-space: normal;
+}
+
 .clock-area {
     padding: 10px 10px 4px;
     text-align: center;

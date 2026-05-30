@@ -1634,6 +1634,7 @@ public class AuthController
             _core.Settings.FriendOnlineToastEnabled = data["friendOnlineToastEnabled"]?.Value<bool>() ?? false;
             _core.Settings.FriendOnlineToastFavOnly = data["friendOnlineToastFavOnly"]?.Value<bool>() ?? false;
             _core.Settings.FriendsSidebarLocationOnly = data["friendsSidebarLocationOnly"]?.Value<bool>() ?? true;
+            _core.Settings.ModernFolderLayout = data["modernFolderLayout"]?.Value<bool>() ?? true;
             _core.Settings.DirectModalNav = data["directModalNav"]?.Value<bool>() ?? false;
             _core.Settings.ProfileModalStyle = data["profileModalStyle"]?.ToString() ?? "classic";
             _core.Settings.MinimizeToTray = data["minimizeToTray"]?.Value<bool>() ?? false;

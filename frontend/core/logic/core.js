@@ -1116,6 +1116,10 @@ function updateClock() {
 function toggleNavGroup(id) {
     const group = document.getElementById(id);
     if (!group) return;
+    if (typeof navIsModernFolders === 'function' && navIsModernFolders()) {
+        openNavFolderPopout(id, group.querySelector('.nav-group-btn'));
+        return;
+    }
     group.classList.toggle('collapsed');
     localStorage.setItem('vrcnext_navgroup_' + id, group.classList.contains('collapsed') ? '1' : '0');
 }

@@ -1,18 +1,23 @@
-**2026.28.3**
+**2026.28.4**
 
-**Improvements**
+**Settings**
 
-* Added a refresh button to the friends list sidebar.
-    This refreshes the friends list and group instances in the sidebar.
-    Useful when the WebSocket misses an event and the list is not up to date.
+* Added the **Modern Folder Layout** setting under **Settings > Sidebar > Navigation Sidebar**.
 
-**i18n**
-* Added missing i18n for some refresh buttons.
+**Sidebar**
+
+* Added **Modern Folder Layout**, which lets you open folders more efficiently.
+* Instead of expanding the whole sidebar with more items, folders now open in a small modal next to the item, showing a 3x3 grid.
 
 **Fixes**
 
-* Fixed a bug where opening the same user profile twice no longer showed mutual friends.
-* Fixed a bug where opening the same user profile twice no longer showed mutual groups.
-* Fixed the search icon in the friends sidebar not being aligned.
-* Fixed the spacing between the search icon and the text next to it in the friends sidebar.
-* Fixed an issue where the debounce dot animation was not in place in some searchbars.
+* Fixed an issue where the **Instance Owner** did not have a profile icon image.
+* Fixed an issue where song playback could crash the Custom Chatbox.
+* Fixed an issue where song playback could crash the VR Overlay.
+* Fixed an issue where **Now Playing** in Custom Chatbox could break the whole Custom Chatbox system.
+* Fixed an issue where the current song was not shown in the VR Overlay **Now Playing** tab.
+
+**Important:** In some cases, Windows 11 may experience internal audio service issues. If the current song is not being shown in the Custom Chatbox or the VR Overlay, the only known fix at the moment is to restart your PC.
+
+I am actively tracking this issue and will continue investigating possible fixes that can be implemented on my end.
+

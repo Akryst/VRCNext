@@ -277,12 +277,27 @@ namespace VRCNext
 #if WINDOWS
             try
             {
-                var mgr = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
-                var s = mgr.GetCurrentSession();
-                if (s == null) { IsPlaying = false; CurrentTitle = ""; CurrentArtist = ""; return; }
+                var mgr = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync()
+                    .AsTask().WaitAsync(TimeSpan.FromSeconds(5));
+                _smtcConsecFails = 0;
+                var sessions = mgr.GetSessions();
+                _log($"[Chatbox/SMTC] {sessions.Count} session(s) found");
+                foreach (var sess in sessions)
+                    _log($"[Chatbox/SMTC]   app={sess.SourceAppUserModelId} status={sess.GetPlaybackInfo()?.PlaybackStatus}");
+                var s = sessions.FirstOrDefault(sess =>
+                            sess.GetPlaybackInfo()?.PlaybackStatus ==
+                            GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                        ?? mgr.GetCurrentSession();
+                if (s == null)
+                {
+                    _log("[Chatbox/SMTC] No session selected → no media");
+                    IsPlaying = false; CurrentTitle = ""; CurrentArtist = ""; return;
+                }
+                _log($"[Chatbox/SMTC] Using session: {s.SourceAppUserModelId}");
                 IsPlaying = s.GetPlaybackInfo()?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
-                var p = await s.TryGetMediaPropertiesAsync();
+                var p = await s.TryGetMediaPropertiesAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5));
                 if (p != null) { CurrentTitle = p.Title ?? ""; CurrentArtist = p.Artist ?? ""; }
+                _log($"[Chatbox/SMTC] title=\"{CurrentTitle}\" artist=\"{CurrentArtist}\" playing={IsPlaying}");
                 var tl = s.GetTimelineProperties();
                 if (tl != null)
                 {
@@ -297,7 +312,6 @@ namespace VRCNext
                     }
                     else if (Math.Abs((tl.Position - _smtcLastReportedPos).TotalMilliseconds) > 500)
                     {
-                        // Browser reported a new position (seek or periodic update)
                         _smtcLastReportedPos = tl.Position;
                         _smtcBasePos = tl.Position;
                         _smtcBaseTime = DateTimeOffset.Now;
@@ -308,7 +322,7 @@ namespace VRCNext
                     CurrentPosition = pos;
                 }
             }
-            catch { IsPlaying = false; }
+            catch (Exception ex) { _log($"[Chatbox/SMTC] Exception: {ex.GetType().Name}: {ex.Message}"); IsPlaying = false; }
 #else
             // MPRIS2 via playerctl — works on KDE Plasma, GNOME, and most Linux DEs
             try

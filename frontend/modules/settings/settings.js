@@ -111,6 +111,7 @@ function saveSettings() {
             friendOnlineToastEnabled: document.getElementById('setFriendOnlineToastEnabled')?.checked ?? false,
             friendOnlineToastFavOnly: document.getElementById('setFriendOnlineToastFavOnly')?.checked ?? false,
             friendsSidebarLocationOnly: document.getElementById('setFriendsSidebarLocationOnly')?.checked ?? true,
+            modernFolderLayout: document.getElementById('setModernFolderLayout')?.checked ?? true,
             directModalNav: document.getElementById('setDirectModalNav')?.checked ?? false,
             profileModalStyle: settings.profileModalStyle || 'classic',
             language: currentLanguage,
@@ -346,6 +347,10 @@ function loadSettingsToUI(s) {
     settings.friendsSidebarLocationOnly = s.FriendsSidebarLocationOnly ?? s.friendsSidebarLocationOnly ?? true;
     const _fslEl = document.getElementById('setFriendsSidebarLocationOnly');
     if (_fslEl) _fslEl.checked = settings.friendsSidebarLocationOnly;
+    settings.modernFolderLayout = s.ModernFolderLayout ?? s.modernFolderLayout ?? true;
+    const _mflEl = document.getElementById('setModernFolderLayout');
+    if (_mflEl) _mflEl.checked = settings.modernFolderLayout;
+    if (typeof applyNavFolderMode === 'function') applyNavFolderMode();
     settings.directModalNav = s.DirectModalNav ?? s.directModalNav ?? false;
     const _dmnEl = document.getElementById('setDirectModalNav');
     if (_dmnEl) _dmnEl.checked = settings.directModalNav;
