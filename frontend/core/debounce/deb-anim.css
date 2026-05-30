@@ -8,6 +8,7 @@
 
 /* Invite modal has 32px right padding — shift dots inside the input */
 .inv-search-wrap .deb-anim { right: 38px; }
+.vrc-friend-search .deb-anim { right: 52px; }
 
 .deb-anim {
     position: absolute;

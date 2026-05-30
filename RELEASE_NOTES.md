@@ -15,3 +15,4 @@
 * Fixed a bug where opening the same user profile twice no longer showed mutual groups.
 * Fixed the search icon in the friends sidebar not being aligned.
 * Fixed the spacing between the search icon and the text next to it in the friends sidebar.
+* Fixed an issue where the debounce dot animation was not in place in some searchbars.
