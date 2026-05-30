@@ -279,7 +279,6 @@ namespace VRCNext
             {
                 var mgr = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync()
                     .AsTask().WaitAsync(TimeSpan.FromSeconds(5));
-                _smtcConsecFails = 0;
                 var sessions = mgr.GetSessions();
                 _log($"[Chatbox/SMTC] {sessions.Count} session(s) found");
                 foreach (var sess in sessions)
