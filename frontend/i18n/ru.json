@@ -712,6 +712,7 @@
   "profiles.friends.login_prompt": "Войдите для просмотра друзей",
   "profiles.friends.login_to_vrchat": "Войти в VRChat",
   "profiles.friends.search_placeholder": "Поиск друзей...",
+  "profiles.friends.refresh": "Обновить друзей и групповые инстансы",
   "profiles.friends.location.web": "Веб",
   "profiles.friends.location.private": "Приватно",
   "profiles.friends.location.world": "В мире",

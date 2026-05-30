@@ -277,7 +277,34 @@
 .rsidebar:not(.collapsed) .vrc-fs-icon {
     font-size: 14px;
     color: var(--tx3);
+    /* nudge the glyph up ~1px to optically center it in the input */
+    position: relative;
+    top: -1px;
 }
+/* extra left padding so the query text doesn't crowd the search icon */
+.rsidebar:not(.collapsed) #vrcFriendSearchInput {
+    padding-left: 36px;
+    /* allow the flex input to shrink so the refresh button stays inside the
+       sidebar instead of overflowing past the right edge */
+    min-width: 0;
+}
+
+/* Refresh button (friends list + group instances) right of the search input */
+.vrc-fs-refresh-btn {
+    flex-shrink: 0;
+    width: 36px;
+    /* match the search input's height exactly (override .vrcn-button's fixed 32px) */
+    height: auto;
+    align-self: stretch;
+    padding: 0;
+    margin-left: 6px;
+    justify-content: center;
+    color: var(--tx3);
+}
+.vrc-fs-refresh-btn .msi { font-size: 16px; }
+.vrc-fs-refresh-btn.spinning .msi { animation: vrc-fs-spin .6s linear infinite; }
+@keyframes vrc-fs-spin { to { transform: rotate(360deg); } }
+.rsidebar.collapsed #vrcFriendRefreshBtn { display: none; }
 
 .rsidebar.collapsed .vrc-fs-icon:hover {
     color: var(--tx1);

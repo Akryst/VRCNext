@@ -356,6 +356,7 @@
             <div id="vrcFriendSearch" class="vrc-friend-search" style="display:none;">
                 <button class="nav-btn vrc-fs-icon-btn" onclick="if(rsidebarCollapsed)toggleRsidebar()"><span class="msi vrc-fs-icon">search</span></button>
                 <input type="text" id="vrcFriendSearchInput" class="vrcn-input" placeholder="Search friends..." data-i18n-placeholder="profiles.friends.search_placeholder" oninput="_dbFilterFriends()">
+                <button id="vrcFriendRefreshBtn" class="vrcn-button vrc-fs-refresh-btn" onclick="refreshVrcFriendsAndGroups()" title="Refresh friends &amp; group instances" data-i18n-title="profiles.friends.refresh"><span class="msi">refresh</span></button>
             </div>
             <div id="vrcFriendsList">
                 <div class="vrc-login-box" id="vrcLoginPrompt">

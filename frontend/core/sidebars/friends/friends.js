@@ -49,6 +49,7 @@ function renderVrcFriends(friends, counts) {
     const el = document.getElementById('vrcFriendsList');
     const lp = document.getElementById('vrcLoginPrompt');
     if (lp) lp.style.display = 'none';
+    document.getElementById('vrcFriendRefreshBtn')?.classList.remove('spinning');
     vrcFriendsData = friends || [];
 
     // Lazy-load group instances once on first render
@@ -232,7 +233,17 @@ function renderVrcFriends(friends, counts) {
 
 function onSidebarGroupInstances(instances) {
     _sidebarGroupInstances = instances || [];
+    document.getElementById('vrcFriendRefreshBtn')?.classList.remove('spinning');
     if (vrcFriendsData && vrcFriendsData.length) renderVrcFriends(vrcFriendsData);
+}
+
+// Manual refresh button next to the friends search: refreshes the friends list
+// and the group instances (same data the dashboard's group activity refresh pulls).
+function refreshVrcFriendsAndGroups() {
+    document.getElementById('vrcFriendRefreshBtn')?.classList.add('spinning');
+    sendToCS({ action: 'vrcRefreshFriends' });
+    window._groupInstInFlight = true;
+    sendToCS({ action: 'vrcGetDashGroupInstances' });
 }
 
 function toggleFriendSection(key) {
