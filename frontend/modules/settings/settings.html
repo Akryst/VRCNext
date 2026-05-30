@@ -246,6 +246,13 @@
                         <div class="set-desc" data-i18n="settings.sidebar.location_only_desc">When enabled, friends who are in a world show the instance's region flag and world name instead of their status. Friends who aren't in a world keep showing their status text.</div>
                     </div>
 
+                    <!-- NAVIGATION SIDEBAR -->
+                    <div class="vrcn-panel-card" data-section="sidebar" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">folder</span> <span data-i18n="settings.navsidebar.title">Navigation Sidebar</span></div>
+                        <div class="sf-toggle-row"><span data-i18n="settings.navsidebar.modern_folders">Use Modern Folder Layout</span><label class="toggle"><input type="checkbox" id="setModernFolderLayout" onchange="settings.modernFolderLayout=this.checked;autoSave();if(typeof applyNavFolderMode==='function')applyNavFolderMode();if(typeof closeNavFolderPopout==='function')closeNavFolderPopout();"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="set-desc" data-i18n="settings.navsidebar.modern_folders_desc">When enabled, clicking a folder (like "Tools" or your own custom folders) opens a compact pop-out grid right next to the sidebar instead of expanding a long list of items inline so you don't have to scroll through the whole sidebar. Turn this off to use the classic layout where folder items expand directly inside the sidebar.</div>
+                    </div>
+
                     <!-- MODAL NAVIGATION -->
                     <div class="vrcn-panel-card" data-section="navigation" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">alt_route</span> <span data-i18n="settings.navigation.title">Modal Navigation</span></div>

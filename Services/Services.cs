@@ -227,6 +227,7 @@ public class AppSettings
     public bool FriendOnlineToastEnabled { get; set; }
     public bool FriendOnlineToastFavOnly { get; set; }
     public bool FriendsSidebarLocationOnly { get; set; } = true;
+    public bool ModernFolderLayout { get; set; } = true;
     public bool DirectModalNav { get; set; }
     public string ProfileModalStyle { get; set; } = "classic";
     public bool MinimizeToTray { get; set; }
