@@ -424,12 +424,12 @@ function _applyLightInterp() {
     if (rSide && rCol) faded.push(rSide);
     const tbEl = document.getElementById('taskbar');
     if (tbEl && lCol && rCol) faded.push(tbEl);
-    const tq  = Math.round(_lightScrollT() * 100);
+    const tq  = Math.round(_lightScrollT() * 40);
     const sig = tq + '|' + faded.map(e => e.id).join(',');
     if (sig === _lightSig) return;
     _lightSig = sig;
     for (const el of els) for (const k of _LIGHT_VARS) el.style.removeProperty('--' + k);
-    const t = tq / 100;
+    const t = tq / 40;
     for (const k of _LIGHT_VARS) {
         const prim = _activePrimaryColors[k];
         if (!prim) continue;
@@ -441,9 +441,11 @@ function _applyLightInterp() {
     if (logoEl && logoEl._repaintLogo) logoEl._repaintLogo();
 }
 
+let _lightRaf = 0;
 document.addEventListener('scroll', function (e) {
-    if (_activeLightOn && e.target instanceof Element && e.target.classList.contains('content'))
-        _applyLightInterp();
+    if (!_activeLightOn || !(e.target instanceof Element) || !e.target.classList.contains('content')) return;
+    if (_lightRaf) return;
+    _lightRaf = requestAnimationFrame(function () { _lightRaf = 0; _applyLightInterp(); });
 }, { passive: true, capture: true });
 document.documentElement.addEventListener('tabchange', function () {
     if (_activeLightOn) _applyLightInterp();

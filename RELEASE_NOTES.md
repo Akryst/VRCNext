@@ -1,4 +1,4 @@
-**2026.28.6**
+**2026.29.0**
 
 **VR Overlay**
 
@@ -21,6 +21,6 @@
 * Fixed a visual bug where the World Insights modal jumped up and down when opened.
 * Fixed an issue where the VR Overlay did not allow joining Group Plus or Group Public instances.
 * Fixed an issue where the VR Overlay showed **Request Invite** instead of **Join** when a friend was in a joinable instance.
-* Fixed an issue where the taskbar doesnt had the same darkness effekt as the main container of the app.
-* Fixed an visual issue where the breadcrumb search was always showing white font color instead of theme color.
-* Fixed visual bug where the vignette on dashboard clips through elements
+* Fixed an issue where the taskbar did not have the same darkness effect as the main app container.
+* Fixed a visual issue where the breadcrumb search always showed white font instead of the theme color.
+* Fixed a visual bug where the dashboard vignette clipped through elements.
