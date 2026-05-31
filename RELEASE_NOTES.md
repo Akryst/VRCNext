@@ -25,3 +25,4 @@
 * Fixed a visual issue where the breadcrumb search always showed white font instead of the theme color.
 * Fixed a visual bug where the dashboard vignette clipped through elements.
 * Fixed an visual bug where switching to dashboard from a different tab caused a visual "flash".
+* Fixed an visual bug that caused the taskbar elements to get squished when opening the tools row.

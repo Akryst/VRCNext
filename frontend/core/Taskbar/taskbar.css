@@ -271,13 +271,14 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
     overflow: hidden;
     max-width: 400px;
     opacity: 1;
-    transition: max-width .2s ease, opacity .15s ease;
+    transition: max-width .2s ease .2s, opacity .15s ease .2s;
 }
 
 #tbMenuItems.tb-collapsed {
     max-width: 0;
     opacity: 0;
     pointer-events: none;
+    transition: max-width .2s ease, opacity .15s ease;
 }
 
 /* Tool icons group */
@@ -295,6 +296,7 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
     max-width: 500px;
     opacity: 1;
     pointer-events: all;
+    transition: max-width .2s ease .2s, opacity .15s ease .2s;
 }
 
 /* Notification count bubble — repositioned to bottom-right inside the taskbar */
