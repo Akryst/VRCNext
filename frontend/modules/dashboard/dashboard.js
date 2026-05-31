@@ -1498,11 +1498,17 @@ document.documentElement.addEventListener('languagechange', rerenderDashTranslat
     });
     document.body.appendChild(vignette);
 
+    let _wasDash = false;
+
     function applyGlass() {
         const onDash = tab0 && tab0.classList.contains('active');
         const t = onDash ? Math.min((content?.scrollTop || 0) / FADE_PX, 1) : 1;
         vignette.style.opacity = (1 - t).toFixed(3);
         document.body.style.setProperty('--sidebar-glass-t', t.toFixed(3));
+        if (onDash && !_wasDash) {
+            vignette.animate([{ opacity: 0 }, { opacity: 1 - t }], { duration: 800, easing: 'ease-in' });
+        }
+        _wasDash = onDash;
     }
 
     function cleanup() {
