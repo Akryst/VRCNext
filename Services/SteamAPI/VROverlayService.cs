@@ -133,6 +133,14 @@ namespace VRCNext.Services
         private float InteractEnterDist => Math.Max(0.03f, ControlRadius);
         private float InteractLeaveDist => InteractEnterDist + 0.08f;
 
+        private bool  _dynVisEnabled = false;
+        public float  FocusRadius { get; private set; } = 0.35f;
+        private bool  _inFocus     = true;
+        private float _dynVisAlpha = FullAlpha;
+        private const float FullAlpha      = 0.97f;
+        private const float DynVisMinAlpha = 0f;
+        private const float DynVisFalloff  = 0.05f;
+
         // Overlay content
         private int                   _activeTab = 1;
         private float                 _tabIndicatorX = 0f;
@@ -936,7 +944,8 @@ namespace VRCNext.Services
             float px, float py, float pz,
             float rx, float ry, float rz,
             float width, List<uint> keybind, int keybindHand = 0, int keybindMode = 0,
-            List<uint>? keybindDt = null, int keybindDtHand = 0, float controlRadius = 28f)
+            List<uint>? keybindDt = null, int keybindDtHand = 0, float controlRadius = 28f,
+            bool dynVis = false, float focusRadius = 35f)
         {
             AttachToLeft  = attachLeft;
             AttachToHand  = attachHand;
@@ -949,6 +958,8 @@ namespace VRCNext.Services
             KeybindDt     = keybindDt ?? new();
             KeybindDtHand = keybindDtHand;
             ControlRadius = Math.Clamp(controlRadius / 100f, 0.03f, 0.28f); // stored in metres
+            _dynVisEnabled = dynVis;
+            FocusRadius    = Math.Clamp(focusRadius / 100f, 0.20f, 0.60f); // stored in metres
 
             if (IsConnected && OpenVR.Overlay != null)
             {
@@ -1341,6 +1352,12 @@ namespace VRCNext.Services
         {
             if (!IsVisible || _vrSystem == null || OpenVR.Overlay == null || _overlayHandle == 0) return;
 
+            if (_dynVisEnabled && !_inFocus)
+            {
+                if (_interactMode) DisableInteract();
+                return;
+            }
+
             var wristIdx = AttachToLeft ? _leftIdx : _rightIdx;
             var freeIdx  = AttachToLeft ? _rightIdx : _leftIdx;
 
@@ -1397,6 +1414,51 @@ namespace VRCNext.Services
             OpenVR.Overlay.SetOverlayInputMethod(_overlayHandle, VROverlayInputMethod.None);
         }
 
+        private void UpdateDynamicVisibility()
+        {
+            if (OpenVR.Overlay == null || _overlayHandle == 0) return;
+
+            if (!_dynVisEnabled)
+            {
+                _inFocus = true;
+                if (MathF.Abs(_dynVisAlpha - FullAlpha) > 0.001f)
+                {
+                    _dynVisAlpha = FullAlpha;
+                    OpenVR.Overlay.SetOverlayAlpha(_overlayHandle, FullAlpha);
+                }
+                return;
+            }
+
+            if (!IsVisible || _vrSystem == null) return;
+
+            var wristIdx = AttachToLeft ? _leftIdx : _rightIdx;
+            var hmdIdx   = OpenVR.k_unTrackedDeviceIndex_Hmd;
+            if (wristIdx == OpenVR.k_unTrackedDeviceIndexInvalid) return;
+
+            _vrSystem.GetDeviceToAbsoluteTrackingPose(
+                ETrackingUniverseOrigin.TrackingUniverseStanding, 0f, _poses);
+
+            if (!_poses[wristIdx].bPoseIsValid || !_poses[hmdIdx].bPoseIsValid) return;
+
+            var wm = _poses[wristIdx].mDeviceToAbsoluteTracking;
+            var hm = _poses[hmdIdx].mDeviceToAbsoluteTracking;
+
+            var overlayWorldPos = new Vector3(
+                wm.m0 * PosX + wm.m1 * PosY + wm.m2 * PosZ + wm.m3,
+                wm.m4 * PosX + wm.m5 * PosY + wm.m6 * PosZ + wm.m7,
+                wm.m8 * PosX + wm.m9 * PosY + wm.m10 * PosZ + wm.m11);
+            var hmdPos = new Vector3(hm.m3, hm.m7, hm.m11);
+
+            float dist = Vector3.Distance(overlayWorldPos, hmdPos);
+            _inFocus = dist <= FocusRadius;
+
+            float t      = Math.Clamp((dist - FocusRadius) / DynVisFalloff, 0f, 1f);
+            float target = FullAlpha + (DynVisMinAlpha - FullAlpha) * t;
+
+            _dynVisAlpha += (target - _dynVisAlpha) * 0.25f;
+            OpenVR.Overlay.SetOverlayAlpha(_overlayHandle, _dynVisAlpha);
+        }
+
         private async Task PollLoopAsync(CancellationToken ct)
         {
             _log("[VROverlay] Poll loop started");
@@ -1421,6 +1483,8 @@ namespace VRCNext.Services
                         _smtcPolling = true;
                         _ = Task.Run(async () => { try { await PollSmtcAsync(); } finally { _smtcPolling = false; } });
                     }
+
+                    UpdateDynamicVisibility();
 
                     // Proximity-based interaction: enable Mouse+Interactive when free
                     // hand is near the wrist, revert to None otherwise.

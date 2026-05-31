@@ -167,7 +167,8 @@ public class VROverlayController : IDisposable
                     _core.Settings.VroRotX, _core.Settings.VroRotY, _core.Settings.VroRotZ,
                     _core.Settings.VroWidth, _core.Settings.VroKeybind, _core.Settings.VroKeybindHand,
                     _core.Settings.VroKeybindMode, _core.Settings.VroKeybindDt, _core.Settings.VroKeybindDtHand,
-                    _core.Settings.VroControlRadius);
+                    _core.Settings.VroControlRadius,
+                    _core.Settings.VroDynVis, _core.Settings.VroFocusRadius);
 
                 // Send toast config
                 host.VroApplyToastConfig(
@@ -247,6 +248,8 @@ public class VROverlayController : IDisposable
                 var kbDt     = msg["keybindDt"]?.ToObject<List<uint>>() ?? new();
                 int kbDtHand = msg["keybindDtHand"]?.Value<int>() ?? 0;
                 int ctrlR    = msg["controlRadius"]?.Value<int>() ?? 28;
+                bool dynVis  = msg["dynVis"]?.Value<bool>() ?? false;
+                int focusR   = msg["focusRadius"]?.Value<int>() ?? 35;
 
                 _core.Settings.VroAttachLeft    = left;
                 _core.Settings.VroAttachHand    = hand;
@@ -259,10 +262,12 @@ public class VROverlayController : IDisposable
                 _core.Settings.VroKeybindDt     = kbDt;
                 _core.Settings.VroKeybindDtHand = kbDtHand;
                 _core.Settings.VroControlRadius = ctrlR;
+                _core.Settings.VroDynVis        = dynVis;
+                _core.Settings.VroFocusRadius   = focusR;
                 _core.Settings.Save();
 
                 _core.VrOverlay?.VroConfig(left, hand, px, py, pz, rx, ry, rz, width,
-                    kb, kbHand, kbMode, kbDt, kbDtHand, ctrlR);
+                    kb, kbHand, kbMode, kbDt, kbDtHand, ctrlR, dynVis, focusR);
                 break;
             }
 

@@ -1,3 +1,5 @@
+Fixed:
+
 **2026.29.0**
 
 **VR Overlay**
@@ -8,6 +10,8 @@
 * Moved the clock and date from the Dashboard to the top of the VR Overlay.
 * Moved the Drink Water countdown from the Dashboard to the top of the VR Overlay.
 * Added a profile image and status dot to the VR Overlay for quick status checks.
+* Added **Dynamic Overlay Visibility**.
+  This allows you to keep the overlay active all the time. When the overlay is not focused and not near your headset, it will fade out the farther it is from your head. When you bring it closer and look at it, you can use it again. This is useful for people who want to keep the overlay active and quickly use it by looking at it like a normal watch.
 
 **World Insights**
 
