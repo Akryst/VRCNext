@@ -79,7 +79,7 @@ function handleVroState(d) {
         else {
             const t = (typeof THEMES !== 'undefined' && THEMES[currentTheme])
                    || (typeof customThemes !== 'undefined' && customThemes.find(x => x.key === currentTheme));
-            if (t) applyColors(t.c);
+            if (t) applyColors(t.c, t.light ? { on: true, colors: t.cLight } : null);
         }
     } else {
         dot?.classList.replace('online', 'offline');

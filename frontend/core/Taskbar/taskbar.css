@@ -75,7 +75,7 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
     align-items: center;
     padding: 0 11px;
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--tx2);
     cursor: default;
     transition: background 0.1s, color 0.1s;
     white-space: nowrap;
@@ -84,7 +84,7 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
 .tb-menu-item:hover,
 .tb-menu-item.open {
     background: rgba(255, 255, 255, 0.07);
-    color: #fff;
+    color: var(--tx0);
 }
 
 /* ── Dropdowns — 1:1 context-menu style ── */
@@ -327,7 +327,7 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
     background: none;
     border: none;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.48);
+    color: var(--tx2);
     transition: background 0.1s, color 0.1s;
     padding: 0;
     flex-shrink: 0;
@@ -335,7 +335,7 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
 
 .tb-sidebar-btn:hover {
     background: rgba(255, 255, 255, 0.07);
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--tx0);
 }
 
 .tb-sidebar-btn:hover img {
@@ -345,6 +345,27 @@ body:has(#rsidebar:not(.collapsed)) #taskbar::after {
 .tb-sidebar-btn .msi {
     font-size: 18px;
     line-height: 1;
+}
+
+.tb-mask-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    background-color: currentColor;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+}
+.tb-mask-credits {
+    -webkit-mask-image: url('../../assets/credits.png');
+    mask-image: url('../../assets/credits.png');
+}
+.tb-mask-vrcplus {
+    -webkit-mask-image: url('../../assets/vrcplus.png');
+    mask-image: url('../../assets/vrcplus.png');
 }
 
 .tb-sep {
@@ -488,7 +509,7 @@ html.no-animations .tb-modal-dropdown { animation: none !important; }
     background: none;
     border: none;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--tx2);
     transition: background 0.1s, color 0.1s;
     padding: 0;
     flex-shrink: 0;
@@ -496,7 +517,7 @@ html.no-animations .tb-modal-dropdown { animation: none !important; }
 
 .tb-win-btn:hover {
     background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    color: var(--tx0);
 }
 
 .tb-win-btn.tb-close:hover {

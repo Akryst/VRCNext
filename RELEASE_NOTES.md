@@ -1,12 +1,12 @@
-**2026.28.5**
+**2026.28.6**
 
-**Microsoft Bug Fixes**
+**World Insights**
 
-Something Microsoft should fix not me.
-* Added Fix NPSMSvc (Now Playing service)
-In Settings > Advanced > Windows Fixes (On by Default)
+* Updated World Insights to use a standard chart instead of a line chart.
+* Added hover information for metrics to show the exact numbers.
+* Added daily metrics for **Peak Players**, **Average Players**, **New Visits**, **New Favorites**, and **Favorite Rate**.
 
-When this fix is enabled, it will attempt to resolve the Windows Media Control issue introduced in build 10.0.26100, which can cause media controls to completely break. This also fixes an issue where pressing Fn + F5, Fn + F6 or Fn + F7 could cause Windows Explorer to crash. Furthermore, this fixes issues where the OSC Custom Chatbox and VR Overlay may not show the current song information correctly. It checks roughly every 10 minutes and safely restarts the hung service if needed.
+**Fixes**
 
-**Activity Log**
-* Added /fix nps command for manual fix attemps.
+* Fixed a crucial issue in the Insights tab for world creators where updated **Visits** data was not shown.
+* Fixed a visual bug where the World Insights modal jumped up and down when opened.

@@ -1659,7 +1659,9 @@ public partial class AppShell
                                 if (string.IsNullOrEmpty(id)) continue;
                                 var active    = w["occupants"]?.Value<int>() ?? 0;
                                 var favorites = w["favorites"]?.Value<int>() ?? 0;
-                                var visits    = w["visits"]?.Value<int>() ?? 0;
+                                var visits    = _core.Timeline.GetTodaysVisits(id);
+                                if (visits <= 0)
+                                    visits = (await _core.World.GetWorldFreshAsync(id))?["visits"]?.Value<int>() ?? 0;
                                 _core.Timeline.InsertWorldStats(id, active, favorites, visits);
                             }
 

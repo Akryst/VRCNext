@@ -456,10 +456,10 @@ function switchWdTab(tab, btn) {
         if (jsonEl)    jsonEl.style.display    = tab === 'json'      ? '' : 'none';
         document.querySelectorAll('#detailModalContent .fd-tab').forEach(t => t.classList.remove('active'));
         if (btn) btn.classList.add('active');
+        if (tab === 'insights' && _wdCurrentWorldId) {
+            wiLoadInsights(_wdCurrentWorldId);
+        }
     });
-    if (tab === 'insights' && _wdCurrentWorldId) {
-        wiLoadInsights(_wdCurrentWorldId);
-    }
 }
 
 function closeWorldSearchDetail(fromNav = false) {
@@ -1072,6 +1072,25 @@ function _wiBucket() {
     return points;
 }
 
+function _wiComputeStats(points) {
+    const withData = points.filter(p => p.count > 0);
+    const peakActive = points.reduce((m, p) => Math.max(m, p.active), 0);
+    const avgActive = withData.length
+        ? Math.round(withData.reduce((s, p) => s + p.active, 0) / withData.length)
+        : 0;
+
+    const visitsSeries = withData.map(p => p.visits).filter(v => v > 0);
+    const favSeries    = withData.map(p => p.favorites).filter(v => v > 0);
+    const newVisits = visitsSeries.length ? visitsSeries[visitsSeries.length - 1] - visitsSeries[0] : 0;
+    const newFavorites = favSeries.length ? favSeries[favSeries.length - 1] - favSeries[0] : 0;
+
+    const lastVisits = visitsSeries.length ? visitsSeries[visitsSeries.length - 1] : 0;
+    const lastFavs   = favSeries.length ? favSeries[favSeries.length - 1] : 0;
+    const conversion = lastVisits > 0 ? (lastFavs / lastVisits) * 100 : 0;
+
+    return { peakActive, avgActive, newVisits, newFavorites, conversion };
+}
+
 function _wiRenderShell() {
     const container = document.getElementById('wiContainer');
     if (!container) return;
@@ -1103,13 +1122,22 @@ function _wiRenderShell() {
                 </div>
             </div>
         </div>
-        <div id="wiCharts"><div class="empty-msg" style="margin-top:20px;">${t('world_insights.loading', 'Loading insights...')}</div></div>`;
+        <div id="wiCharts">${_wiSkeletonHtml()}</div>`;
 
     const area = document.getElementById('wiCharts');
     if (area) {
-        area.innerHTML = `<div class="empty-msg" style="margin-top:20px;">${t('world_insights.loading', 'Loading insights...')}</div>`;
+        area.innerHTML = _wiSkeletonHtml();
     }
     _wiUpdateToolbar();
+}
+
+function _wiSkeletonHtml() {
+    const stat = '<div class="wi-stat"><span class="wi-skel wi-skel-stat-val"></span><span class="wi-skel wi-skel-stat-lbl"></span></div>';
+    const card = '<div class="wi-chart-card"><div class="wi-skel wi-skel-title"></div><div class="wi-skel wi-skel-chart"></div></div>';
+    return `
+        <div class="wi-stats">${stat.repeat(5)}</div>
+        <div class="wi-charts-grid">${card}${card}</div>
+        ${card}`;
 }
 
 // Toolbar Updates
@@ -1142,27 +1170,40 @@ function _wiRenderCharts() {
         return;
     }
 
+    const pts = _wiBucket();
+    const stats = _wiComputeStats(pts);
+    const fmt = n => Number(n).toLocaleString();
+    const signed = n => (n >= 0 ? '+' : '') + fmt(n);
+
     area.innerHTML = `
-        <div class="wi-chart-card">
-            <div class="wi-chart-title"><span class="msi" style="font-size:14px;color:var(--accent);">person</span> ${t('world_insights.chart.active_players', 'Active Players')}</div>
-            <canvas id="wiChartActive" height="160"></canvas>
+        <div class="wi-stats">
+            <div class="wi-stat"><span class="wi-stat-val">${fmt(stats.peakActive)}</span><span class="wi-stat-lbl">${t('world_insights.stat.peak_players', 'Peak players')}</span></div>
+            <div class="wi-stat"><span class="wi-stat-val">${fmt(stats.avgActive)}</span><span class="wi-stat-lbl">${t('world_insights.stat.avg_players', 'Avg players')}</span></div>
+            <div class="wi-stat"><span class="wi-stat-val">${signed(stats.newVisits)}</span><span class="wi-stat-lbl">${t('world_insights.stat.new_visits', 'New visits')}</span></div>
+            <div class="wi-stat"><span class="wi-stat-val">${signed(stats.newFavorites)}</span><span class="wi-stat-lbl">${t('world_insights.stat.new_favorites', 'New favorites')}</span></div>
+            <div class="wi-stat"><span class="wi-stat-val">${stats.conversion.toFixed(1)}%</span><span class="wi-stat-lbl">${t('world_insights.stat.conversion', 'Favorite rate')}</span></div>
+        </div>
+        <div class="wi-charts-grid">
+            <div class="wi-chart-card">
+                <div class="wi-chart-title"><span class="msi" style="font-size:13px;color:var(--accent);">person</span> ${t('world_insights.chart.active_players', 'Active Players')}</div>
+                <canvas id="wiChartActive" height="120"></canvas>
+            </div>
+            <div class="wi-chart-card">
+                <div class="wi-chart-title"><span class="msi" style="font-size:13px;color:var(--ok);">star</span> ${t('world_insights.chart.favorites', 'Favorites')}</div>
+                <canvas id="wiChartFavorites" height="120"></canvas>
+            </div>
         </div>
         <div class="wi-chart-card">
-            <div class="wi-chart-title"><span class="msi" style="font-size:14px;color:var(--ok);">star</span> ${t('world_insights.chart.favorites', 'Favorites')}</div>
-            <canvas id="wiChartFavorites" height="160"></canvas>
-        </div>
-        <div class="wi-chart-card">
-            <div class="wi-chart-title"><span class="msi" style="font-size:14px;color:var(--cyan);">visibility</span> ${t('world_insights.chart.visits', 'Visits')}</div>
-            <canvas id="wiChartVisits" height="160"></canvas>
+            <div class="wi-chart-title"><span class="msi" style="font-size:13px;color:var(--cyan);">visibility</span> ${t('world_insights.chart.visits', 'Visits')}</div>
+            <canvas id="wiChartVisits" height="120"></canvas>
         </div>`;
 
-    const pts = _wiBucket();
     _wiDrawChart('wiChartActive',    pts, 'active',    'var(--accent)');
     _wiDrawChart('wiChartFavorites', pts, 'favorites', 'var(--ok)');
     _wiDrawChart('wiChartVisits',    pts, 'visits',    'var(--cyan)');
 }
 
-// Canvas Line Chart
+// Canvas Bar Chart
 function _wiDrawChart(canvasId, points, key, cssColor) {
     const canvas = document.getElementById(canvasId);
     if (!canvas || !points.length) return;
@@ -1176,7 +1217,7 @@ function _wiDrawChart(canvasId, points, key, cssColor) {
 
     const W = rect.width;
     const H = rect.height;
-    const pad = { top: 20, right: 16, bottom: 28, left: 42 };
+    const pad = { top: 14, right: 10, bottom: 22, left: 36 };
     const cw = W - pad.left - pad.right;
     const ch = H - pad.top - pad.bottom;
 
@@ -1210,57 +1251,65 @@ function _wiDrawChart(canvasId, points, key, cssColor) {
     // X-axis labels
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
+    const slot = cw / points.length;
     const step = points.length > 14 ? Math.ceil(points.length / 10) : 1;
     points.forEach((p, i) => {
         if (i % step !== 0 && i !== points.length - 1) return;
-        const x = pad.left + (i / (points.length - 1 || 1)) * cw;
+        const x = pad.left + slot * i + slot / 2;
         ctx.fillText(p.label, x, H - pad.bottom + 8);
     });
 
-    // Fill gradient
-    const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch);
-    grad.addColorStop(0, _wiAlpha(color, 0.25));
-    grad.addColorStop(1, _wiAlpha(color, 0.02));
-
-    ctx.beginPath();
-    ctx.moveTo(pad.left, pad.top + ch);
+    // Bars
+    const barW = Math.max(1, Math.min(slot * 0.7, 22));
+    const baseY = pad.top + ch;
+    const bars = [];
+    ctx.fillStyle = color;
     points.forEach((p, i) => {
-        const x = pad.left + (i / (points.length - 1 || 1)) * cw;
-        const y = pad.top + ch - (values[i] / maxVal) * ch;
-        ctx.lineTo(x, y);
-    });
-    ctx.lineTo(pad.left + cw, pad.top + ch);
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    // Line
-    ctx.beginPath();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    points.forEach((p, i) => {
-        const x = pad.left + (i / (points.length - 1 || 1)) * cw;
-        const y = pad.top + ch - (values[i] / maxVal) * ch;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-
-    // Data points
-    if (points.length <= 31) {
-        points.forEach((p, i) => {
-            const x = pad.left + (i / (points.length - 1 || 1)) * cw;
-            const y = pad.top + ch - (values[i] / maxVal) * ch;
-            ctx.beginPath();
-            ctx.arc(x, y, 3, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.fill();
-            ctx.strokeStyle = _wiResolveColor('var(--bg-card)');
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
+        const v = values[i];
+        const barH = (v / maxVal) * ch;
+        const x = pad.left + slot * i + (slot - barW) / 2;
+        const y = baseY - barH;
+        bars.push({
+            x0: pad.left + slot * i,
+            x1: pad.left + slot * (i + 1),
+            bx: x,
+            w: barW,
+            top: barH > 0 ? y : baseY,
+            text: `${p.label}: ${Number(v).toLocaleString()}`,
         });
+        if (barH <= 0) return;
+        const r = Math.min(barW / 2, 3, barH);
+        ctx.beginPath();
+        ctx.moveTo(x, y + barH);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.lineTo(x + barW - r, y);
+        ctx.quadraticCurveTo(x + barW, y, x + barW, y + r);
+        ctx.lineTo(x + barW, y + barH);
+        ctx.closePath();
+        ctx.fill();
+    });
+
+    canvas._wiBars = bars;
+    if (!canvas._wiHoverBound) {
+        canvas._wiHoverBound = true;
+        canvas.addEventListener('mousemove', e => {
+            const bs = canvas._wiBars;
+            if (!bs || !bs.length) return;
+            const cr = canvas.getBoundingClientRect();
+            const mx = e.clientX - cr.left;
+            const hit = bs.find(b => mx >= b.x0 && mx < b.x1);
+            if (!hit) { if (window.vnTooltip) window.vnTooltip.hide(); return; }
+            if (window.vnTooltip) window.vnTooltip.show(hit.text, {
+                left:   cr.left + hit.bx,
+                right:  cr.left + hit.bx + hit.w,
+                width:  hit.w,
+                top:    cr.top + hit.top,
+                bottom: cr.top + hit.top,
+                height: 0,
+            });
+        });
+        canvas.addEventListener('mouseleave', () => { if (window.vnTooltip) window.vnTooltip.hide(); });
     }
 }
 
@@ -1270,17 +1319,6 @@ function _wiResolveColor(css) {
     if (!css.startsWith('var(')) return css;
     const prop = css.slice(4, -1);
     return getComputedStyle(document.documentElement).getPropertyValue(prop).trim() || '#888';
-}
-
-function _wiAlpha(hex, a) {
-    if (hex.startsWith('#')) {
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        return `rgba(${r},${g},${b},${a})`;
-    }
-    if (hex.startsWith('rgb(')) return hex.replace('rgb(', 'rgba(').replace(')', `,${a})`);
-    return hex;
 }
 
 function _wiShortNum(n) {

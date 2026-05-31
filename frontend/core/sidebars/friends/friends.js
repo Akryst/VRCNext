@@ -24,6 +24,7 @@ function toggleRsidebar() {
     const rsEl = document.getElementById('rsIcon'); if (rsEl) rsEl.textContent = rsidebarCollapsed ? 'chevron_left' : 'chevron_right';
     rs.classList.toggle('collapsed', rsidebarCollapsed);
     if (typeof renderVrcFriends === 'function' && vrcFriendsData?.length) renderVrcFriends(vrcFriendsData);
+    if (typeof _applyLightInterp === 'function') _applyLightInterp();
 }
 
 function renderVrcProfile(u) {

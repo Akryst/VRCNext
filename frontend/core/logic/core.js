@@ -338,17 +338,90 @@ const THEMES = {
     vrchat:    { label: 'VRChat',    dot: '#0B748E', c: { 'bg-base': '#0E1013', 'bg-side': '#0E1013', 'bg-card': '#181B1F', 'bg-hover': '#042E39', 'bg-input': '#1C2126', 'accent': '#0B748E', 'accent-lt': '#53C0D5', 'cyan': '#53C0D5', 'ok': '#18A86A', 'warn': '#D4860A', 'err': '#D93040', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#042E39', 'brd-lt': '#BEC8DA' } },
 };
 
-function applyColors(c) {
+const _LIGHT_VARS = ['bg-base', 'tx0', 'tx1', 'tx2', 'tx3', 'accent'];
+let _activeLightOn = false;
+let _activeLightColors = {};
+let _activePrimaryColors = {};
+
+function applyColors(c, light) {
     if (!c) return;
+    _activePrimaryColors = { ...c };
+    _activeLightOn = !!(light && light.on);
+    _activeLightColors = (light && light.colors) ? { ...light.colors } : {};
     for (const [k, v] of Object.entries(c)) document.documentElement.style.setProperty('--' + k, v);
     if (c['bg-card']) document.documentElement.style.setProperty('--bg-btn', c['bg-card']);
     if (c['bg-hover']) document.documentElement.style.setProperty('--bg-btn-h', c['bg-hover']);
+    _applyLightInterp();
     const logoEl = document.getElementById('logoIcon');
     if (logoEl && logoEl._repaintLogo) logoEl._repaintLogo();
     document.documentElement.dispatchEvent(new Event('themechange'));
-    // Forward resolved colors to C# so the VR overlay stays in sync (including auto color)
     try { sendToCS({ action: 'overlayThemeColors', colors: c }); } catch {}
 }
+
+function _lerpHex(a, b, t) {
+    const pa = [parseInt(a.slice(1, 3), 16), parseInt(a.slice(3, 5), 16), parseInt(a.slice(5, 7), 16)];
+    const pb = [parseInt(b.slice(1, 3), 16), parseInt(b.slice(3, 5), 16), parseInt(b.slice(5, 7), 16)];
+    return '#' + pa.map((x, i) => Math.round(x + (pb[i] - x) * t).toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+function _lightScrollT() {
+    const tab0 = document.getElementById('tab0');
+    if (!tab0 || !tab0.classList.contains('active')) return 1;
+    const content = document.querySelector('.content');
+    return Math.min((content?.scrollTop || 0) / 140, 1);
+}
+
+function _applyLightInterp() {
+    const rs = document.documentElement.style;
+    const els = ['tab0', 'taskbar', 'sidebarEl', 'rsidebar']
+        .map(id => document.getElementById(id)).filter(Boolean);
+    const clear = () => { for (const el of els) for (const k of _LIGHT_VARS) el.style.removeProperty('--' + k); };
+    const drops = document.querySelectorAll('#taskbar .tb-dropdown');
+    const clearDrops = () => { for (const d of drops) for (const k of _LIGHT_VARS) d.style.removeProperty('--' + k); };
+    if (!_activeLightOn) { clear(); clearDrops(); return; }
+    for (const k of _LIGHT_VARS) {
+        const lite = _activeLightColors[k];
+        if (lite) rs.setProperty('--' + k, lite);
+    }
+    const tab0 = document.getElementById('tab0');
+    const onDash = tab0 && tab0.classList.contains('active');
+    if (onDash) {
+        const lSide = document.getElementById('sidebarEl');
+        const rSide = document.getElementById('rsidebar');
+        const lCol = !lSide || lSide.classList.contains('collapsed');
+        const rCol = !rSide || rSide.classList.contains('collapsed');
+        const faded = [];
+        if (tab0) faded.push(tab0);
+        if (lSide && lCol) faded.push(lSide);
+        if (rSide && rCol) faded.push(rSide);
+        const tbEl = document.getElementById('taskbar');
+        if (tbEl && lCol && rCol) faded.push(tbEl);
+        clear();
+        const t = _lightScrollT();
+        for (const k of _LIGHT_VARS) {
+            const prim = _activePrimaryColors[k];
+            if (!prim) continue;
+            const lite = _activeLightColors[k] || prim;
+            const val = _lerpHex(prim, lite, t);
+            for (const el of faded) el.style.setProperty('--' + k, val);
+        }
+    } else {
+        clear();
+    }
+    for (const k of _LIGHT_VARS) {
+        const lite = _activeLightColors[k];
+        if (lite) for (const d of drops) d.style.setProperty('--' + k, lite);
+    }
+    const logoEl = document.getElementById('logoIcon');
+    if (logoEl && logoEl._repaintLogo) logoEl._repaintLogo();
+}
+
+document.addEventListener('scroll', function () {
+    if (_activeLightOn) _applyLightInterp();
+}, { passive: true, capture: true });
+document.documentElement.addEventListener('tabchange', function () {
+    if (_activeLightOn) _applyLightInterp();
+});
 
 // Theme Editor.
 
@@ -362,6 +435,21 @@ const _TE_VARS = [
 ];
 
 let _teColors = {}, _teOrigColors = {}, _teSaved = false;
+let _teLightOn = false, _teLightColors = {}, _teOrigLightOn = false, _teOrigLightColors = {};
+
+function _teGetColor(v) {
+    return (v.indexOf('lt:') === 0) ? _teLightColors[v.slice(3)] : _teColors[v];
+}
+
+function _teApply() {
+    applyColors(_teColors, _teLightOn ? { on: true, colors: _teLightColors } : null);
+}
+
+function teToggleLight(on) {
+    _teLightOn = on;
+    _teRenderRows();
+    _teApply();
+}
 
 function _teCssToHex(raw) {
     const s = (raw || '').trim();
@@ -376,9 +464,14 @@ function openThemeEditor() {
     const style = getComputedStyle(document.documentElement);
     _teColors = {}; _teOrigColors = {};
     for (const [v] of _TE_VARS) {
-        const hex = _teCssToHex(style.getPropertyValue('--' + v));
+        const hex = _activePrimaryColors[v] ? _teCssToHex(_activePrimaryColors[v]) : _teCssToHex(style.getPropertyValue('--' + v));
         _teColors[v] = _teOrigColors[v] = hex;
     }
+    _teLightOn = _activeLightOn;
+    _teLightColors = {};
+    for (const k of _LIGHT_VARS) _teLightColors[k] = _activeLightColors[k] || _teColors[k];
+    _teOrigLightOn = _activeLightOn;
+    _teOrigLightColors = { ..._teLightColors };
     _teRenderRows();
     const panel = document.getElementById('themeEditorPanel');
     if (panel) panel.style.display = 'flex';
@@ -389,19 +482,37 @@ function openThemeEditor() {
 function closeThemeEditor() {
     _tePickerClose();
     document.getElementById('themeEditorPanel').style.display = 'none';
-    if (!_teSaved) applyColors(_teOrigColors);
+    if (!_teSaved) applyColors(_teOrigColors, _teOrigLightOn ? { on: true, colors: _teOrigLightColors } : null);
 }
 
 function _teRenderRows() {
     const container = document.getElementById('teColorRows');
     if (!container) return;
     container.innerHTML = '';
+
+    const toggleRow = document.createElement('div');
+    toggleRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px;';
+    toggleRow.innerHTML =
+        `<span style="font-size:11px;color:var(--tx2);flex:1;">Light Theme</span>` +
+        `<label class="toggle"><input type="checkbox" id="teLightToggle" ${_teLightOn ? 'checked' : ''}>` +
+        `<div class="toggle-track"><div class="toggle-knob"></div></div></label>`;
+    toggleRow.querySelector('#teLightToggle').addEventListener('change', function () {
+        teToggleLight(this.checked);
+    });
+    container.appendChild(toggleRow);
+
     for (const [v, label] of _TE_VARS) {
         const hex = _teColors[v];
+        const showLight = _teLightOn && _LIGHT_VARS.includes(v);
+        const lightHex = _teLightColors[v] || hex;
         const row = document.createElement('div');
         row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:5px;';
+        const lightSwatch = showLight
+            ? `<div id="teSwatch_lt:${v}" data-var="lt:${v}" title="Light color (top of dashboard)" style="width:22px;height:22px;flex-shrink:0;border-radius:5px;border:1px solid var(--brd);background:${lightHex};cursor:pointer;"></div>`
+            : '';
         row.innerHTML =
             `<span style="font-size:11px;color:var(--tx2);width:84px;flex-shrink:0;">${label}</span>` +
+            lightSwatch +
             `<div id="teSwatch_${v}" data-var="${v}" style="width:22px;height:22px;flex-shrink:0;border-radius:5px;border:1px solid var(--brd);background:${hex};cursor:pointer;"></div>` +
             `<input type="text" class="vrcn-input" id="teHex_${v}" value="${hex}" maxlength="7"` +
                 ` style="flex:1;font-size:11px;font-family:'Google Sans Mono',monospace;"` +
@@ -410,18 +521,25 @@ function _teRenderRows() {
             e.stopPropagation();
             _tePickerOpen(v, this);
         });
+        if (showLight) {
+            row.querySelector(`[data-var="lt:${v}"]`).addEventListener('click', function(e) {
+                e.stopPropagation();
+                _tePickerOpen('lt:' + v, this);
+            });
+        }
         container.appendChild(row);
     }
 }
 
 function _teApplyColor(v, hex) {
     hex = hex.toUpperCase();
-    _teColors[v] = hex;
+    if (v.indexOf('lt:') === 0) _teLightColors[v.slice(3)] = hex;
+    else _teColors[v] = hex;
     const swatch = document.getElementById('teSwatch_' + v);
     const hexEl  = document.getElementById('teHex_' + v);
     if (swatch) swatch.style.background = hex;
     if (hexEl)  hexEl.value = hex;
-    applyColors(_teColors);
+    _teApply();
 }
 
 function teSetColorFromHex(v, raw) {
@@ -434,7 +552,13 @@ function teSetColorFromHex(v, raw) {
 function teSaveTheme() {
     const name = (document.getElementById('teThemeName')?.value.trim()) || 'My Theme';
     const key = 'custom_' + Date.now();
-    customThemes.push({ key, label: name, dot: _teColors['accent'] || '#888888', c: { ..._teColors } });
+    const theme = { key, label: name, dot: _teColors['accent'] || '#888888', c: { ..._teColors } };
+    if (_teLightOn) {
+        theme.light = true;
+        theme.cLight = {};
+        for (const k of _LIGHT_VARS) theme.cLight[k] = _teLightColors[k] || _teColors[k];
+    }
+    customThemes.push(theme);
     saveCustomColors();
     selectCustomTheme(key);
     renderThemeChips();
@@ -500,7 +624,7 @@ function _tePickerOpen(varName, anchorEl) {
     if (_tePickerState.varName === varName && document.getElementById('teColorPicker').style.display !== 'none') {
         _tePickerClose(); return;
     }
-    const hex = _teColors[varName] || '#888888';
+    const hex = _teGetColor(varName) || '#888888';
     const hsv = _teHexToHsv(hex);
     Object.assign(_tePickerState, { varName, h: hsv.h, s: hsv.s, v: hsv.v });
 
@@ -701,7 +825,7 @@ function selectCustomTheme(key) {
     if (!t) return;
     currentTheme = key;
     currentSpecialTheme = '';
-    applyColors(t.c);
+    applyColors(t.c, t.light ? { on: true, colors: t.cLight } : null);
     renderThemeChips();
     renderSpecialThemeChips();
     const row = document.getElementById('autoAccuracyRow');
@@ -766,7 +890,7 @@ function loadCustomThemes(data) {
     // If the saved currentTheme is a custom key, apply it now that we have the data
     if (currentTheme && currentTheme.startsWith('custom_')) {
         const t = customThemes.find(x => x.key === currentTheme);
-        if (t) applyColors(t.c);
+        if (t) applyColors(t.c, t.light ? { on: true, colors: t.cLight } : null);
         else { currentTheme = 'midnight'; applyColors(THEMES.midnight.c); renderThemeChips(); }
     }
 }
@@ -900,7 +1024,10 @@ function renderSpecialThemeChips() {
 function applySpecialTheme(n) {
     currentSpecialTheme = n;
     if (n === 'auto') applyAutoColor();
-    else applyColors(THEMES[currentTheme]?.c ?? customThemes.find(t => t.key === currentTheme)?.c);
+    else {
+        const ct = customThemes.find(t => t.key === currentTheme);
+        applyColors(THEMES[currentTheme]?.c ?? ct?.c, ct?.light ? { on: true, colors: ct.cLight } : null);
+    }
     renderSpecialThemeChips();
     renderThemeChips(); // show/hide Add + button
     const row = document.getElementById('autoAccuracyRow');

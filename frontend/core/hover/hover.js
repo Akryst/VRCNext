@@ -68,4 +68,6 @@
         }
         hide();
     }, true);
+
+    window.vnTooltip = { show, hide };
 })();
