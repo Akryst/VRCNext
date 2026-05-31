@@ -1499,14 +1499,20 @@ document.documentElement.addEventListener('languagechange', rerenderDashTranslat
     document.body.appendChild(vignette);
 
     let _wasDash = false;
+    let _fadeAnim = null;
 
     function applyGlass() {
         const onDash = tab0 && tab0.classList.contains('active');
         const t = onDash ? Math.min((content?.scrollTop || 0) / FADE_PX, 1) : 1;
-        vignette.style.opacity = (1 - t).toFixed(3);
+        const target = 1 - t;
         document.body.style.setProperty('--sidebar-glass-t', t.toFixed(3));
+        if (_fadeAnim) { _fadeAnim.cancel(); _fadeAnim = null; }
         if (onDash && !_wasDash) {
-            vignette.animate([{ opacity: 0 }, { opacity: 1 - t }], { duration: 800, easing: 'ease-in' });
+            vignette.style.opacity = '0';
+            _fadeAnim = vignette.animate([{ opacity: 0 }, { opacity: target }], { duration: 800, easing: 'ease-in' });
+            _fadeAnim.onfinish = () => { _fadeAnim = null; applyGlass(); };
+        } else {
+            vignette.style.opacity = target.toFixed(3);
         }
         _wasDash = onDash;
     }
