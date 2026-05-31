@@ -112,7 +112,6 @@ function renderCalendarEvents(payload) {
     _calEvents = all;
     _calSelectedDay = null;
     _syncCalView();
-    if (typeof onCalendarEventsForDash === 'function') onCalendarEventsForDash(_calEvents);
 }
 
 function _calNavMonth(delta) {

@@ -26,3 +26,5 @@
 * Fixed a visual bug where the dashboard vignette clipped through elements.
 * Fixed an visual bug where switching to dashboard from a different tab caused a visual "flash".
 * Fixed an visual bug that caused the taskbar elements to get squished when opening the tools row.
+* Fixed an bug that caused "Upcoming Events" to not show any events after opening the calendar tab.
+* Fixed visual bug when opening instance modals it wa shaving a corner on the preview image.

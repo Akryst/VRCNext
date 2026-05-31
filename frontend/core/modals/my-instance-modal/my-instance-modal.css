@@ -3,7 +3,7 @@
 .mi-layout {
     display: grid;
     grid-template-columns: 220px minmax(0, 1fr);
-    border-radius: 14px;
+    border-radius: 0 0 14px 14px;
     overflow: hidden;
     height: min(calc(88vh / var(--gui-zoom, 1)), 380px);
     max-height: 380px;
