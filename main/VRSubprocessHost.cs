@@ -318,6 +318,9 @@ public sealed class VRSubprocessHost : IDisposable
         Send("vro_set_online_friends", new { entries = list });
     }
 
+    public void SetSelfUser(string userId, string imageUrl, string status)
+        => Send("vro_set_self", new { userId, imageUrl, status });
+
     public void UpdateMediaInfo(string title, string artist, double position, double duration, bool playing)
         => Send("vro_update_media", new { title, artist, position, duration, playing });
 
@@ -421,6 +424,7 @@ public sealed class VRSubprocessHost : IDisposable
     public void EnqueueToast(string a, string b, string c, string d, string e, bool f) { }
     public void SetFriendLocations(System.Collections.Generic.IReadOnlyList<(string, string, string, string, string, string, string, string)> entries) { }
     public void SetOnlineFriends(System.Collections.Generic.IReadOnlyList<(string, string, string, string, string, string, string)> entries) { }
+    public void SetSelfUser(string userId, string imageUrl, string status) { }
     public void UpdateMediaInfo(string a, string b, double c, double d, bool e) { }
     public void SetToolStates(bool a, bool b, bool c, bool d, bool e, bool f, bool g) { }
     public void SfConnect(float a, bool b, bool c, bool d, uint e, uint f, uint g, uint h) { }

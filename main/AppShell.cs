@@ -605,6 +605,8 @@ public partial class AppShell
     private void UpdateTrayUser(string name, string status, string statusDesc, string imageUrl)
     {
         _trayService?.UpdateUserInfo(name, status, statusDesc, imageUrl);
+        var id = _core.VrcApi.CurrentUserRaw?["id"]?.ToString() ?? "";
+        _core.VrOverlay?.SetSelfUser(id, ImageCacheHelper.GetUserUrl(id, imageUrl), status);
     }
 #endif
 

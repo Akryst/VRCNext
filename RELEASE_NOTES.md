@@ -4,6 +4,10 @@
 
 * Added a **Req.** button for request invites to the Friends List tab in the VR Overlay.
 * Added a **Join** button to the Friends List tab in the VR Overlay.
+* Removed the **Dashboard** tab because it is no longer needed.
+* Moved the clock and date from the Dashboard to the top of the VR Overlay.
+* Moved the Drink Water countdown from the Dashboard to the top of the VR Overlay.
+* Added a profile image and status dot to the VR Overlay for quick status checks.
 
 **World Insights**
 
@@ -24,7 +28,7 @@
 * Fixed an issue where the taskbar did not have the same darkness effect as the main app container.
 * Fixed a visual issue where the breadcrumb search always showed white font instead of the theme color.
 * Fixed a visual bug where the dashboard vignette clipped through elements.
-* Fixed an visual bug where switching to dashboard from a different tab caused a visual "flash".
-* Fixed an visual bug that caused the taskbar elements to get squished when opening the tools row.
-* Fixed an bug that caused "Upcoming Events" to not show any events after opening the calendar tab.
-* Fixed visual bug when opening instance modals it wa shaving a corner on the preview image.
+* Fixed a visual bug where switching to the Dashboard from a different tab caused a visual flash.
+* Fixed a visual bug that caused the taskbar elements to get squished when opening the tools row.
+* Fixed a bug that caused **Upcoming Events** to not show any events after opening the Calendar tab.
+* Fixed a visual bug where instance modal preview images had an incorrect corner.

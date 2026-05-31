@@ -251,6 +251,10 @@ static class VRSubprocess
                 break;
             }
 
+            case "vro_set_self":
+                vro.SetSelfUser(S(cmd, "userId"), S(cmd, "imageUrl"), S(cmd, "status"));
+                break;
+
             case "vro_update_media":
                 vro.UpdateMediaInfo(S(cmd, "title"), S(cmd, "artist"),
                     D(cmd, "position"), D(cmd, "duration"), B(cmd, "playing"));

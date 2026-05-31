@@ -96,9 +96,11 @@ namespace VRCNext.Services
         private Bitmap?   _bitmap;
         private const int W = 512;
         private const int H = 384;
+        private const int HeaderH = 58;
+        private const int TexH = H + HeaderH;
         private const int RenderScale = 2; // render at 2× resolution for sharper overlay
         // Preallocated RGBA pixel buffer for CPU→staging copy
-        private readonly byte[] _uploadBuf = new byte[W * H * 4 * RenderScale * RenderScale];
+        private readonly byte[] _uploadBuf = new byte[W * TexH * 4 * RenderScale * RenderScale];
         // SMTC poll — query media session every ~3 s (270 × 11 ms)
         private int  _smtcTick = 0;
         private bool _smtcPolling = false;
@@ -132,7 +134,7 @@ namespace VRCNext.Services
         private float InteractLeaveDist => InteractEnterDist + 0.08f;
 
         // Overlay content
-        private int                   _activeTab = 0;
+        private int                   _activeTab = 1;
         private float                 _tabIndicatorX = 0f;
         private readonly List<NotifEntry> _notifications = new();
         private string   _mediaTitle    = "";
@@ -205,6 +207,8 @@ namespace VRCNext.Services
         private bool     _waterAlarmActive = false;
         private DateTime _waterLastTick    = DateTime.UtcNow;
         private int      _lastDashSecond   = -1; // for clock tick dirty
+        private string   _selfImageUrl     = "";
+        private string   _selfStatus       = "offline";
         private string   _language         = "en";
         public event Action? OnWaterAlarm;
         public event Action? OnWaterDismissed;
@@ -234,7 +238,7 @@ namespace VRCNext.Services
             _scaleKeybindHand        = keybindHand;
             _scaleValue              = currentScale;
             _scaleScrollSensitivity  = Math.Clamp(scrollSensitivity, 1, 100);
-            if (!scaleEnabled && _activeTab == 6) _activeTab = 0;
+            if (!scaleEnabled && _activeTab == 6) _activeTab = 1;
             _dirty = true;
         }
 
@@ -660,10 +664,10 @@ namespace VRCNext.Services
                 // Start non-interactive; proximity detection switches to Mouse when
                 // the free hand gets close to the wrist, then back to None on leave.
                 OpenVR.Overlay.SetOverlayInputMethod(_overlayHandle, VROverlayInputMethod.None);
-                var mouseScale = new HmdVector2_t { v0 = W, v1 = H };
+                var mouseScale = new HmdVector2_t { v0 = W, v1 = TexH };
                 OpenVR.Overlay.SetOverlayMouseScale(_overlayHandle, ref mouseScale);
 
-                _bitmap = new Bitmap(W * RenderScale, H * RenderScale, PixelFormat.Format32bppArgb);
+                _bitmap = new Bitmap(W * RenderScale, TexH * RenderScale, PixelFormat.Format32bppArgb);
 
                 // D3D11: staging (CPU-writable) + overlay (GPU, SteamVR reads from it).
                 try
@@ -675,7 +679,7 @@ namespace VRCNext.Services
                     // Overlay texture: GPU-only, SteamVR reads from it each compositor frame
                     var overlayDesc = new Texture2DDescription
                     {
-                        Width = W * RenderScale, Height = H * RenderScale, MipLevels = 1, ArraySize = 1,
+                        Width = W * RenderScale, Height = TexH * RenderScale, MipLevels = 1, ArraySize = 1,
                         Format = Format.R8G8B8A8_UNorm,   // RGBA — safest for SteamVR
                         SampleDescription = new SampleDescription(1, 0),
                         Usage = ResourceUsage.Default,
@@ -686,7 +690,7 @@ namespace VRCNext.Services
                     // Staging texture: CPU-writable, source for CopyResource
                     var stagingDesc = new Texture2DDescription
                     {
-                        Width = W * RenderScale, Height = H * RenderScale, MipLevels = 1, ArraySize = 1,
+                        Width = W * RenderScale, Height = TexH * RenderScale, MipLevels = 1, ArraySize = 1,
                         Format = Format.R8G8B8A8_UNorm,
                         SampleDescription = new SampleDescription(1, 0),
                         Usage = ResourceUsage.Staging,
@@ -924,7 +928,7 @@ namespace VRCNext.Services
 
         public void SetActiveTab(int tab)
         {
-            _activeTab = tab;
+            _activeTab = tab < 1 ? 1 : tab;
             _dirty = true;
         }
 
@@ -1103,6 +1107,41 @@ namespace VRCNext.Services
             }
             PruneLocationImageCache();
             _dirty = true;
+        }
+
+        public void SetSelfUser(string userId, string imageUrl, string status)
+        {
+            bool hadPrev    = !string.IsNullOrEmpty(_selfImageUrl);
+            bool imgChanged = hadPrev && (imageUrl ?? "") != _selfImageUrl;
+            _selfImageUrl = imageUrl ?? "";
+            _selfStatus   = string.IsNullOrEmpty(status) ? "offline" : status;
+            if (!string.IsNullOrEmpty(_selfImageUrl) && !string.IsNullOrEmpty(userId))
+            {
+                bool cached;
+                lock (_locationImgCache) cached = _locationImgCache.TryGetValue(_selfImageUrl, out var b) && b != null;
+                if (imgChanged || !cached)
+                    _ = Task.Run(() => RefreshSelfImageAsync(_selfImageUrl, userId, imgChanged));
+            }
+            _dirty = true;
+        }
+
+        private async Task RefreshSelfImageAsync(string url, string userId, bool force)
+        {
+            try
+            {
+                string? localPath = force ? null : ImageCacheHelper.GetUserCached(userId);
+                localPath ??= await ImageCacheHelper.CacheUserAsync(userId, url, forceRefresh: force);
+                if (string.IsNullOrEmpty(localPath)) return;
+                using var tmp = new Bitmap(localPath);
+                var bmp = new Bitmap(tmp);
+                lock (_locationImgCache)
+                {
+                    if (_locationImgCache.TryGetValue(url, out var old) && old != null && !ReferenceEquals(old, bmp)) old.Dispose();
+                    _locationImgCache[url] = bmp;
+                }
+                _dirty = true;
+            }
+            catch { }
         }
 
         private void PruneLocationImageCache()
@@ -1391,8 +1430,8 @@ namespace VRCNext.Services
                     {
                         // Animate tab indicator slide
                         const int tabX = 8;
-                        int tabW = (W - 16) / (_scaleEnabled ? 7 : 6);
-                        float targetX = tabX + 2f + _activeTab * tabW;
+                        int tabW = (W - 16) / (_scaleEnabled ? 6 : 5);
+                        float targetX = tabX + 2f + (_activeTab - 1) * tabW;
                         if (MathF.Abs(_tabIndicatorX - targetX) > 0.5f)
                         {
                             _tabIndicatorX += (targetX - _tabIndicatorX) * 0.25f; // lerp
@@ -1436,15 +1475,11 @@ namespace VRCNext.Services
                             ApplyTransform();
                         }
 
-                        // Dashboard clock — always re-render tab 0 once per second (clock + water)
-                        if (_activeTab == 0)
+                        int ds = DateTime.Now.Second;
+                        if (ds != _lastDashSecond)
                         {
-                            int ds = DateTime.Now.Second;
-                            if (ds != _lastDashSecond)
-                            {
-                                _lastDashSecond = ds;
-                                _dirty = true;
-                            }
+                            _lastDashSecond = ds;
+                            _dirty = true;
                         }
 
                         // Keep re-rendering for alarm pulse animation (any tab)
@@ -1722,14 +1757,15 @@ namespace VRCNext.Services
 
         private void HandleOverlayClick(float nx, float ny)
         {
+            if (ny > 1f) return;
             // Tab bar: GDI+ y=8–58 → OpenVR ny ≈ 0.85–0.98 (y=0 at bottom)
             // 4 tabs, each 124px: tabTW=496/4=124 → thresholds at nx 0.25, 0.50, 0.75
             if (ny > 0.84f)
             {
                 if (_scaleEnabled)
-                    _activeTab = nx < (1f/7f) ? 0 : nx < (2f/7f) ? 1 : nx < (3f/7f) ? 2 : nx < (4f/7f) ? 3 : nx < (5f/7f) ? 4 : nx < (6f/7f) ? 5 : 6;
+                    _activeTab = nx < (1f/6f) ? 1 : nx < (2f/6f) ? 2 : nx < (3f/6f) ? 3 : nx < (4f/6f) ? 4 : nx < (5f/6f) ? 5 : 6;
                 else
-                    _activeTab = nx < (1f/6f) ? 0 : nx < (2f/6f) ? 1 : nx < (3f/6f) ? 2 : nx < (4f/6f) ? 3 : nx < (5f/6f) ? 4 : 5;
+                    _activeTab = nx < (1f/5f) ? 1 : nx < (2f/5f) ? 2 : nx < (3f/5f) ? 3 : nx < (4f/5f) ? 4 : 5;
                 _lastDisplayedSecond = -1;
                 _locationScrollY = 0f; _locationScrollVY = 0f;
                 _friendsScrollY  = 0f; _friendsScrollVY  = 0f;
@@ -2602,16 +2638,18 @@ namespace VRCNext.Services
                 g.ScaleTransform(RenderScale, RenderScale);
 
                 DrawBackground(g);
+                DrawHeader(g);
+                var hdrState = g.Save();
+                g.TranslateTransform(0, HeaderH);
                 DrawTabBar(g);
-                if      (_activeTab == 0) DrawDashboard(g);
-                else if (_activeTab == 1) DrawNotifications(g);
+                if      (_activeTab == 1) DrawNotifications(g);
                 else if (_activeTab == 2) DrawLocations(g);
                 else if (_activeTab == 3) DrawMusicPlayer(g);
                 else if (_activeTab == 4) DrawTools(g);
                 else if (_activeTab == 5) DrawFriends(g);
                 else if (_activeTab == 6) DrawScaleTab(g);
-                // Water alarm renders over everything — any tab, full screen
                 if (_waterAlarmActive) DrawDashboardAlarm(g);
+                g.Restore(hdrState);
 
                 UploadTexture();
             }
@@ -2632,7 +2670,7 @@ namespace VRCNext.Services
             {
                 // Music tab: blurred art fills entire card
                 // Clip drawing to rounded card shape
-                using var cardClip = RoundedRectPath(0, 0, W, H, r);
+                using var cardClip = RoundedRectPath(0, HeaderH, W, H, r);
                 using var oldClip = g.Clip;
                 g.SetClip(cardClip);
 
@@ -2645,27 +2683,27 @@ namespace VRCNext.Services
                 }
                 var prevMode = g.InterpolationMode;
                 g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                g.DrawImage(tiny, new Rectangle(0, 0, W, H));
+                g.DrawImage(tiny, new Rectangle(0, HeaderH, W, H));
                 g.InterpolationMode = prevMode;
 
                 // Dark overlay — 50% darker so UI elements stay readable
                 using var darkOver = new SolidBrush(Color.FromArgb(110, 0, 0, 0));
-                g.FillRectangle(darkOver, 0, 0, W, H);
+                g.FillRectangle(darkOver, 0, HeaderH, W, H);
 
                 // Top gradient: solid bg-card → transparent, ends just above cover art (artY=78)
                 // Keeps tab buttons legible while art bleeds through below
                 using var topGrad = new System.Drawing.Drawing2D.LinearGradientBrush(
-                    new Point(0, 0), new Point(0, 78),
+                    new Point(0, HeaderH), new Point(0, HeaderH + 78),
                     Color.FromArgb(220, th.BgCard),
                     Color.FromArgb(0,   th.BgCard));
-                g.FillRectangle(topGrad, 0, 0, W, 78);
+                g.FillRectangle(topGrad, 0, HeaderH, W, 78);
 
                 // Bottom gradient: transparent → dark, starts just below cover art (artBottom=206)
                 using var botGrad = new System.Drawing.Drawing2D.LinearGradientBrush(
-                    new Point(0, 206), new Point(0, H),
+                    new Point(0, 206 + HeaderH), new Point(0, TexH),
                     Color.FromArgb(0,   th.BgCard),
                     Color.FromArgb(180, th.BgCard));
-                g.FillRectangle(botGrad, 0, 206, W, H - 206);
+                g.FillRectangle(botGrad, 0, 206 + HeaderH, W, TexH - (206 + HeaderH));
 
                 g.SetClip(oldClip, System.Drawing.Drawing2D.CombineMode.Replace);
             }
@@ -2673,12 +2711,74 @@ namespace VRCNext.Services
             {
                 // All other tabs: solid themed card
                 using var brush = new SolidBrush(Color.FromArgb(235, th.BgCard));
-                FillRoundedRect(g, brush, 0, 0, W, H, r);
+                FillRoundedRect(g, brush, 0, HeaderH, W, H, r);
             }
 
             // Card border always on top
             using var pen = new Pen(Color.FromArgb(80, th.Brd), 1.5f);
-            DrawRoundedRect(g, pen, 1, 1, W - 2, H - 2, r - 1);
+            DrawRoundedRect(g, pen, 1, HeaderH + 1, W - 2, H - 2, r - 1);
+        }
+
+        private void DrawHeader(Graphics g)
+        {
+            var now = DateTime.Now;
+            int padX = 8;
+            var sfNoPad = StringFormat.GenericTypographic;
+
+            using (var tf = new Font("Segoe UI", 18f, FontStyle.Bold, GraphicsUnit.Point))
+            using (var wb = new SolidBrush(Color.White))
+                g.DrawString(now.ToString("HH:mm:ss"), tf, wb, new RectangleF(padX, 3f, W, 30f), sfNoPad);
+
+            using (var df = new Font("Segoe UI", 9f, FontStyle.Regular, GraphicsUnit.Point))
+            using (var wb2 = new SolidBrush(Color.White))
+            {
+                var culture = System.Globalization.CultureInfo.GetCultureInfoByIetfLanguageTag(_language);
+                string line = now.ToString("dd.MM.yyyy") + "   |   " + now.ToString("dddd", culture);
+                if (_waterEnabled)
+                {
+                    long ws = Math.Max(0, _waterRemainMs / 1000);
+                    line += $"   |   Water: {ws / 3600:D2}:{ws / 60 % 60:D2}:{ws % 60:D2}";
+                }
+                g.DrawString(line, df, wb2, new RectangleF(padX, 37f, W, 16f), sfNoPad);
+            }
+
+            DrawHeaderAvatar(g);
+        }
+
+        private void DrawHeaderAvatar(Graphics g)
+        {
+            var th = _theme;
+            const int avSz = 36, avR = 8;
+            int avX = W - avSz - 12;
+            int avY = (HeaderH - avSz) / 2;
+
+            Bitmap? avImg = null;
+            if (!string.IsNullOrEmpty(_selfImageUrl))
+                lock (_locationImgCache) { _locationImgCache.TryGetValue(_selfImageUrl, out avImg); }
+
+            var avRect = new Rectangle(avX, avY, avSz, avSz);
+            var oldClip = g.Clip;
+            using var avPath = RoundedRectPath(avX, avY, avSz, avSz, avR);
+            g.SetClip(avPath, System.Drawing.Drawing2D.CombineMode.Intersect);
+            if (avImg != null)
+                DrawImageCover(g, avImg, avRect);
+            else
+            {
+                using var avBg = new SolidBrush(th.BgHover);
+                g.FillPath(avBg, avPath);
+            }
+            g.SetClip(oldClip, System.Drawing.Drawing2D.CombineMode.Replace);
+            using var avBorder = new Pen(Color.FromArgb(50, th.Brd), 1f);
+            DrawRoundedRect(g, avBorder, avX, avY, avSz, avSz, avR);
+
+            int dotSz = 10;
+            int dotX = avX + avSz - dotSz + 1;
+            int dotY = avY + avSz - dotSz + 1;
+            var statusColor = StatusColor(_selfStatus);
+            using var dotBg = new SolidBrush(th.BgCard);
+            g.FillEllipse(dotBg, dotX - 2, dotY - 2, dotSz + 4, dotSz + 4);
+            using var dotBrush = new SolidBrush(statusColor);
+            g.FillEllipse(dotBrush, dotX, dotY, dotSz, dotSz);
         }
 
         private void DrawTabBar(Graphics g)
@@ -2687,7 +2787,7 @@ namespace VRCNext.Services
             int tabH   = 50;
             int tabX   = 8;
             int tabTW  = W - 16;
-            int numTabs = _scaleEnabled ? 7 : 6;
+            int numTabs = _scaleEnabled ? 6 : 5;
             int tabW   = tabTW / numTabs;
 
             bool artBg = _activeTab == 3 && _albumArt != null && !string.IsNullOrWhiteSpace(_mediaTitle);
@@ -2702,14 +2802,13 @@ namespace VRCNext.Services
             using var indicatorBg = new SolidBrush(Color.FromArgb(200, th.Accent));
             FillRoundedRect(g, indicatorBg, (int)_tabIndicatorX, 10, indicatorW, tabH - 4, 12);
 
-            DrawTab(g, "\uE871", "Dash",     0, tabX,           8, tabW, tabH);
-            DrawTab(g, "\uE7F4", "Alerts",   1, tabX + tabW,     8, tabW, tabH);
-            DrawTab(g, "\uE0C8", "Location", 2, tabX + tabW * 2, 8, tabW, tabH);
-            DrawTab(g, "\uE405", "Music",    3, tabX + tabW * 3, 8, tabW, tabH);
-            DrawTab(g, "\uE869", "Tools",    4, tabX + tabW * 4, 8, tabW, tabH);
-            DrawTab(g, "\uE7FB", "Friends",  5, tabX + tabW * 5, 8, _scaleEnabled ? tabW : tabTW - tabW * 5, tabH);
+            DrawTab(g, "\uE7F4", "Alerts",   1, tabX,           8, tabW, tabH);
+            DrawTab(g, "\uE0C8", "Location", 2, tabX + tabW,     8, tabW, tabH);
+            DrawTab(g, "\uE405", "Music",    3, tabX + tabW * 2, 8, tabW, tabH);
+            DrawTab(g, "\uE869", "Tools",    4, tabX + tabW * 3, 8, tabW, tabH);
+            DrawTab(g, "\uE7FB", "Friends",  5, tabX + tabW * 4, 8, _scaleEnabled ? tabW : tabTW - tabW * 4, tabH);
             if (_scaleEnabled)
-                DrawTab(g, "\uEA16", "Size", 6, tabX + tabW * 6, 8, tabTW - tabW * 6, tabH);
+                DrawTab(g, "\uEA16", "Size", 6, tabX + tabW * 5, 8, tabTW - tabW * 5, tabH);
 
             if (!artBg)
             {
@@ -2732,160 +2831,6 @@ namespace VRCNext.Services
                 ? new Font(_matSymFamily, 18f, FontStyle.Regular, GraphicsUnit.Point)
                 : new Font("Segoe MDL2 Assets", 18f, FontStyle.Regular, GraphicsUnit.Point);
             g.DrawString(icon, iconFont, brush, new RectangleF(x, y, w, h), fmtC);
-        }
-
-        private void DrawDashboard(Graphics g)
-        {
-            var th   = _theme;
-            var fmtC = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            const int padX = 18;
-            int cardW = W - padX * 2;
-            int y = 72;
-
-            var now = DateTime.Now;
-
-            int   clockH     = _waterEnabled ? 82 : 162;
-            float timeFontSz = _waterEnabled ? 27f : 36f;
-
-            // Clock
-            using (var lf = new Font("Segoe UI", 7f, FontStyle.Bold, GraphicsUnit.Point))
-            using (var lb = new SolidBrush(th.Tx3))
-            using (var ab = new SolidBrush(th.Accent))
-            {
-                g.FillEllipse(ab, padX, y + 6f, 5f, 5f);
-                g.DrawString(VroL("system_time"), lf, lb, new RectangleF(padX + 10, y + 4, cardW - 10, 14));
-            }
-
-            using (var tf = new Font("Segoe UI", timeFontSz, FontStyle.Bold, GraphicsUnit.Point))
-            using (var t1 = new SolidBrush(th.Tx1))
-            {
-                float timeH   = timeFontSz * 1.6f;
-                float timeTop = y + (clockH - timeH) / 2f - 2f;
-                g.DrawString(now.ToString("HH:mm:ss"), tf, t1,
-                    new RectangleF(padX, timeTop, cardW, timeH), fmtC);
-            }
-
-            using (var df = new Font("Segoe UI", 9f, FontStyle.Regular, GraphicsUnit.Point))
-            {
-                var    culture = System.Globalization.CultureInfo.GetCultureInfoByIetfLanguageTag(_language);
-                string dateStr = now.ToString("dd.MM.yyyy");
-                string dayStr  = now.ToString("dddd", culture);
-                var    dsz     = g.MeasureString(dateStr, df);
-                var    daysz   = g.MeasureString(dayStr,  df);
-                const float DOT_GAP = 14f;
-                float lx = (W - dsz.Width - DOT_GAP - daysz.Width) / 2f;
-                float ly = y + clockH - 18f;
-                using (var d2 = new SolidBrush(th.Tx2))
-                {
-                    g.DrawString(dateStr, df, d2, lx, ly);
-                    g.DrawString(dayStr,  df, d2, lx + dsz.Width + DOT_GAP, ly);
-                }
-                float dotX = lx + dsz.Width + DOT_GAP / 2f - 2.5f;
-                float dotY = ly + dsz.Height / 2f - 2.5f;
-                using var acb = new SolidBrush(th.Accent);
-                g.FillEllipse(acb, dotX, dotY, 5f, 5f);
-            }
-
-            using (var sp = new Pen(Color.FromArgb(30, th.Brd), 1f))
-                g.DrawLine(sp, padX, y + clockH, padX + cardW, y + clockH);
-
-            y += clockH + 10;
-
-            // Water (only when enabled)
-            if (_waterEnabled)
-            {
-                const int waterH = 74;
-
-                using (var wlf = new Font("Segoe UI", 7f, FontStyle.Bold, GraphicsUnit.Point))
-                using (var wlb = new SolidBrush(th.Tx3))
-                using (var wb  = new SolidBrush(th.Cyan))
-                {
-                    g.FillEllipse(wb, padX, y + 6f, 5f, 5f);
-                    g.DrawString(VroL("water_reminder"), wlf, wlb,
-                        new RectangleF(padX + 10, y + 4, cardW - 90, 14));
-                }
-
-                using (var bf = new Font("Segoe UI", 6.5f, FontStyle.Bold, GraphicsUnit.Point))
-                {
-                    string activeStr = VroL("active");
-                    var bsz = g.MeasureString(activeStr, bf);
-                    float bW = bsz.Width + 10f, bH = 14f;
-                    float bX = padX + cardW - bW, bY = y + 4f;
-                    using var bBg  = new SolidBrush(Color.FromArgb(40, th.Ok));
-                    using var bPen = new Pen(Color.FromArgb(80, th.Ok), 1f);
-                    using var bTx  = new SolidBrush(th.Ok);
-                    FillRoundedRect(g, bBg,  (int)bX, (int)bY, (int)bW, (int)bH, 3);
-                    DrawRoundedRect(g, bPen, (int)bX, (int)bY, (int)bW, (int)bH, 3);
-                    g.DrawString(activeStr, bf, bTx, new RectangleF(bX, bY, bW, bH), fmtC);
-                }
-
-                long totalSec = Math.Max(0, _waterRemainMs / 1000);
-                long wMin = totalSec / 60, wSec = totalSec % 60;
-                bool  warn   = totalSec < 60;
-                Color wColor = warn ? th.Warn : th.Cyan;
-
-                using var nf  = new Font("Segoe UI", 21f, FontStyle.Bold, GraphicsUnit.Point);
-                using var uf  = new Font("Segoe UI", 8f,  FontStyle.Bold, GraphicsUnit.Point);
-                using var nb  = new SolidBrush(wColor);
-                using var ub  = new SolidBrush(th.Tx3);
-                using var cb  = new SolidBrush(Color.FromArgb(90, wColor));
-
-                string minStr = wMin.ToString("D2"), secStr = wSec.ToString("D2");
-                string minUnit = VroL("min"), secUnit = VroL("sec");
-                var msz  = g.MeasureString(minStr,  nf);
-                var ssz  = g.MeasureString(secStr,  nf);
-                var csz  = g.MeasureString(":",     nf);
-                var usz  = g.MeasureString(minUnit, uf);
-                var usz2 = g.MeasureString(secUnit, uf);
-                float blkW = msz.Width + 4 + usz.Width + 10 + csz.Width + 10 + ssz.Width + 4 + usz2.Width;
-                float bx   = (W - blkW) / 2f, wny = y + 22f;
-                float uY   = wny + msz.Height - usz.Height - 1f;
-
-                g.DrawString(minStr,  nf, nb, bx, wny); bx += msz.Width + 4;
-                g.DrawString(minUnit, uf, ub, bx, uY);  bx += usz.Width + 8;
-                g.DrawString(":",     nf, cb, bx, wny); bx += csz.Width + 8;
-                g.DrawString(secStr,  nf, nb, bx, wny); bx += ssz.Width + 4;
-                g.DrawString(secUnit, uf, ub, bx, uY);
-
-                float pct  = _waterIntervalMs > 0 ? Math.Clamp((float)_waterRemainMs / _waterIntervalMs, 0f, 1f) : 0f;
-                int barX = padX, barY = y + waterH - 8, barW = cardW;
-                using (var trackBr = new SolidBrush(Color.FromArgb(20, wColor)))
-                    g.FillRectangle(trackBr, barX, barY, barW, 3);
-                int fillW = (int)(barW * pct);
-                if (fillW > 0) { using var fillBr = new SolidBrush(wColor); g.FillRectangle(fillBr, barX, barY, fillW, 3); }
-
-                using (var sp = new Pen(Color.FromArgb(30, th.Brd), 1f))
-                    g.DrawLine(sp, padX, y + waterH, padX + cardW, y + waterH);
-
-                y += waterH + 10;
-            }
-
-            // Recent notifications
-            using (var nlf = new Font("Segoe UI", 7f, FontStyle.Bold, GraphicsUnit.Point))
-            using (var nlb = new SolidBrush(th.Tx3))
-                g.DrawString(VroL("recent_notifications"), nlf, nlb, new RectangleF(padX, y + 2, cardW, 12));
-            y += 17;
-
-            List<NotifEntry> recent;
-            lock (_notifications) recent = _notifications.Take(2).ToList();
-
-            if (recent.Count == 0)
-            {
-                using var ef = new Font("Segoe UI", 10f, FontStyle.Italic, GraphicsUnit.Point);
-                using var eb = new SolidBrush(th.Tx3);
-                g.DrawString(VroL("no_notifications"), ef, eb, new RectangleF(padX, y, cardW, 28));
-            }
-            else
-            {
-                const int itemH = 38;
-                foreach (var n in recent)
-                {
-                    DrawNotificationItem(g, n, padX, y, cardW, itemH, showButton: false);
-                    y += itemH + 4;
-                }
-            }
-
-            fmtC.Dispose();
         }
 
         private void DrawDashboardAlarm(Graphics g)
@@ -3979,7 +3924,7 @@ namespace VRCNext.Services
             if (_bitmap == null || OpenVR.Overlay == null || _overlayHandle == 0) return;
 
             // 1. Copy GDI+ bitmap (BGRA) → _uploadBuf with R↔B swap for R8G8B8A8_UNorm
-            int RW = W * RenderScale, RH = H * RenderScale;
+            int RW = W * RenderScale, RH = TexH * RenderScale;
             var bmpRect = new Rectangle(0, 0, RW, RH);
             var bmpData = _bitmap.LockBits(bmpRect, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
             try
