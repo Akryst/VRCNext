@@ -355,7 +355,13 @@ function applyColors(c, light) {
     const logoEl = document.getElementById('logoIcon');
     if (logoEl && logoEl._repaintLogo) logoEl._repaintLogo();
     document.documentElement.dispatchEvent(new Event('themechange'));
-    try { sendToCS({ action: 'overlayThemeColors', colors: c }); } catch {}
+
+    let overlayColors = c;
+    if (_activeLightOn) {
+        overlayColors = { ...c };
+        for (const k of _LIGHT_VARS) if (_activeLightColors[k]) overlayColors[k] = _activeLightColors[k];
+    }
+    try { sendToCS({ action: 'overlayThemeColors', colors: overlayColors }); } catch {}
 }
 
 function _lerpHex(a, b, t) {

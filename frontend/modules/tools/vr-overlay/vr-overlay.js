@@ -138,11 +138,8 @@ function vroConnect() {
     if (vroConnected) {
         sendToCS({ action: 'vroDisconnect' });
     } else {
-        // Resolve the current theme colors and send them with the connect
-        // message so C# can seed the overlay immediately — no round-trip needed.
         let colors = null;
         if (currentSpecialTheme === 'auto') {
-            // Grab whatever CSS vars are currently active (auto color already applied)
             const s = getComputedStyle(document.documentElement);
             const keys = ['bg-card','bg-hover','accent','ok','warn','err','cyan','tx1','tx2','tx3','brd'];
             colors = {};
@@ -153,7 +150,10 @@ function vroConnect() {
         } else {
             const t = (typeof THEMES !== 'undefined' && THEMES[currentTheme])
                    || (typeof customThemes !== 'undefined' && customThemes.find(x => x.key === currentTheme));
-            if (t) colors = t.c;
+            if (t) {
+                colors = { ...t.c };
+                if (t.light && t.cLight) for (const k in t.cLight) colors[k] = t.cLight[k];
+            }
         }
         sendToCS({ action: 'vroConnect', themeColors: colors || null });
         vroSendConfig();
