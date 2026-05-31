@@ -1285,14 +1285,14 @@ function _unloadTabImages(tabEl) {
     let count = 0;
     tabEl.querySelectorAll('img').forEach(img => {
         const s = img.src;
-        if (!s || s === _LAZY_PH || img.dataset.lazySrc) return;
+        if (!s || s === _LAZY_PH || img.dataset.lazySrc || img.classList.contains('lazy-keep')) return;
         img.dataset.lazySrc = s;
         img.src = _LAZY_PH;
         count++;
     });
     tabEl.querySelectorAll('[style*="background-image"]').forEach(el => {
         const bg = el.style.backgroundImage;
-        if (!bg || bg === 'none' || el.dataset.lazyBg) return;
+        if (!bg || bg === 'none' || el.dataset.lazyBg || el.classList.contains('lazy-keep')) return;
         el.dataset.lazyBg = bg;
         el.style.backgroundImage = `url('${_LAZY_PH}')`;
         count++;
