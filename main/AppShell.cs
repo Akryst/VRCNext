@@ -134,6 +134,8 @@ public partial class AppShell
         MigrationHelper.MigrateCachesToSubdir();               // moves 5 cache JSONs from root → Caches/
         MigrationHelper.MigrateBuiltInDashboardTheme(_settings); // removes AppData copy; now hardcoded in index.html
         if (_settings.MemoryTrimEnabled) _memTrim.SetEnabled(true);
+        WindowsFixes.Log = s => SendToJS("log", new { msg = s, color = "sec" });
+        WindowsFixes.SetEnabled(_settings.MediaFixEnabled);
 
         // Ensure at least one primary account exists for fresh installs or corrupted settings.
         if (_settings.Accounts.Count == 0) _settings.EnsurePrimaryAccount();

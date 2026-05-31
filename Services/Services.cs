@@ -478,6 +478,9 @@ public class AppSettings
     // Memory Trim
     public bool MemoryTrimEnabled { get; set; } = false;
 
+    // Windows Fixes
+    public bool MediaFixEnabled { get; set; } = true;
+
     // Database optimization — load limited entries into RAM at startup
     public bool DbOptimize           { get; set; } = true;
     public int  DbOptimizeMaxEntries { get; set; } = 500;

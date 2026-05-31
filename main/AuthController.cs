@@ -1796,6 +1796,10 @@ public class AuthController
             _core.Settings.MemoryTrimEnabled = data["memoryTrimEnabled"]?.Value<bool>() ?? false;
             _core.MemTrim.SetEnabled(_core.Settings.MemoryTrimEnabled);
 
+            // Windows Fixes
+            _core.Settings.MediaFixEnabled = data["mediaFixEnabled"]?.Value<bool>() ?? true;
+            VRCNext.Services.WindowsFixes.SetEnabled(_core.Settings.MediaFixEnabled);
+
             // Database optimization (requires restart to take effect)
             _core.Settings.DbOptimize           = data["dbOptimize"]?.Value<bool>() ?? true;
             _core.Settings.DbOptimizeMaxEntries = Math.Clamp(data["dbOptimizeMaxEntries"]?.Value<int>() ?? 500, 500, 250000);

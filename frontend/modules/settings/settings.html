@@ -437,6 +437,16 @@
                         </div>
                     </div>
 
+                    <!-- WINDOWS FIXES -->
+                    <div class="vrcn-panel-card" data-section="advanced" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">healing</span> <span data-i18n="settings.windowsfixes.title">Windows Fixes</span></div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.windowsfixes.npsm_label">Fix NPSMSvc (Now Playing service)</span>
+                            <label class="toggle"><input type="checkbox" id="setMediaFixEnabled" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" data-i18n="settings.windowsfixes.npsm_desc">When this fix is enabled, it will attempt to resolve the Windows Media Control issue introduced in build 10.0.26100, which can cause media controls to completely break. This also fixes an issue where pressing Fn + F5, Fn + F6 or Fn + F7 could cause Windows Explorer to crash. Furthermore, this fixes issues where the OSC Custom Chatbox and VR Overlay may not show the current song information correctly. It checks roughly every 10 minutes and safely restarts the hung service if needed.</div>
+                    </div>
+
                     <!-- SEARCH DEBOUNCE PERFORMANCE -->
                     <div class="vrcn-panel-card" data-section="advanced" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">speed</span> <span data-i18n="settings.search_debounce.title">Performance</span></div>

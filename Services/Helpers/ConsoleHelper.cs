@@ -22,6 +22,12 @@ public static class ConsoleHelper
                     return new("Triggering force trim...", "sec", "forceTrimAll", new { });
                 return new("Usage: /force trim", "err");
 
+            case "/fix":
+                if (parts.Length >= 2 &&
+                    (parts[1].Equals("nps", StringComparison.OrdinalIgnoreCase) || parts[1].Equals("npsm", StringComparison.OrdinalIgnoreCase)))
+                    return new("Running NPSMSvc fix — see Activity Log for results.", "sec", "fixNps", new { });
+                return new("Usage: /fix nps", "err");
+
             case "/msg":
                 if (parts.Length >= 2)
                 {
@@ -77,6 +83,10 @@ public static class ConsoleHelper
         "\n" +
         "  /force trim\n" +
         "  Same as /trim but skips all thresholds — always trims all caches.\n" +
+        "\n" +
+        "Windows Fixes:\n" +
+        "  /fix nps\n" +
+        "  Force-restarts the hung Windows 'Now Playing' service (NPSMSvc) and reports the result.\n" +
         "\n" +
         "Invite Messages:\n" +
         "  /msg invite\n" +

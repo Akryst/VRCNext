@@ -579,6 +579,8 @@ public partial class AppShell
                         SendToJS("consoleOutput", new { text = result.Text, color = result.Color });
                     if (result.Extra == "forceTrim")
                         _core.MemTrim.TrimNow();
+                    else if (result.Extra == "fixNps")
+                        VRCNext.Services.WindowsFixes.ForceFix();
                     else if (result.Extra == "forceTrimAll")
                         _core.TrimCaches(force: true);
                     else if (result.Extra == "vrcMsgList" && result.ExtraPayload != null)

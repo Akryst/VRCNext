@@ -236,6 +236,7 @@ function saveSettings() {
             imgCacheOptimizeEnabled: document.getElementById('setImgCacheOptimizeEnabled').checked,
             ffcEnabled: document.getElementById('setFfcEnabled').checked,
             memoryTrimEnabled: document.getElementById('setMemoryTrimEnabled').checked,
+            mediaFixEnabled: document.getElementById('setMediaFixEnabled')?.checked ?? true,
             dbOptimize: document.getElementById('setDbOptimize').checked,
             dbOptimizeMaxEntries: Math.max(500, Math.min(250000, parseInt(document.getElementById('setDbOptimizeMaxEntries').value) || 500)),
             autoUpdate: document.getElementById('setAutoUpdate').checked,
@@ -604,6 +605,7 @@ function loadSettingsToUI(s) {
 
     // Memory Trim
     document.getElementById('setMemoryTrimEnabled').checked = s.MemoryTrimEnabled ?? s.memoryTrimEnabled ?? false;
+    { const _mfEl = document.getElementById('setMediaFixEnabled'); if (_mfEl) _mfEl.checked = s.MediaFixEnabled ?? s.mediaFixEnabled ?? true; }
 
     // Database optimization
     const dbOptimize           = s.DbOptimize ?? s.dbOptimize ?? true;
