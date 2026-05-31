@@ -336,6 +336,11 @@ const THEMES = {
     halloween: { label: 'Halloween', dot: '#DF462A', c: { 'bg-base': '#0B091A', 'bg-side': '#0B091A', 'bg-card': '#110F26', 'bg-hover': '#1B1936', 'bg-input': '#0D0B1E', 'accent': '#DF462A', 'accent-lt': '#E17D6B', 'cyan': '#DCA956', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#F0EFF5', 'tx1': '#F0EFF5', 'tx2': '#F0EFF5', 'tx3': '#F0EFF5', 'brd': '#1E1B3C', 'brd-lt': '#2B284D' } },
     miku:      { label: 'Miku',      dot: '#66B4D2', c: { 'bg-base': '#080D14', 'bg-side': '#080D14', 'bg-card': '#080D14', 'bg-hover': '#66B4D2', 'bg-input': '#0B111A', 'accent': '#66B4D2', 'accent-lt': '#66B4D2', 'cyan': '#66B4D2', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#13223F', 'brd-lt': '#13223F' } },
     vrchat:    { label: 'VRChat',    dot: '#0B748E', c: { 'bg-base': '#0E1013', 'bg-side': '#0E1013', 'bg-card': '#181B1F', 'bg-hover': '#042E39', 'bg-input': '#1C2126', 'accent': '#0B748E', 'accent-lt': '#53C0D5', 'cyan': '#53C0D5', 'ok': '#18A86A', 'warn': '#D4860A', 'err': '#D93040', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#042E39', 'brd-lt': '#BEC8DA' } },
+    vrcx:        { label: 'VRCX',         dot: '#4C4C66', c: { 'bg-base': '#0A0A0A', 'bg-side': '#0A0A0A', 'bg-card': '#0F0F0F', 'bg-hover': '#1C1C1F', 'bg-input': '#141414', 'accent': '#4C4C66', 'accent-lt': '#9797B1', 'cyan': '#8CA5FF', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#EBEBFF', 'tx1': '#EBEBFF', 'tx2': '#B7B7C3', 'tx3': '#FFFFFF', 'brd': '#1C1C1F', 'brd-lt': '#1C1C1F' } },
+    flipperzero: { label: 'Flipper Zero', dot: '#FF896F', c: { 'bg-base': '#000000', 'bg-side': '#EEF1FF', 'bg-card': '#E7EAF8', 'bg-hover': '#FDB9AA', 'bg-input': '#DCE1F1', 'accent': '#FF896F', 'accent-lt': '#FF896F', 'cyan': '#FF896F', 'ok': '#2BFF00', 'warn': '#FF7455', 'err': '#FF2E00', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#D3D6E6', 'brd-lt': '#D3D6E6' }, light: true, cLight: { 'bg-base': '#EEF1FF', 'tx0': '#000000', 'tx1': '#494949', 'tx2': '#494949', 'tx3': '#494949', 'accent': '#FF896F' } },
+    rose:        { label: 'Rose',         dot: '#BB8BB2', c: { 'bg-base': '#000000', 'bg-side': '#DFCED4', 'bg-card': '#DFCED4', 'bg-hover': '#FFC3DA', 'bg-input': '#FFDAE7', 'accent': '#BB8BB2', 'accent-lt': '#BB8BB2', 'cyan': '#FFC3F4', 'ok': '#2BFF00', 'warn': '#FFC3F4', 'err': '#FF2E00', 'tx0': '#FFFFFF', 'tx1': '#FFF9F9', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#D5C4CA', 'brd-lt': '#D5C4CA' }, light: true, cLight: { 'bg-base': '#DFCED4', 'tx0': '#000000', 'tx1': '#494949', 'tx2': '#494949', 'tx3': '#494949', 'accent': '#BB8BB2' } },
+    unicorn:     { label: 'Unicorn',      dot: '#E1C5F3', c: { 'bg-base': '#000000', 'bg-side': '#E9DEFF', 'bg-card': '#E3D6FD', 'bg-hover': '#E2B9FF', 'bg-input': '#EDD2FF', 'accent': '#E1C5F3', 'accent-lt': '#AC88C2', 'cyan': '#EDD2FF', 'ok': '#2BFF00', 'warn': '#FF7455', 'err': '#FF2E00', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#E1C7F1', 'brd-lt': '#E1C7F1' }, light: true, cLight: { 'bg-base': '#E9DEFF', 'tx0': '#000000', 'tx1': '#494949', 'tx2': '#494949', 'tx3': '#494949', 'accent': '#AC88C2' } },
+    baby:        { label: 'Baby',         dot: '#ACBCFF', c: { 'bg-base': '#000000', 'bg-side': '#E8ECFF', 'bg-card': '#E1E5F8', 'bg-hover': '#B9C6FF', 'bg-input': '#D1D8F5', 'accent': '#ACBCFF', 'accent-lt': '#ACBCFF', 'cyan': '#ACBCFF', 'ok': '#2BFF00', 'warn': '#FF7455', 'err': '#FF2E00', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#C8CFEE', 'brd-lt': '#C8CFEE' }, light: true, cLight: { 'bg-base': '#E8ECFF', 'tx0': '#000000', 'tx1': '#494949', 'tx2': '#494949', 'tx3': '#494949', 'accent': '#ACBCFF' } },
 };
 
 const _LIGHT_VARS = ['bg-base', 'tx0', 'tx1', 'tx2', 'tx3', 'accent'];
@@ -843,7 +848,7 @@ function renderThemeChips() {
 function selectTheme(n) {
     currentTheme = n;
     if (currentSpecialTheme === 'auto') applyAutoColor();
-    else applyColors(THEMES[n].c);
+    else applyColors(THEMES[n].c, THEMES[n].light ? { on: true, colors: THEMES[n].cLight } : null);
     renderThemeChips();
     autoSave();
 }
@@ -1054,7 +1059,9 @@ function applySpecialTheme(n) {
     if (n === 'auto') applyAutoColor();
     else {
         const ct = customThemes.find(t => t.key === currentTheme);
-        applyColors(THEMES[currentTheme]?.c ?? ct?.c, ct?.light ? { on: true, colors: ct.cLight } : null);
+        const bt = THEMES[currentTheme];
+        const lightSrc = bt?.light ? bt : (ct?.light ? ct : null);
+        applyColors(bt?.c ?? ct?.c, lightSrc ? { on: true, colors: lightSrc.cLight } : null);
     }
     renderSpecialThemeChips();
     renderThemeChips(); // show/hide Add + button

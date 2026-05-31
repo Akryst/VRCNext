@@ -410,7 +410,7 @@ function loadSettingsToUI(s) {
     if (accSlider) { accSlider.value = autoColorAccuracy; document.getElementById('autoAccuracyVal').textContent = autoColorAccuracy + '%'; }
     const accRow = document.getElementById('autoAccuracyRow');
     if (accRow) accRow.style.display = currentSpecialTheme === 'auto' ? 'flex' : 'none';
-    if (THEMES[currentTheme]) applyColors(THEMES[currentTheme].c);
+    if (THEMES[currentTheme]) applyColors(THEMES[currentTheme].c, THEMES[currentTheme].light ? { on: true, colors: THEMES[currentTheme].cLight } : null);
     else if (!currentTheme.startsWith('custom_')) { currentTheme = 'slates'; applyColors(THEMES.slates.c); }
     // custom_ themes are applied later when customColors loads
     renderThemeChips();
