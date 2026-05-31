@@ -23,3 +23,4 @@
 * Fixed an issue where the VR Overlay showed **Request Invite** instead of **Join** when a friend was in a joinable instance.
 * Fixed an issue where the taskbar doesnt had the same darkness effekt as the main container of the app.
 * Fixed an visual issue where the breadcrumb search was always showing white font color instead of theme color.
+* Fixed visual bug where the vignette on dashboard clips through elements

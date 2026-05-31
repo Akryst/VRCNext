@@ -351,7 +351,7 @@ function applyColors(c, light) {
     for (const [k, v] of Object.entries(c)) document.documentElement.style.setProperty('--' + k, v);
     if (c['bg-card']) document.documentElement.style.setProperty('--bg-btn', c['bg-card']);
     if (c['bg-hover']) document.documentElement.style.setProperty('--bg-btn-h', c['bg-hover']);
-    _applyLightInterp();
+    _applyLightBase();
     const logoEl = document.getElementById('logoIcon');
     if (logoEl && logoEl._repaintLogo) logoEl._repaintLogo();
     document.documentElement.dispatchEvent(new Event('themechange'));
@@ -377,53 +377,73 @@ function _lightScrollT() {
     return Math.min((content?.scrollTop || 0) / 140, 1);
 }
 
-function _applyLightInterp() {
+const _LIGHT_SCOPE_IDS = ['tab0', 'taskbar', 'sidebarEl', 'rsidebar'];
+let _lightSig = '';
+
+function _lightEls() {
+    const out = [];
+    for (const id of _LIGHT_SCOPE_IDS) { const el = document.getElementById(id); if (el) out.push(el); }
+    return out;
+}
+
+function _applyLightBase() {
     const rs = document.documentElement.style;
-    const els = ['tab0', 'taskbar', 'sidebarEl', 'rsidebar']
-        .map(id => document.getElementById(id)).filter(Boolean);
-    const clear = () => { for (const el of els) for (const k of _LIGHT_VARS) el.style.removeProperty('--' + k); };
     const drops = document.querySelectorAll('#taskbar .tb-dropdown');
-    const clearDrops = () => { for (const d of drops) for (const k of _LIGHT_VARS) d.style.removeProperty('--' + k); };
-    if (!_activeLightOn) { clear(); clearDrops(); return; }
+    _lightSig = '';
+    if (!_activeLightOn) {
+        for (const el of _lightEls()) for (const k of _LIGHT_VARS) el.style.removeProperty('--' + k);
+        for (const d of drops) for (const k of _LIGHT_VARS) d.style.removeProperty('--' + k);
+        return;
+    }
     for (const k of _LIGHT_VARS) {
         const lite = _activeLightColors[k];
-        if (lite) rs.setProperty('--' + k, lite);
+        if (!lite) continue;
+        rs.setProperty('--' + k, lite);
+        for (const d of drops) d.style.setProperty('--' + k, lite);
     }
+    _applyLightInterp();
+}
+
+function _applyLightInterp() {
+    if (!_activeLightOn) return;
+    const els  = _lightEls();
     const tab0 = document.getElementById('tab0');
     const onDash = tab0 && tab0.classList.contains('active');
-    if (onDash) {
-        const lSide = document.getElementById('sidebarEl');
-        const rSide = document.getElementById('rsidebar');
-        const lCol = !lSide || lSide.classList.contains('collapsed');
-        const rCol = !rSide || rSide.classList.contains('collapsed');
-        const faded = [];
-        if (tab0) faded.push(tab0);
-        if (lSide && lCol) faded.push(lSide);
-        if (rSide && rCol) faded.push(rSide);
-        const tbEl = document.getElementById('taskbar');
-        if (tbEl && lCol && rCol) faded.push(tbEl);
-        clear();
-        const t = _lightScrollT();
-        for (const k of _LIGHT_VARS) {
-            const prim = _activePrimaryColors[k];
-            if (!prim) continue;
-            const lite = _activeLightColors[k] || prim;
-            const val = _lerpHex(prim, lite, t);
-            for (const el of faded) el.style.setProperty('--' + k, val);
-        }
-    } else {
-        clear();
+    if (!onDash) {
+        if (_lightSig === 'off') return;
+        _lightSig = 'off';
+        for (const el of els) for (const k of _LIGHT_VARS) el.style.removeProperty('--' + k);
+        return;
     }
+    const lSide = document.getElementById('sidebarEl');
+    const rSide = document.getElementById('rsidebar');
+    const lCol = !lSide || lSide.classList.contains('collapsed');
+    const rCol = !rSide || rSide.classList.contains('collapsed');
+    const faded = [tab0];
+    if (lSide && lCol) faded.push(lSide);
+    if (rSide && rCol) faded.push(rSide);
+    const tbEl = document.getElementById('taskbar');
+    if (tbEl && lCol && rCol) faded.push(tbEl);
+    const tq  = Math.round(_lightScrollT() * 100);
+    const sig = tq + '|' + faded.map(e => e.id).join(',');
+    if (sig === _lightSig) return;
+    _lightSig = sig;
+    for (const el of els) for (const k of _LIGHT_VARS) el.style.removeProperty('--' + k);
+    const t = tq / 100;
     for (const k of _LIGHT_VARS) {
-        const lite = _activeLightColors[k];
-        if (lite) for (const d of drops) d.style.setProperty('--' + k, lite);
+        const prim = _activePrimaryColors[k];
+        if (!prim) continue;
+        const lite = _activeLightColors[k] || prim;
+        const val = _lerpHex(prim, lite, t);
+        for (const el of faded) el.style.setProperty('--' + k, val);
     }
     const logoEl = document.getElementById('logoIcon');
     if (logoEl && logoEl._repaintLogo) logoEl._repaintLogo();
 }
 
-document.addEventListener('scroll', function () {
-    if (_activeLightOn) _applyLightInterp();
+document.addEventListener('scroll', function (e) {
+    if (_activeLightOn && e.target instanceof Element && e.target.classList.contains('content'))
+        _applyLightInterp();
 }, { passive: true, capture: true });
 document.documentElement.addEventListener('tabchange', function () {
     if (_activeLightOn) _applyLightInterp();
