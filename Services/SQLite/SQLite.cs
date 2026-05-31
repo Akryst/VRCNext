@@ -5,9 +5,6 @@ using System.Diagnostics;
 
 namespace VRCNext.Services;
 
-// Tracks time spent with users and in worlds. Drives World Time, Instance Time, Time Spent Together.
-// TotalSeconds = completed sessions only. Display = TotalSeconds + live delta from session_start_utc.
-// On crash: sessions resume with original timestamps → 0 seconds lost.
 public class UnifiedTimeEngine : IDisposable
 {
 
@@ -31,25 +28,22 @@ public class UnifiedTimeEngine : IDisposable
 
     public Dictionary<string, UserRecord> Users { get; } = new();
     public Dictionary<string, WorldRecord> Worlds { get; } = new();
-
-    // Key = userId, value = session start UTC. Persisted to active_session. Never reset mid-session.
     private readonly Dictionary<string, DateTime> _playerSessions = new();
-    // Set once per world join, null until session ends.
     private DateTime? _worldSessionStart;
     private string _currentWorldId = "";
     private string _currentLocation = "";
 
     private readonly SqliteConnection _db;
     private readonly object _lock = new();
-    private System.Threading.Timer? _watchdogTimer;  // 5s fallback process check
+    private System.Threading.Timer? _watchdogTimer;  
     private Func<bool>? _isVrcRunning;
     private bool _disposed;
-    private bool _vrcWasRunning; // tracks previous VRC state for edge detection
+    private bool _vrcWasRunning; 
     public Action? OnVrcClosed;
-    private Process? _monitoredVrcProcess; // Process.Exited event → near-instant VRC close detection
-    private DateTime _lastVrcAliveUtc; // last time we confirmed VRC was running → precise end timestamp
-    private DateTime _lastFlushUtc = DateTime.MinValue; // last 30s flush timestamp
-    private Action<string>? _logger; // log callback → sends to UI log panel
+    private Process? _monitoredVrcProcess; 
+    private DateTime _lastVrcAliveUtc; 
+    private DateTime _lastFlushUtc = DateTime.MinValue; 
+    private Action<string>? _logger; 
 
     private static readonly string UserLegacyPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -78,8 +72,6 @@ public class UnifiedTimeEngine : IDisposable
     }
 
     // Core event methods
-
-    /// <summary>User joined a new world/instance. Ends all prior sessions, starts fresh world session.</summary>
     public void OnWorldJoined(string worldId, string location)
     {
         lock (_lock)
@@ -110,7 +102,6 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
-    /// <summary>Resume world tracking after VRCNext restart. Session start set by RestoreActiveSession.</summary>
     public void OnWorldResumed(string worldId, string location)
     {
         lock (_lock)
@@ -123,7 +114,6 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
-    /// <summary>A player joined the current instance. Starts their time session using the LogWatcher timestamp.</summary>
     public void OnPlayerJoined(string userId, DateTime joinedAtUtc)
     {
         lock (_lock)
@@ -136,7 +126,6 @@ public class UnifiedTimeEngine : IDisposable
         }
     }
 
-    /// <summary>A player left the current instance. Ends their session, adds delta to TotalSeconds.</summary>
     public void OnPlayerLeft(string userId)
     {
         lock (_lock)
@@ -164,8 +153,6 @@ public class UnifiedTimeEngine : IDisposable
 
 
     // Query methods
-
-    /// <summary>Returns total + live time spent with a user.</summary>
     public (long totalSeconds, string lastSeen) GetUserStats(string userId, bool isCoPresent = false)
     {
         lock (_lock)
@@ -186,8 +173,6 @@ public class UnifiedTimeEngine : IDisposable
             return (total, rec.LastSeen);
         }
     }
-
-    /// <summary>Returns total + live time spent in a world.</summary>
     public (long totalSeconds, int visitCount, string lastVisited) GetWorldStats(string worldId)
     {
         lock (_lock)
@@ -210,7 +195,6 @@ public class UnifiedTimeEngine : IDisposable
     }
 
     // World detail cache
-
     public class WorldDetailCache
     {
         public string WorldName             { get; set; } = "";

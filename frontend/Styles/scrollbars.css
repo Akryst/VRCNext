@@ -7,3 +7,6 @@
 .vrcn-scrollbar ::-webkit-scrollbar-track { background: transparent; }
 .vrcn-scrollbar ::-webkit-scrollbar-thumb { background: var(--brd); border-radius: 3px; }
 .vrcn-scrollbar ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+.content { scrollbar-width: none; }
+.content::-webkit-scrollbar { display: none; }

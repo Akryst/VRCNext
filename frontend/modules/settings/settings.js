@@ -195,6 +195,8 @@ function saveSettings() {
             vroKeybindDtHand:  vroDtHand      ?? 0,
             vroKeybindMode:    vroKeybindMode ?? 0,
             vroControlRadius:  parseInt(document.getElementById('vroControlRadius')?.value) || 28,
+            vroDynVis:         !!document.getElementById('vroDynVis')?.checked,
+            vroFocusRadius:    parseInt(document.getElementById('vroFocusRadius')?.value) || 35,
             vroToastEnabled:    !!document.getElementById('vroToastEnabled')?.checked,
             vroToastFavOnly:    !!document.getElementById('vroToastFavOnly')?.checked,
             vroToastSize:       parseInt(document.getElementById('vroToastSize')?.value) || 50,
@@ -408,7 +410,7 @@ function loadSettingsToUI(s) {
     if (accSlider) { accSlider.value = autoColorAccuracy; document.getElementById('autoAccuracyVal').textContent = autoColorAccuracy + '%'; }
     const accRow = document.getElementById('autoAccuracyRow');
     if (accRow) accRow.style.display = currentSpecialTheme === 'auto' ? 'flex' : 'none';
-    if (THEMES[currentTheme]) applyColors(THEMES[currentTheme].c);
+    if (THEMES[currentTheme]) applyColors(THEMES[currentTheme].c, THEMES[currentTheme].light ? { on: true, colors: THEMES[currentTheme].cLight } : null);
     else if (!currentTheme.startsWith('custom_')) { currentTheme = 'slates'; applyColors(THEMES.slates.c); }
     // custom_ themes are applied later when customColors loads
     renderThemeChips();
@@ -542,6 +544,8 @@ function loadSettingsToUI(s) {
         vroKeybindDtHand: s.VroKeybindDtHand ?? s.vroKeybindDtHand ?? 0,
         vroKeybindMode:    s.VroKeybindMode   ?? s.vroKeybindMode   ?? 0,
         vroControlRadius:  s.VroControlRadius ?? s.vroControlRadius ?? 16,
+        vroDynVis:         s.VroDynVis       ?? s.vroDynVis       ?? false,
+        vroFocusRadius:    s.VroFocusRadius  ?? s.vroFocusRadius  ?? 35,
         vroToastEnabled:    s.VroToastEnabled    ?? s.vroToastEnabled    ?? true,
         vroToastFavOnly:    s.VroToastFavOnly    ?? s.vroToastFavOnly    ?? false,
         vroToastSize:       s.VroToastSize       ?? s.vroToastSize       ?? 50,

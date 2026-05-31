@@ -128,6 +128,19 @@
                         <div id="vroRecordHint" style="margin-top:6px;font-size:11px;color:var(--tx3);"></div>
                     </div>
 
+                    <!-- Overlay Visibility -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">blur_on</span> <span data-i18n="vro.visibility.title">Overlay Visibility</span></div>
+                        <div class="sf-toggle-row"><span data-i18n="vro.visibility.enable">Enable Dynamic Visibility</span><label class="toggle"><input type="checkbox" id="vroDynVis" onchange="vroAutoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="set-desc" style="margin-bottom:10px;" data-i18n="vro.visibility.desc">When enabled, the overlay fades out while it is away from your headset and becomes fully visible and clickable once you move it close to your face. While faded it stays slightly visible but cannot be clicked, so you can keep it open all the time without accidental clicks.</div>
+                        <div class="sf-section-label" data-i18n="vro.visibility.focus_radius">Focus Radius</div>
+                        <div class="vro-axis-row">
+                            <span class="vro-axis-lbl" style="width:24px;color:var(--tx2);">R</span>
+                            <input type="range" id="vroFocusRadius" min="20" max="60" step="1" value="35" class="vro-slider" oninput="vroUpdateFocusRadius()">
+                            <span class="vro-axis-val" id="vroFocusRadiusVal">35 cm</span>
+                        </div>
+                    </div>
+
                     <!-- Transform -->
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">open_with</span> <span data-i18n="vro.transform.title">Transform</span></div>

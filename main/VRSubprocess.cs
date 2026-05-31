@@ -158,7 +158,8 @@ static class VRSubprocess
                     F(cmd, "rx", -80f), F(cmd, "ry"), F(cmd, "rz"),
                     F(cmd, "width", 0.22f),
                     UList(cmd, "keybind"), I(cmd, "keybindHand"), I(cmd, "keybindMode"),
-                    UList(cmd, "keybindDt"), I(cmd, "keybindDtHand"), F(cmd, "controlRadius", 28f));
+                    UList(cmd, "keybindDt"), I(cmd, "keybindDtHand"), F(cmd, "controlRadius", 28f),
+                    B(cmd, "dynVis", false), F(cmd, "focusRadius", 35f));
                 break;
 
             case "vro_toast_config":
@@ -250,6 +251,10 @@ static class VRSubprocess
                 }
                 break;
             }
+
+            case "vro_set_self":
+                vro.SetSelfUser(S(cmd, "userId"), S(cmd, "imageUrl"), S(cmd, "status"));
+                break;
 
             case "vro_update_media":
                 vro.UpdateMediaInfo(S(cmd, "title"), S(cmd, "artist"),

@@ -2217,6 +2217,20 @@ public class TimelineService : IDisposable
         }
     }
 
+    public int GetTodaysVisits(string worldId)
+    {
+        lock (_lock)
+        {
+            var dayStart = DateTime.UtcNow.ToString("yyyy-MM-dd'T'00:00:00Z");
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT visits FROM world_stats WHERE world_id = @wid AND timestamp >= @day AND visits > 0 ORDER BY timestamp DESC LIMIT 1";
+            cmd.Parameters.AddWithValue("@wid", worldId);
+            cmd.Parameters.AddWithValue("@day", dayStart);
+            var result = cmd.ExecuteScalar();
+            return result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
+        }
+    }
+
     public List<WorldStatPoint> GetWorldStats(string worldId, string fromIso, string toIso)
     {
         lock (_lock)

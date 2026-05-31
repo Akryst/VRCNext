@@ -15,10 +15,12 @@ function toggleSidebar() {
         setTimeout(() => {
             sidebar.classList.remove('collapsing');
             sidebar.classList.add('collapsed');
+            if (typeof _applyLightInterp === 'function') _applyLightInterp();
         }, 230);
     } else {
         sidebar.classList.remove('collapsed');
     }
+    if (typeof _applyLightInterp === 'function') _applyLightInterp();
 }
 
 function navRender() {

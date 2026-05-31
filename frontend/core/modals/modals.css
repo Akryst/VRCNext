@@ -2,7 +2,7 @@
 
 .modal-overlay {
     position: fixed;
-    top: var(--tb-h);
+    top: 0;
     left: 0;
     right: 0;
     bottom: 0;
@@ -12,7 +12,7 @@
     backdrop-filter: blur(4px);
     will-change: opacity;
     overflow-y: auto;
-    padding: calc(20px / var(--gui-zoom, 1)) 0;
+    padding: calc(var(--tb-h) + 20px / var(--gui-zoom, 1)) 0 calc(20px / var(--gui-zoom, 1));
 }
 
 #modalFriendDetail { z-index: 10001; }
@@ -103,7 +103,7 @@
 #modalNavBackdrop {
     display: none;
     position: fixed;
-    top: var(--tb-h);
+    top: 0;
     left: 0;
     right: 0;
     bottom: 0;

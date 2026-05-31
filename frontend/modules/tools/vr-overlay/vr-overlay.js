@@ -37,6 +37,10 @@ function vroRadiusLabelText(value) {
     return tf('vro.transform.radius_value', { value }, `${value} cm`);
 }
 
+function vroFocusRadiusLabelText(value) {
+    return tf('vro.visibility.radius_value', { value }, `${value} cm`);
+}
+
 // Helpers to get/set active slot.
 
 function vroActiveIds()  { return vroKeybindMode === 0 ? vroComboIds  : vroDtIds;  }
@@ -79,7 +83,7 @@ function handleVroState(d) {
         else {
             const t = (typeof THEMES !== 'undefined' && THEMES[currentTheme])
                    || (typeof customThemes !== 'undefined' && customThemes.find(x => x.key === currentTheme));
-            if (t) applyColors(t.c);
+            if (t) applyColors(t.c, t.light ? { on: true, colors: t.cLight } : null);
         }
     } else {
         dot?.classList.replace('online', 'offline');
@@ -138,11 +142,8 @@ function vroConnect() {
     if (vroConnected) {
         sendToCS({ action: 'vroDisconnect' });
     } else {
-        // Resolve the current theme colors and send them with the connect
-        // message so C# can seed the overlay immediately — no round-trip needed.
         let colors = null;
         if (currentSpecialTheme === 'auto') {
-            // Grab whatever CSS vars are currently active (auto color already applied)
             const s = getComputedStyle(document.documentElement);
             const keys = ['bg-card','bg-hover','accent','ok','warn','err','cyan','tx1','tx2','tx3','brd'];
             colors = {};
@@ -153,7 +154,10 @@ function vroConnect() {
         } else {
             const t = (typeof THEMES !== 'undefined' && THEMES[currentTheme])
                    || (typeof customThemes !== 'undefined' && customThemes.find(x => x.key === currentTheme));
-            if (t) colors = t.c;
+            if (t) {
+                colors = { ...t.c };
+                if (t.light && t.cLight) for (const k in t.cLight) colors[k] = t.cLight[k];
+            }
         }
         sendToCS({ action: 'vroConnect', themeColors: colors || null });
         vroSendConfig();
@@ -189,6 +193,8 @@ function vroSendConfig() {
         keybindDtHand:  vroDtHand,
         keybindMode:    vroKeybindMode,
         controlRadius:  parseFloat(document.getElementById('vroControlRadius')?.value) || 28,
+        dynVis:         !!document.getElementById('vroDynVis')?.checked,
+        focusRadius:    parseInt(document.getElementById('vroFocusRadius')?.value) || 35,
     });
 }
 
@@ -657,6 +663,13 @@ function vroUpdateControlRadius() {
     vroAutoSave();
 }
 
+function vroUpdateFocusRadius() {
+    const input = document.getElementById('vroFocusRadius');
+    const label = document.getElementById('vroFocusRadiusVal');
+    if (input && label) label.textContent = vroFocusRadiusLabelText(input.value);
+    vroAutoSave();
+}
+
 function vroResetTransform() {
     const defaults = {
         vroPosX: -0.10,
@@ -712,6 +725,15 @@ function vroLoadSettings(s) {
     const radiusValue = s.vroControlRadius ?? 28;
     if (radiusInput) radiusInput.value = radiusValue;
     if (radiusLabel) radiusLabel.textContent = vroRadiusLabelText(radiusValue);
+
+    const dynVisEl = document.getElementById('vroDynVis');
+    if (dynVisEl) dynVisEl.checked = !!(s.vroDynVis ?? false);
+
+    const focusInput = document.getElementById('vroFocusRadius');
+    const focusLabel = document.getElementById('vroFocusRadiusVal');
+    const focusValue = s.vroFocusRadius ?? 35;
+    if (focusInput) focusInput.value = focusValue;
+    if (focusLabel) focusLabel.textContent = vroFocusRadiusLabelText(focusValue);
 
     updateModePill();
     updateKeybindDisplay();
@@ -825,6 +847,10 @@ function rerenderVroTranslations() {
     const radiusInput = document.getElementById('vroControlRadius');
     const radiusLabel = document.getElementById('vroControlRadiusVal');
     if (radiusInput && radiusLabel) radiusLabel.textContent = vroRadiusLabelText(radiusInput.value);
+
+    const focusInput = document.getElementById('vroFocusRadius');
+    const focusLabel = document.getElementById('vroFocusRadiusVal');
+    if (focusInput && focusLabel) focusLabel.textContent = vroFocusRadiusLabelText(focusInput.value);
 
     updateKeybindDisplay();
     updateRecordingUI();

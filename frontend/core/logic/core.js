@@ -336,19 +336,125 @@ const THEMES = {
     halloween: { label: 'Halloween', dot: '#DF462A', c: { 'bg-base': '#0B091A', 'bg-side': '#0B091A', 'bg-card': '#110F26', 'bg-hover': '#1B1936', 'bg-input': '#0D0B1E', 'accent': '#DF462A', 'accent-lt': '#E17D6B', 'cyan': '#DCA956', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#F0EFF5', 'tx1': '#F0EFF5', 'tx2': '#F0EFF5', 'tx3': '#F0EFF5', 'brd': '#1E1B3C', 'brd-lt': '#2B284D' } },
     miku:      { label: 'Miku',      dot: '#66B4D2', c: { 'bg-base': '#080D14', 'bg-side': '#080D14', 'bg-card': '#080D14', 'bg-hover': '#66B4D2', 'bg-input': '#0B111A', 'accent': '#66B4D2', 'accent-lt': '#66B4D2', 'cyan': '#66B4D2', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#13223F', 'brd-lt': '#13223F' } },
     vrchat:    { label: 'VRChat',    dot: '#0B748E', c: { 'bg-base': '#0E1013', 'bg-side': '#0E1013', 'bg-card': '#181B1F', 'bg-hover': '#042E39', 'bg-input': '#1C2126', 'accent': '#0B748E', 'accent-lt': '#53C0D5', 'cyan': '#53C0D5', 'ok': '#18A86A', 'warn': '#D4860A', 'err': '#D93040', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#042E39', 'brd-lt': '#BEC8DA' } },
+    vrcx:        { label: 'VRCX',         dot: '#4C4C66', c: { 'bg-base': '#0A0A0A', 'bg-side': '#0A0A0A', 'bg-card': '#0F0F0F', 'bg-hover': '#1C1C1F', 'bg-input': '#141414', 'accent': '#4C4C66', 'accent-lt': '#9797B1', 'cyan': '#8CA5FF', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#EBEBFF', 'tx1': '#EBEBFF', 'tx2': '#B7B7C3', 'tx3': '#FFFFFF', 'brd': '#1C1C1F', 'brd-lt': '#1C1C1F' } },
+    flipperzero: { label: 'Flipper Zero', dot: '#FF896F', c: { 'bg-base': '#000000', 'bg-side': '#EEF1FF', 'bg-card': '#E7EAF8', 'bg-hover': '#FDB9AA', 'bg-input': '#DCE1F1', 'accent': '#FF896F', 'accent-lt': '#FF896F', 'cyan': '#FF896F', 'ok': '#2BFF00', 'warn': '#FF7455', 'err': '#FF2E00', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#D3D6E6', 'brd-lt': '#D3D6E6' }, light: true, cLight: { 'bg-base': '#EEF1FF', 'tx0': '#000000', 'tx1': '#494949', 'tx2': '#494949', 'tx3': '#494949', 'accent': '#FF896F' } },
+    rose:        { label: 'Rose',         dot: '#BB8BB2', c: { 'bg-base': '#000000', 'bg-side': '#DFCED4', 'bg-card': '#DFCED4', 'bg-hover': '#FFC3DA', 'bg-input': '#FFDAE7', 'accent': '#BB8BB2', 'accent-lt': '#BB8BB2', 'cyan': '#FFC3F4', 'ok': '#2BFF00', 'warn': '#FFC3F4', 'err': '#FF2E00', 'tx0': '#FFFFFF', 'tx1': '#FFF9F9', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#D5C4CA', 'brd-lt': '#D5C4CA' }, light: true, cLight: { 'bg-base': '#DFCED4', 'tx0': '#000000', 'tx1': '#494949', 'tx2': '#494949', 'tx3': '#494949', 'accent': '#BB8BB2' } },
+    unicorn:     { label: 'Unicorn',      dot: '#E1C5F3', c: { 'bg-base': '#000000', 'bg-side': '#E9DEFF', 'bg-card': '#E3D6FD', 'bg-hover': '#E2B9FF', 'bg-input': '#EDD2FF', 'accent': '#E1C5F3', 'accent-lt': '#AC88C2', 'cyan': '#EDD2FF', 'ok': '#2BFF00', 'warn': '#FF7455', 'err': '#FF2E00', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#E1C7F1', 'brd-lt': '#E1C7F1' }, light: true, cLight: { 'bg-base': '#E9DEFF', 'tx0': '#000000', 'tx1': '#494949', 'tx2': '#494949', 'tx3': '#494949', 'accent': '#AC88C2' } },
+    baby:        { label: 'Baby',         dot: '#ACBCFF', c: { 'bg-base': '#000000', 'bg-side': '#E8ECFF', 'bg-card': '#E1E5F8', 'bg-hover': '#B9C6FF', 'bg-input': '#D1D8F5', 'accent': '#ACBCFF', 'accent-lt': '#ACBCFF', 'cyan': '#ACBCFF', 'ok': '#2BFF00', 'warn': '#FF7455', 'err': '#FF2E00', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#C8CFEE', 'brd-lt': '#C8CFEE' }, light: true, cLight: { 'bg-base': '#E8ECFF', 'tx0': '#000000', 'tx1': '#494949', 'tx2': '#494949', 'tx3': '#494949', 'accent': '#ACBCFF' } },
 };
 
-function applyColors(c) {
+const _LIGHT_VARS = ['bg-base', 'tx0', 'tx1', 'tx2', 'tx3', 'accent'];
+let _activeLightOn = false;
+let _activeLightColors = {};
+let _activePrimaryColors = {};
+
+function applyColors(c, light) {
     if (!c) return;
+    _activePrimaryColors = { ...c };
+    _activeLightOn = !!(light && light.on);
+    _activeLightColors = (light && light.colors) ? { ...light.colors } : {};
     for (const [k, v] of Object.entries(c)) document.documentElement.style.setProperty('--' + k, v);
     if (c['bg-card']) document.documentElement.style.setProperty('--bg-btn', c['bg-card']);
     if (c['bg-hover']) document.documentElement.style.setProperty('--bg-btn-h', c['bg-hover']);
+    _applyLightBase();
     const logoEl = document.getElementById('logoIcon');
     if (logoEl && logoEl._repaintLogo) logoEl._repaintLogo();
     document.documentElement.dispatchEvent(new Event('themechange'));
-    // Forward resolved colors to C# so the VR overlay stays in sync (including auto color)
-    try { sendToCS({ action: 'overlayThemeColors', colors: c }); } catch {}
+
+    let overlayColors = c;
+    if (_activeLightOn) {
+        overlayColors = { ...c };
+        for (const k of _LIGHT_VARS) if (_activeLightColors[k]) overlayColors[k] = _activeLightColors[k];
+    }
+    try { sendToCS({ action: 'overlayThemeColors', colors: overlayColors }); } catch {}
 }
+
+function _lerpHex(a, b, t) {
+    const pa = [parseInt(a.slice(1, 3), 16), parseInt(a.slice(3, 5), 16), parseInt(a.slice(5, 7), 16)];
+    const pb = [parseInt(b.slice(1, 3), 16), parseInt(b.slice(3, 5), 16), parseInt(b.slice(5, 7), 16)];
+    return '#' + pa.map((x, i) => Math.round(x + (pb[i] - x) * t).toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+function _lightScrollT() {
+    const tab0 = document.getElementById('tab0');
+    if (!tab0 || !tab0.classList.contains('active')) return 1;
+    const content = document.querySelector('.content');
+    return Math.min((content?.scrollTop || 0) / 140, 1);
+}
+
+const _LIGHT_SCOPE_IDS = ['tab0', 'taskbar', 'sidebarEl', 'rsidebar'];
+let _lightSig = '';
+
+function _lightEls() {
+    const out = [];
+    for (const id of _LIGHT_SCOPE_IDS) { const el = document.getElementById(id); if (el) out.push(el); }
+    return out;
+}
+
+function _applyLightBase() {
+    const rs = document.documentElement.style;
+    const drops = document.querySelectorAll('#taskbar .tb-dropdown');
+    _lightSig = '';
+    if (!_activeLightOn) {
+        for (const el of _lightEls()) for (const k of _LIGHT_VARS) el.style.removeProperty('--' + k);
+        for (const d of drops) for (const k of _LIGHT_VARS) d.style.removeProperty('--' + k);
+        return;
+    }
+    for (const k of _LIGHT_VARS) {
+        const lite = _activeLightColors[k];
+        if (!lite) continue;
+        rs.setProperty('--' + k, lite);
+        for (const d of drops) d.style.setProperty('--' + k, lite);
+    }
+    _applyLightInterp();
+}
+
+function _applyLightInterp() {
+    if (!_activeLightOn) return;
+    const els  = _lightEls();
+    const tab0 = document.getElementById('tab0');
+    const onDash = tab0 && tab0.classList.contains('active');
+    if (!onDash) {
+        if (_lightSig === 'off') return;
+        _lightSig = 'off';
+        for (const el of els) for (const k of _LIGHT_VARS) el.style.removeProperty('--' + k);
+        return;
+    }
+    const lSide = document.getElementById('sidebarEl');
+    const rSide = document.getElementById('rsidebar');
+    const lCol = !lSide || lSide.classList.contains('collapsed');
+    const rCol = !rSide || rSide.classList.contains('collapsed');
+    const faded = [tab0];
+    if (lSide && lCol) faded.push(lSide);
+    if (rSide && rCol) faded.push(rSide);
+    const tbEl = document.getElementById('taskbar');
+    if (tbEl && lCol && rCol) faded.push(tbEl);
+    const tq  = Math.round(_lightScrollT() * 40);
+    const sig = tq + '|' + faded.map(e => e.id).join(',');
+    if (sig === _lightSig) return;
+    _lightSig = sig;
+    for (const el of els) for (const k of _LIGHT_VARS) el.style.removeProperty('--' + k);
+    const t = tq / 40;
+    for (const k of _LIGHT_VARS) {
+        const prim = _activePrimaryColors[k];
+        if (!prim) continue;
+        const lite = _activeLightColors[k] || prim;
+        const val = _lerpHex(prim, lite, t);
+        for (const el of faded) el.style.setProperty('--' + k, val);
+    }
+    const logoEl = document.getElementById('logoIcon');
+    if (logoEl && logoEl._repaintLogo) logoEl._repaintLogo();
+}
+
+let _lightRaf = 0;
+document.addEventListener('scroll', function (e) {
+    if (!_activeLightOn || !(e.target instanceof Element) || !e.target.classList.contains('content')) return;
+    if (_lightRaf) return;
+    _lightRaf = requestAnimationFrame(function () { _lightRaf = 0; _applyLightInterp(); });
+}, { passive: true, capture: true });
+document.documentElement.addEventListener('tabchange', function () {
+    if (_activeLightOn) _applyLightInterp();
+});
 
 // Theme Editor.
 
@@ -362,6 +468,21 @@ const _TE_VARS = [
 ];
 
 let _teColors = {}, _teOrigColors = {}, _teSaved = false;
+let _teLightOn = false, _teLightColors = {}, _teOrigLightOn = false, _teOrigLightColors = {};
+
+function _teGetColor(v) {
+    return (v.indexOf('lt:') === 0) ? _teLightColors[v.slice(3)] : _teColors[v];
+}
+
+function _teApply() {
+    applyColors(_teColors, _teLightOn ? { on: true, colors: _teLightColors } : null);
+}
+
+function teToggleLight(on) {
+    _teLightOn = on;
+    _teRenderRows();
+    _teApply();
+}
 
 function _teCssToHex(raw) {
     const s = (raw || '').trim();
@@ -376,9 +497,14 @@ function openThemeEditor() {
     const style = getComputedStyle(document.documentElement);
     _teColors = {}; _teOrigColors = {};
     for (const [v] of _TE_VARS) {
-        const hex = _teCssToHex(style.getPropertyValue('--' + v));
+        const hex = _activePrimaryColors[v] ? _teCssToHex(_activePrimaryColors[v]) : _teCssToHex(style.getPropertyValue('--' + v));
         _teColors[v] = _teOrigColors[v] = hex;
     }
+    _teLightOn = _activeLightOn;
+    _teLightColors = {};
+    for (const k of _LIGHT_VARS) _teLightColors[k] = _activeLightColors[k] || _teColors[k];
+    _teOrigLightOn = _activeLightOn;
+    _teOrigLightColors = { ..._teLightColors };
     _teRenderRows();
     const panel = document.getElementById('themeEditorPanel');
     if (panel) panel.style.display = 'flex';
@@ -389,19 +515,37 @@ function openThemeEditor() {
 function closeThemeEditor() {
     _tePickerClose();
     document.getElementById('themeEditorPanel').style.display = 'none';
-    if (!_teSaved) applyColors(_teOrigColors);
+    if (!_teSaved) applyColors(_teOrigColors, _teOrigLightOn ? { on: true, colors: _teOrigLightColors } : null);
 }
 
 function _teRenderRows() {
     const container = document.getElementById('teColorRows');
     if (!container) return;
     container.innerHTML = '';
+
+    const toggleRow = document.createElement('div');
+    toggleRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px;';
+    toggleRow.innerHTML =
+        `<span style="font-size:11px;color:var(--tx2);flex:1;">Light Theme</span>` +
+        `<label class="toggle"><input type="checkbox" id="teLightToggle" ${_teLightOn ? 'checked' : ''}>` +
+        `<div class="toggle-track"><div class="toggle-knob"></div></div></label>`;
+    toggleRow.querySelector('#teLightToggle').addEventListener('change', function () {
+        teToggleLight(this.checked);
+    });
+    container.appendChild(toggleRow);
+
     for (const [v, label] of _TE_VARS) {
         const hex = _teColors[v];
+        const showLight = _teLightOn && _LIGHT_VARS.includes(v);
+        const lightHex = _teLightColors[v] || hex;
         const row = document.createElement('div');
         row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:5px;';
+        const lightSwatch = showLight
+            ? `<div id="teSwatch_lt:${v}" data-var="lt:${v}" title="Light color (top of dashboard)" style="width:22px;height:22px;flex-shrink:0;border-radius:5px;border:1px solid var(--brd);background:${lightHex};cursor:pointer;"></div>`
+            : '';
         row.innerHTML =
             `<span style="font-size:11px;color:var(--tx2);width:84px;flex-shrink:0;">${label}</span>` +
+            lightSwatch +
             `<div id="teSwatch_${v}" data-var="${v}" style="width:22px;height:22px;flex-shrink:0;border-radius:5px;border:1px solid var(--brd);background:${hex};cursor:pointer;"></div>` +
             `<input type="text" class="vrcn-input" id="teHex_${v}" value="${hex}" maxlength="7"` +
                 ` style="flex:1;font-size:11px;font-family:'Google Sans Mono',monospace;"` +
@@ -410,18 +554,25 @@ function _teRenderRows() {
             e.stopPropagation();
             _tePickerOpen(v, this);
         });
+        if (showLight) {
+            row.querySelector(`[data-var="lt:${v}"]`).addEventListener('click', function(e) {
+                e.stopPropagation();
+                _tePickerOpen('lt:' + v, this);
+            });
+        }
         container.appendChild(row);
     }
 }
 
 function _teApplyColor(v, hex) {
     hex = hex.toUpperCase();
-    _teColors[v] = hex;
+    if (v.indexOf('lt:') === 0) _teLightColors[v.slice(3)] = hex;
+    else _teColors[v] = hex;
     const swatch = document.getElementById('teSwatch_' + v);
     const hexEl  = document.getElementById('teHex_' + v);
     if (swatch) swatch.style.background = hex;
     if (hexEl)  hexEl.value = hex;
-    applyColors(_teColors);
+    _teApply();
 }
 
 function teSetColorFromHex(v, raw) {
@@ -434,7 +585,13 @@ function teSetColorFromHex(v, raw) {
 function teSaveTheme() {
     const name = (document.getElementById('teThemeName')?.value.trim()) || 'My Theme';
     const key = 'custom_' + Date.now();
-    customThemes.push({ key, label: name, dot: _teColors['accent'] || '#888888', c: { ..._teColors } });
+    const theme = { key, label: name, dot: _teColors['accent'] || '#888888', c: { ..._teColors } };
+    if (_teLightOn) {
+        theme.light = true;
+        theme.cLight = {};
+        for (const k of _LIGHT_VARS) theme.cLight[k] = _teLightColors[k] || _teColors[k];
+    }
+    customThemes.push(theme);
     saveCustomColors();
     selectCustomTheme(key);
     renderThemeChips();
@@ -500,7 +657,7 @@ function _tePickerOpen(varName, anchorEl) {
     if (_tePickerState.varName === varName && document.getElementById('teColorPicker').style.display !== 'none') {
         _tePickerClose(); return;
     }
-    const hex = _teColors[varName] || '#888888';
+    const hex = _teGetColor(varName) || '#888888';
     const hsv = _teHexToHsv(hex);
     Object.assign(_tePickerState, { varName, h: hsv.h, s: hsv.s, v: hsv.v });
 
@@ -691,7 +848,7 @@ function renderThemeChips() {
 function selectTheme(n) {
     currentTheme = n;
     if (currentSpecialTheme === 'auto') applyAutoColor();
-    else applyColors(THEMES[n].c);
+    else applyColors(THEMES[n].c, THEMES[n].light ? { on: true, colors: THEMES[n].cLight } : null);
     renderThemeChips();
     autoSave();
 }
@@ -701,7 +858,7 @@ function selectCustomTheme(key) {
     if (!t) return;
     currentTheme = key;
     currentSpecialTheme = '';
-    applyColors(t.c);
+    applyColors(t.c, t.light ? { on: true, colors: t.cLight } : null);
     renderThemeChips();
     renderSpecialThemeChips();
     const row = document.getElementById('autoAccuracyRow');
@@ -766,7 +923,7 @@ function loadCustomThemes(data) {
     // If the saved currentTheme is a custom key, apply it now that we have the data
     if (currentTheme && currentTheme.startsWith('custom_')) {
         const t = customThemes.find(x => x.key === currentTheme);
-        if (t) applyColors(t.c);
+        if (t) applyColors(t.c, t.light ? { on: true, colors: t.cLight } : null);
         else { currentTheme = 'midnight'; applyColors(THEMES.midnight.c); renderThemeChips(); }
     }
 }
@@ -900,7 +1057,12 @@ function renderSpecialThemeChips() {
 function applySpecialTheme(n) {
     currentSpecialTheme = n;
     if (n === 'auto') applyAutoColor();
-    else applyColors(THEMES[currentTheme]?.c ?? customThemes.find(t => t.key === currentTheme)?.c);
+    else {
+        const ct = customThemes.find(t => t.key === currentTheme);
+        const bt = THEMES[currentTheme];
+        const lightSrc = bt?.light ? bt : (ct?.light ? ct : null);
+        applyColors(bt?.c ?? ct?.c, lightSrc ? { on: true, colors: lightSrc.cLight } : null);
+    }
     renderSpecialThemeChips();
     renderThemeChips(); // show/hide Add + button
     const row = document.getElementById('autoAccuracyRow');
@@ -1130,14 +1292,14 @@ function _unloadTabImages(tabEl) {
     let count = 0;
     tabEl.querySelectorAll('img').forEach(img => {
         const s = img.src;
-        if (!s || s === _LAZY_PH || img.dataset.lazySrc) return;
+        if (!s || s === _LAZY_PH || img.dataset.lazySrc || img.classList.contains('lazy-keep')) return;
         img.dataset.lazySrc = s;
         img.src = _LAZY_PH;
         count++;
     });
     tabEl.querySelectorAll('[style*="background-image"]').forEach(el => {
         const bg = el.style.backgroundImage;
-        if (!bg || bg === 'none' || el.dataset.lazyBg) return;
+        if (!bg || bg === 'none' || el.dataset.lazyBg || el.classList.contains('lazy-keep')) return;
         el.dataset.lazyBg = bg;
         el.style.backgroundImage = `url('${_LAZY_PH}')`;
         count++;

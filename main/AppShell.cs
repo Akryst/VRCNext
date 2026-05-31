@@ -482,7 +482,9 @@ public partial class AppShell
                 if (string.IsNullOrEmpty(id)) continue;
                 var active    = w["occupants"]?.Value<int>() ?? 0;
                 var favorites = w["favorites"]?.Value<int>() ?? 0;
-                var visits    = w["visits"]?.Value<int>() ?? 0;
+                var visits    = _core.Timeline.GetTodaysVisits(id);
+                if (visits <= 0)
+                    visits = (await _core.World.GetWorldFreshAsync(id))?["visits"]?.Value<int>() ?? 0;
                 _core.Timeline.InsertWorldStats(id, active, favorites, visits);
             }
         }
@@ -603,6 +605,8 @@ public partial class AppShell
     private void UpdateTrayUser(string name, string status, string statusDesc, string imageUrl)
     {
         _trayService?.UpdateUserInfo(name, status, statusDesc, imageUrl);
+        var id = _core.VrcApi.CurrentUserRaw?["id"]?.ToString() ?? "";
+        _core.VrOverlay?.SetSelfUser(id, ImageCacheHelper.GetUserUrl(id, imageUrl), status);
     }
 #endif
 

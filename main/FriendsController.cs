@@ -1495,6 +1495,15 @@ public class FriendsController
             .ToList();
 
         overlay.SetOnlineFriends(entries);
+
+        var selfRaw = _core.VrcApi.CurrentUserRaw;
+        if (selfRaw != null)
+        {
+            var selfId     = selfRaw["id"]?.ToString() ?? "";
+            var selfImg    = ImageCacheHelper.GetUserUrl(selfId, VRChatApiService.GetUserImage(selfRaw));
+            var selfStatus = selfRaw["status"]?.ToString() ?? "offline";
+            overlay.SetSelfUser(selfId, selfImg, selfStatus);
+        }
     }
 #endif
 

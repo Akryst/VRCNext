@@ -413,6 +413,8 @@ public class AppSettings
     public List<uint> VroKeybindDt     { get; set; } = new();
     public int        VroKeybindDtHand { get; set; } = 0; // 0=any, 1=left, 2=right for doubletap slot
     public int        VroControlRadius { get; set; } = 16; // cm, 3–28; 16 = default
+    public bool       VroDynVis        { get; set; } = false;
+    public int        VroFocusRadius   { get; set; } = 35; // cm, 20–60; 35 = default
 
     // VR Toast Notifications (HMD-attached)
     public bool       VroToastEnabled      { get; set; } = true;

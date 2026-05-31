@@ -254,9 +254,11 @@ public sealed class VRSubprocessHost : IDisposable
     public void VroConfig(bool attachLeft, bool attachHand,
         float px, float py, float pz, float rx, float ry, float rz, float width,
         List<uint> keybind, int keybindHand, int keybindMode,
-        List<uint> keybindDt, int keybindDtHand, float controlRadius)
+        List<uint> keybindDt, int keybindDtHand, float controlRadius,
+        bool dynVis, float focusRadius)
         => Send("vro_config", new { attachLeft, attachHand, px, py, pz, rx, ry, rz, width,
-            keybind, keybindHand, keybindMode, keybindDt, keybindDtHand, controlRadius });
+            keybind, keybindHand, keybindMode, keybindDt, keybindDtHand, controlRadius,
+            dynVis, focusRadius });
 
     public void VroApplyToastConfig(bool enabled, bool favOnly, int size, float offX, float offY,
         bool online, bool offline, bool gps, bool status, bool statusDesc, bool bio,
@@ -317,6 +319,9 @@ public sealed class VRSubprocessHost : IDisposable
         }).ToList();
         Send("vro_set_online_friends", new { entries = list });
     }
+
+    public void SetSelfUser(string userId, string imageUrl, string status)
+        => Send("vro_set_self", new { userId, imageUrl, status });
 
     public void UpdateMediaInfo(string title, string artist, double position, double duration, bool playing)
         => Send("vro_update_media", new { title, artist, position, duration, playing });
@@ -411,7 +416,8 @@ public sealed class VRSubprocessHost : IDisposable
     public void VroCancelRecording() { }
     public void VroConfig(bool a, bool b, float c, float d, float e, float f, float g, float h, float i,
         System.Collections.Generic.List<uint> j, int k, int l,
-        System.Collections.Generic.List<uint> m, int n, float o) { }
+        System.Collections.Generic.List<uint> m, int n, float o,
+        bool p, float q) { }
     public void VroApplyToastConfig(bool a, bool b, int c, float d, float e,
         bool f, bool g, bool h, bool i, bool j, bool k, int l, int m, bool n, bool o, bool p) { }
     public void VroThemeColors(System.Collections.Generic.Dictionary<string, string> colors) { }
@@ -421,6 +427,7 @@ public sealed class VRSubprocessHost : IDisposable
     public void EnqueueToast(string a, string b, string c, string d, string e, bool f) { }
     public void SetFriendLocations(System.Collections.Generic.IReadOnlyList<(string, string, string, string, string, string, string, string)> entries) { }
     public void SetOnlineFriends(System.Collections.Generic.IReadOnlyList<(string, string, string, string, string, string, string)> entries) { }
+    public void SetSelfUser(string userId, string imageUrl, string status) { }
     public void UpdateMediaInfo(string a, string b, double c, double d, bool e) { }
     public void SetToolStates(bool a, bool b, bool c, bool d, bool e, bool f, bool g) { }
     public void SfConnect(float a, bool b, bool c, bool d, uint e, uint f, uint g, uint h) { }
