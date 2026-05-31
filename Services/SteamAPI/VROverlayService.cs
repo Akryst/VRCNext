@@ -1903,22 +1903,35 @@ namespace VRCNext.Services
 
                     if (localY < FrdCardH)
                     {
-                        // Invite button: right 62px of card
-                        int btnX = W - FrdPadX - 58 - 4;
-                        if (gdixF >= btnX && gdixF < W - FrdPadX)
+                        List<FriendTabEntry> snapF;
+                        lock (_onlineFriends) snapF = new List<FriendTabEntry>(_onlineFriends);
+                        if (row >= 0 && row < snapF.Count)
                         {
-                            List<FriendTabEntry> snapF;
-                            lock (_onlineFriends) snapF = new List<FriendTabEntry>(_onlineFriends);
-                            if (row >= 0 && row < snapF.Count)
+                            var friend = snapF[row];
+                            bool hasLoc  = !string.IsNullOrEmpty(friend.Location) && friend.Location != "offline";
+                            int inviteX  = W - FrdPadX - 4 - 58;
+                            int jrX      = (hasLoc ? inviteX - 6 : W - FrdPadX - 4) - 52;
+                            if (hasLoc && gdixF >= inviteX && gdixF < inviteX + 58)
                             {
-                                var friend = snapF[row];
-                                bool inCooldown = _joinCooldowns.TryGetValue(friend.FriendId, out var cd)
+                                bool inCd = _joinCooldowns.TryGetValue(friend.FriendId, out var cd)
                                     && (DateTime.UtcNow - cd).TotalSeconds < 5;
-                                if (!inCooldown)
+                                if (!inCd)
                                 {
                                     _joinCooldowns[friend.FriendId] = DateTime.UtcNow;
                                     _dirty = true;
                                     OnInviteFriend?.Invoke(friend.FriendId);
+                                }
+                            }
+                            else if (gdixF >= jrX && gdixF < jrX + 52)
+                            {
+                                bool inCd = _joinCooldowns.TryGetValue(friend.FriendId + "#jr", out var cd)
+                                    && (DateTime.UtcNow - cd).TotalSeconds < 5;
+                                if (!inCd)
+                                {
+                                    bool canJoin = CanJoinLocation(friend.Location);
+                                    _joinCooldowns[friend.FriendId + "#jr"] = DateTime.UtcNow;
+                                    _dirty = true;
+                                    OnJoinRequest?.Invoke(friend.FriendId, canJoin ? friend.Location : "");
                                 }
                             }
                         }
@@ -3123,6 +3136,14 @@ namespace VRCNext.Services
             return "Unknown";
         }
 
+        private static bool CanJoinLocation(string location)
+        {
+            if (string.IsNullOrEmpty(location) || location == "private"
+                || location == "offline" || location == "traveling") return false;
+            if (!location.Contains(':')) return false;
+            return !location.Contains("~private(");
+        }
+
         // Friends tab rendering
 
         private void DrawFriends(Graphics g)
@@ -3191,6 +3212,23 @@ namespace VRCNext.Services
             int btnX = x + w - btnW - 4;
             int btnY = y + 4;
             int btnH = h - 8;
+
+            const int jrW = 52, jrGap = 6;
+            int jrX = (hasLocation ? btnX - jrGap : x + w - 4) - jrW;
+            {
+                bool canJoin = CanJoinLocation(friend.Location);
+                bool jrCd = _joinCooldowns.TryGetValue(locKey + "#jr", out var jcd)
+                    && (DateTime.UtcNow - jcd).TotalSeconds < 5;
+                var jrColor = jrCd ? Color.FromArgb(170, th.Ok) : Color.FromArgb(210, th.Accent);
+                using var jrBg = new SolidBrush(jrColor);
+                FillRoundedRect(g, jrBg, jrX, btnY, jrW, btnH, 6);
+                using var jrBrush = new SolidBrush(Color.White);
+                var jrFmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                using var jrFont = new Font("Segoe UI", 9f, FontStyle.Bold, GraphicsUnit.Point);
+                g.DrawString(jrCd ? "✓" : (canJoin ? "Join" : "Req."), jrFont, jrBrush,
+                    new RectangleF(jrX, btnY, jrW, btnH), jrFmt);
+            }
+
             if (hasLocation)
             {
                 var btnColor = inCooldown ? Color.FromArgb(170, th.Ok) : Color.FromArgb(210, th.Accent);
@@ -3254,7 +3292,7 @@ namespace VRCNext.Services
 
             // Text area
             int textX = avX + avSz + 10;
-            int textW = (hasLocation ? btnX - 6 : x + w - 8) - textX;
+            int textW = jrX - 6 - textX;
             var ellipsisFmt = new StringFormat { Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap };
 
             // Row 1: Username + Status badge
