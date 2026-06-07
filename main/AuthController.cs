@@ -1081,24 +1081,20 @@ public class AuthController
                 _core.TimeEngine.RestoreActiveSession(loc, currentPlayerIds);
             }
 
-            var presenceInstance = (user["presence"] as JObject)?["instance"]?.ToString() ?? "";
-            if (presenceInstance == "offline")
+            var resumedId = _instance.PendingInstanceEventId;
+            foreach (var openEv in _core.Timeline.GetOpenInstanceEvents())
             {
-                var openJoin = _core.Timeline.GetEvents()
-                    .FirstOrDefault(e => e.Type == "instance_join" && e.Tracked == 1 && string.IsNullOrEmpty(e.LeftAt));
-                if (openJoin != null)
+                if (openEv.Id == resumedId) continue;
+                var nowStr = DateTime.UtcNow.ToString("o");
+                _core.Timeline.UpdateEvent(openEv.Id, ev =>
                 {
-                    var nowStr = DateTime.UtcNow.ToString("o");
-                    _core.Timeline.UpdateEvent(openJoin.Id, ev =>
-                    {
-                        if (ev.Players == null) return;
-                        foreach (var p in ev.Players.Where(p => p.LeftAts.Count < p.JoinedAts.Count))
-                            p.LeftAts.Add(nowStr);
-                    });
-                    _core.Timeline.SetInstanceEventLeftAt(openJoin.Id, nowStr);
-                    var closed = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == openJoin.Id);
-                    if (closed != null) _core.SendToJS("timelineEvent", _instance.BuildTimelinePayload(closed));
-                }
+                    if (ev.Players == null) return;
+                    foreach (var p in ev.Players.Where(p => p.LeftAts.Count < p.JoinedAts.Count))
+                        p.LeftAts.Add(nowStr);
+                });
+                _core.Timeline.SetInstanceEventLeftAt(openEv.Id, nowStr);
+                var closed = _core.Timeline.GetEvents().FirstOrDefault(e => e.Id == openEv.Id);
+                if (closed != null) _core.SendToJS("timelineEvent", _instance.BuildTimelinePayload(closed));
             }
         }
 

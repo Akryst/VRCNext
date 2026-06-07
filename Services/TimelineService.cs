@@ -1602,6 +1602,22 @@ public class TimelineService : IDisposable
         catch { }
     }
 
+    public List<TimelineEvent> GetOpenInstanceEvents()
+    {
+        var result = new List<TimelineEvent>();
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT id, location FROM events
+                WHERE type='instance_join' AND tracked=1 AND (left_at IS NULL OR left_at='')";
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+                result.Add(new TimelineEvent { Id = r.GetString(0), Location = r.IsDBNull(1) ? "" : r.GetString(1) });
+        }
+        catch { }
+        return result;
+    }
+
     public List<FriendTimelineEvent> GetOpenTrackedGpsEvents()
     {
         var result = new List<FriendTimelineEvent>();
