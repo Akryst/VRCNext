@@ -72,8 +72,14 @@ function tbToggleTools() {
 
 (function () {
     var _open = null;
+    var _openSubDrop = null;
+
+    function closeSubDrop() {
+        if (_openSubDrop) { _openSubDrop.style.display = 'none'; _openSubDrop = null; }
+    }
 
     function closeMenus() {
+        closeSubDrop();
         if (_open) { _open.classList.remove('open'); _open = null; }
     }
 
@@ -99,6 +105,40 @@ function tbToggleTools() {
         });
         item.addEventListener('mouseenter', function () {
             if (_open && _open !== item) activateMenu(item);
+        });
+    });
+
+    document.querySelectorAll('.tb-dd-submenu').forEach(function(sub) {
+        var drop = sub.querySelector('.tb-dd-sub-drop');
+        if (!drop) return;
+        sub.addEventListener('mouseenter', function() {
+            closeSubDrop();
+            var r = sub.getBoundingClientRect();
+            var z = (typeof _guiZoom !== 'undefined' ? _guiZoom : 1) || 1;
+            var vw = window.innerWidth / z;
+            var vh = window.innerHeight / z;
+            drop.style.visibility = 'hidden';
+            drop.style.display = 'block';
+            var sw = drop.offsetWidth;
+            var sh = drop.offsetHeight;
+            drop.style.visibility = '';
+            var left = r.right / z + 4;
+            if (left + sw > vw - 4) left = r.left / z - sw - 4;
+            var top = r.top / z;
+            if (top + sh > vh - 4) top = Math.max(4, vh - sh - 4);
+            drop.style.left = Math.max(4, left) + 'px';
+            drop.style.top = top + 'px';
+            _openSubDrop = drop;
+        });
+        sub.addEventListener('mouseleave', function(e) {
+            if (e.relatedTarget && drop.contains(e.relatedTarget)) return;
+            setTimeout(function() {
+                if (_openSubDrop === drop && !drop.matches(':hover')) closeSubDrop();
+            }, 80);
+        });
+        drop.addEventListener('mouseleave', function(e) {
+            if (e.relatedTarget && sub.contains(e.relatedTarget)) return;
+            closeSubDrop();
         });
     });
 
