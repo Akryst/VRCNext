@@ -974,7 +974,20 @@ function onLibraryFileDeleted(path) {
 
 function _photoOnWheel(e) {
     e.preventDefault();
-    photoZoom(e.deltaY < 0 ? 1.15 : 1/1.15);
+    const factor = e.deltaY < 0 ? 1.15 : 1/1.15;
+    const pane = e.currentTarget;
+    const rect = pane.getBoundingClientRect();
+    const img  = pane.querySelector('img');
+    const cx   = img ? (img.offsetLeft + img.offsetWidth  / 2) : rect.width  / 2;
+    const cy   = img ? (img.offsetTop  + img.offsetHeight / 2) : rect.height / 2;
+    const ox   = e.clientX - rect.left - cx;
+    const oy   = e.clientY - rect.top  - cy;
+    const oldScale = _photoState.scale;
+    const newScale = Math.max(0.1, Math.min(20, oldScale * factor));
+    _photoState.tx += (ox - _photoState.tx) * (1 - newScale / oldScale);
+    _photoState.ty += (oy - _photoState.ty) * (1 - newScale / oldScale);
+    _photoState.scale = newScale;
+    _photoApplyTransform();
 }
 
 function _photoOnMouseDown(e) {
@@ -1084,7 +1097,7 @@ function confirmDeleteAll() {
 
 // Clipboard.
 function copyToClipboard(_url, path, type) {
-    if (type === 'image') {
+    if (type === 'image' || type === 'gif') {
         sendToCS({ action: 'copyImageToClipboard', path });
     } else {
         navigator.clipboard.writeText(path).then(

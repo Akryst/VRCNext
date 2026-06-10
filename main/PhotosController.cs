@@ -381,10 +381,10 @@ public class PhotosController
                     {
                         try
                         {
-                            // Use PowerShell to copy image to clipboard natively
                             var escaped = clipPath.Replace("'", "''");
+                            var psCommand = $"Add-Type -AssemblyName System.Windows.Forms; $col = [System.Collections.Specialized.StringCollection]::new(); $col.Add('{escaped}'); [System.Windows.Forms.Clipboard]::SetFileDropList($col)";
                             var psi = new System.Diagnostics.ProcessStartInfo("powershell",
-                                $"-NonInteractive -WindowStyle Hidden -Command \"Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Clipboard]::SetImage([System.Drawing.Image]::FromFile('{escaped}'))\"")
+                                $"-NonInteractive -WindowStyle Hidden -Command \"{psCommand}\"")
                             { CreateNoWindow = true, UseShellExecute = false };
                             System.Diagnostics.Process.Start(psi);
                             _core.SendToJS("toast", new { ok = true, msg = "Image copied to clipboard" });
