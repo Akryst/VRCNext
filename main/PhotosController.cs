@@ -382,15 +382,7 @@ public class PhotosController
                         try
                         {
                             var escaped = clipPath.Replace("'", "''");
-                            string psCommand;
-                            if (clipPath.EndsWith(".gif", StringComparison.OrdinalIgnoreCase))
-                            {
-                                psCommand = $"Add-Type -AssemblyName System.Windows.Forms; $col = [System.Collections.Specialized.StringCollection]::new(); $col.Add('{escaped}'); [System.Windows.Forms.Clipboard]::SetFileDropList($col)";
-                            }
-                            else
-                            {
-                                psCommand = $"Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Clipboard]::SetImage([System.Drawing.Image]::FromFile('{escaped}'))";
-                            }
+                            var psCommand = $"Add-Type -AssemblyName System.Windows.Forms; $col = [System.Collections.Specialized.StringCollection]::new(); $col.Add('{escaped}'); [System.Windows.Forms.Clipboard]::SetFileDropList($col)";
                             var psi = new System.Diagnostics.ProcessStartInfo("powershell",
                                 $"-NonInteractive -WindowStyle Hidden -Command \"{psCommand}\"")
                             { CreateNoWindow = true, UseShellExecute = false };
