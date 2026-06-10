@@ -5,6 +5,16 @@
 VRCNext is a VRChat Launcher and Management system that aims for simplicity and performance.
 With VRCNext you can check the status of your friends, watch their profiles, see in what world they are and ask them to send you an invite or send them one yourself. You can create an instance before even starting VRChat, manage your friends, remove or add new ones. You can search for worlds and groups, change your avatar before even starting VRChat, and set up a Media Library so all of your VRChat images are in one place. Send images directly to Discord using the Media Relay webhook system. See actual instance information such as which players are currently in your instance. Start VRChat directly through VRCNext and configure other apps to launch alongside it like SlimeVR, VRCVideoCacher, and VRCFaceTracking.
 
+**About Linux Support**
+
+I will not personally maintain a Linux version.
+
+I have created the base needed to make VRCN work on Linux, but it needs a dedicated maintainer who can handle AppImages, Flatpaks, and other Linux package formats.
+If you know how to work with C# using Photino.NET, as well as HTML, JS, and CSS, you can work on a Linux port. I may potentially merge your pull request if it works well and follows the project structure.
+
+I tried to make Linux support work as well as possible with Flatpak, portals, and AppImages, but I ran into so many issues that I personally decided to stop working on it. A proper Linux port may require working on permissions, testing across several different distros, and verifying that all features work correctly.
+
+
 ---
 
 ## Table of Contents
