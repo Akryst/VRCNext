@@ -52,6 +52,7 @@ function renderVrcFriends(friends, counts) {
     if (lp) lp.style.display = 'none';
     document.getElementById('vrcFriendRefreshBtn')?.classList.remove('spinning');
     vrcFriendsData = friends || [];
+    if (typeof _renderLibIconSelects === 'function') _renderLibIconSelects();
 
     // Lazy-load group instances once on first render
     if (_sidebarGroupInstances === null && !window._groupInstInFlight) {

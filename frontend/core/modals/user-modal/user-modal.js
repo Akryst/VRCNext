@@ -116,7 +116,8 @@ function openFriendDetail(userId) {
     if (typeof navSetCurrent === 'function') navSetCurrent('friend', userId);
     const m = document.getElementById('modalFriendDetail');
     const c = document.getElementById('friendDetailContent');
-    c.innerHTML = sk('content-modal');
+    const _useCompact = (typeof settings !== 'undefined' && settings.profileModalStyle === 'compact');
+    c.innerHTML = sk(_useCompact ? 'content-modal-compact' : 'content-modal');
     if (typeof vrcnPlusOnProfileOpened === 'function') {
         const _fdBox = m.querySelector('.modal-box');
         if (_fdBox) vrcnPlusOnProfileOpened(userId, _fdBox);
