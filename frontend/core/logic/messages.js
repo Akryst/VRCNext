@@ -968,6 +968,8 @@ case 'vrcNews':
             case 'friendTimelineSearchResults': handleFtlSearchResults(payload); break;
             case 'timelineForUser':        renderFdTimeline(payload.userId, payload.events); break;
             case 'friendActivityForUser':  renderFdUserActivity(payload.userId, payload.events); break;
+            case 'profileInsights':        renderFdProfileInsights(payload); break;
+            case 'userOnlineHeatmap':      renderFdOnlineHeatmap(payload); break;
             case 'invFiles':
                 if (!payload.error) {
                     // Cache by actual tag (not activeInvTab) to prevent cross-contamination

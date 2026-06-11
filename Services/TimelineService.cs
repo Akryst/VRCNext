@@ -2204,6 +2204,201 @@ public class TimelineService : IDisposable
         };
     }
 
+    public class ProfileInsights
+    {
+        public List<WorldTimeEntry>  Worlds  { get; set; } = new();
+        public List<PersonTimeEntry> Persons { get; set; } = new();
+    }
+
+    public ProfileInsights GetUserProfileInsights(string userId, string selfId = "", int limit = 10)
+    {
+        var result = new ProfileInsights();
+        if (string.IsNullOrEmpty(userId)) return result;
+
+        var worldStats  = new Dictionary<string, (string Name, string Thumb, int Visits)>();
+        var personStats = new Dictionary<string, (string Name, string Image, int Meets)>();
+
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT world_id, world_name, world_thumb FROM friend_events
+                WHERE type='friend_gps' AND friend_id=$uid AND world_id != ''";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var wid = r.GetString(0);
+                if (string.IsNullOrEmpty(wid)) continue;
+                worldStats.TryGetValue(wid, out var ws);
+                var name  = string.IsNullOrEmpty(r.GetString(1)) ? ws.Name  : r.GetString(1);
+                var thumb = string.IsNullOrEmpty(r.GetString(2)) ? ws.Thumb : r.GetString(2);
+                worldStats[wid] = (name, thumb, ws.Visits + 1);
+            }
+        }
+        catch { }
+
+        var eventIds = new List<string>();
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT DISTINCT e.id FROM events e
+                JOIN event_players ep ON e.id = ep.event_id
+                WHERE e.type='instance_join' AND ep.user_id=$uid";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) eventIds.Add(r.GetString(0));
+        }
+        catch { }
+
+        if (eventIds.Count > 0)
+        {
+            var worldByEvent = new Dictionary<string, (string WorldId, string Name, string Thumb)>();
+            try
+            {
+                var inE = string.Join(",", eventIds.Select((_, i) => $"$e{i}"));
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = $"SELECT id, world_id, world_name, world_thumb FROM events WHERE id IN ({inE})";
+                for (int i = 0; i < eventIds.Count; i++) cmd.Parameters.AddWithValue($"$e{i}", eventIds[i]);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    worldByEvent[r.GetString(0)] = (r.GetString(1), r.GetString(2), r.GetString(3));
+            }
+            catch { }
+
+            var playersByEvent = new Dictionary<string, List<(string UserId, string Name, string Image)>>();
+            try
+            {
+                var inE = string.Join(",", eventIds.Select((_, i) => $"$e{i}"));
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = $"SELECT event_id,user_id,display_name,image FROM event_players WHERE event_id IN ({inE})";
+                for (int i = 0; i < eventIds.Count; i++) cmd.Parameters.AddWithValue($"$e{i}", eventIds[i]);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    var eid = r.GetString(0);
+                    if (!playersByEvent.TryGetValue(eid, out var list)) playersByEvent[eid] = list = new();
+                    list.Add((r.GetString(1), r.GetString(2), r.GetString(3)));
+                }
+            }
+            catch { }
+
+            foreach (var eid in eventIds)
+            {
+                if (!playersByEvent.TryGetValue(eid, out var players)) continue;
+                if (!players.Any(p => p.UserId == userId)) continue;
+
+                if (worldByEvent.TryGetValue(eid, out var w) && !string.IsNullOrEmpty(w.WorldId))
+                {
+                    worldStats.TryGetValue(w.WorldId, out var ws);
+                    var wName  = string.IsNullOrEmpty(w.Name)  ? ws.Name  : w.Name;
+                    var wThumb = string.IsNullOrEmpty(w.Thumb) ? ws.Thumb : w.Thumb;
+                    worldStats[w.WorldId] = (wName, wThumb, ws.Visits + 1);
+                }
+
+                foreach (var p in players)
+                {
+                    if (string.IsNullOrEmpty(p.UserId) || p.UserId == userId) continue;
+                    if (!string.IsNullOrEmpty(selfId) && p.UserId == selfId) continue;
+                    personStats.TryGetValue(p.UserId, out var ps);
+                    var pName  = string.IsNullOrEmpty(p.Name)  ? ps.Name  : p.Name;
+                    var pImage = string.IsNullOrEmpty(p.Image) ? ps.Image : p.Image;
+                    personStats[p.UserId] = (pName, pImage, ps.Meets + 1);
+                }
+            }
+        }
+
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT c.friend_id, c.friend_name, c.friend_image
+                FROM friend_events e
+                JOIN friend_event_colocated c ON c.event_id = e.id
+                WHERE e.type='friend_gps' AND e.friend_id=$uid";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var fid = r.GetString(0);
+                if (string.IsNullOrEmpty(fid) || fid == userId) continue;
+                if (!string.IsNullOrEmpty(selfId) && fid == selfId) continue;
+                personStats.TryGetValue(fid, out var ps);
+                var name  = string.IsNullOrEmpty(r.GetString(1)) ? ps.Name  : r.GetString(1);
+                var image = string.IsNullOrEmpty(r.GetString(2)) ? ps.Image : r.GetString(2);
+                personStats[fid] = (name, image, ps.Meets + 1);
+            }
+        }
+        catch { }
+
+        result.Worlds = worldStats
+            .Select(kv => new WorldTimeEntry
+            {
+                WorldId    = kv.Key,
+                WorldName  = kv.Value.Name,
+                WorldThumb = kv.Value.Thumb,
+                Visits     = kv.Value.Visits,
+            })
+            .OrderByDescending(w => w.Visits)
+            .Take(limit)
+            .ToList();
+
+        result.Persons = personStats
+            .Select(kv => new PersonTimeEntry
+            {
+                UserId      = kv.Key,
+                DisplayName = kv.Value.Name,
+                Image       = kv.Value.Image,
+                Meets       = kv.Value.Meets,
+            })
+            .OrderByDescending(p => p.Meets)
+            .Take(limit)
+            .ToList();
+
+        return result;
+    }
+
+    public class OnlineHeatmap
+    {
+        public int[] Buckets { get; set; } = new int[7 * 24];
+        public int   Total   { get; set; }
+    }
+
+    public OnlineHeatmap GetUserOnlineHeatmap(string userId, int days = 30)
+    {
+        var hm = new OnlineHeatmap();
+        if (string.IsNullOrEmpty(userId)) return hm;
+
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            if (days > 0)
+            {
+                cmd.CommandText = @"SELECT timestamp FROM friend_events
+                    WHERE type='friend_online' AND friend_id=$uid AND timestamp >= $since";
+                cmd.Parameters.AddWithValue("$since", DateTime.UtcNow.AddDays(-days).ToString("o"));
+            }
+            else
+            {
+                cmd.CommandText = @"SELECT timestamp FROM friend_events
+                    WHERE type='friend_online' AND friend_id=$uid";
+            }
+            cmd.Parameters.AddWithValue("$uid", userId);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                if (!DateTime.TryParse(r.GetString(0), null,
+                    System.Globalization.DateTimeStyles.RoundtripKind, out var dt)) continue;
+                var local = dt.ToLocalTime();
+                int dow  = ((int)local.DayOfWeek + 6) % 7;
+                int hour = local.Hour;
+                hm.Buckets[dow * 24 + hour]++;
+                hm.Total++;
+            }
+        }
+        catch { }
+
+        return hm;
+    }
+
     // World Insights.
 
     public class WorldStatPoint

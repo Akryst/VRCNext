@@ -834,6 +834,31 @@ function renderFriendDetail(d) {
         <div id="fdMiniTl" style="max-height:160px;overflow-y:auto;"></div>
         <div id="fdUserActivity" style="max-height:160px;overflow-y:auto;display:none;"></div>`;
 
+    const insightsHtml = `<div class="fd-content-pills" style="margin-bottom:10px;">
+            <button class="fd-tab fd-insights-pill active" onclick="switchFdInsightsPill('worlds',this)">${t('profiles.insights.most_visited_worlds', 'Most Visited Worlds')}</button>
+            <button class="fd-tab fd-insights-pill" onclick="switchFdInsightsPill('persons',this)">${t('profiles.insights.interacted_most', 'Interacted the most with')}</button>
+        </div>
+        <div id="fdInsightsWorlds" style="max-height:280px;overflow-y:auto;"><div style="padding:4px 0;font-size:12px;color:var(--tx3);">${t('profiles.insights.loading', 'Loading...')}</div></div>
+        <div id="fdInsightsPersons" style="max-height:280px;overflow-y:auto;display:none;"></div>`;
+
+    const heatmapHtml = `<div class="fd-hm-header">
+            <div class="fd-hm-head-left">
+                <button class="vrcn-button" onclick="fdReloadHeatmap()" title="${esc(t('common.refresh', 'Refresh'))}"><span class="msi" id="fdHmRefreshIcon" style="font-size:14px;">refresh</span></button>
+                <span class="fd-hm-count" id="fdHmCount">&nbsp;</span>
+            </div>
+            <div class="fd-hm-head-right">
+                <span class="fd-hm-period-label">${t('profiles.heatmap.period', 'Period')}:</span>
+                <select id="fdHmPeriod" class="vrcn-dropdown" onchange="fdChangeHeatmapPeriod(this.value)">
+                    <option value="7">${esc(t('profiles.heatmap.last_7', 'Last 7 Days'))}</option>
+                    <option value="30" selected>${esc(t('profiles.heatmap.last_30', 'Last 30 Days'))}</option>
+                    <option value="90">${esc(t('profiles.heatmap.last_90', 'Last 90 Days'))}</option>
+                    <option value="0">${esc(t('profiles.heatmap.all_time', 'All Time'))}</option>
+                </select>
+            </div>
+        </div>
+        <div class="fd-hm-stats" id="fdHmStats"></div>
+        <div class="fd-hm-grid-wrap" id="fdHmGridWrap"><div style="padding:16px 0;font-size:12px;color:var(--tx3);text-align:center;">${t('profiles.insights.loading', 'Loading...')}</div></div>`;
+
     const bannerSrc = d.profilePicOverride || d.currentAvatarImageUrl || d.image || '';
     const fdHeaderActions = renderModalActions(_fdBuildTaskbarActions(d));
 
@@ -883,6 +908,8 @@ function renderFriendDetail(d) {
     </div>` : '';
     const _noteCard = `<div class="fd-info-card">${vrcNoteHtml}</div>`;
     const _tlCard = `<div class="fd-info-card">${miniTlHtml}</div>`;
+    const _insightsCard = `<div class="fd-info-card">${insightsHtml}</div>`;
+    const _heatmapCard = `<div class="fd-info-card">${heatmapHtml}</div>`;
     const _infosCard = `<div class="fd-info-card">${_aboutRowsHtml}</div>`;
     const _trustCard = trustSideHtml ? `<div class="fd-info-card">${trustSideHtml}</div>` : '';
     const _repCard = repGroupInfoHtml ? `<div class="fd-info-card">${repGroupInfoHtml}</div>` : '';
@@ -901,6 +928,8 @@ function renderFriendDetail(d) {
                 </div>
             </div>
             ${_tlCard}
+            ${_insightsCard}
+            ${_heatmapCard}
         </div>`
         : `<div class="fd-info-wrap">
             <div class="fd-info-cols">
@@ -912,6 +941,8 @@ function renderFriendDetail(d) {
                 </div>
             </div>
             ${_tlCard}
+            ${_insightsCard}
+            ${_heatmapCard}
         </div>`;
 
     const hasGroups = allGroups.length > 0 || repG;
@@ -986,7 +1017,7 @@ function renderFriendDetail(d) {
     }
 
     // Enhance sort dropdowns into custom vn-select
-    ['fdGroupsSort', 'fdMutualsSort', 'fdMutualsGroupsSort'].forEach(id => {
+    ['fdGroupsSort', 'fdMutualsSort', 'fdMutualsGroupsSort', 'fdHmPeriod'].forEach(id => {
         const sel = document.getElementById(id);
         if (sel && typeof initVnSelect === 'function') initVnSelect(sel);
     });
@@ -1032,6 +1063,8 @@ function renderFriendDetail(d) {
     if (userId) sendToCS({ action: 'vrcGetUserAvatars', userId: userId });
     if (userId) { _fdTimelineEvents = []; sendToCS({ action: 'getTimelineForUser', userId }); }
     if (userId) sendToCS({ action: 'getFriendActivityForUser', userId });
+    if (userId) sendToCS({ action: 'getProfileInsights', userId });
+    if (userId) { _fdHeatmapDays = 30; sendToCS({ action: 'getUserOnlineHeatmap', userId, days: 30 }); }
 
     if (_fdLiveTimer) { clearInterval(_fdLiveTimer); _fdLiveTimer = null; }
     if (d.inSameInstance && !(currentVrcUser && d.id === currentVrcUser.id)) {
@@ -1295,6 +1328,165 @@ function switchFdMiniTlPill(pill, btn) {
     if (ua) ua.style.display = pill === 'activity' ? '' : 'none';
     document.querySelectorAll('.fd-mini-tl-pill').forEach(p => p.classList.remove('active'));
     if (btn) btn.classList.add('active');
+}
+
+function switchFdInsightsPill(pill, btn) {
+    const w = document.getElementById('fdInsightsWorlds');
+    const p = document.getElementById('fdInsightsPersons');
+    if (w) w.style.display = pill === 'worlds'  ? '' : 'none';
+    if (p) p.style.display = pill === 'persons' ? '' : 'none';
+    document.querySelectorAll('.fd-insights-pill').forEach(x => x.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+}
+
+function renderFdProfileInsights(payload) {
+    if (!currentFriendDetail || currentFriendDetail.id !== payload.userId) return;
+    renderFdInsightsWorlds(payload.worlds || []);
+    renderFdInsightsPersons(payload.persons || []);
+}
+
+function renderFdInsightsWorlds(worlds) {
+    const el = document.getElementById('fdInsightsWorlds');
+    if (!el) return;
+    if (!worlds.length) {
+        el.innerHTML = `<div style="padding:4px 0;font-size:12px;color:var(--tx3);">${t('profiles.insights.no_worlds', 'No world data yet')}</div>`;
+        return;
+    }
+    const maxVisits = worlds[0].visits || 1;
+    el.innerHTML = '<div class="ts-items">' + worlds.map((w, i) => {
+        const pct = Math.round((w.visits / maxVisits) * 100);
+        const thumb = w.worldThumb
+            ? `<img class="ts-item-thumb" src="${esc(w.worldThumb)}" onerror="this.style.display='none'">`
+            : `<div class="ts-item-thumb ts-thumb-placeholder"><span class="msi" style="font-size:18px;color:var(--tx3);">travel_explore</span></div>`;
+        const click = w.worldId ? `onclick="navOpenModal('worldSearch','${jsq(w.worldId)}','${jsq(w.worldName || '')}')" style="cursor:pointer"` : '';
+        const visits = tf(`timespent.visit.${w.visits === 1 ? 'one' : 'other'}`, { count: w.visits }, `${w.visits} visit${w.visits === 1 ? '' : 's'}`);
+        return `<div class="ts-item" ${click}>
+            <div class="ts-item-rank">#${i + 1}</div>
+            ${thumb}
+            <div class="ts-item-body">
+                <div class="ts-item-name">${esc(w.worldName || t('timespent.unknown_world_full', 'Unknown World'))}</div>
+                <div class="ts-item-meta"><span class="msi" style="font-size:12px;color:var(--tx3);">login</span><span>${visits}</span></div>
+                <div class="ts-bar-wrap"><div class="ts-bar" style="width:${pct}%"></div></div>
+            </div>
+        </div>`;
+    }).join('') + '</div>';
+}
+
+function renderFdInsightsPersons(persons) {
+    const el = document.getElementById('fdInsightsPersons');
+    if (!el) return;
+    if (!persons.length) {
+        el.innerHTML = `<div style="padding:4px 0;font-size:12px;color:var(--tx3);">${t('profiles.insights.no_persons', 'No interaction data yet')}</div>`;
+        return;
+    }
+    const friendIds = new Set((typeof vrcFriendsData !== 'undefined' ? vrcFriendsData : []).map(f => f.id));
+    const maxMeets = persons[0].meets || 1;
+    el.innerHTML = '<div class="ts-items">' + persons.map((p, i) => {
+        const pct = Math.round((p.meets / maxMeets) * 100);
+        const isFriend = friendIds.has(p.userId);
+        const avatar = p.image
+            ? `<img class="ts-item-avatar" src="${esc(p.image)}" onerror="this.style.display='none'">`
+            : `<div class="ts-item-avatar ts-avatar-placeholder"><span class="msi" style="font-size:16px;color:var(--tx3);">person</span></div>`;
+        const encounters = tf(`timespent.encounter.${p.meets === 1 ? 'one' : 'other'}`, { count: p.meets }, `${p.meets} encounter${p.meets === 1 ? '' : 's'}`);
+        return `<div class="ts-item" onclick="navOpenModal('friend','${jsq(p.userId)}','${jsq(p.displayName || '')}')" style="cursor:pointer">
+            <div class="ts-item-rank">#${i + 1}</div>
+            <div class="ts-avatar-wrap">${avatar}</div>
+            <div class="ts-item-body">
+                <div class="ts-item-name">${esc(p.displayName || p.userId)}</div>
+                <div class="ts-item-meta"><span class="msi" style="font-size:12px;color:var(--tx3);">handshake</span><span>${encounters}</span></div>
+                <div class="ts-bar-wrap"><div class="ts-bar ${isFriend ? 'ts-bar-friend' : 'ts-bar-stranger'}" style="width:${pct}%"></div></div>
+            </div>
+        </div>`;
+    }).join('') + '</div>';
+}
+
+let _fdHeatmapDays = 30;
+
+function fdChangeHeatmapPeriod(v) {
+    const days = parseInt(v, 10) || 0;
+    _fdHeatmapDays = days;
+    const uid = currentFriendDetail?.id;
+    if (!uid) return;
+    const icon = document.getElementById('fdHmRefreshIcon');
+    if (icon) icon.classList.add('ts-spin');
+    sendToCS({ action: 'getUserOnlineHeatmap', userId: uid, days });
+}
+
+function fdReloadHeatmap() {
+    fdChangeHeatmapPeriod(String(_fdHeatmapDays));
+}
+
+function renderFdOnlineHeatmap(payload) {
+    if (!currentFriendDetail || currentFriendDetail.id !== payload.userId) return;
+    const icon = document.getElementById('fdHmRefreshIcon');
+    if (icon) icon.classList.remove('ts-spin');
+
+    const buckets = payload.buckets || [];
+    const total = payload.total || 0;
+
+    const countEl = document.getElementById('fdHmCount');
+    if (countEl) countEl.textContent = tf('profiles.heatmap.events', { count: total }, `${total} online events`);
+
+    const base = new Date(Date.UTC(2024, 0, 8));
+    const fmt = new Intl.DateTimeFormat(typeof getLanguageLocale === 'function' ? getLanguageLocale() : undefined, { weekday: 'short' });
+    const dayLabels = Array.from({ length: 7 }, (_, i) => fmt.format(new Date(base.getTime() + i * 86400000)));
+
+    let max = 0;
+    const dayTotals = new Array(7).fill(0);
+    const hourTotals = new Array(24).fill(0);
+    for (let d = 0; d < 7; d++) {
+        for (let h = 0; h < 24; h++) {
+            const val = buckets[d * 24 + h] || 0;
+            if (val > max) max = val;
+            dayTotals[d] += val;
+            hourTotals[h] += val;
+        }
+    }
+
+    const statsEl = document.getElementById('fdHmStats');
+    if (statsEl) {
+        if (total === 0) {
+            statsEl.innerHTML = '';
+        } else {
+            let bestDay = 0;
+            for (let d = 1; d < 7; d++) if (dayTotals[d] > dayTotals[bestDay]) bestDay = d;
+            let bestHour = 0;
+            for (let h = 1; h < 24; h++) if (hourTotals[h] > hourTotals[bestHour]) bestHour = h;
+            const hourLabel = String(bestHour).padStart(2, '0') + ':00';
+            statsEl.innerHTML = `<span>${t('profiles.heatmap.most_active_day', 'Most active day')}: <strong>${esc(dayLabels[bestDay])}</strong></span>
+                <span>${t('profiles.heatmap.peak_hours', 'Peak hours')}: <strong>${hourLabel}</strong></span>`;
+        }
+    }
+
+    const wrap = document.getElementById('fdHmGridWrap');
+    if (!wrap) return;
+    if (total === 0) {
+        wrap.innerHTML = `<div style="padding:16px 0;font-size:12px;color:var(--tx3);text-align:center;">${t('profiles.heatmap.empty', 'No online activity recorded yet')}</div>`;
+        return;
+    }
+
+    let rowsHtml = '';
+    for (let d = 0; d < 7; d++) {
+        let cells = '';
+        for (let h = 0; h < 24; h++) {
+            const val = buckets[d * 24 + h] || 0;
+            const intensity = max > 0 ? val / max : 0;
+            const title = `${dayLabels[d]} ${String(h).padStart(2, '0')}:00 · ${val}`;
+            const style = val > 0
+                ? `style="background:color-mix(in srgb, var(--accent) ${Math.round(20 + intensity * 80)}%, transparent);"`
+                : '';
+            cells += `<div class="fd-hm-cell" ${style} title="${esc(title)}"></div>`;
+        }
+        rowsHtml += `<div class="fd-hm-row"><div class="fd-hm-row-label">${esc(dayLabels[d])}</div><div class="fd-hm-cells">${cells}</div></div>`;
+    }
+
+    let axis = '<div class="fd-hm-axis"><div class="fd-hm-axis-spacer"></div><div class="fd-hm-axis-hours">';
+    for (let h = 0; h < 24; h++) {
+        axis += `<div class="fd-hm-axis-h">${h % 3 === 0 ? String(h).padStart(2, '0') + ':00' : ''}</div>`;
+    }
+    axis += '</div></div>';
+
+    wrap.innerHTML = `<div class="fd-hm-grid">${rowsHtml}</div>${axis}`;
 }
 
 function friendAction(action, location, userId) {

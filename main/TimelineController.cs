@@ -87,6 +87,14 @@ public class TimelineController
                 HandleGetTimelineForUser(msg);
                 break;
 
+            case "getProfileInsights":
+                HandleGetProfileInsights(msg);
+                break;
+
+            case "getUserOnlineHeatmap":
+                HandleGetUserOnlineHeatmap(msg);
+                break;
+
             case "getTimelineMonthActivity":
                 HandleGetTimelineMonthActivity(msg);
                 break;
@@ -1029,6 +1037,54 @@ public class TimelineController
             var events  = _core.Timeline.GetEventsForUser(userId, 10);
             var payload = events.Select(e => _instance.BuildTimelinePayload(e)).ToList();
             _core.SendToJS("timelineForUser", new { userId, events = payload });
+        });
+    }
+
+    private void HandleGetProfileInsights(JObject msg)
+    {
+        var userId = msg["userId"]?.ToString() ?? "";
+        if (string.IsNullOrEmpty(userId)) return;
+        _ = Task.Run(() =>
+        {
+            var selfId   = _core.VrcApi.CurrentUserId ?? "";
+            var insights = _core.Timeline.GetUserProfileInsights(userId, selfId, 10);
+
+            var worlds = insights.Worlds.Select(w =>
+            {
+                var disk  = ImageCacheHelper.GetWorldCached(w.WorldId);
+                var thumb = disk != null
+                    ? ImageCacheHelper.ToLocalUrl(disk)
+                    : ImageCacheHelper.NormalizeTo512(w.WorldThumb ?? "");
+                return new
+                {
+                    worldId    = w.WorldId,
+                    worldName  = w.WorldName,
+                    worldThumb = thumb,
+                    visits     = w.Visits,
+                };
+            }).ToList();
+
+            var persons = insights.Persons.Select(p => new
+            {
+                userId      = p.UserId,
+                displayName = p.DisplayName,
+                image       = _friends.ResolveWithDiskFallback(p.UserId, p.Image),
+                meets       = p.Meets,
+            }).ToList();
+
+            _core.SendToJS("profileInsights", new { userId, worlds, persons });
+        });
+    }
+
+    private void HandleGetUserOnlineHeatmap(JObject msg)
+    {
+        var userId = msg["userId"]?.ToString() ?? "";
+        if (string.IsNullOrEmpty(userId)) return;
+        var days = msg["days"]?.Value<int>() ?? 30;
+        _ = Task.Run(() =>
+        {
+            var hm = _core.Timeline.GetUserOnlineHeatmap(userId, days);
+            _core.SendToJS("userOnlineHeatmap", new { userId, days, buckets = hm.Buckets, total = hm.Total });
         });
     }
 

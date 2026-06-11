@@ -2182,6 +2182,8 @@ public partial class AppShell
                 case "getTimelineByDate":
                 case "getFriendTimelineByDate":
                 case "getTimelineForUser":
+                case "getProfileInsights":
+                case "getUserOnlineHeatmap":
                 case "getTimelineMonthActivity":
                     await _timelineCtrl.HandleMessage(action, msg);
                     break;

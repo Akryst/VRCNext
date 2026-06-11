@@ -1,16 +1,15 @@
-**2026.29.7**
+**2026.30.0**
 
-**Improvements**
+**User Profiles**
 
-* Taskbar dropdown menus are now scrollable when the window is very small.
-* Right-click context menus are now scrollable when the window is too small or when there are too many items.
+* Added **Most Visited Worlds** to user profiles.
 
-**Fixes**
+You can now see a user’s top 10 most visited worlds. Worlds are only counted when the user was in a joinable instance.
 
-* Fixed an issue with the Image Preview Modal where zooming always focused on the center of the image instead of the mouse position.
-* Fixed an issue with the Media Library and Image Modal where GIF images were copied to the clipboard as file paths instead of actual images.
-* Fixed an issue with the Media Library where the Friends filter only appeared after refreshing the Media Library at least once.
-* Fixed an issue where the new Compact Profile Design showed the classic loading skeleton instead of the compact loading skeleton.
-* Fixed the size of the VRChat Config Modal.
-* Fixed the size of the VRChat Launch Modal.
-* Fixed "copy to clipboard" for PNG/JPEG files and use native clipboard mechanic from windows.
+* Added **Interacted With the Most** to user profiles.
+
+You can also see when one of your friends spends time with another friend. Both users must be your friends and must have been in the same instance.
+
+* Added **Heatmap** to user profiles.
+
+The Heatmap shows the most active time of an user from the last 30 days. It also shows the peaktime and when a user is mostly online
