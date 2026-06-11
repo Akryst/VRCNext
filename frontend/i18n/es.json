@@ -750,6 +750,7 @@
   "profiles.heatmap.last_90": "Últimos 90 días",
   "profiles.heatmap.all_time": "Todo el tiempo",
   "profiles.heatmap.events": "{count} eventos en línea",
+  "profiles.heatmap.total_online": "{time} en línea",
   "profiles.heatmap.most_active_day": "Día más activo",
   "profiles.heatmap.peak_hours": "Horas pico",
   "profiles.heatmap.empty": "Aún no hay actividad en línea registrada",

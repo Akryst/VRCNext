@@ -751,6 +751,7 @@
   "profiles.heatmap.last_90": "Последние 90 дней",
   "profiles.heatmap.all_time": "За всё время",
   "profiles.heatmap.events": "{count} событий онлайн",
+  "profiles.heatmap.total_online": "{time} онлайн",
   "profiles.heatmap.most_active_day": "Самый активный день",
   "profiles.heatmap.peak_hours": "Пиковые часы",
   "profiles.heatmap.empty": "Пока нет данных об активности онлайн",

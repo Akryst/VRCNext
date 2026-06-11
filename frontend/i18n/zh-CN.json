@@ -750,6 +750,7 @@
   "profiles.heatmap.last_90": "最近 90 天",
   "profiles.heatmap.all_time": "全部时间",
   "profiles.heatmap.events": "{count} 次上线",
+  "profiles.heatmap.total_online": "在线 {time}",
   "profiles.heatmap.most_active_day": "最活跃的一天",
   "profiles.heatmap.peak_hours": "高峰时段",
   "profiles.heatmap.empty": "暂无上线活动记录",

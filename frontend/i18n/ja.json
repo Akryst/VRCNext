@@ -750,6 +750,7 @@
   "profiles.heatmap.last_90": "過去90日間",
   "profiles.heatmap.all_time": "全期間",
   "profiles.heatmap.events": "{count} 件のオンライン",
+  "profiles.heatmap.total_online": "オンライン {time}",
   "profiles.heatmap.most_active_day": "最も活発な曜日",
   "profiles.heatmap.peak_hours": "ピーク時間",
   "profiles.heatmap.empty": "オンライン履歴がまだありません",

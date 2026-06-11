@@ -2376,43 +2376,95 @@ public class TimelineService : IDisposable
 
     public class OnlineHeatmap
     {
-        public int[] Buckets { get; set; } = new int[7 * 24];
-        public int   Total   { get; set; }
+        public double[] Buckets      { get; set; } = new double[7 * 24];
+        public double   TotalMinutes { get; set; }
+        public int      Sessions     { get; set; }
     }
 
     public OnlineHeatmap GetUserOnlineHeatmap(string userId, int days = 30)
     {
+        const double MAX_SESSION_MIN = 8 * 60;
+        const double MERGE_GAP_MIN   = 5;
+
         var hm = new OnlineHeatmap();
         if (string.IsNullOrEmpty(userId)) return hm;
 
+        var events = new List<(DateTime Ts, bool IsOnline)>();
         try
         {
             using var cmd = _db.CreateCommand();
-            if (days > 0)
-            {
-                cmd.CommandText = @"SELECT timestamp FROM friend_events
-                    WHERE type='friend_online' AND friend_id=$uid AND timestamp >= $since";
-                cmd.Parameters.AddWithValue("$since", DateTime.UtcNow.AddDays(-days).ToString("o"));
-            }
-            else
-            {
-                cmd.CommandText = @"SELECT timestamp FROM friend_events
-                    WHERE type='friend_online' AND friend_id=$uid";
-            }
+            cmd.CommandText = @"SELECT timestamp, type FROM friend_events
+                WHERE friend_id=$uid AND (type='friend_online' OR type='friend_offline')
+                ORDER BY timestamp ASC";
             cmd.Parameters.AddWithValue("$uid", userId);
             using var r = cmd.ExecuteReader();
             while (r.Read())
             {
                 if (!DateTime.TryParse(r.GetString(0), null,
                     System.Globalization.DateTimeStyles.RoundtripKind, out var dt)) continue;
-                var local = dt.ToLocalTime();
-                int dow  = ((int)local.DayOfWeek + 6) % 7;
-                int hour = local.Hour;
-                hm.Buckets[dow * 24 + hour]++;
-                hm.Total++;
+                events.Add((dt.ToUniversalTime(), r.GetString(1) == "friend_online"));
             }
         }
-        catch { }
+        catch { return hm; }
+
+        if (events.Count == 0) return hm;
+
+        var now = DateTime.UtcNow;
+        var sessions = new List<(DateTime Start, DateTime End)>();
+        DateTime? curStart = null;
+        foreach (var (ts, isOnline) in events)
+        {
+            if (isOnline)
+            {
+                if (curStart != null) sessions.Add((curStart.Value, ts));
+                curStart = ts;
+            }
+            else if (curStart != null)
+            {
+                sessions.Add((curStart.Value, ts));
+                curStart = null;
+            }
+        }
+        if (curStart != null) sessions.Add((curStart.Value, now));
+
+        sessions.Sort((a, b) => a.Start.CompareTo(b.Start));
+        var merged = new List<(DateTime Start, DateTime End)>();
+        foreach (var s in sessions)
+        {
+            if (merged.Count > 0 && (s.Start - merged[^1].End).TotalMinutes <= MERGE_GAP_MIN)
+            {
+                if (s.End > merged[^1].End) merged[^1] = (merged[^1].Start, s.End);
+            }
+            else merged.Add(s);
+        }
+
+        var windowStart = days > 0 ? now.AddDays(-days) : new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        foreach (var s in merged)
+        {
+            var effEnd = s.End;
+            var cap = s.Start.AddMinutes(MAX_SESSION_MIN);
+            if (effEnd > cap) effEnd = cap;
+
+            var start = s.Start > windowStart ? s.Start : windowStart;
+            var end   = effEnd  < now         ? effEnd  : now;
+            if (end <= start) continue;
+
+            hm.Sessions++;
+            var cursor = start;
+            while (cursor < end)
+            {
+                var local = cursor.ToLocalTime();
+                int dow  = ((int)local.DayOfWeek + 6) % 7;
+                int hour = local.Hour;
+                var nextBoundaryUtc = local.Date.AddHours(hour + 1).ToUniversalTime();
+                var segEnd = nextBoundaryUtc < end ? nextBoundaryUtc : end;
+                var mins = (segEnd - cursor).TotalMinutes;
+                hm.Buckets[dow * 24 + hour] += mins;
+                hm.TotalMinutes += mins;
+                cursor = segEnd;
+            }
+        }
 
         return hm;
     }

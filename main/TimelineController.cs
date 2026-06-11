@@ -1084,7 +1084,7 @@ public class TimelineController
         _ = Task.Run(() =>
         {
             var hm = _core.Timeline.GetUserOnlineHeatmap(userId, days);
-            _core.SendToJS("userOnlineHeatmap", new { userId, days, buckets = hm.Buckets, total = hm.Total });
+            _core.SendToJS("userOnlineHeatmap", new { userId, days, buckets = hm.Buckets, totalMinutes = hm.TotalMinutes, sessions = hm.Sessions });
         });
     }
 

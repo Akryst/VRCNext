@@ -1416,16 +1416,26 @@ function fdReloadHeatmap() {
     fdChangeHeatmapPeriod(String(_fdHeatmapDays));
 }
 
+function fdFmtMinutes(mins) {
+    const m = Math.round(mins);
+    if (m < 60) return `${m}m`;
+    const h = Math.floor(m / 60);
+    const rem = m % 60;
+    return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
+}
+
 function renderFdOnlineHeatmap(payload) {
     if (!currentFriendDetail || currentFriendDetail.id !== payload.userId) return;
     const icon = document.getElementById('fdHmRefreshIcon');
     if (icon) icon.classList.remove('ts-spin');
 
     const buckets = payload.buckets || [];
-    const total = payload.total || 0;
+    const totalMinutes = payload.totalMinutes || 0;
 
     const countEl = document.getElementById('fdHmCount');
-    if (countEl) countEl.textContent = tf('profiles.heatmap.events', { count: total }, `${total} online events`);
+    if (countEl) countEl.textContent = totalMinutes > 0
+        ? tf('profiles.heatmap.total_online', { time: fdFmtMinutes(totalMinutes) }, `${fdFmtMinutes(totalMinutes)} online`)
+        : '';
 
     const base = new Date(Date.UTC(2024, 0, 8));
     const fmt = new Intl.DateTimeFormat(typeof getLanguageLocale === 'function' ? getLanguageLocale() : undefined, { weekday: 'short' });
@@ -1445,22 +1455,32 @@ function renderFdOnlineHeatmap(payload) {
 
     const statsEl = document.getElementById('fdHmStats');
     if (statsEl) {
-        if (total === 0) {
+        if (totalMinutes <= 0) {
             statsEl.innerHTML = '';
         } else {
             let bestDay = 0;
             for (let d = 1; d < 7; d++) if (dayTotals[d] > dayTotals[bestDay]) bestDay = d;
-            let bestHour = 0;
-            for (let h = 1; h < 24; h++) if (hourTotals[h] > hourTotals[bestHour]) bestHour = h;
-            const hourLabel = String(bestHour).padStart(2, '0') + ':00';
+
+            const maxHour = Math.max(...hourTotals);
+            let peakLabel = '';
+            if (maxHour > 0) {
+                const threshold = maxHour * 0.7;
+                let startH = hourTotals.indexOf(maxHour);
+                let endH = startH;
+                while (startH > 0 && hourTotals[startH - 1] >= threshold) startH--;
+                while (endH < 23 && hourTotals[endH + 1] >= threshold) endH++;
+                peakLabel = startH === endH
+                    ? `${String(startH).padStart(2, '0')}:00`
+                    : `${String(startH).padStart(2, '0')}:00–${String(endH + 1).padStart(2, '0')}:00`;
+            }
             statsEl.innerHTML = `<span>${t('profiles.heatmap.most_active_day', 'Most active day')}: <strong>${esc(dayLabels[bestDay])}</strong></span>
-                <span>${t('profiles.heatmap.peak_hours', 'Peak hours')}: <strong>${hourLabel}</strong></span>`;
+                <span>${t('profiles.heatmap.peak_hours', 'Peak hours')}: <strong>${esc(peakLabel)}</strong></span>`;
         }
     }
 
     const wrap = document.getElementById('fdHmGridWrap');
     if (!wrap) return;
-    if (total === 0) {
+    if (totalMinutes <= 0) {
         wrap.innerHTML = `<div style="padding:16px 0;font-size:12px;color:var(--tx3);text-align:center;">${t('profiles.heatmap.empty', 'No online activity recorded yet')}</div>`;
         return;
     }
@@ -1470,8 +1490,8 @@ function renderFdOnlineHeatmap(payload) {
         let cells = '';
         for (let h = 0; h < 24; h++) {
             const val = buckets[d * 24 + h] || 0;
-            const intensity = max > 0 ? val / max : 0;
-            const title = `${dayLabels[d]} ${String(h).padStart(2, '0')}:00 · ${val}`;
+            const intensity = max > 0 ? Math.sqrt(val / max) : 0;
+            const title = `${dayLabels[d]} ${String(h).padStart(2, '0')}:00 · ${fdFmtMinutes(val)}`;
             const style = val > 0
                 ? `style="background:color-mix(in srgb, var(--accent) ${Math.round(20 + intensity * 80)}%, transparent);"`
                 : '';
