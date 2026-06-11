@@ -970,6 +970,7 @@ case 'vrcNews':
             case 'friendActivityForUser':  renderFdUserActivity(payload.userId, payload.events); break;
             case 'profileInsights':        renderFdProfileInsights(payload); break;
             case 'userOnlineHeatmap':      renderFdOnlineHeatmap(payload); break;
+            case 'userStatusTime':         renderFdStatusTime(payload); break;
             case 'invFiles':
                 if (!payload.error) {
                     // Cache by actual tag (not activeInvTab) to prevent cross-contamination

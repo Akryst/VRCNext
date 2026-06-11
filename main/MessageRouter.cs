@@ -2184,6 +2184,7 @@ public partial class AppShell
                 case "getTimelineForUser":
                 case "getProfileInsights":
                 case "getUserOnlineHeatmap":
+                case "getUserStatusTime":
                 case "getTimelineMonthActivity":
                     await _timelineCtrl.HandleMessage(action, msg);
                     break;

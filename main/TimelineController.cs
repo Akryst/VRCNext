@@ -95,6 +95,10 @@ public class TimelineController
                 HandleGetUserOnlineHeatmap(msg);
                 break;
 
+            case "getUserStatusTime":
+                HandleGetUserStatusTime(msg);
+                break;
+
             case "getTimelineMonthActivity":
                 HandleGetTimelineMonthActivity(msg);
                 break;
@@ -1085,6 +1089,21 @@ public class TimelineController
         {
             var hm = _core.Timeline.GetUserOnlineHeatmap(userId, days);
             _core.SendToJS("userOnlineHeatmap", new { userId, days, buckets = hm.Buckets, totalMinutes = hm.TotalMinutes, sessions = hm.Sessions });
+        });
+    }
+
+    private void HandleGetUserStatusTime(JObject msg)
+    {
+        var userId = msg["userId"]?.ToString() ?? "";
+        if (string.IsNullOrEmpty(userId)) return;
+        var days = msg["days"]?.Value<int>() ?? 30;
+        _ = Task.Run(() =>
+        {
+            var bd = _core.Timeline.GetUserStatusBreakdown(userId, days);
+            var statuses = bd.Seconds
+                .Select(kv => new { key = kv.Key, seconds = kv.Value })
+                .ToList();
+            _core.SendToJS("userStatusTime", new { userId, days, statuses, totalSeconds = bd.TotalSeconds });
         });
     }
 

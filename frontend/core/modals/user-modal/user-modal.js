@@ -847,7 +847,10 @@ function renderFriendDetail(d) {
                 <span class="fd-hm-count" id="fdHmCount">&nbsp;</span>
             </div>
             <div class="fd-hm-head-right">
-                <span class="fd-hm-period-label">${t('profiles.heatmap.period', 'Period')}:</span>
+                <select id="fdHmView" class="vrcn-dropdown" onchange="fdChangeHeatmapView(this.value)">
+                    <option value="online" selected>${esc(t('profiles.heatmap.view_online', 'Online'))}</option>
+                    <option value="status">${esc(t('profiles.heatmap.view_status', 'Status'))}</option>
+                </select>
                 <select id="fdHmPeriod" class="vrcn-dropdown" onchange="fdChangeHeatmapPeriod(this.value)">
                     <option value="7">${esc(t('profiles.heatmap.last_7', 'Last 7 Days'))}</option>
                     <option value="30" selected>${esc(t('profiles.heatmap.last_30', 'Last 30 Days'))}</option>
@@ -857,7 +860,8 @@ function renderFriendDetail(d) {
             </div>
         </div>
         <div class="fd-hm-stats" id="fdHmStats"></div>
-        <div class="fd-hm-grid-wrap" id="fdHmGridWrap"><div style="padding:16px 0;font-size:12px;color:var(--tx3);text-align:center;">${t('profiles.insights.loading', 'Loading...')}</div></div>`;
+        <div class="fd-hm-grid-wrap" id="fdHmGridWrap"><div style="padding:16px 0;font-size:12px;color:var(--tx3);text-align:center;">${t('profiles.insights.loading', 'Loading...')}</div></div>
+        <div class="fd-hm-status-wrap" id="fdHmStatusWrap" style="display:none;"></div>`;
 
     const bannerSrc = d.profilePicOverride || d.currentAvatarImageUrl || d.image || '';
     const fdHeaderActions = renderModalActions(_fdBuildTaskbarActions(d));
@@ -1017,7 +1021,7 @@ function renderFriendDetail(d) {
     }
 
     // Enhance sort dropdowns into custom vn-select
-    ['fdGroupsSort', 'fdMutualsSort', 'fdMutualsGroupsSort', 'fdHmPeriod'].forEach(id => {
+    ['fdGroupsSort', 'fdMutualsSort', 'fdMutualsGroupsSort', 'fdHmView', 'fdHmPeriod'].forEach(id => {
         const sel = document.getElementById(id);
         if (sel && typeof initVnSelect === 'function') initVnSelect(sel);
     });
@@ -1064,7 +1068,7 @@ function renderFriendDetail(d) {
     if (userId) { _fdTimelineEvents = []; sendToCS({ action: 'getTimelineForUser', userId }); }
     if (userId) sendToCS({ action: 'getFriendActivityForUser', userId });
     if (userId) sendToCS({ action: 'getProfileInsights', userId });
-    if (userId) { _fdHeatmapDays = 30; sendToCS({ action: 'getUserOnlineHeatmap', userId, days: 30 }); }
+    if (userId) { _fdHeatmapDays = 30; _fdHeatmapView = 'online'; sendToCS({ action: 'getUserOnlineHeatmap', userId, days: 30 }); }
 
     if (_fdLiveTimer) { clearInterval(_fdLiveTimer); _fdLiveTimer = null; }
     if (d.inSameInstance && !(currentVrcUser && d.id === currentVrcUser.id)) {
@@ -1401,19 +1405,38 @@ function renderFdInsightsPersons(persons) {
 }
 
 let _fdHeatmapDays = 30;
+let _fdHeatmapView = 'online';
 
-function fdChangeHeatmapPeriod(v) {
-    const days = parseInt(v, 10) || 0;
-    _fdHeatmapDays = days;
+function fdRequestHeatmap() {
     const uid = currentFriendDetail?.id;
     if (!uid) return;
     const icon = document.getElementById('fdHmRefreshIcon');
     if (icon) icon.classList.add('ts-spin');
-    sendToCS({ action: 'getUserOnlineHeatmap', userId: uid, days });
+    if (_fdHeatmapView === 'status') {
+        const sw = document.getElementById('fdHmStatusWrap');
+        if (sw && !sw.querySelector('.fd-st-row'))
+            sw.innerHTML = `<div style="padding:16px 0;font-size:12px;color:var(--tx3);text-align:center;">${t('profiles.insights.loading', 'Loading...')}</div>`;
+    }
+    const action = _fdHeatmapView === 'status' ? 'getUserStatusTime' : 'getUserOnlineHeatmap';
+    sendToCS({ action, userId: uid, days: _fdHeatmapDays });
+}
+
+function fdChangeHeatmapPeriod(v) {
+    _fdHeatmapDays = parseInt(v, 10) || 0;
+    fdRequestHeatmap();
+}
+
+function fdChangeHeatmapView(v) {
+    _fdHeatmapView = v === 'status' ? 'status' : 'online';
+    const grid = document.getElementById('fdHmGridWrap');
+    const status = document.getElementById('fdHmStatusWrap');
+    if (grid) grid.style.display = _fdHeatmapView === 'online' ? '' : 'none';
+    if (status) status.style.display = _fdHeatmapView === 'status' ? '' : 'none';
+    fdRequestHeatmap();
 }
 
 function fdReloadHeatmap() {
-    fdChangeHeatmapPeriod(String(_fdHeatmapDays));
+    fdRequestHeatmap();
 }
 
 function fdFmtMinutes(mins) {
@@ -1507,6 +1530,59 @@ function renderFdOnlineHeatmap(payload) {
     axis += '</div></div>';
 
     wrap.innerHTML = `<div class="fd-hm-grid">${rowsHtml}</div>${axis}`;
+}
+
+function renderFdStatusTime(payload) {
+    if (!currentFriendDetail || currentFriendDetail.id !== payload.userId) return;
+    const icon = document.getElementById('fdHmRefreshIcon');
+    if (icon) icon.classList.remove('ts-spin');
+
+    const wrap = document.getElementById('fdHmStatusWrap');
+    if (!wrap) return;
+
+    const STATUS_META = {
+        'join me': { label: t('status.join_me', 'Join Me'), color: 'var(--status-join)' },
+        'active':  { label: t('status.online', 'Online'), color: 'var(--status-online)' },
+        'ask me':  { label: t('status.ask_me', 'Ask Me'), color: 'var(--status-ask)' },
+        'busy':    { label: t('status.do_not_disturb', 'Do Not Disturb'), color: 'var(--status-busy)' },
+    };
+
+    const secByKey = {};
+    (payload.statuses || []).forEach(s => { secByKey[s.key] = (secByKey[s.key] || 0) + (s.seconds || 0); });
+    const total = payload.totalSeconds || 0;
+
+    const countEl = document.getElementById('fdHmCount');
+    if (countEl) countEl.textContent = total > 0 ? fdFmtMinutes(total / 60) : '';
+
+    const rows = Object.keys(STATUS_META).map(key => ({
+        key, label: STATUS_META[key].label, color: STATUS_META[key].color, seconds: secByKey[key] || 0,
+    })).sort((a, b) => b.seconds - a.seconds);
+
+    const statsEl = document.getElementById('fdHmStats');
+    if (statsEl) {
+        statsEl.innerHTML = (total > 0 && rows[0].seconds > 0)
+            ? `<span>${t('profiles.heatmap.mostly', 'Mostly')}: <strong style="color:${rows[0].color};">${esc(rows[0].label)}</strong></span>`
+            : '';
+    }
+
+    if (total <= 0) {
+        wrap.innerHTML = `<div style="padding:16px 0;font-size:12px;color:var(--tx3);text-align:center;">${t('profiles.heatmap.no_status', 'No status data yet')}</div>`;
+        return;
+    }
+
+    const maxSec = rows[0].seconds || 1;
+    wrap.innerHTML = rows.map((r, i) => {
+        const pct = Math.round((r.seconds / total) * 100);
+        const barPct = Math.round((r.seconds / maxSec) * 100);
+        return `<div class="fd-st-row">
+            <div class="fd-st-rank">#${i + 1}</div>
+            <div class="fd-st-dot" style="background:${r.color};"></div>
+            <div class="fd-st-body">
+                <div class="fd-st-head"><span class="fd-st-name">${esc(r.label)}</span><span class="fd-st-meta">${pct}% · ${fdFmtMinutes(r.seconds / 60)}</span></div>
+                <div class="fd-st-bar-wrap"><div class="fd-st-bar" style="width:${barPct}%;background:${r.color};"></div></div>
+            </div>
+        </div>`;
+    }).join('');
 }
 
 function friendAction(action, location, userId) {

@@ -2381,13 +2381,13 @@ public class TimelineService : IDisposable
         public int      Sessions     { get; set; }
     }
 
-    public OnlineHeatmap GetUserOnlineHeatmap(string userId, int days = 30)
+    private List<(DateTime Start, DateTime End)> BuildMergedOnlineSessions(string userId)
     {
         const double MAX_SESSION_MIN = 8 * 60;
         const double MERGE_GAP_MIN   = 5;
 
-        var hm = new OnlineHeatmap();
-        if (string.IsNullOrEmpty(userId)) return hm;
+        var result = new List<(DateTime Start, DateTime End)>();
+        if (string.IsNullOrEmpty(userId)) return result;
 
         var events = new List<(DateTime Ts, bool IsOnline)>();
         try
@@ -2405,9 +2405,9 @@ public class TimelineService : IDisposable
                 events.Add((dt.ToUniversalTime(), r.GetString(1) == "friend_online"));
             }
         }
-        catch { return hm; }
+        catch { return result; }
 
-        if (events.Count == 0) return hm;
+        if (events.Count == 0) return result;
 
         var now = DateTime.UtcNow;
         var sessions = new List<(DateTime Start, DateTime End)>();
@@ -2428,26 +2428,39 @@ public class TimelineService : IDisposable
         if (curStart != null) sessions.Add((curStart.Value, now));
 
         sessions.Sort((a, b) => a.Start.CompareTo(b.Start));
-        var merged = new List<(DateTime Start, DateTime End)>();
         foreach (var s in sessions)
         {
-            if (merged.Count > 0 && (s.Start - merged[^1].End).TotalMinutes <= MERGE_GAP_MIN)
+            if (result.Count > 0 && (s.Start - result[^1].End).TotalMinutes <= MERGE_GAP_MIN)
             {
-                if (s.End > merged[^1].End) merged[^1] = (merged[^1].Start, s.End);
+                if (s.End > result[^1].End) result[^1] = (result[^1].Start, s.End);
             }
-            else merged.Add(s);
+            else result.Add(s);
         }
 
+        for (int i = 0; i < result.Count; i++)
+        {
+            var cap = result[i].Start.AddMinutes(MAX_SESSION_MIN);
+            if (result[i].End > cap) result[i] = (result[i].Start, cap);
+        }
+
+        return result;
+    }
+
+    public OnlineHeatmap GetUserOnlineHeatmap(string userId, int days = 30)
+    {
+        var hm = new OnlineHeatmap();
+        if (string.IsNullOrEmpty(userId)) return hm;
+
+        var merged = BuildMergedOnlineSessions(userId);
+        if (merged.Count == 0) return hm;
+
+        var now = DateTime.UtcNow;
         var windowStart = days > 0 ? now.AddDays(-days) : new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         foreach (var s in merged)
         {
-            var effEnd = s.End;
-            var cap = s.Start.AddMinutes(MAX_SESSION_MIN);
-            if (effEnd > cap) effEnd = cap;
-
             var start = s.Start > windowStart ? s.Start : windowStart;
-            var end   = effEnd  < now         ? effEnd  : now;
+            var end   = s.End   < now         ? s.End   : now;
             if (end <= start) continue;
 
             hm.Sessions++;
@@ -2467,6 +2480,86 @@ public class TimelineService : IDisposable
         }
 
         return hm;
+    }
+
+    public class StatusBreakdown
+    {
+        public Dictionary<string, double> Seconds { get; set; } = new();
+        public double TotalSeconds { get; set; }
+    }
+
+    public StatusBreakdown GetUserStatusBreakdown(string userId, int days = 30)
+    {
+        var bd = new StatusBreakdown();
+        if (string.IsNullOrEmpty(userId)) return bd;
+
+        var sessions = BuildMergedOnlineSessions(userId);
+        if (sessions.Count == 0) return bd;
+
+        var transitions = new List<(DateTime Ts, string Status)>();
+        string initialStatus = "";
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT timestamp, old_value, new_value FROM friend_events
+                WHERE type='friend_status' AND friend_id=$uid ORDER BY timestamp ASC";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                if (!DateTime.TryParse(r.GetString(0), null,
+                    System.Globalization.DateTimeStyles.RoundtripKind, out var dt)) continue;
+                if (transitions.Count == 0) initialStatus = r.IsDBNull(1) ? "" : r.GetString(1);
+                transitions.Add((dt.ToUniversalTime(), r.IsDBNull(2) ? "" : r.GetString(2)));
+            }
+        }
+        catch { }
+
+        if (string.IsNullOrEmpty(initialStatus)) initialStatus = "active";
+
+        var now = DateTime.UtcNow;
+        var windowStart = days > 0 ? now.AddDays(-days) : new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        foreach (var s in sessions)
+        {
+            var start = s.Start > windowStart ? s.Start : windowStart;
+            var end   = s.End   < now         ? s.End   : now;
+            if (end <= start) continue;
+
+            var curStatus = StatusAt(start, transitions, initialStatus);
+            var cursor = start;
+            foreach (var tr in transitions)
+            {
+                if (tr.Ts <= cursor) continue;
+                if (tr.Ts >= end) break;
+                AddStatusSeconds(bd, curStatus, (tr.Ts - cursor).TotalSeconds);
+                curStatus = tr.Status;
+                cursor = tr.Ts;
+            }
+            AddStatusSeconds(bd, curStatus, (end - cursor).TotalSeconds);
+        }
+
+        return bd;
+    }
+
+    private static string StatusAt(DateTime time, List<(DateTime Ts, string Status)> transitions, string initialStatus)
+    {
+        var status = initialStatus;
+        foreach (var tr in transitions)
+        {
+            if (tr.Ts > time) break;
+            status = tr.Status;
+        }
+        return status;
+    }
+
+    private static void AddStatusSeconds(StatusBreakdown bd, string status, double seconds)
+    {
+        if (seconds <= 0) return;
+        if (string.IsNullOrEmpty(status) || status == "offline") status = "active";
+        bd.Seconds.TryGetValue(status, out var cur);
+        bd.Seconds[status] = cur + seconds;
+        bd.TotalSeconds += seconds;
     }
 
     // World Insights.
