@@ -2282,6 +2282,9 @@ public class TimelineService : IDisposable
             }
             catch { }
 
+            string selfName = "", selfImage = "";
+            int selfMeets = 0;
+
             foreach (var eid in eventIds)
             {
                 if (!playersByEvent.TryGetValue(eid, out var players)) continue;
@@ -2295,15 +2298,31 @@ public class TimelineService : IDisposable
                     worldStats[w.WorldId] = (wName, wThumb, ws.Visits + 1);
                 }
 
+                if (!string.IsNullOrEmpty(selfId) && selfId != userId) selfMeets++;
+
                 foreach (var p in players)
                 {
                     if (string.IsNullOrEmpty(p.UserId) || p.UserId == userId) continue;
-                    if (!string.IsNullOrEmpty(selfId) && p.UserId == selfId) continue;
+                    if (p.UserId == selfId)
+                    {
+                        if (string.IsNullOrEmpty(selfName)  && !string.IsNullOrEmpty(p.Name))  selfName  = p.Name;
+                        if (string.IsNullOrEmpty(selfImage) && !string.IsNullOrEmpty(p.Image)) selfImage = p.Image;
+                        continue;
+                    }
                     personStats.TryGetValue(p.UserId, out var ps);
                     var pName  = string.IsNullOrEmpty(p.Name)  ? ps.Name  : p.Name;
                     var pImage = string.IsNullOrEmpty(p.Image) ? ps.Image : p.Image;
                     personStats[p.UserId] = (pName, pImage, ps.Meets + 1);
                 }
+            }
+
+            if (selfMeets > 0)
+            {
+                personStats.TryGetValue(selfId, out var sps);
+                personStats[selfId] = (
+                    string.IsNullOrEmpty(selfName)  ? sps.Name  : selfName,
+                    string.IsNullOrEmpty(selfImage) ? sps.Image : selfImage,
+                    sps.Meets + selfMeets);
             }
         }
 
@@ -2320,7 +2339,6 @@ public class TimelineService : IDisposable
             {
                 var fid = r.GetString(0);
                 if (string.IsNullOrEmpty(fid) || fid == userId) continue;
-                if (!string.IsNullOrEmpty(selfId) && fid == selfId) continue;
                 personStats.TryGetValue(fid, out var ps);
                 var name  = string.IsNullOrEmpty(r.GetString(1)) ? ps.Name  : r.GetString(1);
                 var image = string.IsNullOrEmpty(r.GetString(2)) ? ps.Image : r.GetString(2);
