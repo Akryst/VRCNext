@@ -9,6 +9,16 @@
 #modalFriendDetail .fd-hm-header .vn-select.vn-open .vn-select-trigger,
 #modalFriendDetail .fd-hm-header .vrcn-button:hover { background: var(--bg-input); filter: brightness(1.08); }
 
+#modalFriendDetail #fdInsightsWorlds .ts-item,
+#modalFriendDetail #fdInsightsPersons .ts-item {
+    background: color-mix(in srgb, var(--bg-input) 85%, #000);
+}
+#modalFriendDetail #fdInsightsWorlds .ts-item:hover,
+#modalFriendDetail #fdInsightsPersons .ts-item:hover {
+    background: color-mix(in srgb, var(--bg-input) 85%, #000);
+    filter: brightness(1.08);
+}
+
 
 .fd-info-wrap {
     display: flex;
