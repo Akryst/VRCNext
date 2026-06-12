@@ -134,6 +134,15 @@
                                     <button class="tb-dd-item" onclick="sendToCS({action:'openShortcutFolder',folder:'vrcn_data'})"><span class="msi">folder</span><span data-i18n="tb.shortcuts.vrcn_data">VRCN Data</span></button>
                                 </div>
                             </div>
+                            <div class="tb-dd-submenu">
+                                <button class="tb-dd-item"><span class="msi">file_download</span><span data-i18n="tb.tools.export">Export</span><span class="msi tb-dd-arrow">chevron_right</span></button>
+                                <div class="tb-dd-sub-drop">
+                                    <button class="tb-dd-item" data-keep-modal onclick="openExportModal('worlds')"><span class="msi">public</span><span data-i18n="export.worlds">Worlds</span></button>
+                                    <button class="tb-dd-item" data-keep-modal onclick="openExportModal('groups')"><span class="msi">groups</span><span data-i18n="export.groups">Groups</span></button>
+                                    <button class="tb-dd-item" data-keep-modal onclick="openExportModal('avatars')"><span class="msi">checkroom</span><span data-i18n="export.avatars">Avatars</span></button>
+                                    <button class="tb-dd-item" data-keep-modal onclick="openExportModal('friends')"><span class="msi">group</span><span data-i18n="export.friends">Friends</span></button>
+                                </div>
+                            </div>
                             <div class="tb-dd-sep"></div>
                             <div class="tb-dd-item" onclick="showTab(5)"><span class="msi">chat</span><span data-i18n="nav.custom_chatbox">Custom Chatbox</span></div>
                             <div class="tb-dd-item" onclick="showTab(6)"><span class="msi">cell_tower</span><span data-i18n="nav.media_relay">Media Relay</span></div>
@@ -433,6 +442,22 @@
     <!-- VRChat Config Modal -->
     <div class="modal-overlay" id="modalVrcConfig" style="display:none;" onclick="if(event.target===this)this.style.display='none'"></div>
 
+    <!-- Export Modal -->
+    <div class="modal-overlay" id="modalExport" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+        <div class="modal-box" style="width:640px;max-width:92%;">
+            <div class="modal-title" id="exportTitle" style="margin-bottom:4px;">Export</div>
+            <div class="modal-msg" id="exportDesc" style="margin-bottom:14px;"></div>
+            <textarea id="exportText" readonly spellcheck="false" style="width:100%;height:320px;box-sizing:border-box;resize:vertical;background:var(--bg-input);color:var(--tx1);border:1px solid var(--brd-lt);border-radius:8px;padding:10px 12px;font-family:monospace;font-size:12px;line-height:1.5;white-space:pre;overflow:auto;"></textarea>
+            <div class="modal-btns" style="margin-top:16px;justify-content:space-between;">
+                <button class="vrcn-button-round" onclick="document.getElementById('modalExport').style.display='none'" data-i18n="common.close">Close</button>
+                <div style="display:flex;gap:8px;">
+                    <button class="vrcn-button-round" onclick="exportCopy()"><span class="msi" style="font-size:14px;">content_copy</span> <span data-i18n="export.copy">Copy</span></button>
+                    <button class="vrcn-button-round vrcn-btn-join" onclick="exportSaveCsv()"><span class="msi" style="font-size:14px;">download</span> <span data-i18n="export.export_csv">Export CSV</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- VRChat Launch Options Modal -->
     <div class="modal-overlay" id="modalVrcLaunchOptions" style="display:none;" onclick="if(event.target===this)this.style.display='none'"></div>
 
@@ -642,6 +667,7 @@
             'core/Keybinds/Keybind.js',
             'core/Taskbar/taskbar.js',
             'core/modals/vrc-tools-modal/vrc-tools-modal.js',
+            'core/modals/export-modal/export-modal.js',
             'core/Blyat/blyat.js',
         ];
 

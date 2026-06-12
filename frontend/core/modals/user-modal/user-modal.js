@@ -1511,7 +1511,7 @@ function renderFdOnlineHeatmap(payload) {
                 while (endH < 23 && hourTotals[endH + 1] >= threshold) endH++;
                 peakLabel = startH === endH
                     ? `${String(startH).padStart(2, '0')}:00`
-                    : `${String(startH).padStart(2, '0')}:00–${String(endH + 1).padStart(2, '0')}:00`;
+                    : `${String(startH).padStart(2, '0')}:00-${String(endH + 1).padStart(2, '0')}:00`;
             }
             statsEl.innerHTML = `<span>${t('profiles.heatmap.most_active_day', 'Most active day')}: <strong>${esc(dayLabels[bestDay])}</strong></span>
                 <span>${t('profiles.heatmap.peak_hours', 'Peak hours')}: <strong>${esc(peakLabel)}</strong></span>`;

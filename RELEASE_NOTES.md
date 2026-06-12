@@ -1,5 +1,15 @@
 **2026.30.0**
 
+**Export**
+
+* Added an **Export** dropdown to the taskbar.
+* Added **Export Groups**.
+* Added **Export Avatars**.
+* Added **Export Friends**.
+* Added **Export Worlds**.
+
+You can now export Friends, Groups, Worlds, or Avatars lists as a CSV file or copy them to your clipboard.
+
 **User Profiles**
 
 * Added **Most Visited Worlds** to user profiles.

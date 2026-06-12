@@ -1631,6 +1631,109 @@ public partial class AppShell
                     });
                     break;
 
+                case "exportList":
+                {
+                    var exType = msg["type"]?.ToString() ?? "";
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var categories = new List<object>();
+
+                            if (exType == "worlds")
+                            {
+                                var mine = await _core.World.GetMyWorldsAsync();
+                                categories.Add(new { key = "my_worlds", items = mine.OfType<JObject>()
+                                    .Select(w => new { id = w["id"]?.ToString() ?? "", name = w["name"]?.ToString() ?? "" })
+                                    .Where(x => x.id.Length > 0).ToList() });
+
+                                var favWorlds = new List<object>();
+                                var seenW = new HashSet<string>();
+                                var favGroups = await _core.Favorites.GetFavoriteGroupsAsync();
+                                var worldTypes = new HashSet<string> { "world", "vrcPlusWorld" };
+                                foreach (var g in favGroups.Where(g => worldTypes.Contains(g["type"]?.ToString() ?? "")))
+                                {
+                                    var gname = g["name"]?.ToString() ?? "";
+                                    if (gname.Length == 0) continue;
+                                    foreach (var w in await _core.Favorites.GetFavoriteWorldsByGroupAsync(gname, 100))
+                                    {
+                                        var id = w["id"]?.ToString() ?? "";
+                                        if (id.Length == 0 || !seenW.Add(id)) continue;
+                                        favWorlds.Add(new { id, name = w["name"]?.ToString() ?? "" });
+                                    }
+                                }
+                                categories.Add(new { key = "favorited_worlds", items = favWorlds });
+                            }
+                            else if (exType == "avatars")
+                            {
+                                var mine = await _core.Avatars.GetOwnAvatarsAsync();
+                                categories.Add(new { key = "my_avatars", items = mine
+                                    .Select(a => new { id = a["id"]?.ToString() ?? "", name = a["name"]?.ToString() ?? "" })
+                                    .Where(x => x.id.Length > 0).ToList() });
+
+                                var fav = await _core.Avatars.GetFavoriteAvatarsAsync();
+                                categories.Add(new { key = "favorited_avatars", items = fav
+                                    .Select(a => new { id = a["id"]?.ToString() ?? "", name = a["name"]?.ToString() ?? "" })
+                                    .Where(x => x.id.Length > 0).ToList() });
+                            }
+                            else if (exType == "groups")
+                            {
+                                var groups = await _core.Groups.GetUserGroupsAsync();
+                                categories.Add(new { key = "my_groups", items = groups.OfType<JObject>()
+                                    .Select(g => new { id = g["groupId"]?.ToString() ?? g["id"]?.ToString() ?? "", name = g["name"]?.ToString() ?? "" })
+                                    .Where(x => x.id.Length > 0).ToList() });
+                            }
+                            else if (exType == "friends")
+                            {
+                                var store = _friends.GetStoreSnapshot();
+                                categories.Add(new { key = "friends", items = store
+                                    .Select(f => new { id = f["id"]?.ToString() ?? "", name = f["displayName"]?.ToString() ?? "" })
+                                    .Where(x => x.id.Length > 0)
+                                    .OrderBy(x => x.name, StringComparer.OrdinalIgnoreCase).ToList() });
+
+                                var favEntries = await _core.Favorites.GetFavoriteFriendsAsync();
+                                var favIds = favEntries.OfType<JObject>()
+                                    .Select(e => e["favoriteId"]?.ToString() ?? "")
+                                    .Where(s => s.Length > 0).ToHashSet();
+                                categories.Add(new { key = "favorited_friends", items = store
+                                    .Where(f => favIds.Contains(f["id"]?.ToString() ?? ""))
+                                    .Select(f => new { id = f["id"]?.ToString() ?? "", name = f["displayName"]?.ToString() ?? "" })
+                                    .OrderBy(x => x.name, StringComparer.OrdinalIgnoreCase).ToList() });
+                            }
+                            else return;
+
+                            Invoke(() => SendToJS("exportList", new { type = exType, categories }));
+                        }
+                        catch (Exception ex)
+                        {
+                            Invoke(() => SendToJS("log", new { msg = $"Export error: {ex.Message}", color = "err" }));
+                        }
+                    });
+                    break;
+                }
+
+                case "exportSaveCsv":
+                {
+                    var csvText = msg["text"]?.ToString() ?? "";
+                    var rs = Dialog.FileSave("csv");
+                    if (rs.IsOk)
+                    {
+                        var path = rs.Path;
+                        if (!path.EndsWith(".csv", StringComparison.OrdinalIgnoreCase)) path += ".csv";
+                        try
+                        {
+                            System.IO.File.WriteAllText(path, csvText);
+                            SendToJS("log", new { msg = $"Saved: {path}", color = "ok" });
+                            SendToJS("exportSaved", new { ok = true, path });
+                        }
+                        catch (Exception ex)
+                        {
+                            SendToJS("log", new { msg = $"Export save failed: {ex.Message}", color = "err" });
+                        }
+                    }
+                    break;
+                }
+
                 case "getWorldInsights":
                     _ = Task.Run(() =>
                     {

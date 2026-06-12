@@ -971,6 +971,7 @@ case 'vrcNews':
             case 'profileInsights':        renderFdProfileInsights(payload); break;
             case 'userOnlineHeatmap':      renderFdOnlineHeatmap(payload); break;
             case 'userStatusTime':         renderFdStatusTime(payload); break;
+            case 'exportList':             if (typeof renderExportModal === 'function') renderExportModal(payload); break;
             case 'invFiles':
                 if (!payload.error) {
                     // Cache by actual tag (not activeInvTab) to prevent cross-contamination
