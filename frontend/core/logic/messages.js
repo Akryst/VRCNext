@@ -762,6 +762,9 @@ window.external.receiveMessage(rawMsg => {
             case 'vrcFriendFavoriteResult':
                 if (typeof handleFriendFavoriteResult === 'function') handleFriendFavoriteResult(payload);
                 break;
+            case 'vrcLocalGroupResult':
+                if (typeof onLocalGroupResult === 'function') onLocalGroupResult(payload);
+                break;
             case 'vrcWorldsResolved':
                 onWorldsResolved(payload);
                 if (typeof onCreateInstanceWorldResolved === 'function') onCreateInstanceWorldResolved(payload);
@@ -774,6 +777,9 @@ window.external.receiveMessage(rawMsg => {
                 break;
 case 'vrcNews':
                 if (typeof onVrcNews === 'function') onVrcNews(payload.items);
+                break;
+            case 'vrcNewsArticle':
+                if (typeof renderNewsArticle === 'function') renderNewsArticle(payload);
                 break;
             case 'popularWorlds':
                 onPopularWorlds(payload.worlds);
@@ -968,6 +974,10 @@ case 'vrcNews':
             case 'friendTimelineSearchResults': handleFtlSearchResults(payload); break;
             case 'timelineForUser':        renderFdTimeline(payload.userId, payload.events); break;
             case 'friendActivityForUser':  renderFdUserActivity(payload.userId, payload.events); break;
+            case 'profileInsights':        renderFdProfileInsights(payload); break;
+            case 'userOnlineHeatmap':      renderFdOnlineHeatmap(payload); break;
+            case 'userStatusTime':         renderFdStatusTime(payload); break;
+            case 'exportList':             if (typeof renderExportModal === 'function') renderExportModal(payload); break;
             case 'invFiles':
                 if (!payload.error) {
                     // Cache by actual tag (not activeInvTab) to prevent cross-contamination

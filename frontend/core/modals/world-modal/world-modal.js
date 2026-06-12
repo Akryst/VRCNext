@@ -528,11 +528,8 @@ function renderWorldFavPicker(worldId) {
     const currentGroup = currentEntry?.favoriteGroup || '';
     list.innerHTML = favWorldGroups.map(g => {
         const count = favWorldsData.filter(fw => fw.favoriteGroup === g.name).length;
-        const isVrcPlus = g.type === 'vrcPlusWorld';
         const isCurrent = g.name === currentGroup;
-        const vrcBadge = isVrcPlus
-            ? `<span class="vrcn-supporter-badge">VRC+</span>`
-            : '';
+        const vrcBadge = favGroupBadge(g);
         const check = isCurrent
             ? `<span class="msi" style="color:var(--accent);font-size:18px;flex-shrink:0;">check_circle</span>`
             : '';
@@ -610,6 +607,7 @@ function onWorldFavoriteResult(data) {
         filterFavWorlds();
         _scheduleBgFavRefresh();
     } else {
+        if (data.error) showToast(false, localFavErrorText(data.error));
         const list = document.getElementById('wdFavGroupList');
         if (list) {
             list.innerHTML = `<div style="font-size:11px;color:var(--err,#e55);padding:6px 0;">${t('worlds.favorites.failed_add', 'Failed to add to favorites. Try again.')}</div>`;

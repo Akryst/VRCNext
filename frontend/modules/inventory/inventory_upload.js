@@ -144,6 +144,10 @@ function openInvUploadModal(tabOverride, callback) {
     overlay.innerHTML = _iuBuildHTML(tab);
     document.body.appendChild(overlay);
 
+    const animSel = document.getElementById('iuAnimSelect');
+    if (animSel && typeof initVnSelect === 'function') initVnSelect(animSel);
+    iuUpdateAnimPreview();
+
     const handler = event => {
         if (event.key === 'Escape') {
             closeInvUploadModal();
@@ -173,8 +177,11 @@ function _iuBuildHTML(tab) {
     const emojiHtml = req?.hasAnimStyle ? `
         <div id="iuEmojiOptions" style="display:none;margin-top:14px;">
             <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:8px;">${esc(t('inventory.upload.particle_style', 'Particle style'))}</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;" id="iuAnimBtns">
-                ${IU_ANIM_STYLES.map(style => `<button class="vrcn-button sub-tab-btn${style.value === 'aura' ? ' active' : ''}" onclick="iuSetAnimStyle('${style.value}',this)">${esc(iuAnimLabel(style))}</button>`).join('')}
+            <select id="iuAnimSelect" class="vrcn-dropdown" style="width:100%;" onchange="iuSetAnimStyle(this.value)">
+                ${IU_ANIM_STYLES.map(style => `<option value="${esc(style.value)}"${style.value === 'aura' ? ' selected' : ''}>${esc(iuAnimLabel(style))}</option>`).join('')}
+            </select>
+            <div style="margin-top:12px;display:flex;justify-content:center;align-items:center;min-height:120px;background:var(--bg-input);border-radius:8px;padding:10px;">
+                <img id="iuAnimPreviewImg" alt="" style="max-width:100%;max-height:200px;border-radius:6px;">
             </div>
         </div>` : '';
 
@@ -673,10 +680,22 @@ function _iuApplyCompressed(blob) {
     img.src = url;
 }
 
-function iuSetAnimStyle(value, btn) {
+function iuSetAnimStyle(value) {
     _iuAnimStyle = value;
-    document.querySelectorAll('#iuAnimBtns button').forEach(button => button.classList.remove('active'));
-    btn.classList.add('active');
+    iuUpdateAnimPreview();
+}
+
+function iuAnimGif(value) {
+    const style = IU_ANIM_STYLES.find(s => s.value === value);
+    return style ? `assets/Emojis/${style.fallback}.gif` : '';
+}
+
+function iuUpdateAnimPreview() {
+    const img = document.getElementById('iuAnimPreviewImg');
+    if (!img) return;
+    const src = iuAnimGif(_iuAnimStyle);
+    if (src) { img.src = src; img.style.display = ''; }
+    else { img.removeAttribute('src'); img.style.display = 'none'; }
 }
 
 function iuReset() {

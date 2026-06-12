@@ -15,6 +15,16 @@
                             <div id="avatarEditMovePicker" class="vn-select-panel" style="display:none;position:absolute;top:100%;left:0;min-width:180px;z-index:200;"></div>
                         </div>
                         <button id="avatarEditRemoveBtn" class="vrcn-button av-edit-action" disabled onclick="avEditRemoveSelected()"><span class="msi" style="font-size:14px;">star_border</span> <span data-i18n="avatars.edit.remove">Remove</span></button>
+                        <div style="position:relative;">
+                            <button id="avatarCreateLocalBtn" class="vrcn-button" onclick="avatarShowCreateLocalGroup(this)"><span class="msi" style="font-size:14px;">create_new_folder</span> <span data-i18n="favorites.create_local_group">Create Local Group</span></button>
+                            <div id="avatarCreateLocalPanel" class="vn-select-panel" style="display:none;position:absolute;top:100%;left:0;min-width:220px;z-index:200;padding:8px;">
+                                <input type="text" id="avatarCreateLocalInput" class="vrcn-input" maxlength="64" placeholder="Group name" data-i18n-placeholder="favorites.local_group_name" style="width:100%;margin-bottom:6px;" onkeydown="if(event.key==='Enter')avatarSaveLocalGroup()">
+                                <div style="display:flex;gap:6px;justify-content:flex-end;">
+                                    <button class="vrcn-button" onclick="avatarCancelCreateLocalGroup()" data-i18n="common.cancel">Cancel</button>
+                                    <button class="vrcn-button vrcn-btn-primary" onclick="avatarSaveLocalGroup()" data-i18n="common.create">Create</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div style="display:flex;gap:4px;align-items:center;">
                         <button id="avatarEditModeBtn" class="vrcn-button" style="display:none;" onclick="toggleAvEditMode()" title="Edit favorites" data-i18n-title="avatars.edit.button"><span class="msi" style="font-size:16px;">edit</span> <span data-i18n="avatars.edit.button">Edit</span></button>
@@ -35,7 +45,9 @@
                     <div id="favAvatarGroupHeader" style="display:flex;align-items:center;gap:6px;margin-bottom:10px;min-height:24px;">
                         <span id="favAvatarGroupLabel" style="font-size:13px;font-weight:600;color:var(--tx1);" data-i18n="avatars.favorites.group.all">All Favorites</span>
                         <span id="favAvatarGroupVrcPlusBadge" class="vrcn-supporter-badge" style="display:none;">VRC+</span>
+                        <span id="favAvatarGroupLocalBadge" class="vrcn-local-badge" style="display:none;" data-i18n="favorites.local_badge">Local</span>
                         <button id="favAvatarGroupEditBtn" class="myp-edit-btn" onclick="startEditAvatarGroupName()" style="display:none;" title="Rename category" data-i18n-title="avatars.favorites.rename_category"><span class="msi" style="font-size:14px;">edit</span></button>
+                        <button id="favAvatarGroupDeleteBtn" class="myp-edit-btn" onclick="deleteCurrentLocalAvatarGroup(this)" style="display:none;" title="Delete local group" data-i18n-title="favorites.delete_local_group"><span class="msi" style="font-size:14px;">delete</span></button>
                     </div>
                     <div id="favAvatarGroupRenameRow" style="display:none;align-items:center;gap:6px;margin-bottom:10px;">
                         <input type="text" id="favAvatarGroupNameInput" class="vrcn-edit-field" maxlength="64" style="flex:1;max-width:280px;">

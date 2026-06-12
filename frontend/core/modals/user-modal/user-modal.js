@@ -644,6 +644,8 @@ function renderFriendDetail(d) {
             (d.totalTimeSeconds > 0 || d.inSameInstance)
                 ? `<span id="fdTimeTogether">${formatDuration(d.totalTimeSeconds)}</span>`
                 : `<span style="color:var(--tx3);">${t('profiles.meta.not_tracked', 'Not tracked yet')}</span>`));
+        _aboutRows.push(_mr(t('profiles.meta.status_mostly', 'Status Mostly'),
+            `<span id="fdInfoStatusMostly" style="color:var(--tx3);">—</span>`));
     }
 
     const _aboutRowsHtml = `<div class="fd-group-rep-label">${t('profiles.meta.infos_title', 'Infos')}</div>
@@ -834,6 +836,39 @@ function renderFriendDetail(d) {
         <div id="fdMiniTl" style="max-height:160px;overflow-y:auto;"></div>
         <div id="fdUserActivity" style="max-height:160px;overflow-y:auto;display:none;"></div>`;
 
+    const insightsHtml = `<div class="fd-content-pills" style="margin-bottom:10px;">
+            <button class="fd-tab fd-insights-pill active" onclick="switchFdInsightsPill('worlds',this)">${t('profiles.insights.most_visited_worlds', 'Most Visited Worlds')}</button>
+            <button class="fd-tab fd-insights-pill" onclick="switchFdInsightsPill('persons',this)">${t('profiles.insights.interacted_most', 'Interacted the most with')}</button>
+        </div>
+        <div id="fdInsightsWorlds" style="max-height:280px;overflow-y:auto;"><div style="padding:4px 0;font-size:12px;color:var(--tx3);">${t('profiles.insights.loading', 'Loading...')}</div></div>
+        <div id="fdInsightsPersons" style="max-height:280px;overflow-y:auto;display:none;"></div>`;
+
+    const heatmapHtml = `<div class="fd-hm-header">
+            <div class="fd-hm-head-left">
+                <button class="vrcn-button" onclick="fdReloadHeatmap()" title="${esc(t('common.refresh', 'Refresh'))}"><span class="msi" id="fdHmRefreshIcon" style="font-size:14px;">refresh</span></button>
+                <span class="fd-hm-count" id="fdHmCount">&nbsp;</span>
+            </div>
+            <div class="fd-hm-head-right">
+                <select id="fdHmView" class="vrcn-dropdown" onchange="fdChangeHeatmapView(this.value)">
+                    <option value="online" selected>${esc(t('profiles.heatmap.view_online', 'Online'))}</option>
+                    <option value="all">${esc(t('profiles.heatmap.view_all_statuses', 'All Statuses'))}</option>
+                    <option value="join me">${esc(t('status.join_me', 'Join Me'))}</option>
+                    <option value="active">${esc(t('status.online', 'Online'))}</option>
+                    <option value="ask me">${esc(t('status.ask_me', 'Ask Me'))}</option>
+                    <option value="busy">${esc(t('status.do_not_disturb', 'Do Not Disturb'))}</option>
+                </select>
+                <select id="fdHmPeriod" class="vrcn-dropdown" onchange="fdChangeHeatmapPeriod(this.value)">
+                    <option value="7">${esc(t('profiles.heatmap.last_7', 'Last 7 Days'))}</option>
+                    <option value="30" selected>${esc(t('profiles.heatmap.last_30', 'Last 30 Days'))}</option>
+                    <option value="90">${esc(t('profiles.heatmap.last_90', 'Last 90 Days'))}</option>
+                    <option value="0">${esc(t('profiles.heatmap.all_time', 'All Time'))}</option>
+                </select>
+            </div>
+        </div>
+        <div class="fd-hm-stats" id="fdHmStats"></div>
+        <div class="fd-hm-grid-wrap" id="fdHmGridWrap"><div style="padding:16px 0;font-size:12px;color:var(--tx3);text-align:center;">${t('profiles.insights.loading', 'Loading...')}</div></div>
+        <div class="fd-hm-status-wrap" id="fdHmStatusWrap" style="display:none;"></div>`;
+
     const bannerSrc = d.profilePicOverride || d.currentAvatarImageUrl || d.image || '';
     const fdHeaderActions = renderModalActions(_fdBuildTaskbarActions(d));
 
@@ -883,6 +918,8 @@ function renderFriendDetail(d) {
     </div>` : '';
     const _noteCard = `<div class="fd-info-card">${vrcNoteHtml}</div>`;
     const _tlCard = `<div class="fd-info-card">${miniTlHtml}</div>`;
+    const _insightsCard = `<div class="fd-info-card">${insightsHtml}</div>`;
+    const _heatmapCard = `<div class="fd-info-card">${heatmapHtml}</div>`;
     const _infosCard = `<div class="fd-info-card">${_aboutRowsHtml}</div>`;
     const _trustCard = trustSideHtml ? `<div class="fd-info-card">${trustSideHtml}</div>` : '';
     const _repCard = repGroupInfoHtml ? `<div class="fd-info-card">${repGroupInfoHtml}</div>` : '';
@@ -901,6 +938,8 @@ function renderFriendDetail(d) {
                 </div>
             </div>
             ${_tlCard}
+            ${_insightsCard}
+            ${_heatmapCard}
         </div>`
         : `<div class="fd-info-wrap">
             <div class="fd-info-cols">
@@ -912,6 +951,8 @@ function renderFriendDetail(d) {
                 </div>
             </div>
             ${_tlCard}
+            ${_insightsCard}
+            ${_heatmapCard}
         </div>`;
 
     const hasGroups = allGroups.length > 0 || repG;
@@ -986,7 +1027,7 @@ function renderFriendDetail(d) {
     }
 
     // Enhance sort dropdowns into custom vn-select
-    ['fdGroupsSort', 'fdMutualsSort', 'fdMutualsGroupsSort'].forEach(id => {
+    ['fdGroupsSort', 'fdMutualsSort', 'fdMutualsGroupsSort', 'fdHmView', 'fdHmPeriod'].forEach(id => {
         const sel = document.getElementById(id);
         if (sel && typeof initVnSelect === 'function') initVnSelect(sel);
     });
@@ -1032,6 +1073,9 @@ function renderFriendDetail(d) {
     if (userId) sendToCS({ action: 'vrcGetUserAvatars', userId: userId });
     if (userId) { _fdTimelineEvents = []; sendToCS({ action: 'getTimelineForUser', userId }); }
     if (userId) sendToCS({ action: 'getFriendActivityForUser', userId });
+    if (userId) sendToCS({ action: 'getProfileInsights', userId });
+    if (userId) { _fdHeatmapDays = 30; _fdHeatmapView = 'online'; _fdStatusData = null; sendToCS({ action: 'getUserOnlineHeatmap', userId, days: 30 }); }
+    if (userId && !isSelf) sendToCS({ action: 'getUserStatusTime', userId, days: 30 });
 
     if (_fdLiveTimer) { clearInterval(_fdLiveTimer); _fdLiveTimer = null; }
     if (d.inSameInstance && !(currentVrcUser && d.id === currentVrcUser.id)) {
@@ -1297,6 +1341,321 @@ function switchFdMiniTlPill(pill, btn) {
     if (btn) btn.classList.add('active');
 }
 
+function switchFdInsightsPill(pill, btn) {
+    const w = document.getElementById('fdInsightsWorlds');
+    const p = document.getElementById('fdInsightsPersons');
+    if (w) w.style.display = pill === 'worlds'  ? '' : 'none';
+    if (p) p.style.display = pill === 'persons' ? '' : 'none';
+    document.querySelectorAll('.fd-insights-pill').forEach(x => x.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+}
+
+function renderFdProfileInsights(payload) {
+    if (!currentFriendDetail || currentFriendDetail.id !== payload.userId) return;
+    renderFdInsightsWorlds(payload.worlds || []);
+    renderFdInsightsPersons(payload.persons || []);
+}
+
+function renderFdInsightsWorlds(worlds) {
+    const el = document.getElementById('fdInsightsWorlds');
+    if (!el) return;
+    if (!worlds.length) {
+        el.innerHTML = `<div style="padding:4px 0;font-size:12px;color:var(--tx3);">${t('profiles.insights.no_worlds', 'No world data yet')}</div>`;
+        return;
+    }
+    const maxVisits = worlds[0].visits || 1;
+    el.innerHTML = '<div class="ts-items">' + worlds.map((w, i) => {
+        const pct = Math.round((w.visits / maxVisits) * 100);
+        const thumb = w.worldThumb
+            ? `<img class="ts-item-thumb" src="${esc(w.worldThumb)}" onerror="this.style.display='none'">`
+            : `<div class="ts-item-thumb ts-thumb-placeholder"><span class="msi" style="font-size:18px;color:var(--tx3);">travel_explore</span></div>`;
+        const click = w.worldId ? `onclick="navOpenModal('worldSearch','${jsq(w.worldId)}','${jsq(w.worldName || '')}')" style="cursor:pointer"` : '';
+        const visits = tf(`timespent.visit.${w.visits === 1 ? 'one' : 'other'}`, { count: w.visits }, `${w.visits} visit${w.visits === 1 ? '' : 's'}`);
+        return `<div class="ts-item" ${click}>
+            <div class="ts-item-rank">#${i + 1}</div>
+            ${thumb}
+            <div class="ts-item-body">
+                <div class="ts-item-name">${esc(w.worldName || t('timespent.unknown_world_full', 'Unknown World'))}</div>
+                <div class="ts-item-meta"><span class="msi" style="font-size:12px;color:var(--tx3);">login</span><span>${visits}</span></div>
+                <div class="ts-bar-wrap"><div class="ts-bar" style="width:${pct}%"></div></div>
+            </div>
+        </div>`;
+    }).join('') + '</div>';
+}
+
+function renderFdInsightsPersons(persons) {
+    const el = document.getElementById('fdInsightsPersons');
+    if (!el) return;
+    if (!persons.length) {
+        el.innerHTML = `<div style="padding:4px 0;font-size:12px;color:var(--tx3);">${t('profiles.insights.no_persons', 'No interaction data yet')}</div>`;
+        return;
+    }
+    const friendIds = new Set((typeof vrcFriendsData !== 'undefined' ? vrcFriendsData : []).map(f => f.id));
+    const maxMeets = persons[0].meets || 1;
+    el.innerHTML = '<div class="ts-items">' + persons.map((p, i) => {
+        const pct = Math.round((p.meets / maxMeets) * 100);
+        const isFriend = friendIds.has(p.userId);
+        const avatar = p.image
+            ? `<img class="ts-item-avatar" src="${esc(p.image)}" onerror="this.style.display='none'">`
+            : `<div class="ts-item-avatar ts-avatar-placeholder"><span class="msi" style="font-size:16px;color:var(--tx3);">person</span></div>`;
+        const encounters = tf(`timespent.encounter.${p.meets === 1 ? 'one' : 'other'}`, { count: p.meets }, `${p.meets} encounter${p.meets === 1 ? '' : 's'}`);
+        return `<div class="ts-item" onclick="navOpenModal('friend','${jsq(p.userId)}','${jsq(p.displayName || '')}')" style="cursor:pointer">
+            <div class="ts-item-rank">#${i + 1}</div>
+            <div class="ts-avatar-wrap">${avatar}</div>
+            <div class="ts-item-body">
+                <div class="ts-item-name">${esc(p.displayName || p.userId)}</div>
+                <div class="ts-item-meta"><span class="msi" style="font-size:12px;color:var(--tx3);">handshake</span><span>${encounters}</span></div>
+                <div class="ts-bar-wrap"><div class="ts-bar ${isFriend ? 'ts-bar-friend' : 'ts-bar-stranger'}" style="width:${pct}%"></div></div>
+            </div>
+        </div>`;
+    }).join('') + '</div>';
+}
+
+let _fdHeatmapDays = 30;
+let _fdHeatmapView = 'online';
+let _fdStatusData = null;
+
+function fdRequestHeatmap() {
+    const uid = currentFriendDetail?.id;
+    if (!uid) return;
+    const icon = document.getElementById('fdHmRefreshIcon');
+    if (icon) icon.classList.add('ts-spin');
+    const isStatus = _fdHeatmapView !== 'online';
+    if (isStatus) {
+        const sw = document.getElementById('fdHmStatusWrap');
+        if (sw && !sw.querySelector('.fd-hm-grid'))
+            sw.innerHTML = `<div style="padding:16px 0;font-size:12px;color:var(--tx3);text-align:center;">${t('profiles.insights.loading', 'Loading...')}</div>`;
+    }
+    sendToCS({ action: isStatus ? 'getUserStatusTime' : 'getUserOnlineHeatmap', userId: uid, days: _fdHeatmapDays });
+}
+
+function fdChangeHeatmapPeriod(v) {
+    _fdHeatmapDays = parseInt(v, 10) || 0;
+    _fdStatusData = null;
+    fdRequestHeatmap();
+}
+
+function fdChangeHeatmapView(v) {
+    _fdHeatmapView = v;
+    const isOnline = v === 'online';
+    const grid = document.getElementById('fdHmGridWrap');
+    const status = document.getElementById('fdHmStatusWrap');
+    if (grid) grid.style.display = isOnline ? '' : 'none';
+    if (status) status.style.display = isOnline ? 'none' : '';
+    if (isOnline) { fdRequestHeatmap(); return; }
+    const uid = currentFriendDetail?.id;
+    if (_fdStatusData && _fdStatusData.userId === uid && _fdStatusData.days === _fdHeatmapDays) {
+        renderFdStatusTime(_fdStatusData);
+    } else {
+        fdRequestHeatmap();
+    }
+}
+
+function fdReloadHeatmap() {
+    if (_fdHeatmapView !== 'online') _fdStatusData = null;
+    fdRequestHeatmap();
+}
+
+function fdFmtMinutes(mins) {
+    const m = Math.round(mins);
+    if (m < 60) return `${m}m`;
+    const h = Math.floor(m / 60);
+    const rem = m % 60;
+    return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
+}
+
+function renderFdOnlineHeatmap(payload) {
+    if (!currentFriendDetail || currentFriendDetail.id !== payload.userId) return;
+    const icon = document.getElementById('fdHmRefreshIcon');
+    if (icon) icon.classList.remove('ts-spin');
+
+    const buckets = payload.buckets || [];
+    const totalMinutes = payload.totalMinutes || 0;
+
+    const countEl = document.getElementById('fdHmCount');
+    if (countEl) countEl.textContent = totalMinutes > 0
+        ? tf('profiles.heatmap.total_online', { time: fdFmtMinutes(totalMinutes) }, `${fdFmtMinutes(totalMinutes)} online`)
+        : '';
+
+    const base = new Date(Date.UTC(2024, 0, 8));
+    const fmt = new Intl.DateTimeFormat(typeof getLanguageLocale === 'function' ? getLanguageLocale() : undefined, { weekday: 'short' });
+    const dayLabels = Array.from({ length: 7 }, (_, i) => fmt.format(new Date(base.getTime() + i * 86400000)));
+
+    let max = 0;
+    const dayTotals = new Array(7).fill(0);
+    const hourTotals = new Array(24).fill(0);
+    for (let d = 0; d < 7; d++) {
+        for (let h = 0; h < 24; h++) {
+            const val = buckets[d * 24 + h] || 0;
+            if (val > max) max = val;
+            dayTotals[d] += val;
+            hourTotals[h] += val;
+        }
+    }
+
+    const statsEl = document.getElementById('fdHmStats');
+    if (statsEl) {
+        if (totalMinutes <= 0) {
+            statsEl.innerHTML = '';
+        } else {
+            let bestDay = 0;
+            for (let d = 1; d < 7; d++) if (dayTotals[d] > dayTotals[bestDay]) bestDay = d;
+
+            const maxHour = Math.max(...hourTotals);
+            let peakLabel = '';
+            if (maxHour > 0) {
+                const threshold = maxHour * 0.7;
+                let startH = hourTotals.indexOf(maxHour);
+                let endH = startH;
+                while (startH > 0 && hourTotals[startH - 1] >= threshold) startH--;
+                while (endH < 23 && hourTotals[endH + 1] >= threshold) endH++;
+                peakLabel = startH === endH
+                    ? `${String(startH).padStart(2, '0')}:00`
+                    : `${String(startH).padStart(2, '0')}:00-${String(endH + 1).padStart(2, '0')}:00`;
+            }
+            statsEl.innerHTML = `<span>${t('profiles.heatmap.most_active_day', 'Most active day')}: <strong>${esc(dayLabels[bestDay])}</strong></span>
+                <span>${t('profiles.heatmap.peak_hours', 'Peak hours')}: <strong>${esc(peakLabel)}</strong></span>`;
+        }
+    }
+
+    const wrap = document.getElementById('fdHmGridWrap');
+    if (!wrap) return;
+    if (totalMinutes <= 0) {
+        wrap.innerHTML = `<div style="padding:16px 0;font-size:12px;color:var(--tx3);text-align:center;">${t('profiles.heatmap.empty', 'No online activity recorded yet')}</div>`;
+        return;
+    }
+
+    let rowsHtml = '';
+    for (let d = 0; d < 7; d++) {
+        let cells = '';
+        for (let h = 0; h < 24; h++) {
+            const val = buckets[d * 24 + h] || 0;
+            const intensity = max > 0 ? Math.sqrt(val / max) : 0;
+            const title = `${dayLabels[d]} ${String(h).padStart(2, '0')}:00 · ${fdFmtMinutes(val)}`;
+            const style = val > 0
+                ? `style="background:color-mix(in srgb, var(--accent) ${Math.round(20 + intensity * 80)}%, transparent);"`
+                : '';
+            cells += `<div class="fd-hm-cell" ${style} title="${esc(title)}"></div>`;
+        }
+        rowsHtml += `<div class="fd-hm-row"><div class="fd-hm-row-label">${esc(dayLabels[d])}</div><div class="fd-hm-cells">${cells}</div></div>`;
+    }
+
+    let axis = '<div class="fd-hm-axis"><div class="fd-hm-axis-spacer"></div><div class="fd-hm-axis-hours">';
+    for (let h = 0; h < 24; h++) {
+        axis += `<div class="fd-hm-axis-h">${h % 3 === 0 ? String(h).padStart(2, '0') + ':00' : ''}</div>`;
+    }
+    axis += '</div></div>';
+
+    wrap.innerHTML = `<div class="fd-hm-grid">${rowsHtml}</div>${axis}`;
+}
+
+const FD_STATUS_ORDER = ['join me', 'ask me', 'active', 'busy'];
+
+function fdStatusMeta() {
+    return {
+        'join me': { label: t('status.join_me', 'Join Me'), color: 'var(--status-join)' },
+        'active':  { label: t('status.online', 'Online'), color: 'var(--status-online)' },
+        'ask me':  { label: t('status.ask_me', 'Ask Me'), color: 'var(--status-ask)' },
+        'busy':    { label: t('status.do_not_disturb', 'Do Not Disturb'), color: 'var(--status-busy)' },
+    };
+}
+
+function renderFdStatusTime(payload) {
+    if (!currentFriendDetail || currentFriendDetail.id !== payload.userId) return;
+
+    const META = fdStatusMeta();
+    const buckets = payload.buckets || {};
+    const totals = payload.totals || {};
+    const total = payload.totalSeconds || 0;
+
+    const mostlyEl = document.getElementById('fdInfoStatusMostly');
+    if (mostlyEl && payload.days === 30) {
+        let topKey = '', topSec = 0;
+        for (const k of Object.keys(META)) { const s = totals[k] || 0; if (s > topSec) { topSec = s; topKey = k; } }
+        if (topKey) {
+            mostlyEl.textContent = META[topKey].label;
+            mostlyEl.style.color = META[topKey].color;
+        } else {
+            mostlyEl.textContent = '—';
+            mostlyEl.style.color = 'var(--tx3)';
+        }
+    }
+
+    _fdStatusData = payload;
+    if (_fdHeatmapView === 'online') return;
+
+    const icon = document.getElementById('fdHmRefreshIcon');
+    if (icon) icon.classList.remove('ts-spin');
+
+    const wrap = document.getElementById('fdHmStatusWrap');
+    if (!wrap) return;
+
+    const countEl = document.getElementById('fdHmCount');
+    if (countEl) countEl.textContent = total > 0 ? fdFmtMinutes(total / 60) : '';
+
+    const statsEl = document.getElementById('fdHmStats');
+    if (statsEl) {
+        statsEl.innerHTML = FD_STATUS_ORDER.map(k => {
+            const secs = totals[k] || 0;
+            const pct = total > 0 ? Math.round((secs / total) * 100) : 0;
+            return `<span class="fd-st-chip"><span class="fd-st-cdot" style="background:${META[k].color};"></span>${esc(META[k].label)} ${pct}% ${fdFmtMinutes(secs / 60)}</span>`;
+        }).join('');
+    }
+
+    if (total <= 0) {
+        wrap.innerHTML = `<div style="padding:16px 0;font-size:12px;color:var(--tx3);text-align:center;">${t('profiles.heatmap.no_status', 'No status data yet')}</div>`;
+        return;
+    }
+
+    const base = new Date(Date.UTC(2024, 0, 8));
+    const fmt = new Intl.DateTimeFormat(typeof getLanguageLocale === 'function' ? getLanguageLocale() : undefined, { weekday: 'short' });
+    const dayLabels = Array.from({ length: 7 }, (_, i) => fmt.format(new Date(base.getTime() + i * 86400000)));
+
+    const view = _fdHeatmapView;
+    const keys = Object.keys(META);
+
+    const cellVal = (slot) => {
+        if (view === 'all') {
+            let sum = 0, domKey = '', domVal = 0;
+            for (const k of keys) {
+                const v = (buckets[k] && buckets[k][slot]) || 0;
+                sum += v;
+                if (v > domVal) { domVal = v; domKey = k; }
+            }
+            return { val: sum, color: domKey ? META[domKey].color : 'var(--accent)', dom: domKey };
+        }
+        const v = (buckets[view] && buckets[view][slot]) || 0;
+        return { val: v, color: META[view] ? META[view].color : 'var(--accent)', dom: view };
+    };
+
+    let max = 0;
+    for (let slot = 0; slot < 168; slot++) { const c = cellVal(slot).val; if (c > max) max = c; }
+
+    let rowsHtml = '';
+    for (let d = 0; d < 7; d++) {
+        let cells = '';
+        for (let h = 0; h < 24; h++) {
+            const c = cellVal(d * 24 + h);
+            const intensity = max > 0 ? Math.sqrt(c.val / max) : 0;
+            const domLabel = c.dom && META[c.dom] ? ` (${META[c.dom].label})` : '';
+            const title = `${dayLabels[d]} ${String(h).padStart(2, '0')}:00 · ${fdFmtMinutes(c.val)}${view === 'all' && c.val > 0 ? esc(domLabel) : ''}`;
+            const style = c.val > 0
+                ? `style="background:color-mix(in srgb, ${c.color} ${Math.round(20 + intensity * 80)}%, transparent);"`
+                : '';
+            cells += `<div class="fd-hm-cell" ${style} title="${esc(title)}"></div>`;
+        }
+        rowsHtml += `<div class="fd-hm-row"><div class="fd-hm-row-label">${esc(dayLabels[d])}</div><div class="fd-hm-cells">${cells}</div></div>`;
+    }
+
+    let axis = '<div class="fd-hm-axis"><div class="fd-hm-axis-spacer"></div><div class="fd-hm-axis-hours">';
+    for (let h = 0; h < 24; h++) {
+        axis += `<div class="fd-hm-axis-h">${h % 3 === 0 ? String(h).padStart(2, '0') + ':00' : ''}</div>`;
+    }
+    axis += '</div></div>';
+
+    wrap.innerHTML = `<div class="fd-hm-grid">${rowsHtml}</div>${axis}`;
+}
+
 function friendAction(action, location, userId) {
     const btnContainer = document.querySelector('.fd-actions');
     if (btnContainer) btnContainer.querySelectorAll('button').forEach(b => b.disabled = true);
@@ -1362,7 +1721,10 @@ function renderFriendFavPicker(userId) {
         return `<div class="fd-group-card ci-group-card${isCurrent ? ' ci-group-selected' : ''}"
             onclick="addFriendToFavGroup('${uid}','${gn}','${oldFvrt}',this)" style="cursor:pointer;">
             <div style="flex:1;min-width:0;">
-                <div style="font-size:12px;font-weight:600;color:var(--tx1);">${esc(g.displayName || g.name)}</div>
+                <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                    <span style="font-size:12px;font-weight:600;color:var(--tx1);">${esc(g.displayName || g.name)}</span>
+                    ${favGroupBadge(g)}
+                </div>
                 <div style="font-size:10px;color:var(--tx3);margin-top:1px;">${count}/${cap} friends</div>
             </div>
             ${check}
@@ -1422,6 +1784,7 @@ function handleFriendFavoriteResult(data) {
         filterFavFriends();
         _scheduleBgFavFriendRefresh();
     } else {
+        if (data.error) showToast(false, localFavErrorText(data.error));
         const list = document.getElementById('fdFavGroupList');
         if (list) {
             list.innerHTML = `<div style="font-size:11px;color:var(--err,#e55);padding:6px 0;">Failed to move. Try again.</div>`;

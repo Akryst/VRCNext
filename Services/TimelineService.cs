@@ -2204,6 +2204,375 @@ public class TimelineService : IDisposable
         };
     }
 
+    public class ProfileInsights
+    {
+        public List<WorldTimeEntry>  Worlds  { get; set; } = new();
+        public List<PersonTimeEntry> Persons { get; set; } = new();
+    }
+
+    public ProfileInsights GetUserProfileInsights(string userId, string selfId = "", int limit = 10)
+    {
+        var result = new ProfileInsights();
+        if (string.IsNullOrEmpty(userId)) return result;
+
+        var worldStats  = new Dictionary<string, (string Name, string Thumb, int Visits)>();
+        var personStats = new Dictionary<string, (string Name, string Image, int Meets)>();
+
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT world_id, world_name, world_thumb FROM friend_events
+                WHERE type='friend_gps' AND friend_id=$uid AND world_id != ''";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var wid = r.GetString(0);
+                if (string.IsNullOrEmpty(wid)) continue;
+                worldStats.TryGetValue(wid, out var ws);
+                var name  = string.IsNullOrEmpty(r.GetString(1)) ? ws.Name  : r.GetString(1);
+                var thumb = string.IsNullOrEmpty(r.GetString(2)) ? ws.Thumb : r.GetString(2);
+                worldStats[wid] = (name, thumb, ws.Visits + 1);
+            }
+        }
+        catch { }
+
+        var eventIds = new List<string>();
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT DISTINCT e.id FROM events e
+                JOIN event_players ep ON e.id = ep.event_id
+                WHERE e.type='instance_join' AND ep.user_id=$uid";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) eventIds.Add(r.GetString(0));
+        }
+        catch { }
+
+        if (eventIds.Count > 0)
+        {
+            var worldByEvent = new Dictionary<string, (string WorldId, string Name, string Thumb)>();
+            try
+            {
+                var inE = string.Join(",", eventIds.Select((_, i) => $"$e{i}"));
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = $"SELECT id, world_id, world_name, world_thumb FROM events WHERE id IN ({inE})";
+                for (int i = 0; i < eventIds.Count; i++) cmd.Parameters.AddWithValue($"$e{i}", eventIds[i]);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    worldByEvent[r.GetString(0)] = (r.GetString(1), r.GetString(2), r.GetString(3));
+            }
+            catch { }
+
+            var playersByEvent = new Dictionary<string, List<(string UserId, string Name, string Image)>>();
+            try
+            {
+                var inE = string.Join(",", eventIds.Select((_, i) => $"$e{i}"));
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = $"SELECT event_id,user_id,display_name,image FROM event_players WHERE event_id IN ({inE})";
+                for (int i = 0; i < eventIds.Count; i++) cmd.Parameters.AddWithValue($"$e{i}", eventIds[i]);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    var eid = r.GetString(0);
+                    if (!playersByEvent.TryGetValue(eid, out var list)) playersByEvent[eid] = list = new();
+                    list.Add((r.GetString(1), r.GetString(2), r.GetString(3)));
+                }
+            }
+            catch { }
+
+            string selfName = "", selfImage = "";
+            int selfMeets = 0;
+
+            foreach (var eid in eventIds)
+            {
+                if (!playersByEvent.TryGetValue(eid, out var players)) continue;
+                if (!players.Any(p => p.UserId == userId)) continue;
+
+                if (worldByEvent.TryGetValue(eid, out var w) && !string.IsNullOrEmpty(w.WorldId))
+                {
+                    worldStats.TryGetValue(w.WorldId, out var ws);
+                    var wName  = string.IsNullOrEmpty(w.Name)  ? ws.Name  : w.Name;
+                    var wThumb = string.IsNullOrEmpty(w.Thumb) ? ws.Thumb : w.Thumb;
+                    worldStats[w.WorldId] = (wName, wThumb, ws.Visits + 1);
+                }
+
+                if (!string.IsNullOrEmpty(selfId) && selfId != userId) selfMeets++;
+
+                foreach (var p in players)
+                {
+                    if (string.IsNullOrEmpty(p.UserId) || p.UserId == userId) continue;
+                    if (p.UserId == selfId)
+                    {
+                        if (string.IsNullOrEmpty(selfName)  && !string.IsNullOrEmpty(p.Name))  selfName  = p.Name;
+                        if (string.IsNullOrEmpty(selfImage) && !string.IsNullOrEmpty(p.Image)) selfImage = p.Image;
+                        continue;
+                    }
+                    personStats.TryGetValue(p.UserId, out var ps);
+                    var pName  = string.IsNullOrEmpty(p.Name)  ? ps.Name  : p.Name;
+                    var pImage = string.IsNullOrEmpty(p.Image) ? ps.Image : p.Image;
+                    personStats[p.UserId] = (pName, pImage, ps.Meets + 1);
+                }
+            }
+
+            if (selfMeets > 0)
+            {
+                personStats.TryGetValue(selfId, out var sps);
+                personStats[selfId] = (
+                    string.IsNullOrEmpty(selfName)  ? sps.Name  : selfName,
+                    string.IsNullOrEmpty(selfImage) ? sps.Image : selfImage,
+                    sps.Meets + selfMeets);
+            }
+        }
+
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT c.friend_id, c.friend_name, c.friend_image
+                FROM friend_events e
+                JOIN friend_event_colocated c ON c.event_id = e.id
+                WHERE e.type='friend_gps' AND e.friend_id=$uid";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var fid = r.GetString(0);
+                if (string.IsNullOrEmpty(fid) || fid == userId) continue;
+                personStats.TryGetValue(fid, out var ps);
+                var name  = string.IsNullOrEmpty(r.GetString(1)) ? ps.Name  : r.GetString(1);
+                var image = string.IsNullOrEmpty(r.GetString(2)) ? ps.Image : r.GetString(2);
+                personStats[fid] = (name, image, ps.Meets + 1);
+            }
+        }
+        catch { }
+
+        result.Worlds = worldStats
+            .Select(kv => new WorldTimeEntry
+            {
+                WorldId    = kv.Key,
+                WorldName  = kv.Value.Name,
+                WorldThumb = kv.Value.Thumb,
+                Visits     = kv.Value.Visits,
+            })
+            .OrderByDescending(w => w.Visits)
+            .Take(limit)
+            .ToList();
+
+        result.Persons = personStats
+            .Select(kv => new PersonTimeEntry
+            {
+                UserId      = kv.Key,
+                DisplayName = kv.Value.Name,
+                Image       = kv.Value.Image,
+                Meets       = kv.Value.Meets,
+            })
+            .OrderByDescending(p => p.Meets)
+            .Take(limit)
+            .ToList();
+
+        return result;
+    }
+
+    public class OnlineHeatmap
+    {
+        public double[] Buckets      { get; set; } = new double[7 * 24];
+        public double   TotalMinutes { get; set; }
+        public int      Sessions     { get; set; }
+    }
+
+    private List<(DateTime Start, DateTime End)> BuildMergedOnlineSessions(string userId)
+    {
+        const double MAX_SESSION_MIN = 8 * 60;
+        const double MERGE_GAP_MIN   = 5;
+
+        var result = new List<(DateTime Start, DateTime End)>();
+        if (string.IsNullOrEmpty(userId)) return result;
+
+        var events = new List<(DateTime Ts, bool IsOnline)>();
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT timestamp, type FROM friend_events
+                WHERE friend_id=$uid AND (type='friend_online' OR type='friend_offline')
+                ORDER BY timestamp ASC";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                if (!DateTime.TryParse(r.GetString(0), null,
+                    System.Globalization.DateTimeStyles.RoundtripKind, out var dt)) continue;
+                events.Add((dt.ToUniversalTime(), r.GetString(1) == "friend_online"));
+            }
+        }
+        catch { return result; }
+
+        if (events.Count == 0) return result;
+
+        var now = DateTime.UtcNow;
+        var sessions = new List<(DateTime Start, DateTime End)>();
+        DateTime? curStart = null;
+        foreach (var (ts, isOnline) in events)
+        {
+            if (isOnline)
+            {
+                if (curStart != null) sessions.Add((curStart.Value, ts));
+                curStart = ts;
+            }
+            else if (curStart != null)
+            {
+                sessions.Add((curStart.Value, ts));
+                curStart = null;
+            }
+        }
+        if (curStart != null) sessions.Add((curStart.Value, now));
+
+        sessions.Sort((a, b) => a.Start.CompareTo(b.Start));
+        foreach (var s in sessions)
+        {
+            if (result.Count > 0 && (s.Start - result[^1].End).TotalMinutes <= MERGE_GAP_MIN)
+            {
+                if (s.End > result[^1].End) result[^1] = (result[^1].Start, s.End);
+            }
+            else result.Add(s);
+        }
+
+        for (int i = 0; i < result.Count; i++)
+        {
+            var cap = result[i].Start.AddMinutes(MAX_SESSION_MIN);
+            if (result[i].End > cap) result[i] = (result[i].Start, cap);
+        }
+
+        return result;
+    }
+
+    public OnlineHeatmap GetUserOnlineHeatmap(string userId, int days = 30)
+    {
+        var hm = new OnlineHeatmap();
+        if (string.IsNullOrEmpty(userId)) return hm;
+
+        var merged = BuildMergedOnlineSessions(userId);
+        if (merged.Count == 0) return hm;
+
+        var now = DateTime.UtcNow;
+        var windowStart = days > 0 ? now.AddDays(-days) : new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        foreach (var s in merged)
+        {
+            var start = s.Start > windowStart ? s.Start : windowStart;
+            var end   = s.End   < now         ? s.End   : now;
+            if (end <= start) continue;
+
+            hm.Sessions++;
+            hm.TotalMinutes += AddIntervalMinutes(hm.Buckets, start, end);
+        }
+
+        return hm;
+    }
+
+    private static double AddIntervalMinutes(double[] buckets, DateTime start, DateTime end)
+    {
+        double total = 0;
+        var cursor = start;
+        while (cursor < end)
+        {
+            var local = cursor.ToLocalTime();
+            int dow  = ((int)local.DayOfWeek + 6) % 7;
+            int hour = local.Hour;
+            var nextBoundaryUtc = local.Date.AddHours(hour + 1).ToUniversalTime();
+            var segEnd = nextBoundaryUtc < end ? nextBoundaryUtc : end;
+            var mins = (segEnd - cursor).TotalMinutes;
+            buckets[dow * 24 + hour] += mins;
+            total += mins;
+            cursor = segEnd;
+        }
+        return total;
+    }
+
+    public class StatusBreakdown
+    {
+        public Dictionary<string, double[]> Buckets { get; set; } = new();
+        public Dictionary<string, double>   Seconds { get; set; } = new();
+        public double TotalSeconds { get; set; }
+    }
+
+    public StatusBreakdown GetUserStatusBreakdown(string userId, int days = 30)
+    {
+        var bd = new StatusBreakdown();
+        if (string.IsNullOrEmpty(userId)) return bd;
+
+        var sessions = BuildMergedOnlineSessions(userId);
+        if (sessions.Count == 0) return bd;
+
+        var transitions = new List<(DateTime Ts, string Status)>();
+        string initialStatus = "";
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT timestamp, old_value, new_value FROM friend_events
+                WHERE type='friend_status' AND friend_id=$uid ORDER BY timestamp ASC";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                if (!DateTime.TryParse(r.GetString(0), null,
+                    System.Globalization.DateTimeStyles.RoundtripKind, out var dt)) continue;
+                if (transitions.Count == 0) initialStatus = r.IsDBNull(1) ? "" : r.GetString(1);
+                transitions.Add((dt.ToUniversalTime(), r.IsDBNull(2) ? "" : r.GetString(2)));
+            }
+        }
+        catch { }
+
+        if (string.IsNullOrEmpty(initialStatus)) initialStatus = "active";
+
+        var now = DateTime.UtcNow;
+        var windowStart = days > 0 ? now.AddDays(-days) : new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        foreach (var s in sessions)
+        {
+            var start = s.Start > windowStart ? s.Start : windowStart;
+            var end   = s.End   < now         ? s.End   : now;
+            if (end <= start) continue;
+
+            var curStatus = StatusAt(start, transitions, initialStatus);
+            var cursor = start;
+            foreach (var tr in transitions)
+            {
+                if (tr.Ts <= cursor) continue;
+                if (tr.Ts >= end) break;
+                AddStatusSegment(bd, curStatus, cursor, tr.Ts);
+                curStatus = tr.Status;
+                cursor = tr.Ts;
+            }
+            AddStatusSegment(bd, curStatus, cursor, end);
+        }
+
+        return bd;
+    }
+
+    private static string StatusAt(DateTime time, List<(DateTime Ts, string Status)> transitions, string initialStatus)
+    {
+        var status = initialStatus;
+        foreach (var tr in transitions)
+        {
+            if (tr.Ts > time) break;
+            status = tr.Status;
+        }
+        return status;
+    }
+
+    private static void AddStatusSegment(StatusBreakdown bd, string status, DateTime start, DateTime end)
+    {
+        var seconds = (end - start).TotalSeconds;
+        if (seconds <= 0) return;
+        if (string.IsNullOrEmpty(status) || status == "offline") status = "active";
+        if (!bd.Buckets.TryGetValue(status, out var buckets)) bd.Buckets[status] = buckets = new double[7 * 24];
+        AddIntervalMinutes(buckets, start, end);
+        bd.Seconds.TryGetValue(status, out var cur);
+        bd.Seconds[status] = cur + seconds;
+        bd.TotalSeconds += seconds;
+    }
+
     // World Insights.
 
     public class WorldStatPoint

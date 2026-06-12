@@ -78,6 +78,14 @@ public partial class AppShell
         }
     }
 
+    // Re-fetches the favorites list for a kind so local group changes (create/delete) refresh the UI.
+    private void RefreshLocalFavKind(string kind)
+    {
+        if (kind == "avatar") _ = Task.Run(_authCtrl.FetchAndCacheFavAvatarsAsync);
+        else if (kind == "friend") _ = Task.Run(_friends.FetchAndCacheFavFriendsAsync);
+        else _ = Task.Run(_authCtrl.FetchAndCacheFavWorldsAsync);
+    }
+
     private void SaveSharedContentCache()
     {
         var dict = _sharedContentCache;
@@ -1631,6 +1639,109 @@ public partial class AppShell
                     });
                     break;
 
+                case "exportList":
+                {
+                    var exType = msg["type"]?.ToString() ?? "";
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var categories = new List<object>();
+
+                            if (exType == "worlds")
+                            {
+                                var mine = await _core.World.GetMyWorldsAsync();
+                                categories.Add(new { key = "my_worlds", items = mine.OfType<JObject>()
+                                    .Select(w => new { id = w["id"]?.ToString() ?? "", name = w["name"]?.ToString() ?? "" })
+                                    .Where(x => x.id.Length > 0).ToList() });
+
+                                var favWorlds = new List<object>();
+                                var seenW = new HashSet<string>();
+                                var favGroups = await _core.Favorites.GetFavoriteGroupsAsync();
+                                var worldTypes = new HashSet<string> { "world", "vrcPlusWorld" };
+                                foreach (var g in favGroups.Where(g => worldTypes.Contains(g["type"]?.ToString() ?? "")))
+                                {
+                                    var gname = g["name"]?.ToString() ?? "";
+                                    if (gname.Length == 0) continue;
+                                    foreach (var w in await _core.Favorites.GetFavoriteWorldsByGroupAsync(gname, 100))
+                                    {
+                                        var id = w["id"]?.ToString() ?? "";
+                                        if (id.Length == 0 || !seenW.Add(id)) continue;
+                                        favWorlds.Add(new { id, name = w["name"]?.ToString() ?? "" });
+                                    }
+                                }
+                                categories.Add(new { key = "favorited_worlds", items = favWorlds });
+                            }
+                            else if (exType == "avatars")
+                            {
+                                var mine = await _core.Avatars.GetOwnAvatarsAsync();
+                                categories.Add(new { key = "my_avatars", items = mine
+                                    .Select(a => new { id = a["id"]?.ToString() ?? "", name = a["name"]?.ToString() ?? "" })
+                                    .Where(x => x.id.Length > 0).ToList() });
+
+                                var fav = await _core.Avatars.GetFavoriteAvatarsAsync();
+                                categories.Add(new { key = "favorited_avatars", items = fav
+                                    .Select(a => new { id = a["id"]?.ToString() ?? "", name = a["name"]?.ToString() ?? "" })
+                                    .Where(x => x.id.Length > 0).ToList() });
+                            }
+                            else if (exType == "groups")
+                            {
+                                var groups = await _core.Groups.GetUserGroupsAsync();
+                                categories.Add(new { key = "my_groups", items = groups.OfType<JObject>()
+                                    .Select(g => new { id = g["groupId"]?.ToString() ?? g["id"]?.ToString() ?? "", name = g["name"]?.ToString() ?? "" })
+                                    .Where(x => x.id.Length > 0).ToList() });
+                            }
+                            else if (exType == "friends")
+                            {
+                                var store = _friends.GetStoreSnapshot();
+                                categories.Add(new { key = "friends", items = store
+                                    .Select(f => new { id = f["id"]?.ToString() ?? "", name = f["displayName"]?.ToString() ?? "" })
+                                    .Where(x => x.id.Length > 0)
+                                    .OrderBy(x => x.name, StringComparer.OrdinalIgnoreCase).ToList() });
+
+                                var favEntries = await _core.Favorites.GetFavoriteFriendsAsync();
+                                var favIds = favEntries.OfType<JObject>()
+                                    .Select(e => e["favoriteId"]?.ToString() ?? "")
+                                    .Where(s => s.Length > 0).ToHashSet();
+                                categories.Add(new { key = "favorited_friends", items = store
+                                    .Where(f => favIds.Contains(f["id"]?.ToString() ?? ""))
+                                    .Select(f => new { id = f["id"]?.ToString() ?? "", name = f["displayName"]?.ToString() ?? "" })
+                                    .OrderBy(x => x.name, StringComparer.OrdinalIgnoreCase).ToList() });
+                            }
+                            else return;
+
+                            Invoke(() => SendToJS("exportList", new { type = exType, categories }));
+                        }
+                        catch (Exception ex)
+                        {
+                            Invoke(() => SendToJS("log", new { msg = $"Export error: {ex.Message}", color = "err" }));
+                        }
+                    });
+                    break;
+                }
+
+                case "exportSaveCsv":
+                {
+                    var csvText = msg["text"]?.ToString() ?? "";
+                    var rs = Dialog.FileSave("csv");
+                    if (rs.IsOk)
+                    {
+                        var path = rs.Path;
+                        if (!path.EndsWith(".csv", StringComparison.OrdinalIgnoreCase)) path += ".csv";
+                        try
+                        {
+                            System.IO.File.WriteAllText(path, csvText);
+                            SendToJS("log", new { msg = $"Saved: {path}", color = "ok" });
+                            SendToJS("exportSaved", new { ok = true, path });
+                        }
+                        catch (Exception ex)
+                        {
+                            SendToJS("log", new { msg = $"Export save failed: {ex.Message}", color = "err" });
+                        }
+                    }
+                    break;
+                }
+
                 case "getWorldInsights":
                     _ = Task.Run(() =>
                     {
@@ -1696,7 +1807,11 @@ public partial class AppShell
                         var groupName   = msg["groupName"]?.ToString() ?? "";
                         var displayName = msg["displayName"]?.ToString() ?? "";
                         var visibility  = msg["visibility"]?.ToString(); // null = don't change
-                        var ok = await _core.Favorites.UpdateFavoriteGroupAsync(groupType, groupName, displayName, visibility);
+                        bool ok;
+                        if (_core.LocalFavorites.IsLocalGroup(groupName))
+                            ok = string.IsNullOrEmpty(displayName) || _core.LocalFavorites.RenameGroup(groupName, displayName);
+                        else
+                            ok = await _core.Favorites.UpdateFavoriteGroupAsync(groupType, groupName, displayName, visibility);
                         Invoke(() => SendToJS("vrcFavoriteGroupUpdated", new { ok, groupName, displayName, visibility }));
                     });
                     break;
@@ -1716,6 +1831,7 @@ public partial class AppShell
                             .Where(g => !string.IsNullOrEmpty(g.name))
                             .ToList();
                         groupList = AuthController.FillMissingWorldSlots(groupList);
+                        groupList.AddRange(AuthController.BuildLocalGroups(_core.LocalFavorites.GetGroups("world"), "localWorld"));
                         Invoke(() => SendToJS("vrcWorldFavGroups", groupList));
                     });
                     break;
@@ -1736,6 +1852,7 @@ public partial class AppShell
                             .Where(g => !string.IsNullOrEmpty(g.name))
                             .ToList();
                         groupList = AuthController.FillMissingFriendSlots(groupList);
+                        groupList.AddRange(AuthController.BuildLocalGroups(_core.LocalFavorites.GetGroups("friend"), "localFriend"));
                         Invoke(() => SendToJS("vrcFriendFavGroups", groupList));
                     });
                     break;
@@ -1771,6 +1888,16 @@ public partial class AppShell
                         var groupName = msg["groupName"]?.ToString() ?? "";
                         var groupType = msg["groupType"]?.ToString() ?? "world";
                         var oldFvrtId = msg["oldFvrtId"]?.ToString();
+                        bool targetLocal = groupType.StartsWith("local") || _core.LocalFavorites.IsLocalGroup(groupName);
+                        if (LocalFavoritesStore.IsLocalId(oldFvrtId)) { _core.LocalFavorites.RemoveItem(oldFvrtId!); oldFvrtId = null; }
+                        else if (targetLocal && !string.IsNullOrEmpty(oldFvrtId)) { await _core.Favorites.RemoveFavoriteFriendAsync(oldFvrtId); oldFvrtId = null; }
+                        if (targetLocal)
+                        {
+                            var snap = await _core.World.GetWorldAsync(worldId) ?? new JObject();
+                            var (lok, lerr, lid) = _core.LocalFavorites.AddItem(groupName, "world", worldId, snap);
+                            Invoke(() => SendToJS("vrcWorldFavoriteResult", new { ok = lok, worldId, groupName, newFvrtId = lok ? lid : "", error = lok ? "" : lerr }));
+                            return;
+                        }
                         var (ok, resultData) = await _core.Favorites.AddWorldFavoriteAsync(worldId, groupName, groupType, oldFvrtId);
                         // resultData = new fvrt ID on success, error message on failure
                         Invoke(() => SendToJS("vrcWorldFavoriteResult", new { ok, worldId, groupName, newFvrtId = ok ? resultData : "", error = ok ? "" : resultData }));
@@ -1783,7 +1910,9 @@ public partial class AppShell
                     var fvrtId  = msg["fvrtId"]?.ToString() ?? "";
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.Favorites.RemoveFavoriteFriendAsync(fvrtId);
+                        var ok = LocalFavoritesStore.IsLocalId(fvrtId)
+                            ? _core.LocalFavorites.RemoveItem(fvrtId)
+                            : await _core.Favorites.RemoveFavoriteFriendAsync(fvrtId);
                         Invoke(() => SendToJS("vrcWorldUnfavoriteResult", new { ok, worldId }));
                     });
                     break;
@@ -1806,6 +1935,7 @@ public partial class AppShell
                         groupList = AuthController.FillMissingAvatarSlots(groupList);
                         int avCap = _vrcApi.HasVrcPlus ? 50 : 25;
                         foreach (var g in groupList) g.capacity = avCap;
+                        groupList.AddRange(AuthController.BuildLocalGroups(_core.LocalFavorites.GetGroups("avatar"), "localAvatar"));
                         Invoke(() => SendToJS("vrcAvatarFavGroups", groupList));
                     });
                     break;
@@ -1817,6 +1947,17 @@ public partial class AppShell
                         var avGroup   = msg["groupName"]?.ToString() ?? "";
                         var avType    = msg["groupType"]?.ToString() ?? "avatar";
                         var avOldFvrt = msg["oldFvrtId"]?.ToString();
+                        bool avTargetLocal = avType.StartsWith("local") || _core.LocalFavorites.IsLocalGroup(avGroup);
+                        if (LocalFavoritesStore.IsLocalId(avOldFvrt)) { _core.LocalFavorites.RemoveItem(avOldFvrt!); avOldFvrt = null; }
+                        else if (avTargetLocal && !string.IsNullOrEmpty(avOldFvrt)) { await _core.Favorites.RemoveFavoriteFriendAsync(avOldFvrt); avOldFvrt = null; }
+                        if (avTargetLocal)
+                        {
+                            var snap = await _core.Avatars.GetAvatarAsync(avId) ?? new JObject();
+                            var (lok, lerr, lid) = _core.LocalFavorites.AddItem(avGroup, "avatar", avId, snap);
+                            if (lok) _cache.Delete(CacheHandler.KeyFavAvatars);
+                            Invoke(() => SendToJS("vrcAvatarFavoriteResult", new { ok = lok, avatarId = avId, groupName = avGroup, newFvrtId = lok ? lid : "", error = lok ? "" : lerr }));
+                            return;
+                        }
                         var (avOk, avResult) = await _core.Avatars.AddAvatarFavoriteAsync(avId, avGroup, avType, avOldFvrt);
                         if (avOk) _cache.Delete(CacheHandler.KeyFavAvatars);
                         Invoke(() => SendToJS("vrcAvatarFavoriteResult", new { ok = avOk, avatarId = avId, groupName = avGroup, newFvrtId = avOk ? avResult : "", error = avOk ? "" : avResult }));
@@ -1829,12 +1970,36 @@ public partial class AppShell
                     var avFvrtId = msg["fvrtId"]?.ToString() ?? "";
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.Favorites.RemoveFavoriteFriendAsync(avFvrtId);
+                        var ok = LocalFavoritesStore.IsLocalId(avFvrtId)
+                            ? _core.LocalFavorites.RemoveItem(avFvrtId)
+                            : await _core.Favorites.RemoveFavoriteFriendAsync(avFvrtId);
                         if (ok) _cache.Delete(CacheHandler.KeyFavAvatars);
                         Invoke(() => SendToJS("vrcAvatarUnfavoriteResult", new { ok, avatarId = avRmId }));
                     });
                     break;
                 }
+
+                case "vrcCreateLocalGroup":
+                    _ = Task.Run(() =>
+                    {
+                        var kind = msg["kind"]?.ToString() ?? "world";
+                        var displayName = msg["displayName"]?.ToString() ?? "";
+                        var (ok, err, grp) = _core.LocalFavorites.CreateGroup(kind, displayName);
+                        Invoke(() => SendToJS("vrcLocalGroupResult", new { ok, kind, action = "create", error = ok ? "" : err, groupName = grp?.Name ?? "", displayName = grp?.DisplayName ?? "" }));
+                        if (ok) RefreshLocalFavKind(kind);
+                    });
+                    break;
+
+                case "vrcDeleteLocalGroup":
+                    _ = Task.Run(() =>
+                    {
+                        var kind = msg["kind"]?.ToString() ?? "world";
+                        var groupName = msg["groupName"]?.ToString() ?? "";
+                        var ok = _core.LocalFavorites.DeleteGroup(groupName);
+                        Invoke(() => SendToJS("vrcLocalGroupResult", new { ok, kind, action = "delete", error = ok ? "" : "delete_failed", groupName }));
+                        if (ok) RefreshLocalFavKind(kind);
+                    });
+                    break;
 
                 case "vrcGetMyGroups":
                     await _groups.HandleMessage(action, msg);
@@ -2182,6 +2347,9 @@ public partial class AppShell
                 case "getTimelineByDate":
                 case "getFriendTimelineByDate":
                 case "getTimelineForUser":
+                case "getProfileInsights":
+                case "getUserOnlineHeatmap":
+                case "getUserStatusTime":
                 case "getTimelineMonthActivity":
                     await _timelineCtrl.HandleMessage(action, msg);
                     break;
@@ -2757,9 +2925,10 @@ public partial class AppShell
                             var topics = data["topic_list"]?["topics"] as JArray ?? new JArray();
                             var items = topics.Take(3).Select(t => new
                             {
+                                id      = t["id"]?.ToString() ?? "",
                                 title   = t["title"]?.ToString() ?? "",
                                 link    = $"https://ask.vrchat.com/t/{t["slug"]}/{t["id"]}",
-                                pubDate = t["created_at"]?.ToString() ?? "",
+                                pubDate = NewsIsoDate(t["created_at"]),
                                 img     = t["image_url"]?.ToString() ?? "",
                                 excerpt = t["excerpt"]?.ToString() ?? "",
                             }).ToArray();
@@ -2771,12 +2940,47 @@ public partial class AppShell
                         }
                     });
                     break;
+
+                case "vrcGetNewsArticle":
+                {
+                    var newsTopicId = msg["id"]?.ToString() ?? "";
+                    if (string.IsNullOrEmpty(newsTopicId)) break;
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            using var http = new System.Net.Http.HttpClient();
+                            http.DefaultRequestHeaders.Add("User-Agent", AppInfo.UserAgent);
+                            http.DefaultRequestHeaders.Add("Accept", "application/json");
+                            var json = await http.GetStringAsync($"https://ask.vrchat.com/t/{newsTopicId}.json");
+                            var data = JObject.Parse(json);
+                            var posts = data["post_stream"]?["posts"] as JArray ?? new JArray();
+                            var html = (posts.FirstOrDefault() as JObject)?["cooked"]?.ToString() ?? "";
+                            var title = data["title"]?.ToString() ?? "";
+                            var slug = data["slug"]?.ToString() ?? "";
+                            var link = $"https://ask.vrchat.com/t/{slug}/{newsTopicId}";
+                            Invoke(() => SendToJS("vrcNewsArticle", new { id = newsTopicId, title, html, link, port = _core.HttpPort }));
+                        }
+                        catch (Exception ex)
+                        {
+                            Invoke(() => SendToJS("vrcNewsArticle", new { id = newsTopicId, error = ex.Message }));
+                        }
+                    });
+                    break;
+                }
             }
         }
         catch (Exception ex)
         {
             SendToJS("log", new { msg = $"Error: {ex.Message}", color = "err" });
         }
+    }
+
+    private static string NewsIsoDate(JToken? token)
+    {
+        if (token == null) return "";
+        try { return token.Value<DateTime>().ToUniversalTime().ToString("o"); }
+        catch { return token.ToString(); }
     }
 
 }

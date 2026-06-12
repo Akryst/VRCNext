@@ -1726,6 +1726,36 @@ function cssUrl(s) {
     return (s || '').replace(/'/g, '%27').replace(/\)/g, '%29');
 }
 
+function isLocalFavGroup(g) {
+    return !!(g && (g.local || (typeof g.type === 'string' && g.type.startsWith('local'))));
+}
+
+function favGroupBadge(g) {
+    if (isLocalFavGroup(g)) return `<span class="vrcn-local-badge">${t('favorites.local_badge', 'Local')}</span>`;
+    const vrcPlusTypes = ['vrcPlusWorld', 'vrcPlusAvatar'];
+    if (g && vrcPlusTypes.includes(g.type)) return `<span class="vrcn-supporter-badge">VRC+</span>`;
+    return '';
+}
+
+function localFavErrorText(code) {
+    const map = {
+        group_limit:   t('favorites.err_group_limit', 'Local group limit reached (10)'),
+        item_limit:    t('favorites.err_item_limit', 'This group is full (100)'),
+        empty_name:    t('favorites.err_empty_name', 'Enter a group name'),
+    };
+    return map[code] || t('favorites.err_generic', 'Could not update local favorites');
+}
+
+function onLocalGroupResult(data) {
+    if (!data) return;
+    if (data.ok) {
+        if (data.action === 'create') showToast(true, tf('favorites.local_group_created', { name: data.displayName || '' }, 'Created local group "{name}"'));
+        else if (data.action === 'delete') showToast(true, t('favorites.local_group_deleted', 'Local group deleted'));
+        return;
+    }
+    showToast(false, localFavErrorText(data.error));
+}
+
 function copyIdBadge(el, id) {
     navigator.clipboard.writeText(id).catch(() => {});
     const orig = el.innerHTML;
@@ -1862,6 +1892,11 @@ function initVnSelect(el) {
                 const badge = document.createElement('span');
                 badge.className = 'vrcn-supporter-badge';
                 badge.textContent = 'VRC+';
+                item.appendChild(badge);
+            } else if (/^local/i.test(opt.value)) {
+                const badge = document.createElement('span');
+                badge.className = 'vrcn-local-badge';
+                badge.textContent = t('favorites.local_badge', 'Local');
                 item.appendChild(badge);
             }
 

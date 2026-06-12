@@ -918,6 +918,26 @@ public partial class AppShell
                 else
                     ctx.Response.StatusCode = 404;
             }
+            else if (path == "/ytembed")
+            {
+                var vid = (ctx.Request.Url?.Query ?? "").TrimStart('?').Split('&')
+                    .Select(p => p.Split('=', 2))
+                    .Where(p => p.Length == 2 && p[0] == "v")
+                    .Select(p => p[1])
+                    .FirstOrDefault() ?? "";
+                vid = new string(vid.Where(c => char.IsLetterOrDigit(c) || c == '-' || c == '_').ToArray());
+                if (vid.Length == 0) { ctx.Response.StatusCode = 404; }
+                else
+                {
+                    var page = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>html,body{margin:0;height:100%;background:#000;overflow:hidden}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style></head><body>"
+                        + $"<iframe src=\"https://www.youtube-nocookie.com/embed/{vid}\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen\" allowfullscreen></iframe></body></html>";
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(page);
+                    ctx.Response.ContentType = "text/html; charset=utf-8";
+                    ctx.Response.StatusCode = 200;
+                    ctx.Response.ContentLength64 = bytes.Length;
+                    await ctx.Response.OutputStream.WriteAsync(bytes);
+                }
+            }
             else ctx.Response.StatusCode = 404;
         }
         catch { ctx.Response.StatusCode = 500; }

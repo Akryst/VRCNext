@@ -231,6 +231,7 @@
                     data-fav-name="${g.name}" data-fav-type="${g.type}" data-wid="${worldId}">
                     <span class="msi" style="font-size:14px;">bookmark_border</span>
                     <span class="vn-ctx-label">${esc(g.displayName || g.name)}</span>
+                    ${favGroupBadge(g)}
                     <span class="vn-ctx-count">${count}</span>
                 </button>`;
             }).join('');
@@ -268,6 +269,7 @@
                 data-move-name="${esc(g.name)}" data-move-type="${esc(g.type)}" data-wid="${esc(worldId)}" data-old-fvrt="${esc(favEntry.favoriteId)}" data-is-current="${isCurrent}">
                 ${iconEl}
                 <span class="vn-ctx-label">${esc(g.displayName || g.name)}</span>
+                ${favGroupBadge(g)}
                 <span class="vn-ctx-count">${count}</span>
             </button>`;
         }).join('');
@@ -313,6 +315,7 @@
             return `<button class="vn-ctx-item" data-ff-name="${esc(g.name)}" data-ff-uid="${esc(userId)}">
                 <span class="msi" style="font-size:14px;">bookmark_border</span>
                 <span class="vn-ctx-label">${esc(g.displayName || g.name)}</span>
+                ${favGroupBadge(g)}
                 <span class="vn-ctx-count">${count}</span>
             </button>`;
         }).join('');
@@ -340,6 +343,7 @@
                 data-ffmv-name="${esc(g.name)}" data-ffmv-uid="${esc(userId)}" data-ffmv-old="${esc(favEntry?.fvrtId || '')}" data-ffmv-current="${isCurrent}">
                 ${iconEl}
                 <span class="vn-ctx-label">${esc(g.displayName || g.name)}</span>
+                ${favGroupBadge(g)}
                 <span class="vn-ctx-count">${count}</span>
             </button>`;
         }).join('');
@@ -908,11 +912,10 @@
         } else {
             submenu.innerHTML = groups.map(g => {
                 const count = (typeof favAvatarsData !== 'undefined') ? favAvatarsData.filter(a => a.favoriteGroup === g.name).length : 0;
-                const isVrcPlus = g.name !== 'avatars1';
                 return `<button class="vn-ctx-item" data-av-fav-name="${esc(g.name)}" data-av-fav-type="${esc(g.type)}" data-avid="${esc(avatarId)}">
                     <span class="msi" style="font-size:14px;">bookmark_border</span>
                     <span class="vn-ctx-label">${esc(g.displayName || g.name)}</span>
-                    ${isVrcPlus ? '<span class="vrcn-supporter-badge">VRC+</span>' : ''}
+                    ${favGroupBadge(g)}
                     <span class="vn-ctx-count">${count}</span>
                 </button>`;
             }).join('');
@@ -936,12 +939,11 @@
             const iconEl = isCurrent
                 ? `<span class="msi" style="font-size:14px;color:var(--accent);">check_circle</span>`
                 : `<span class="msi" style="font-size:14px;">drive_file_move</span>`;
-            const isVrcPlus = g.name !== 'avatars1';
             return `<button class="vn-ctx-item${isCurrent ? ' ci-group-selected' : ''}"
                 data-av-move-name="${esc(g.name)}" data-av-move-type="${esc(g.type)}" data-avid="${esc(avatarId)}" data-old-fvrt="${esc(favEntry.favoriteId)}" data-is-current="${isCurrent}">
                 ${iconEl}
                 <span class="vn-ctx-label">${esc(g.displayName || g.name)}</span>
-                ${isVrcPlus ? '<span class="vrcn-supporter-badge">VRC+</span>' : ''}
+                ${favGroupBadge(g)}
                 <span class="vn-ctx-count">${count}</span>
             </button>`;
         }).join('');
@@ -961,11 +963,10 @@
         const groups = (typeof favAvatarGroups !== 'undefined') ? favAvatarGroups : [];
         submenu.innerHTML = groups.map(g => {
             const count = (typeof favAvatarsData !== 'undefined') ? favAvatarsData.filter(a => a.favoriteGroup === g.name).length : 0;
-            const isVrcPlus = g.name !== 'avatars1';
             return `<button class="vn-ctx-item" data-av-edit-move-name="${esc(g.name)}" data-av-edit-move-type="${esc(g.type)}">
                 <span class="msi" style="font-size:14px;">folder</span>
                 <span class="vn-ctx-label">${esc(g.displayName || g.name)}</span>
-                ${isVrcPlus ? '<span class="vrcn-supporter-badge">VRC+</span>' : ''}
+                ${favGroupBadge(g)}
                 <span class="vn-ctx-count">${count}</span>
             </button>`;
         }).join('');
@@ -1048,12 +1049,11 @@
             const count = (typeof favWorldsData !== 'undefined')
                 ? favWorldsData.filter(fw => fw.favoriteGroup === g.name).length
                 : 0;
-            const isVrcPlus = g.type === 'vrcPlusWorld';
             return `<button class="vn-ctx-item"
                 data-edit-move-name="${esc(g.name)}" data-edit-move-type="${esc(g.type)}">
                 <span class="msi" style="font-size:14px;">folder</span>
                 <span class="vn-ctx-label">${esc(g.displayName || g.name)}</span>
-                ${isVrcPlus ? '<span class="vrcn-supporter-badge">VRC+</span>' : ''}
+                ${favGroupBadge(g)}
                 <span class="vn-ctx-count">${count}</span>
             </button>`;
         }).join('');
