@@ -442,6 +442,18 @@
     <!-- VRChat Config Modal -->
     <div class="modal-overlay" id="modalVrcConfig" style="display:none;" onclick="if(event.target===this)this.style.display='none'"></div>
 
+    <!-- News Article Modal -->
+    <div class="modal-overlay" id="modalNewsArticle" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+        <div class="modal-box" style="width:720px;max-width:94%;display:flex;flex-direction:column;max-height:86vh;">
+            <div class="modal-title" id="newsArticleTitle" style="margin-bottom:12px;">News</div>
+            <div id="newsArticleBody" class="news-article-body" onclick="newsArticleLinkClick(event)" style="flex:1;overflow-y:auto;min-height:0;"></div>
+            <div class="modal-btns" style="margin-top:16px;justify-content:space-between;">
+                <button class="vrcn-button-round" onclick="document.getElementById('modalNewsArticle').style.display='none'" data-i18n="common.close">Close</button>
+                <button class="vrcn-button" onclick="if(_newsArticleLink)sendToCS({action:'openUrl',url:_newsArticleLink})"><span class="msi" style="font-size:14px;">open_in_new</span> <span data-i18n="dashboard.news.full_article">Full Article</span></button>
+            </div>
+        </div>
+    </div>
+
     <!-- Export Modal -->
     <div class="modal-overlay" id="modalExport" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
         <div class="modal-box" style="width:640px;max-width:92%;">

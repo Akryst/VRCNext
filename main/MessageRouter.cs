@@ -2863,9 +2863,10 @@ public partial class AppShell
                             var topics = data["topic_list"]?["topics"] as JArray ?? new JArray();
                             var items = topics.Take(3).Select(t => new
                             {
+                                id      = t["id"]?.ToString() ?? "",
                                 title   = t["title"]?.ToString() ?? "",
                                 link    = $"https://ask.vrchat.com/t/{t["slug"]}/{t["id"]}",
-                                pubDate = t["created_at"]?.ToString() ?? "",
+                                pubDate = NewsIsoDate(t["created_at"]),
                                 img     = t["image_url"]?.ToString() ?? "",
                                 excerpt = t["excerpt"]?.ToString() ?? "",
                             }).ToArray();
@@ -2877,12 +2878,47 @@ public partial class AppShell
                         }
                     });
                     break;
+
+                case "vrcGetNewsArticle":
+                {
+                    var newsTopicId = msg["id"]?.ToString() ?? "";
+                    if (string.IsNullOrEmpty(newsTopicId)) break;
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            using var http = new System.Net.Http.HttpClient();
+                            http.DefaultRequestHeaders.Add("User-Agent", AppInfo.UserAgent);
+                            http.DefaultRequestHeaders.Add("Accept", "application/json");
+                            var json = await http.GetStringAsync($"https://ask.vrchat.com/t/{newsTopicId}.json");
+                            var data = JObject.Parse(json);
+                            var posts = data["post_stream"]?["posts"] as JArray ?? new JArray();
+                            var html = (posts.FirstOrDefault() as JObject)?["cooked"]?.ToString() ?? "";
+                            var title = data["title"]?.ToString() ?? "";
+                            var slug = data["slug"]?.ToString() ?? "";
+                            var link = $"https://ask.vrchat.com/t/{slug}/{newsTopicId}";
+                            Invoke(() => SendToJS("vrcNewsArticle", new { id = newsTopicId, title, html, link, port = _core.HttpPort }));
+                        }
+                        catch (Exception ex)
+                        {
+                            Invoke(() => SendToJS("vrcNewsArticle", new { id = newsTopicId, error = ex.Message }));
+                        }
+                    });
+                    break;
+                }
             }
         }
         catch (Exception ex)
         {
             SendToJS("log", new { msg = $"Error: {ex.Message}", color = "err" });
         }
+    }
+
+    private static string NewsIsoDate(JToken? token)
+    {
+        if (token == null) return "";
+        try { return token.Value<DateTime>().ToUniversalTime().ToString("o"); }
+        catch { return token.ToString(); }
     }
 
 }

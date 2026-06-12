@@ -437,7 +437,7 @@ function renderDashVrcNews() {
         return;
     }
     el.innerHTML = _vrcNewsCache.items.map(item => `
-        <div class="dash-news-card" onclick="sendToCS({action:'openUrl',url:'${jsq(item.link)}'})">
+        <div class="dash-news-card" onclick="openNewsArticle('${jsq(String(item.id || ''))}','${jsq(item.link)}','${jsq(item.title)}')">
             ${item.img ? `<div class="dash-news-img-wrap"><img class="dash-news-img" src="${esc(item.img)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'"></div>` : ''}
             <div class="dash-news-body">
                 <div class="dash-news-title">${esc(item.title)}</div>
@@ -446,6 +446,104 @@ function renderDashVrcNews() {
             </div>
         </div>
     `).join('');
+}
+
+let _newsArticleLink = '';
+
+function openNewsArticle(id, link, title) {
+    _newsArticleLink = link || '';
+    const modal = document.getElementById('modalNewsArticle');
+    if (!modal) {
+        if (link) sendToCS({ action: 'openUrl', url: link });
+        return;
+    }
+    const titleEl = document.getElementById('newsArticleTitle');
+    const bodyEl = document.getElementById('newsArticleBody');
+    if (titleEl) titleEl.textContent = title || '';
+    if (bodyEl) bodyEl.innerHTML = `<div class="empty-msg">${t('dashboard.news.loading_article', 'Loading article...')}</div>`;
+    modal.style.display = 'flex';
+    if (id) sendToCS({ action: 'vrcGetNewsArticle', id });
+    else if (bodyEl) bodyEl.innerHTML = `<div class="empty-msg">${t('dashboard.news.error', 'Could not load article')}</div>`;
+}
+
+function _newsAbsUrl(u) {
+    if (!u) return u;
+    if (u.startsWith('//')) return 'https:' + u;
+    if (u.startsWith('/')) return 'https://ask.vrchat.com' + u;
+    return u;
+}
+
+function _newsYtId(url) {
+    const m = String(url || '').match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+    return m ? m[1] : '';
+}
+
+function renderNewsArticle(payload) {
+    const bodyEl = document.getElementById('newsArticleBody');
+    if (!bodyEl) return;
+    if (payload.link) _newsArticleLink = payload.link;
+    if (payload.error || !payload.html) {
+        bodyEl.innerHTML = `<div class="empty-msg">${t('dashboard.news.error', 'Could not load article')}</div>`;
+        return;
+    }
+    const port = payload.port || (typeof _localHttpPort !== 'undefined' ? _localHttpPort : 0);
+
+    const safe = document.createElement('div');
+    safe.innerHTML = payload.html;
+
+    safe.querySelectorAll('script,style,iframe,link,meta').forEach(n => n.remove());
+
+    safe.querySelectorAll('.lazy-video-container,[data-youtube-id],[data-video-id],.youtube-onebox,.lazyYT').forEach(el => {
+        let vid = el.getAttribute('data-youtube-id') || el.getAttribute('data-video-id') || '';
+        if (!vid) {
+            const link = el.querySelector('a[href]');
+            if (link) vid = _newsYtId(link.getAttribute('href'));
+        }
+        if (!vid) return;
+        if (port) {
+            const wrap = document.createElement('div');
+            wrap.className = 'news-video';
+            const iframe = document.createElement('iframe');
+            iframe.src = `http://localhost:${port}/ytembed?v=${encodeURIComponent(vid)}`;
+            iframe.setAttribute('frameborder', '0');
+            iframe.setAttribute('allowfullscreen', '');
+            iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen');
+            wrap.appendChild(iframe);
+            el.replaceWith(wrap);
+        } else {
+            const thumb = document.createElement('div');
+            thumb.className = 'news-video news-video-thumb';
+            thumb.setAttribute('data-href', 'https://www.youtube.com/watch?v=' + vid);
+            thumb.style.backgroundImage = `url('https://i.ytimg.com/vi/${vid}/hqdefault.jpg')`;
+            thumb.innerHTML = '<span class="news-video-play msi">play_arrow</span>';
+            el.replaceWith(thumb);
+        }
+    });
+
+    safe.querySelectorAll('*').forEach(node => {
+        [...node.attributes].forEach(attr => { if (/^on/i.test(attr.name)) node.removeAttribute(attr.name); });
+    });
+    safe.querySelectorAll('img').forEach(img => {
+        const s = img.getAttribute('src') || img.getAttribute('data-src') || '';
+        if (s) img.setAttribute('src', _newsAbsUrl(s));
+        img.removeAttribute('srcset');
+        img.setAttribute('loading', 'lazy');
+    });
+    safe.querySelectorAll('a').forEach(a => {
+        const h = _newsAbsUrl(a.getAttribute('href') || '');
+        a.removeAttribute('href');
+        a.removeAttribute('target');
+        if (h) a.setAttribute('data-href', h);
+    });
+
+    bodyEl.innerHTML = '';
+    bodyEl.appendChild(safe);
+    bodyEl.scrollTop = 0;
+}
+
+function newsArticleLinkClick(e) {
+    const a = e.target.closest('[data-href]');
+    if (a) { e.preventDefault(); sendToCS({ action: 'openUrl', url: a.getAttribute('data-href') }); }
 }
 
 function refreshDashVrcNews() {

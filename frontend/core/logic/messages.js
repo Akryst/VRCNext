@@ -775,6 +775,9 @@ window.external.receiveMessage(rawMsg => {
 case 'vrcNews':
                 if (typeof onVrcNews === 'function') onVrcNews(payload.items);
                 break;
+            case 'vrcNewsArticle':
+                if (typeof renderNewsArticle === 'function') renderNewsArticle(payload);
+                break;
             case 'popularWorlds':
                 onPopularWorlds(payload.worlds);
                 break;

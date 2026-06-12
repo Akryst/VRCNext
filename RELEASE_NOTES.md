@@ -1,5 +1,10 @@
 **2026.30.0**
 
+**VRChat News Widget**
+
+* Added the ability to open VRChat news articles directly inside the app without having to open the website in your browser.
+* Added YouTube Embeded support to watch VRChat news directly within VRCNext.
+
 **Export**
 
 * Added an **Export** dropdown to the taskbar.
@@ -8,7 +13,7 @@
 * Added **Export Friends**.
 * Added **Export Worlds**.
 
-You can now export Friends, Groups, Worlds, or Avatars lists as a CSV file or copy them to your clipboard.
+You can now export Friends, Groups, Worlds, or Avatars lists as CSV files or copy them to your clipboard.
 
 **User Profiles**
 
@@ -25,7 +30,7 @@ You can now see when one of your friends spends time with another one of your fr
 The Heatmap shows a user’s most active times based on the last 7, 30, or 90 days, as well as all-time data. It also shows peak activity times and when the user is usually online.
 
 * Added **Status Analysis** to user profiles.
-* Added **Status Mostly** to user profiles "INFOS" section
+* Added **Status Mostly** to the user profile **Info** section.
 
 This shows which status a user most commonly uses. You can see if the user is usually on **Ask Me**, **Do Not Disturb**, **Online**, or **Join Me**.
 
@@ -33,3 +38,4 @@ This shows which status a user most commonly uses. You can see if the user is us
 
 * Fixed an odd bug that caused sub-dropdowns in the taskbar to flicker.
 * Fixed a general dropdown issue in context menus and taskbar entries.
+* Fixed an issue where the VRChat News widget on the dashboard showed incorrect posting dates.
