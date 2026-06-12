@@ -73,8 +73,19 @@ function tbToggleTools() {
 (function () {
     var _open = null;
     var _openSubDrop = null;
+    var _subCloseTimer = null;
+
+    function cancelSubClose() {
+        if (_subCloseTimer) { clearTimeout(_subCloseTimer); _subCloseTimer = null; }
+    }
+
+    function scheduleSubClose() {
+        cancelSubClose();
+        _subCloseTimer = setTimeout(closeSubDrop, 240);
+    }
 
     function closeSubDrop() {
+        cancelSubClose();
         if (_openSubDrop) { _openSubDrop.style.display = 'none'; _openSubDrop = null; }
     }
 
@@ -112,7 +123,8 @@ function tbToggleTools() {
         var drop = sub.querySelector('.tb-dd-sub-drop');
         if (!drop) return;
         sub.addEventListener('mouseenter', function() {
-            closeSubDrop();
+            cancelSubClose();
+            if (_openSubDrop && _openSubDrop !== drop) closeSubDrop();
             var r = sub.getBoundingClientRect();
             var z = (typeof _guiZoom !== 'undefined' ? _guiZoom : 1) || 1;
             var vw = window.innerWidth / z;
@@ -122,24 +134,17 @@ function tbToggleTools() {
             var sw = drop.offsetWidth;
             var sh = drop.offsetHeight;
             drop.style.visibility = '';
-            var left = r.right / z + 4;
-            if (left + sw > vw - 4) left = r.left / z - sw - 4;
+            var left = r.right / z - 1;
+            if (left + sw > vw - 4) left = r.left / z - sw + 1;
             var top = r.top / z;
             if (top + sh > vh - 4) top = Math.max(4, vh - sh - 4);
             drop.style.left = Math.max(4, left) + 'px';
             drop.style.top = top + 'px';
             _openSubDrop = drop;
         });
-        sub.addEventListener('mouseleave', function(e) {
-            if (e.relatedTarget && drop.contains(e.relatedTarget)) return;
-            setTimeout(function() {
-                if (_openSubDrop === drop && !drop.matches(':hover')) closeSubDrop();
-            }, 80);
-        });
-        drop.addEventListener('mouseleave', function(e) {
-            if (e.relatedTarget && sub.contains(e.relatedTarget)) return;
-            closeSubDrop();
-        });
+        sub.addEventListener('mouseleave', scheduleSubClose);
+        drop.addEventListener('mouseenter', cancelSubClose);
+        drop.addEventListener('mouseleave', scheduleSubClose);
     });
 
     // Close menu after a dropdown item is clicked (fires after onclick)

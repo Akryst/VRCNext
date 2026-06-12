@@ -28,3 +28,8 @@ The Heatmap shows a user’s most active times based on the last 7, 30, or 90 da
 * Added **Status Mostly** to user profiles "INFOS" section
 
 This shows which status a user most commonly uses. You can see if the user is usually on **Ask Me**, **Do Not Disturb**, **Online**, or **Join Me**.
+
+**Fixes**
+
+* Fixed an odd bug that caused sub-dropdowns in the taskbar to flicker.
+* Fixed a general dropdown issue in context menus and taskbar entries.
