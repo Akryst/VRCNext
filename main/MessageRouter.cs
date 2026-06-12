@@ -78,6 +78,14 @@ public partial class AppShell
         }
     }
 
+    // Re-fetches the favorites list for a kind so local group changes (create/delete) refresh the UI.
+    private void RefreshLocalFavKind(string kind)
+    {
+        if (kind == "avatar") _ = Task.Run(_authCtrl.FetchAndCacheFavAvatarsAsync);
+        else if (kind == "friend") _ = Task.Run(_friends.FetchAndCacheFavFriendsAsync);
+        else _ = Task.Run(_authCtrl.FetchAndCacheFavWorldsAsync);
+    }
+
     private void SaveSharedContentCache()
     {
         var dict = _sharedContentCache;
@@ -1799,7 +1807,11 @@ public partial class AppShell
                         var groupName   = msg["groupName"]?.ToString() ?? "";
                         var displayName = msg["displayName"]?.ToString() ?? "";
                         var visibility  = msg["visibility"]?.ToString(); // null = don't change
-                        var ok = await _core.Favorites.UpdateFavoriteGroupAsync(groupType, groupName, displayName, visibility);
+                        bool ok;
+                        if (_core.LocalFavorites.IsLocalGroup(groupName))
+                            ok = string.IsNullOrEmpty(displayName) || _core.LocalFavorites.RenameGroup(groupName, displayName);
+                        else
+                            ok = await _core.Favorites.UpdateFavoriteGroupAsync(groupType, groupName, displayName, visibility);
                         Invoke(() => SendToJS("vrcFavoriteGroupUpdated", new { ok, groupName, displayName, visibility }));
                     });
                     break;
@@ -1819,6 +1831,7 @@ public partial class AppShell
                             .Where(g => !string.IsNullOrEmpty(g.name))
                             .ToList();
                         groupList = AuthController.FillMissingWorldSlots(groupList);
+                        groupList.AddRange(AuthController.BuildLocalGroups(_core.LocalFavorites.GetGroups("world"), "localWorld"));
                         Invoke(() => SendToJS("vrcWorldFavGroups", groupList));
                     });
                     break;
@@ -1839,6 +1852,7 @@ public partial class AppShell
                             .Where(g => !string.IsNullOrEmpty(g.name))
                             .ToList();
                         groupList = AuthController.FillMissingFriendSlots(groupList);
+                        groupList.AddRange(AuthController.BuildLocalGroups(_core.LocalFavorites.GetGroups("friend"), "localFriend"));
                         Invoke(() => SendToJS("vrcFriendFavGroups", groupList));
                     });
                     break;
@@ -1874,6 +1888,16 @@ public partial class AppShell
                         var groupName = msg["groupName"]?.ToString() ?? "";
                         var groupType = msg["groupType"]?.ToString() ?? "world";
                         var oldFvrtId = msg["oldFvrtId"]?.ToString();
+                        bool targetLocal = groupType.StartsWith("local") || _core.LocalFavorites.IsLocalGroup(groupName);
+                        if (LocalFavoritesStore.IsLocalId(oldFvrtId)) { _core.LocalFavorites.RemoveItem(oldFvrtId!); oldFvrtId = null; }
+                        else if (targetLocal && !string.IsNullOrEmpty(oldFvrtId)) { await _core.Favorites.RemoveFavoriteFriendAsync(oldFvrtId); oldFvrtId = null; }
+                        if (targetLocal)
+                        {
+                            var snap = await _core.World.GetWorldAsync(worldId) ?? new JObject();
+                            var (lok, lerr, lid) = _core.LocalFavorites.AddItem(groupName, "world", worldId, snap);
+                            Invoke(() => SendToJS("vrcWorldFavoriteResult", new { ok = lok, worldId, groupName, newFvrtId = lok ? lid : "", error = lok ? "" : lerr }));
+                            return;
+                        }
                         var (ok, resultData) = await _core.Favorites.AddWorldFavoriteAsync(worldId, groupName, groupType, oldFvrtId);
                         // resultData = new fvrt ID on success, error message on failure
                         Invoke(() => SendToJS("vrcWorldFavoriteResult", new { ok, worldId, groupName, newFvrtId = ok ? resultData : "", error = ok ? "" : resultData }));
@@ -1886,7 +1910,9 @@ public partial class AppShell
                     var fvrtId  = msg["fvrtId"]?.ToString() ?? "";
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.Favorites.RemoveFavoriteFriendAsync(fvrtId);
+                        var ok = LocalFavoritesStore.IsLocalId(fvrtId)
+                            ? _core.LocalFavorites.RemoveItem(fvrtId)
+                            : await _core.Favorites.RemoveFavoriteFriendAsync(fvrtId);
                         Invoke(() => SendToJS("vrcWorldUnfavoriteResult", new { ok, worldId }));
                     });
                     break;
@@ -1909,6 +1935,7 @@ public partial class AppShell
                         groupList = AuthController.FillMissingAvatarSlots(groupList);
                         int avCap = _vrcApi.HasVrcPlus ? 50 : 25;
                         foreach (var g in groupList) g.capacity = avCap;
+                        groupList.AddRange(AuthController.BuildLocalGroups(_core.LocalFavorites.GetGroups("avatar"), "localAvatar"));
                         Invoke(() => SendToJS("vrcAvatarFavGroups", groupList));
                     });
                     break;
@@ -1920,6 +1947,17 @@ public partial class AppShell
                         var avGroup   = msg["groupName"]?.ToString() ?? "";
                         var avType    = msg["groupType"]?.ToString() ?? "avatar";
                         var avOldFvrt = msg["oldFvrtId"]?.ToString();
+                        bool avTargetLocal = avType.StartsWith("local") || _core.LocalFavorites.IsLocalGroup(avGroup);
+                        if (LocalFavoritesStore.IsLocalId(avOldFvrt)) { _core.LocalFavorites.RemoveItem(avOldFvrt!); avOldFvrt = null; }
+                        else if (avTargetLocal && !string.IsNullOrEmpty(avOldFvrt)) { await _core.Favorites.RemoveFavoriteFriendAsync(avOldFvrt); avOldFvrt = null; }
+                        if (avTargetLocal)
+                        {
+                            var snap = await _core.Avatars.GetAvatarAsync(avId) ?? new JObject();
+                            var (lok, lerr, lid) = _core.LocalFavorites.AddItem(avGroup, "avatar", avId, snap);
+                            if (lok) _cache.Delete(CacheHandler.KeyFavAvatars);
+                            Invoke(() => SendToJS("vrcAvatarFavoriteResult", new { ok = lok, avatarId = avId, groupName = avGroup, newFvrtId = lok ? lid : "", error = lok ? "" : lerr }));
+                            return;
+                        }
                         var (avOk, avResult) = await _core.Avatars.AddAvatarFavoriteAsync(avId, avGroup, avType, avOldFvrt);
                         if (avOk) _cache.Delete(CacheHandler.KeyFavAvatars);
                         Invoke(() => SendToJS("vrcAvatarFavoriteResult", new { ok = avOk, avatarId = avId, groupName = avGroup, newFvrtId = avOk ? avResult : "", error = avOk ? "" : avResult }));
@@ -1932,12 +1970,36 @@ public partial class AppShell
                     var avFvrtId = msg["fvrtId"]?.ToString() ?? "";
                     _ = Task.Run(async () =>
                     {
-                        var ok = await _core.Favorites.RemoveFavoriteFriendAsync(avFvrtId);
+                        var ok = LocalFavoritesStore.IsLocalId(avFvrtId)
+                            ? _core.LocalFavorites.RemoveItem(avFvrtId)
+                            : await _core.Favorites.RemoveFavoriteFriendAsync(avFvrtId);
                         if (ok) _cache.Delete(CacheHandler.KeyFavAvatars);
                         Invoke(() => SendToJS("vrcAvatarUnfavoriteResult", new { ok, avatarId = avRmId }));
                     });
                     break;
                 }
+
+                case "vrcCreateLocalGroup":
+                    _ = Task.Run(() =>
+                    {
+                        var kind = msg["kind"]?.ToString() ?? "world";
+                        var displayName = msg["displayName"]?.ToString() ?? "";
+                        var (ok, err, grp) = _core.LocalFavorites.CreateGroup(kind, displayName);
+                        Invoke(() => SendToJS("vrcLocalGroupResult", new { ok, kind, action = "create", error = ok ? "" : err, groupName = grp?.Name ?? "", displayName = grp?.DisplayName ?? "" }));
+                        if (ok) RefreshLocalFavKind(kind);
+                    });
+                    break;
+
+                case "vrcDeleteLocalGroup":
+                    _ = Task.Run(() =>
+                    {
+                        var kind = msg["kind"]?.ToString() ?? "world";
+                        var groupName = msg["groupName"]?.ToString() ?? "";
+                        var ok = _core.LocalFavorites.DeleteGroup(groupName);
+                        Invoke(() => SendToJS("vrcLocalGroupResult", new { ok, kind, action = "delete", error = ok ? "" : "delete_failed", groupName }));
+                        if (ok) RefreshLocalFavKind(kind);
+                    });
+                    break;
 
                 case "vrcGetMyGroups":
                     await _groups.HandleMessage(action, msg);

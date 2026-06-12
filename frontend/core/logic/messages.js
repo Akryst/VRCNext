@@ -762,6 +762,9 @@ window.external.receiveMessage(rawMsg => {
             case 'vrcFriendFavoriteResult':
                 if (typeof handleFriendFavoriteResult === 'function') handleFriendFavoriteResult(payload);
                 break;
+            case 'vrcLocalGroupResult':
+                if (typeof onLocalGroupResult === 'function') onLocalGroupResult(payload);
+                break;
             case 'vrcWorldsResolved':
                 onWorldsResolved(payload);
                 if (typeof onCreateInstanceWorldResolved === 'function') onCreateInstanceWorldResolved(payload);

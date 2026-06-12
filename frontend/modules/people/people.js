@@ -420,6 +420,8 @@ function setFavFriendGroup(val) {
 function updateFavFriendGroupHeader() {
     const label = document.getElementById('favFriendGroupLabel');
     const editBtn = document.getElementById('favFriendGroupEditBtn');
+    const delBtn = document.getElementById('favFriendGroupDeleteBtn');
+    const localBadge = document.getElementById('favFriendGroupLocalBadge');
     const visEl = document.getElementById('favFriendGroupVisLabel');
     const visDropWrap = document.getElementById('favFriendGroupVisDropWrap');
     const visDrop = document.getElementById('favFriendGroupVisDrop');
@@ -427,18 +429,23 @@ function updateFavFriendGroupHeader() {
     if (!favFriendGroupFilter) {
         label.textContent = t('friends.favorites.group.all', 'All Favorites');
         if (editBtn) editBtn.style.display = 'none';
+        if (delBtn) delBtn.style.display = 'none';
+        if (localBadge) localBadge.style.display = 'none';
         if (visEl) visEl.style.display = 'none';
         if (visDropWrap) visDropWrap.style.display = 'none';
     } else {
         const g = favFriendGroups.find(x => x.name === favFriendGroupFilter);
+        const isLocal = isLocalFavGroup(g);
         label.textContent = g ? (g.displayName || g.name) : favFriendGroupFilter;
         if (editBtn) editBtn.style.display = '';
+        if (delBtn) delBtn.style.display = isLocal ? '' : 'none';
+        if (localBadge) localBadge.style.display = isLocal ? '' : 'none';
         if (visEl) {
             visEl.textContent = g ? _favGroupVisLabel(g.visibility) : '';
-            visEl.style.display = (_favFriendEditMode || !g) ? 'none' : '';
+            visEl.style.display = (_favFriendEditMode || !g || isLocal) ? 'none' : '';
         }
         if (visDropWrap) {
-            const showDrop = _favFriendEditMode && !!g;
+            const showDrop = _favFriendEditMode && !!g && !isLocal;
             visDropWrap.style.display = showDrop ? '' : 'none';
             if (showDrop && visDrop) visDrop.value = g.visibility || 'private';
         }
@@ -530,12 +537,14 @@ function filterFavFriends() {
         favFriendGroups.forEach(g => {
             const gFriends = friends.filter(f => favMap.get(f.id)?.groupName === g.name);
             if (!gFriends.length) return;
+            const isLocal = isLocalFavGroup(g);
             const cap = g.capacity || 150;
             const visLabel = _favGroupVisLabel(g.visibility);
-            const visHtml = g.visibility && !_favFriendEditMode
+            const visHtml = (g.visibility && !_favFriendEditMode && !isLocal)
                 ? `<span style="font-size:11px;color:var(--tx3);margin-left:4px;">${esc(visLabel)}</span>` : '';
             html += `<div class="fav-group-header${first ? ' fav-group-header-first' : ''}">
                 <span class="topbar-title">${esc(g.displayName || g.name)}</span>
+                ${favGroupBadge(g)}
                 <span class="fav-group-count">${gFriends.length}/${cap}</span>
                 ${visHtml}
             </div>`;
@@ -576,8 +585,66 @@ function exitFriendEditMode() {
     if (bar) bar.style.display = 'none';
     const picker = document.getElementById('favFriendEditMovePicker');
     if (picker) { picker.style.display = 'none'; picker.innerHTML = ''; }
+    friendCancelCreateLocalGroup();
     filterFavFriends();
     updateFavFriendGroupHeader();
+}
+
+/* === Local Groups (Friends) === */
+function friendLocalGroupCount() {
+    return (typeof favFriendGroups !== 'undefined' ? favFriendGroups : []).filter(isLocalFavGroup).length;
+}
+
+function friendShowCreateLocalGroup(btn) {
+    const panel = document.getElementById('friendCreateLocalPanel');
+    if (!panel) return;
+    if (panel.style.display === 'block') { friendCancelCreateLocalGroup(); return; }
+    if (friendLocalGroupCount() >= 10) { showToast(false, localFavErrorText('group_limit')); return; }
+    panel.style.display = 'block';
+    const input = document.getElementById('friendCreateLocalInput');
+    if (input) { input.value = ''; input.focus(); }
+    setTimeout(() => {
+        const close = (e) => {
+            if (!panel.contains(e.target) && !(btn && btn.contains(e.target))) {
+                panel.style.display = 'none';
+                document.removeEventListener('click', close);
+            }
+        };
+        document.addEventListener('click', close);
+    }, 0);
+}
+
+function friendCancelCreateLocalGroup() {
+    const panel = document.getElementById('friendCreateLocalPanel');
+    if (panel) panel.style.display = 'none';
+}
+
+function friendSaveLocalGroup() {
+    const input = document.getElementById('friendCreateLocalInput');
+    const name = (input?.value || '').trim();
+    if (!name) { showToast(false, localFavErrorText('empty_name')); return; }
+    sendToCS({ action: 'vrcCreateLocalGroup', kind: 'friend', displayName: name });
+    friendCancelCreateLocalGroup();
+}
+
+function deleteCurrentLocalFriendGroup(btn) {
+    const g = favFriendGroups.find(x => x.name === favFriendGroupFilter);
+    if (!g || !isLocalFavGroup(g)) return;
+    if (btn && btn.dataset.confirm !== '1') {
+        btn.dataset.confirm = '1';
+        btn.classList.add('myp-edit-btn-danger');
+        btn.title = t('favorites.delete_local_group_confirm', 'Click again to delete');
+        clearTimeout(btn._confirmTimer);
+        btn._confirmTimer = setTimeout(() => {
+            btn.dataset.confirm = '0';
+            btn.classList.remove('myp-edit-btn-danger');
+            btn.title = t('favorites.delete_local_group', 'Delete local group');
+        }, 3000);
+        return;
+    }
+    if (btn) { btn.dataset.confirm = '0'; btn.classList.remove('myp-edit-btn-danger'); clearTimeout(btn._confirmTimer); }
+    sendToCS({ action: 'vrcDeleteLocalGroup', kind: 'friend', groupName: g.name });
+    favFriendGroupFilter = '';
 }
 
 function toggleFriendEditSelect(id, el) {
@@ -636,6 +703,7 @@ function friendEditShowMoveMenu(btn) {
         return `<div class="vn-select-option" onclick="friendEditMoveSelected('${gn}')">
             <span class="msi" style="font-size:14px;flex-shrink:0;">folder</span>
             <span style="flex:1;">${esc(g.displayName || g.name)}</span>
+            ${favGroupBadge(g)}
             <span style="font-size:10px;color:var(--tx3);flex-shrink:0;">${count}</span>
         </div>`;
     }).join('');

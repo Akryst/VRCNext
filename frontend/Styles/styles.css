@@ -138,6 +138,7 @@
 .file-del, .folder-remove, .exe-remove,
 .cb-line-del, .myp-edit-btn, .myp-lang-remove,
 .inv-msg-edit, .gd-post-del, .gd-post-edit, .vf-block-chip-remove { background: none; border: none; cursor: pointer; display: flex; align-items: center; }
+.myp-edit-btn-danger, .myp-edit-btn-danger .msi { color: var(--err, #e55); }
 
 .file-del, .cb-line-del, .inv-msg-edit, .gd-post-del, .gd-post-edit { border-radius: 4px; }
 

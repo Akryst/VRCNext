@@ -1721,7 +1721,10 @@ function renderFriendFavPicker(userId) {
         return `<div class="fd-group-card ci-group-card${isCurrent ? ' ci-group-selected' : ''}"
             onclick="addFriendToFavGroup('${uid}','${gn}','${oldFvrt}',this)" style="cursor:pointer;">
             <div style="flex:1;min-width:0;">
-                <div style="font-size:12px;font-weight:600;color:var(--tx1);">${esc(g.displayName || g.name)}</div>
+                <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                    <span style="font-size:12px;font-weight:600;color:var(--tx1);">${esc(g.displayName || g.name)}</span>
+                    ${favGroupBadge(g)}
+                </div>
                 <div style="font-size:10px;color:var(--tx3);margin-top:1px;">${count}/${cap} friends</div>
             </div>
             ${check}
@@ -1781,6 +1784,7 @@ function handleFriendFavoriteResult(data) {
         filterFavFriends();
         _scheduleBgFavFriendRefresh();
     } else {
+        if (data.error) showToast(false, localFavErrorText(data.error));
         const list = document.getElementById('fdFavGroupList');
         if (list) {
             list.innerHTML = `<div style="font-size:11px;color:var(--err,#e55);padding:6px 0;">Failed to move. Try again.</div>`;

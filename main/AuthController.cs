@@ -2023,6 +2023,7 @@ public class AuthController
         public string type        { get; set; } = "";
         public int    capacity    { get; set; } = 25;
         public string visibility  { get; set; } = "private";
+        public bool   local       { get; set; } = false;
     }
 
     internal static List<WFavGroup> FillMissingWorldSlots(List<WFavGroup> groupList)
@@ -2091,6 +2092,17 @@ public class AuthController
         return groupList.OrderBy(g => g.name).ToList();
     }
 
+    // Maps local SQLite favorite groups to WFavGroup, tagged with a local type so the UI shows the Local badge.
+    internal static List<WFavGroup> BuildLocalGroups(IEnumerable<LocalFavoritesStore.LocalGroup> locals, string localType) =>
+        locals.Select(g => new WFavGroup
+        {
+            name        = g.Name,
+            displayName = g.DisplayName,
+            type        = localType,
+            capacity    = LocalFavoritesStore.MaxItems,
+            local       = true,
+        }).ToList();
+
     public async Task FetchAndCacheFavWorldsAsync()
     {
         if (Interlocked.CompareExchange(ref _favWorldsInFlight, 1, 0) != 0) return; // already running
@@ -2147,6 +2159,32 @@ public class AuthController
                         worldVisitCount   = stats.visitCount,
                     });
                 }
+            }
+
+            foreach (var lg in BuildLocalGroups(_core.LocalFavorites.GetGroups("world"), "localWorld")) groupList.Add(lg);
+            foreach (var it in _core.LocalFavorites.GetItems("world"))
+            {
+                var w = it.Snapshot;
+                var wid = it.EntityId;
+                var stats = _core.TimeEngine.GetWorldStats(wid);
+                var rawWorldImg = ImageCacheHelper.GetWorldUrl(wid, w["imageUrl"]?.ToString() ?? w["thumbnailImageUrl"]?.ToString());
+                allWorlds.Add(new
+                {
+                    id                = wid,
+                    name              = w["name"]?.ToString() ?? "",
+                    imageUrl          = rawWorldImg,
+                    thumbnailImageUrl = rawWorldImg,
+                    authorName        = w["authorName"]?.ToString() ?? "",
+                    occupants         = w["occupants"]?.Value<int>()  ?? 0,
+                    capacity          = w["capacity"]?.Value<int>()   ?? 0,
+                    favorites         = w["favorites"]?.Value<int>()  ?? 0,
+                    visits            = w["visits"]?.Value<int>()     ?? 0,
+                    tags              = w["tags"]?.ToObject<List<string>>() ?? new List<string>(),
+                    favoriteGroup     = it.GroupName,
+                    favoriteId        = it.Id,
+                    worldTimeSeconds  = stats.totalSeconds,
+                    worldVisitCount   = stats.visitCount,
+                });
             }
 
             var payload = new { worlds = allWorlds, groups = groupList };
@@ -2210,6 +2248,23 @@ public class AuthController
                     allAvatarsRaw.Add(new { id, name, imageUrl = rawUrl, thumbnailImageUrl = rawUrl, authorName = author, releaseStatus = release, favoriteGroup = g.name, favoriteId = fvrtId, unityPackages = pkgs });
                     allAvatarsJs.Add(new  { id, name, imageUrl = img,    thumbnailImageUrl = img,    authorName = author, releaseStatus = release, favoriteGroup = g.name, favoriteId = fvrtId, unityPackages = pkgs });
                 }
+            }
+
+            foreach (var lg in BuildLocalGroups(_core.LocalFavorites.GetGroups("avatar"), "localAvatar")) groupList.Add(lg);
+            foreach (var it in _core.LocalFavorites.GetItems("avatar"))
+            {
+                var a         = it.Snapshot;
+                var rawUrl    = a["imageUrl"]?.ToString() ?? a["thumbnailImageUrl"]?.ToString() ?? "";
+                var img       = ImageCacheHelper.GetAvatarUrl(it.EntityId, rawUrl);
+                var id        = it.EntityId;
+                var name      = a["name"]?.ToString() ?? "";
+                var author    = a["authorName"]?.ToString() ?? "";
+                var release   = a["releaseStatus"]?.ToString() ?? "private";
+                var pkgs      = (a["unityPackages"] as JArray ?? new JArray())
+                    .Select(p => new { platform = p["platform"]?.ToString() ?? "", variant = p["variant"]?.ToString() ?? "" })
+                    .ToArray();
+                allAvatarsRaw.Add(new { id, name, imageUrl = rawUrl, thumbnailImageUrl = rawUrl, authorName = author, releaseStatus = release, favoriteGroup = it.GroupName, favoriteId = it.Id, unityPackages = pkgs });
+                allAvatarsJs.Add(new  { id, name, imageUrl = img,    thumbnailImageUrl = img,    authorName = author, releaseStatus = release, favoriteGroup = it.GroupName, favoriteId = it.Id, unityPackages = pkgs });
             }
 
             if (_core.Settings.FfcEnabled) _core.Cache.Save(CacheHandler.KeyFavAvatars, new { avatars = allAvatarsRaw, groups = groupList });

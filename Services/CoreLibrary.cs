@@ -30,6 +30,7 @@ public class CoreLibrary
     public CacheHandler Cache { get; }
     public UnifiedTimeEngine TimeEngine { get; internal set; } = null!;
     public PhotoPlayersStore PhotoPlayersStore { get; internal set; } = null!;
+    public LocalFavoritesStore LocalFavorites { get; internal set; } = null!;
     public WebhookService Webhook { get; }
     public FileWatcherService FileWatcher { get; }
     public Action<string, object?> SendToJS { get; }
@@ -206,6 +207,7 @@ public class CoreLibrary
         try { Timeline?.Dispose(); } catch { }
         try { PhotoPlayersStore?.Dispose(); } catch { }
         try { TimeEngine?.Dispose(); } catch { }
+        try { LocalFavorites?.Dispose(); } catch { }
     }
 
     // Creates fresh DB service instances using their static Load factories at the path set on Database.
@@ -216,6 +218,7 @@ public class CoreLibrary
             msg => SendToJS("log", new { msg, color = "sec" }));
         PhotoPlayersStore = PhotoPlayersStore.Load();
         Timeline          = TimelineService.Load(Settings);
+        LocalFavorites    = LocalFavoritesStore.Load();
     }
 
 }

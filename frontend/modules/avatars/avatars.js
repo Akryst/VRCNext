@@ -338,8 +338,8 @@ function doAvatarSearch(loadMore) {
 function _avGroupOptionLabel(g) {
     const count    = favAvatarsData.filter(a => a.favoriteGroup === g.name).length;
     const cap      = g.capacity || 25;
-    const isVrcPlus = g.name !== 'avatars1';
-    return `${esc(g.displayName || g.name)} ${count}/${cap}${isVrcPlus ? ' [VRC+]' : ''}`;
+    const marker   = (!isLocalFavGroup(g) && g.name !== 'avatars1') ? ' [VRC+]' : '';
+    return `${esc(g.displayName || g.name)} ${count}/${cap}${marker}`;
 }
 
 function renderFavAvatars(payload) {
@@ -375,17 +375,24 @@ function setFavAvatarGroup(val) {
 function updateFavAvatarGroupHeader() {
     const label   = document.getElementById('favAvatarGroupLabel');
     const editBtn = document.getElementById('favAvatarGroupEditBtn');
+    const delBtn  = document.getElementById('favAvatarGroupDeleteBtn');
     const badge   = document.getElementById('favAvatarGroupVrcPlusBadge');
+    const localBadge = document.getElementById('favAvatarGroupLocalBadge');
     if (!label) return;
     if (!favAvatarGroupFilter) {
         label.textContent = t('avatars.favorites.group.all', 'All Favorites');
         if (editBtn) editBtn.style.display = 'none';
+        if (delBtn) delBtn.style.display = 'none';
         if (badge) badge.style.display = 'none';
+        if (localBadge) localBadge.style.display = 'none';
     } else {
         const g = favAvatarGroups.find(x => x.name === favAvatarGroupFilter);
+        const isLocal = isLocalFavGroup(g);
         label.textContent = g ? (g.displayName || g.name) : favAvatarGroupFilter;
         if (editBtn) editBtn.style.display = '';
-        if (badge) badge.style.display = (g && g.name !== 'avatars1') ? '' : 'none';
+        if (delBtn) delBtn.style.display = isLocal ? '' : 'none';
+        if (badge) badge.style.display = (g && !isLocal && g.name !== 'avatars1') ? '' : 'none';
+        if (localBadge) localBadge.style.display = isLocal ? '' : 'none';
     }
 }
 
@@ -477,11 +484,9 @@ function filterFavAvatars() {
             const groupAvatars = filtered.filter(a => a.favoriteGroup === g.name);
             if (!groupAvatars.length) return;
             const cap = g.capacity || 25;
-            const isVrcPlus = g.name !== 'avatars1';
-            const vrcBadge = isVrcPlus ? `<span class="vrcn-supporter-badge">VRC+</span>` : '';
             html += `<div class="fav-group-header${first ? ' fav-group-header-first' : ''}">
                 <span class="topbar-title">${esc(g.displayName || g.name)}</span>
-                ${vrcBadge}
+                ${favGroupBadge(g)}
                 <span class="fav-group-count">${groupAvatars.length}/${cap}</span>
             </div>`;
             html += groupAvatars.map(a => _renderFavAvCard(a)).join('');
@@ -519,7 +524,65 @@ function exitAvEditMode() {
     if (bar) bar.style.display = 'none';
     const picker = document.getElementById('avatarEditMovePicker');
     if (picker) { picker.style.display = 'none'; picker.innerHTML = ''; }
+    avatarCancelCreateLocalGroup();
     filterFavAvatars();
+}
+
+/* === Local Groups (Avatars) === */
+function avatarLocalGroupCount() {
+    return (typeof favAvatarGroups !== 'undefined' ? favAvatarGroups : []).filter(isLocalFavGroup).length;
+}
+
+function avatarShowCreateLocalGroup(btn) {
+    const panel = document.getElementById('avatarCreateLocalPanel');
+    if (!panel) return;
+    if (panel.style.display === 'block') { avatarCancelCreateLocalGroup(); return; }
+    if (avatarLocalGroupCount() >= 10) { showToast(false, localFavErrorText('group_limit')); return; }
+    panel.style.display = 'block';
+    const input = document.getElementById('avatarCreateLocalInput');
+    if (input) { input.value = ''; input.focus(); }
+    setTimeout(() => {
+        const close = (e) => {
+            if (!panel.contains(e.target) && !(btn && btn.contains(e.target))) {
+                panel.style.display = 'none';
+                document.removeEventListener('click', close);
+            }
+        };
+        document.addEventListener('click', close);
+    }, 0);
+}
+
+function avatarCancelCreateLocalGroup() {
+    const panel = document.getElementById('avatarCreateLocalPanel');
+    if (panel) panel.style.display = 'none';
+}
+
+function avatarSaveLocalGroup() {
+    const input = document.getElementById('avatarCreateLocalInput');
+    const name = (input?.value || '').trim();
+    if (!name) { showToast(false, localFavErrorText('empty_name')); return; }
+    sendToCS({ action: 'vrcCreateLocalGroup', kind: 'avatar', displayName: name });
+    avatarCancelCreateLocalGroup();
+}
+
+function deleteCurrentLocalAvatarGroup(btn) {
+    const g = favAvatarGroups.find(x => x.name === favAvatarGroupFilter);
+    if (!g || !isLocalFavGroup(g)) return;
+    if (btn && btn.dataset.confirm !== '1') {
+        btn.dataset.confirm = '1';
+        btn.classList.add('myp-edit-btn-danger');
+        btn.title = t('favorites.delete_local_group_confirm', 'Click again to delete');
+        clearTimeout(btn._confirmTimer);
+        btn._confirmTimer = setTimeout(() => {
+            btn.dataset.confirm = '0';
+            btn.classList.remove('myp-edit-btn-danger');
+            btn.title = t('favorites.delete_local_group', 'Delete local group');
+        }, 3000);
+        return;
+    }
+    if (btn) { btn.dataset.confirm = '0'; btn.classList.remove('myp-edit-btn-danger'); clearTimeout(btn._confirmTimer); }
+    sendToCS({ action: 'vrcDeleteLocalGroup', kind: 'avatar', groupName: g.name });
+    favAvatarGroupFilter = '';
 }
 
 function toggleAvEditSelect(id, el) {
@@ -574,12 +637,11 @@ function avEditShowMoveMenu(btn) {
     const groups = (typeof favAvatarGroups !== 'undefined') ? favAvatarGroups : [];
     picker.innerHTML = groups.map(g => {
         const count = favAvatarsData.filter(fw => fw.favoriteGroup === g.name).length;
-        const isVrcPlus = g.name !== 'avatars1';
         const gn = jsq(g.name), gt = jsq(g.type);
         return `<div class="vn-select-option" onclick="avEditMoveSelected('${gn}','${gt}')">
             <span class="msi" style="font-size:14px;flex-shrink:0;">folder</span>
             <span style="flex:1;">${esc(g.displayName || g.name)}</span>
-            ${isVrcPlus ? '<span class="vrcn-supporter-badge">VRC+</span>' : ''}
+            ${favGroupBadge(g)}
             <span style="font-size:10px;color:var(--tx3);flex-shrink:0;">${count}</span>
         </div>`;
     }).join('');
@@ -680,11 +742,8 @@ function renderAvFavPickerList(avatarId) {
 
     list.innerHTML = favAvatarGroups.map(g => {
         const count = favAvatarsData.filter(f => f.favoriteGroup === g.name).length;
-        const isVrcPlus = g.name !== 'avatars1';
         const isCurrent = g.name === currentGroup;
-        const vrcBadge = isVrcPlus
-            ? `<span class="vrcn-supporter-badge">VRC+</span>`
-            : '';
+        const vrcBadge = favGroupBadge(g);
         const check = isCurrent
             ? `<span class="msi" style="color:var(--accent);font-size:18px;flex-shrink:0;">check_circle</span>`
             : '';
@@ -755,6 +814,7 @@ function onAvatarFavoriteResult(data) {
         else if (avatarFilter === 'rose') filterRoseDb();
         _scheduleAvFavRefresh();
     } else {
+        if (data.error) showToast(false, localFavErrorText(data.error));
         const list = document.getElementById('avFavPickerList');
         if (list) {
             list.innerHTML = `<div style="font-size:11px;color:var(--err,#e55);padding:6px 0;">${t('avatars.favorites.failed_prefix', 'Failed:')} ${esc(data.error || t('avatars.favorites.try_again', 'Try again'))}</div>`;

@@ -538,6 +538,13 @@ public class FriendsController
                 {
                     try
                     {
+                        if (_core.LocalFavorites.IsLocalGroup(groupName))
+                        {
+                            var (lok, lerr, lid) = _core.LocalFavorites.AddItem(groupName, "friend", uid, new JObject());
+                            if (lok) _core.SendToJS("vrcFavoriteFriendToggled", new { userId = uid, fvrtId = lid, isFavorited = true, groupName });
+                            else _core.SendToJS("vrcLocalGroupResult", new { ok = false, kind = "friend", action = "add", error = lerr });
+                            return;
+                        }
                         var result = await _core.Favorites.AddFavoriteFriendAsync(uid, groupName);
                         if (result == null) return;
                         var fvrtId = result["id"]?.ToString() ?? "";
@@ -558,6 +565,12 @@ public class FriendsController
                 {
                     try
                     {
+                        if (LocalFavoritesStore.IsLocalId(fvrtId))
+                        {
+                            if (_core.LocalFavorites.RemoveItem(fvrtId))
+                                _core.SendToJS("vrcFavoriteFriendToggled", new { userId = uid, fvrtId = "", isFavorited = false });
+                            return;
+                        }
                         var ok = await _core.Favorites.RemoveFavoriteFriendAsync(fvrtId);
                         if (!ok) return;
                         lock (_favoriteFriends) _favoriteFriends.Remove(uid);
@@ -575,6 +588,16 @@ public class FriendsController
                 var oldFvrt = msg["oldFvrtId"]?.ToString();
                 _ = Task.Run(async () =>
                 {
+                    bool targetLocal = _core.LocalFavorites.IsLocalGroup(group);
+                    if (LocalFavoritesStore.IsLocalId(oldFvrt)) { _core.LocalFavorites.RemoveItem(oldFvrt!); oldFvrt = null; }
+                    else if (targetLocal && !string.IsNullOrEmpty(oldFvrt)) { await _core.Favorites.RemoveFavoriteFriendAsync(oldFvrt); lock (_favoriteFriends) _favoriteFriends.Remove(uid); oldFvrt = null; }
+                    if (targetLocal)
+                    {
+                        var (lok, lerr, lid) = _core.LocalFavorites.AddItem(group, "friend", uid, new JObject());
+                        _core.SendToJS("vrcFriendFavoriteResult",
+                            new { ok = lok, userId = uid, groupName = group, newFvrtId = lok ? lid : "", error = lok ? "" : lerr });
+                        return;
+                    }
                     var (ok, resultData) = await _core.Favorites.AddFavoriteFriendToGroupAsync(uid, group, oldFvrt);
                     if (ok) lock (_favoriteFriends) _favoriteFriends[uid] = (resultData, group);
                     _core.SendToJS("vrcFriendFavoriteResult",
@@ -1029,7 +1052,12 @@ public class FriendsController
                 .Where(f => !string.IsNullOrEmpty(f.favoriteId))
                 .ToList();
 
-            var payload = new { friends, groups = groupList };
+            groupList.AddRange(AuthController.BuildLocalGroups(_core.LocalFavorites.GetGroups("friend"), "localFriend"));
+            var friendsList = friends.Cast<object>().ToList();
+            foreach (var it in _core.LocalFavorites.GetItems("friend"))
+                friendsList.Add(new { fvrtId = it.Id, favoriteId = it.EntityId, groupName = it.GroupName });
+
+            var payload = new { friends = friendsList, groups = groupList };
             if (_core.Settings.FfcEnabled) _core.Cache.Save(CacheHandler.KeyFavFriends, payload);
             _core.SendToJS("vrcFavoriteFriends", payload);
         }
