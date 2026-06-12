@@ -807,6 +807,7 @@
   "profiles.meta.last_seen": "Last Seen",
   "profiles.meta.last_active": "Last Active",
   "profiles.meta.time_together": "Time Together",
+  "profiles.meta.status_mostly": "Status Mostly",
   "profiles.meta.not_tracked": "Not tracked yet",
   "profiles.meta.meets": "Meets",
   "profiles.meta.infos_title": "Infos",

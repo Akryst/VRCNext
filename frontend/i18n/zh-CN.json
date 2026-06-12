@@ -807,6 +807,7 @@
   "profiles.meta.last_seen": "最后在线",
   "profiles.meta.last_active": "最近活跃",
   "profiles.meta.time_together": "共处时间",
+  "profiles.meta.status_mostly": "常用状态",
   "profiles.meta.not_tracked": "尚未追踪",
   "profiles.meta.meets": "见面次数",
   "profiles.meta.infos_title": "信息",

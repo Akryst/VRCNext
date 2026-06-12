@@ -644,6 +644,8 @@ function renderFriendDetail(d) {
             (d.totalTimeSeconds > 0 || d.inSameInstance)
                 ? `<span id="fdTimeTogether">${formatDuration(d.totalTimeSeconds)}</span>`
                 : `<span style="color:var(--tx3);">${t('profiles.meta.not_tracked', 'Not tracked yet')}</span>`));
+        _aboutRows.push(_mr(t('profiles.meta.status_mostly', 'Status Mostly'),
+            `<span id="fdInfoStatusMostly" style="color:var(--tx3);">—</span>`));
     }
 
     const _aboutRowsHtml = `<div class="fd-group-rep-label">${t('profiles.meta.infos_title', 'Infos')}</div>
@@ -1073,6 +1075,7 @@ function renderFriendDetail(d) {
     if (userId) sendToCS({ action: 'getFriendActivityForUser', userId });
     if (userId) sendToCS({ action: 'getProfileInsights', userId });
     if (userId) { _fdHeatmapDays = 30; _fdHeatmapView = 'online'; _fdStatusData = null; sendToCS({ action: 'getUserOnlineHeatmap', userId, days: 30 }); }
+    if (userId && !isSelf) sendToCS({ action: 'getUserStatusTime', userId, days: 30 });
 
     if (_fdLiveTimer) { clearInterval(_fdLiveTimer); _fdLiveTimer = null; }
     if (d.inSameInstance && !(currentVrcUser && d.id === currentVrcUser.id)) {
@@ -1559,17 +1562,33 @@ function fdStatusMeta() {
 
 function renderFdStatusTime(payload) {
     if (!currentFriendDetail || currentFriendDetail.id !== payload.userId) return;
-    _fdStatusData = payload;
-    const icon = document.getElementById('fdHmRefreshIcon');
-    if (icon) icon.classList.remove('ts-spin');
-
-    const wrap = document.getElementById('fdHmStatusWrap');
-    if (!wrap) return;
 
     const META = fdStatusMeta();
     const buckets = payload.buckets || {};
     const totals = payload.totals || {};
     const total = payload.totalSeconds || 0;
+
+    const mostlyEl = document.getElementById('fdInfoStatusMostly');
+    if (mostlyEl && payload.days === 30) {
+        let topKey = '', topSec = 0;
+        for (const k of Object.keys(META)) { const s = totals[k] || 0; if (s > topSec) { topSec = s; topKey = k; } }
+        if (topKey) {
+            mostlyEl.textContent = META[topKey].label;
+            mostlyEl.style.color = META[topKey].color;
+        } else {
+            mostlyEl.textContent = '—';
+            mostlyEl.style.color = 'var(--tx3)';
+        }
+    }
+
+    _fdStatusData = payload;
+    if (_fdHeatmapView === 'online') return;
+
+    const icon = document.getElementById('fdHmRefreshIcon');
+    if (icon) icon.classList.remove('ts-spin');
+
+    const wrap = document.getElementById('fdHmStatusWrap');
+    if (!wrap) return;
 
     const countEl = document.getElementById('fdHmCount');
     if (countEl) countEl.textContent = total > 0 ? fdFmtMinutes(total / 60) : '';

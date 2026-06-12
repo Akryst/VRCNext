@@ -807,6 +807,7 @@
   "profiles.meta.last_seen": "最終オンライン",
   "profiles.meta.last_active": "最終アクティブ",
   "profiles.meta.time_together": "一緒にいた時間",
+  "profiles.meta.status_mostly": "よく使うステータス",
   "profiles.meta.not_tracked": "まだ追跡されていません",
   "profiles.meta.meets": "出会い",
   "profiles.meta.infos_title": "情報",

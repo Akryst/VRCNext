@@ -15,5 +15,6 @@ You can now see when one of your friends spends time with another one of your fr
 The Heatmap shows a user’s most active times based on the last 7, 30, or 90 days, as well as all-time data. It also shows peak activity times and when the user is usually online.
 
 * Added **Status Analysis** to user profiles.
+* Added **Status Mostly** to user profiles "INFOS" section
 
 This shows which status a user most commonly uses. You can see if the user is usually on **Ask Me**, **Do Not Disturb**, **Online**, or **Join Me**.

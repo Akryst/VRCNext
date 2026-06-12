@@ -808,6 +808,7 @@
   "profiles.meta.last_seen": "Был в сети",
   "profiles.meta.last_active": "Последняя активность",
   "profiles.meta.time_together": "Время вместе",
+  "profiles.meta.status_mostly": "Обычный статус",
   "profiles.meta.not_tracked": "Не отслеживается",
   "profiles.meta.meets": "Встречи",
   "profiles.meta.infos_title": "Информация",
