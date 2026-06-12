@@ -537,7 +537,7 @@ function avatarShowCreateLocalGroup(btn) {
     const panel = document.getElementById('avatarCreateLocalPanel');
     if (!panel) return;
     if (panel.style.display === 'block') { avatarCancelCreateLocalGroup(); return; }
-    if (avatarLocalGroupCount() >= 10) { showToast(false, localFavErrorText('group_limit')); return; }
+    if (avatarLocalGroupCount() >= 100) { showToast(false, localFavErrorText('group_limit')); return; }
     panel.style.display = 'block';
     const input = document.getElementById('avatarCreateLocalInput');
     if (input) { input.value = ''; input.focus(); }

@@ -542,7 +542,7 @@ function renderWorldFavPicker(worldId) {
                     <span style="font-size:12px;font-weight:600;color:var(--tx1);">${esc(g.displayName || g.name)}</span>
                     ${vrcBadge}
                 </div>
-                <div style="font-size:10px;color:var(--tx3);margin-top:1px;">${tf('worlds.favorites.group_count', { count }, '{count}/100 worlds')}</div>
+                <div style="font-size:10px;color:var(--tx3);margin-top:1px;">${isLocalFavGroup(g) ? `${count}/${g.capacity || 200}` : tf('worlds.favorites.group_count', { count }, '{count}/100 worlds')}</div>
             </div>
             ${check}
         </div>`;

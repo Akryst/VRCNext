@@ -6,8 +6,8 @@ namespace VRCNext.Services;
 
 public class LocalFavoritesStore : IDisposable
 {
-    public const int MaxGroups = 10;
-    public const int MaxItems  = 100;
+    public const int MaxGroups = 100;
+    public const int MaxItems  = 200;
 
     public class LocalGroup
     {

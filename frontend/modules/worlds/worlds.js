@@ -71,7 +71,7 @@ function renderMyWorlds(worlds) {
 
 function _wdGroupOptionLabel(g) {
     const count = favWorldsData.filter(w => w.favoriteGroup === g.name).length;
-    const cap   = isLocalFavGroup(g) ? 100 : Math.max(g.capacity || 100, 100);
+    const cap   = isLocalFavGroup(g) ? (g.capacity || 200) : Math.max(g.capacity || 100, 100);
     const marker = (!isLocalFavGroup(g) && g.type === 'vrcPlusWorld') ? ' [VRC+]' : '';
     return `${esc(g.displayName || g.name)} ${count}/${cap}${marker}`;
 }
@@ -289,7 +289,7 @@ function filterFavWorlds() {
             const groupWorlds = filtered.filter(w => w.favoriteGroup === g.name);
             if (!groupWorlds.length) return;
             const isLocal = isLocalFavGroup(g);
-            const cap = isLocal ? 100 : Math.max(g.capacity || 100, 100);
+            const cap = isLocal ? (g.capacity || 200) : Math.max(g.capacity || 100, 100);
             const badge = favGroupBadge(g);
             const visLabel = _favGroupVisLabel(g.visibility);
             const visHtml = isLocal
@@ -453,7 +453,7 @@ function worldShowCreateLocalGroup(btn) {
     const panel = document.getElementById('worldCreateLocalPanel');
     if (!panel) return;
     if (panel.style.display === 'block') { worldCancelCreateLocalGroup(); return; }
-    if (worldLocalGroupCount() >= 10) { showToast(false, localFavErrorText('group_limit')); return; }
+    if (worldLocalGroupCount() >= 100) { showToast(false, localFavErrorText('group_limit')); return; }
     panel.style.display = 'block';
     const input = document.getElementById('worldCreateLocalInput');
     if (input) { input.value = ''; input.focus(); }

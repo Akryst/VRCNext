@@ -1,3 +1,10 @@
+**2026.30.1**
+
+**Local Favorites Changes**
+* Increased the group limit from 10 to 100
+* Increased the slots per group limit from 100 to 200
+
+
 **2026.30.0**
 
 **Local Favorites**

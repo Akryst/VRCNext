@@ -599,7 +599,7 @@ function friendShowCreateLocalGroup(btn) {
     const panel = document.getElementById('friendCreateLocalPanel');
     if (!panel) return;
     if (panel.style.display === 'block') { friendCancelCreateLocalGroup(); return; }
-    if (friendLocalGroupCount() >= 10) { showToast(false, localFavErrorText('group_limit')); return; }
+    if (friendLocalGroupCount() >= 100) { showToast(false, localFavErrorText('group_limit')); return; }
     panel.style.display = 'block';
     const input = document.getElementById('friendCreateLocalInput');
     if (input) { input.value = ''; input.focus(); }
