@@ -753,6 +753,7 @@
   "profiles.heatmap.total_online": "オンライン {time}",
   "profiles.heatmap.view_online": "オンライン",
   "profiles.heatmap.view_status": "ステータス",
+  "profiles.heatmap.view_all_statuses": "全ステータス",
   "profiles.heatmap.mostly": "ほとんど",
   "profiles.heatmap.no_status": "ステータスデータがまだありません",
   "profiles.heatmap.most_active_day": "最も活発な曜日",

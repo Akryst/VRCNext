@@ -849,7 +849,11 @@ function renderFriendDetail(d) {
             <div class="fd-hm-head-right">
                 <select id="fdHmView" class="vrcn-dropdown" onchange="fdChangeHeatmapView(this.value)">
                     <option value="online" selected>${esc(t('profiles.heatmap.view_online', 'Online'))}</option>
-                    <option value="status">${esc(t('profiles.heatmap.view_status', 'Status'))}</option>
+                    <option value="all">${esc(t('profiles.heatmap.view_all_statuses', 'All Statuses'))}</option>
+                    <option value="join me">${esc(t('status.join_me', 'Join Me'))}</option>
+                    <option value="active">${esc(t('status.online', 'Online'))}</option>
+                    <option value="ask me">${esc(t('status.ask_me', 'Ask Me'))}</option>
+                    <option value="busy">${esc(t('status.do_not_disturb', 'Do Not Disturb'))}</option>
                 </select>
                 <select id="fdHmPeriod" class="vrcn-dropdown" onchange="fdChangeHeatmapPeriod(this.value)">
                     <option value="7">${esc(t('profiles.heatmap.last_7', 'Last 7 Days'))}</option>
@@ -1068,7 +1072,7 @@ function renderFriendDetail(d) {
     if (userId) { _fdTimelineEvents = []; sendToCS({ action: 'getTimelineForUser', userId }); }
     if (userId) sendToCS({ action: 'getFriendActivityForUser', userId });
     if (userId) sendToCS({ action: 'getProfileInsights', userId });
-    if (userId) { _fdHeatmapDays = 30; _fdHeatmapView = 'online'; sendToCS({ action: 'getUserOnlineHeatmap', userId, days: 30 }); }
+    if (userId) { _fdHeatmapDays = 30; _fdHeatmapView = 'online'; _fdStatusData = null; sendToCS({ action: 'getUserOnlineHeatmap', userId, days: 30 }); }
 
     if (_fdLiveTimer) { clearInterval(_fdLiveTimer); _fdLiveTimer = null; }
     if (d.inSameInstance && !(currentVrcUser && d.id === currentVrcUser.id)) {
@@ -1406,36 +1410,46 @@ function renderFdInsightsPersons(persons) {
 
 let _fdHeatmapDays = 30;
 let _fdHeatmapView = 'online';
+let _fdStatusData = null;
 
 function fdRequestHeatmap() {
     const uid = currentFriendDetail?.id;
     if (!uid) return;
     const icon = document.getElementById('fdHmRefreshIcon');
     if (icon) icon.classList.add('ts-spin');
-    if (_fdHeatmapView === 'status') {
+    const isStatus = _fdHeatmapView !== 'online';
+    if (isStatus) {
         const sw = document.getElementById('fdHmStatusWrap');
-        if (sw && !sw.querySelector('.fd-st-row'))
+        if (sw && !sw.querySelector('.fd-hm-grid'))
             sw.innerHTML = `<div style="padding:16px 0;font-size:12px;color:var(--tx3);text-align:center;">${t('profiles.insights.loading', 'Loading...')}</div>`;
     }
-    const action = _fdHeatmapView === 'status' ? 'getUserStatusTime' : 'getUserOnlineHeatmap';
-    sendToCS({ action, userId: uid, days: _fdHeatmapDays });
+    sendToCS({ action: isStatus ? 'getUserStatusTime' : 'getUserOnlineHeatmap', userId: uid, days: _fdHeatmapDays });
 }
 
 function fdChangeHeatmapPeriod(v) {
     _fdHeatmapDays = parseInt(v, 10) || 0;
+    _fdStatusData = null;
     fdRequestHeatmap();
 }
 
 function fdChangeHeatmapView(v) {
-    _fdHeatmapView = v === 'status' ? 'status' : 'online';
+    _fdHeatmapView = v;
+    const isOnline = v === 'online';
     const grid = document.getElementById('fdHmGridWrap');
     const status = document.getElementById('fdHmStatusWrap');
-    if (grid) grid.style.display = _fdHeatmapView === 'online' ? '' : 'none';
-    if (status) status.style.display = _fdHeatmapView === 'status' ? '' : 'none';
-    fdRequestHeatmap();
+    if (grid) grid.style.display = isOnline ? '' : 'none';
+    if (status) status.style.display = isOnline ? 'none' : '';
+    if (isOnline) { fdRequestHeatmap(); return; }
+    const uid = currentFriendDetail?.id;
+    if (_fdStatusData && _fdStatusData.userId === uid && _fdStatusData.days === _fdHeatmapDays) {
+        renderFdStatusTime(_fdStatusData);
+    } else {
+        fdRequestHeatmap();
+    }
 }
 
 function fdReloadHeatmap() {
+    if (_fdHeatmapView !== 'online') _fdStatusData = null;
     fdRequestHeatmap();
 }
 
@@ -1532,37 +1546,41 @@ function renderFdOnlineHeatmap(payload) {
     wrap.innerHTML = `<div class="fd-hm-grid">${rowsHtml}</div>${axis}`;
 }
 
+const FD_STATUS_ORDER = ['join me', 'ask me', 'active', 'busy'];
+
+function fdStatusMeta() {
+    return {
+        'join me': { label: t('status.join_me', 'Join Me'), color: 'var(--status-join)' },
+        'active':  { label: t('status.online', 'Online'), color: 'var(--status-online)' },
+        'ask me':  { label: t('status.ask_me', 'Ask Me'), color: 'var(--status-ask)' },
+        'busy':    { label: t('status.do_not_disturb', 'Do Not Disturb'), color: 'var(--status-busy)' },
+    };
+}
+
 function renderFdStatusTime(payload) {
     if (!currentFriendDetail || currentFriendDetail.id !== payload.userId) return;
+    _fdStatusData = payload;
     const icon = document.getElementById('fdHmRefreshIcon');
     if (icon) icon.classList.remove('ts-spin');
 
     const wrap = document.getElementById('fdHmStatusWrap');
     if (!wrap) return;
 
-    const STATUS_META = {
-        'join me': { label: t('status.join_me', 'Join Me'), color: 'var(--status-join)' },
-        'active':  { label: t('status.online', 'Online'), color: 'var(--status-online)' },
-        'ask me':  { label: t('status.ask_me', 'Ask Me'), color: 'var(--status-ask)' },
-        'busy':    { label: t('status.do_not_disturb', 'Do Not Disturb'), color: 'var(--status-busy)' },
-    };
-
-    const secByKey = {};
-    (payload.statuses || []).forEach(s => { secByKey[s.key] = (secByKey[s.key] || 0) + (s.seconds || 0); });
+    const META = fdStatusMeta();
+    const buckets = payload.buckets || {};
+    const totals = payload.totals || {};
     const total = payload.totalSeconds || 0;
 
     const countEl = document.getElementById('fdHmCount');
     if (countEl) countEl.textContent = total > 0 ? fdFmtMinutes(total / 60) : '';
 
-    const rows = Object.keys(STATUS_META).map(key => ({
-        key, label: STATUS_META[key].label, color: STATUS_META[key].color, seconds: secByKey[key] || 0,
-    })).sort((a, b) => b.seconds - a.seconds);
-
     const statsEl = document.getElementById('fdHmStats');
     if (statsEl) {
-        statsEl.innerHTML = (total > 0 && rows[0].seconds > 0)
-            ? `<span>${t('profiles.heatmap.mostly', 'Mostly')}: <strong style="color:${rows[0].color};">${esc(rows[0].label)}</strong></span>`
-            : '';
+        statsEl.innerHTML = FD_STATUS_ORDER.map(k => {
+            const secs = totals[k] || 0;
+            const pct = total > 0 ? Math.round((secs / total) * 100) : 0;
+            return `<span class="fd-st-chip"><span class="fd-st-cdot" style="background:${META[k].color};"></span>${esc(META[k].label)} ${pct}% ${fdFmtMinutes(secs / 60)}</span>`;
+        }).join('');
     }
 
     if (total <= 0) {
@@ -1570,19 +1588,53 @@ function renderFdStatusTime(payload) {
         return;
     }
 
-    const maxSec = rows[0].seconds || 1;
-    wrap.innerHTML = rows.map((r, i) => {
-        const pct = Math.round((r.seconds / total) * 100);
-        const barPct = Math.round((r.seconds / maxSec) * 100);
-        return `<div class="fd-st-row">
-            <div class="fd-st-rank">#${i + 1}</div>
-            <div class="fd-st-dot" style="background:${r.color};"></div>
-            <div class="fd-st-body">
-                <div class="fd-st-head"><span class="fd-st-name">${esc(r.label)}</span><span class="fd-st-meta">${pct}% · ${fdFmtMinutes(r.seconds / 60)}</span></div>
-                <div class="fd-st-bar-wrap"><div class="fd-st-bar" style="width:${barPct}%;background:${r.color};"></div></div>
-            </div>
-        </div>`;
-    }).join('');
+    const base = new Date(Date.UTC(2024, 0, 8));
+    const fmt = new Intl.DateTimeFormat(typeof getLanguageLocale === 'function' ? getLanguageLocale() : undefined, { weekday: 'short' });
+    const dayLabels = Array.from({ length: 7 }, (_, i) => fmt.format(new Date(base.getTime() + i * 86400000)));
+
+    const view = _fdHeatmapView;
+    const keys = Object.keys(META);
+
+    const cellVal = (slot) => {
+        if (view === 'all') {
+            let sum = 0, domKey = '', domVal = 0;
+            for (const k of keys) {
+                const v = (buckets[k] && buckets[k][slot]) || 0;
+                sum += v;
+                if (v > domVal) { domVal = v; domKey = k; }
+            }
+            return { val: sum, color: domKey ? META[domKey].color : 'var(--accent)', dom: domKey };
+        }
+        const v = (buckets[view] && buckets[view][slot]) || 0;
+        return { val: v, color: META[view] ? META[view].color : 'var(--accent)', dom: view };
+    };
+
+    let max = 0;
+    for (let slot = 0; slot < 168; slot++) { const c = cellVal(slot).val; if (c > max) max = c; }
+
+    let rowsHtml = '';
+    for (let d = 0; d < 7; d++) {
+        let cells = '';
+        for (let h = 0; h < 24; h++) {
+            const c = cellVal(d * 24 + h);
+            const intensity = max > 0 ? Math.sqrt(c.val / max) : 0;
+            const domLabel = c.dom && META[c.dom] ? ` (${META[c.dom].label})` : '';
+            const title = `${dayLabels[d]} ${String(h).padStart(2, '0')}:00 · ${fdFmtMinutes(c.val)}${view === 'all' && c.val > 0 ? esc(domLabel) : ''}`;
+            const style = c.val > 0
+                ? `style="background:color-mix(in srgb, ${c.color} ${Math.round(20 + intensity * 80)}%, transparent);"`
+                : '';
+            cells += `<div class="fd-hm-cell" ${style} title="${esc(title)}"></div>`;
+        }
+        rowsHtml += `<div class="fd-hm-row"><div class="fd-hm-row-label">${esc(dayLabels[d])}</div><div class="fd-hm-cells">${cells}</div></div>`;
+    }
+
+    let axis = '<div class="fd-hm-axis"><div class="fd-hm-axis-spacer"></div><div class="fd-hm-axis-hours">';
+    for (let h = 0; h < 24; h++) {
+        axis += `<div class="fd-hm-axis-h">${h % 3 === 0 ? String(h).padStart(2, '0') + ':00' : ''}</div>`;
+    }
+    axis += '</div></div>';
+
+    wrap.innerHTML = `<div class="fd-hm-grid">${rowsHtml}</div>${axis}`;
 }
 
 function friendAction(action, location, userId) {

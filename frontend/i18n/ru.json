@@ -754,6 +754,7 @@
   "profiles.heatmap.total_online": "{time} онлайн",
   "profiles.heatmap.view_online": "Онлайн",
   "profiles.heatmap.view_status": "Статус",
+  "profiles.heatmap.view_all_statuses": "Все статусы",
   "profiles.heatmap.mostly": "Чаще всего",
   "profiles.heatmap.no_status": "Пока нет данных о статусе",
   "profiles.heatmap.most_active_day": "Самый активный день",

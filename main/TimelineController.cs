@@ -1100,10 +1100,7 @@ public class TimelineController
         _ = Task.Run(() =>
         {
             var bd = _core.Timeline.GetUserStatusBreakdown(userId, days);
-            var statuses = bd.Seconds
-                .Select(kv => new { key = kv.Key, seconds = kv.Value })
-                .ToList();
-            _core.SendToJS("userStatusTime", new { userId, days, statuses, totalSeconds = bd.TotalSeconds });
+            _core.SendToJS("userStatusTime", new { userId, days, buckets = bd.Buckets, totals = bd.Seconds, totalSeconds = bd.TotalSeconds });
         });
     }
 

@@ -405,61 +405,21 @@
     overflow: visible;
 }
 
-.fd-hm-status-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.fd-hm-stats {
+    flex-wrap: wrap;
+    gap: 6px 12px;
 }
-.fd-st-row {
-    display: flex;
+.fd-st-chip {
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-}
-.fd-st-rank {
+    gap: 5px;
     font-size: 11px;
-    font-weight: 700;
-    color: var(--tx3);
-    width: 22px;
-    flex-shrink: 0;
-    text-align: center;
-}
-.fd-st-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-.fd-st-body {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.fd-st-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-}
-.fd-st-name {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--tx1);
-}
-.fd-st-meta {
-    font-size: 11px;
-    color: var(--tx3);
+    color: var(--tx2);
     white-space: nowrap;
 }
-.fd-st-bar-wrap {
-    height: 5px;
-    background: var(--bg-hover);
-    border-radius: 3px;
-    overflow: hidden;
-}
-.fd-st-bar {
-    height: 100%;
-    border-radius: 3px;
-    transition: width .3s ease;
+.fd-st-cdot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
 }

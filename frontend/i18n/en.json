@@ -753,6 +753,7 @@
   "profiles.heatmap.total_online": "{time} online",
   "profiles.heatmap.view_online": "Online",
   "profiles.heatmap.view_status": "Status",
+  "profiles.heatmap.view_all_statuses": "All Statuses",
   "profiles.heatmap.mostly": "Mostly",
   "profiles.heatmap.no_status": "No status data yet",
   "profiles.heatmap.most_active_day": "Most active day",

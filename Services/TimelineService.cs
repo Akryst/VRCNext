@@ -2464,27 +2464,35 @@ public class TimelineService : IDisposable
             if (end <= start) continue;
 
             hm.Sessions++;
-            var cursor = start;
-            while (cursor < end)
-            {
-                var local = cursor.ToLocalTime();
-                int dow  = ((int)local.DayOfWeek + 6) % 7;
-                int hour = local.Hour;
-                var nextBoundaryUtc = local.Date.AddHours(hour + 1).ToUniversalTime();
-                var segEnd = nextBoundaryUtc < end ? nextBoundaryUtc : end;
-                var mins = (segEnd - cursor).TotalMinutes;
-                hm.Buckets[dow * 24 + hour] += mins;
-                hm.TotalMinutes += mins;
-                cursor = segEnd;
-            }
+            hm.TotalMinutes += AddIntervalMinutes(hm.Buckets, start, end);
         }
 
         return hm;
     }
 
+    private static double AddIntervalMinutes(double[] buckets, DateTime start, DateTime end)
+    {
+        double total = 0;
+        var cursor = start;
+        while (cursor < end)
+        {
+            var local = cursor.ToLocalTime();
+            int dow  = ((int)local.DayOfWeek + 6) % 7;
+            int hour = local.Hour;
+            var nextBoundaryUtc = local.Date.AddHours(hour + 1).ToUniversalTime();
+            var segEnd = nextBoundaryUtc < end ? nextBoundaryUtc : end;
+            var mins = (segEnd - cursor).TotalMinutes;
+            buckets[dow * 24 + hour] += mins;
+            total += mins;
+            cursor = segEnd;
+        }
+        return total;
+    }
+
     public class StatusBreakdown
     {
-        public Dictionary<string, double> Seconds { get; set; } = new();
+        public Dictionary<string, double[]> Buckets { get; set; } = new();
+        public Dictionary<string, double>   Seconds { get; set; } = new();
         public double TotalSeconds { get; set; }
     }
 
@@ -2532,11 +2540,11 @@ public class TimelineService : IDisposable
             {
                 if (tr.Ts <= cursor) continue;
                 if (tr.Ts >= end) break;
-                AddStatusSeconds(bd, curStatus, (tr.Ts - cursor).TotalSeconds);
+                AddStatusSegment(bd, curStatus, cursor, tr.Ts);
                 curStatus = tr.Status;
                 cursor = tr.Ts;
             }
-            AddStatusSeconds(bd, curStatus, (end - cursor).TotalSeconds);
+            AddStatusSegment(bd, curStatus, cursor, end);
         }
 
         return bd;
@@ -2553,10 +2561,13 @@ public class TimelineService : IDisposable
         return status;
     }
 
-    private static void AddStatusSeconds(StatusBreakdown bd, string status, double seconds)
+    private static void AddStatusSegment(StatusBreakdown bd, string status, DateTime start, DateTime end)
     {
+        var seconds = (end - start).TotalSeconds;
         if (seconds <= 0) return;
         if (string.IsNullOrEmpty(status) || status == "offline") status = "active";
+        if (!bd.Buckets.TryGetValue(status, out var buckets)) bd.Buckets[status] = buckets = new double[7 * 24];
+        AddIntervalMinutes(buckets, start, end);
         bd.Seconds.TryGetValue(status, out var cur);
         bd.Seconds[status] = cur + seconds;
         bd.TotalSeconds += seconds;

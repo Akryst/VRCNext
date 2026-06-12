@@ -753,6 +753,7 @@
   "profiles.heatmap.total_online": "在线 {time}",
   "profiles.heatmap.view_online": "在线",
   "profiles.heatmap.view_status": "状态",
+  "profiles.heatmap.view_all_statuses": "所有状态",
   "profiles.heatmap.mostly": "多数时间",
   "profiles.heatmap.no_status": "暂无状态数据",
   "profiles.heatmap.most_active_day": "最活跃的一天",
