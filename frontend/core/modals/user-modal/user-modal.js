@@ -112,6 +112,37 @@ function fdSaveNote() {
     sendToCS({ action: 'vrcUpdateNote', userId: currentFriendDetail.id, note: inp.value });
 }
 
+function _fdMemoDefault() {
+    const m = (currentFriendDetail?.memo || '').trim();
+    return m || (currentFriendDetail?.displayName || '');
+}
+
+function fdEditMemo() {
+    document.getElementById('fdMemoView')?.style.setProperty('display', 'none');
+    const edit = document.getElementById('fdMemoEdit');
+    if (edit) edit.style.display = '';
+    const inp = document.getElementById('fdMemoInput');
+    if (inp) { inp.value = _fdMemoDefault(); inp.focus(); inp.select(); }
+}
+
+function fdCancelMemo() {
+    const view = document.getElementById('fdMemoView');
+    if (view) view.style.display = '';
+    const edit = document.getElementById('fdMemoEdit');
+    if (edit) edit.style.display = 'none';
+}
+
+function fdSaveMemo() {
+    const inp = document.getElementById('fdMemoInput');
+    if (!inp || !currentFriendDetail) return;
+    const val = inp.value.trim();
+    sendToCS({ action: 'setUserMemo', userId: currentFriendDetail.id, memo: val });
+    currentFriendDetail.memo = val;
+    const view = document.getElementById('fdMemoView');
+    if (view) view.textContent = _fdMemoDefault();
+    fdCancelMemo();
+}
+
 function openFriendDetail(userId) {
     if (typeof navSetCurrent === 'function') navSetCurrent('friend', userId);
     const m = document.getElementById('modalFriendDetail');
@@ -917,6 +948,22 @@ function renderFriendDetail(d) {
         ${_bioBadgesHtml}${bioHtml}${bioLinksHtml}${useCompact ? '' : langsHtml}
     </div>` : '';
     const _noteCard = `<div class="fd-info-card">${vrcNoteHtml}</div>`;
+    const _memoTitle = useCompact ? t('profiles.memo.title_compact', 'Memo') : t('profiles.memo.title', 'User Memo');
+    const _memoView  = esc((d.memo && d.memo.trim()) ? d.memo : (d.displayName || ''));
+    const _memoCard = `<div class="fd-info-card">
+        <div class="myp-section-header">
+            <span class="myp-section-title">${esc(_memoTitle)}</span>
+            <button class="myp-edit-btn" onclick="fdEditMemo()"><span class="msi" style="font-size:14px;">edit</span></button>
+        </div>
+        <div id="fdMemoView" style="font-size:13px;color:var(--tx1);line-height:1.5;word-break:break-word;">${_memoView}</div>
+        <div id="fdMemoEdit" style="display:none;">
+            <input id="fdMemoInput" type="text" class="vrcn-input" maxlength="128" placeholder="${esc(t('profiles.memo.placeholder', 'Custom name or note for this user'))}">
+            <div class="myp-edit-actions">
+                <button class="vrcn-button" onclick="fdCancelMemo()">${t('common.cancel', 'Cancel')}</button>
+                <button id="fdMemoSaveBtn" class="vrcn-button vrcn-btn-primary" onclick="fdSaveMemo()">${t('common.save', 'Save')}</button>
+            </div>
+        </div>
+    </div>`;
     const _tlCard = `<div class="fd-info-card">${miniTlHtml}</div>`;
     const _insightsCard = `<div class="fd-info-card">${insightsHtml}</div>`;
     const _heatmapCard = `<div class="fd-info-card">${heatmapHtml}</div>`;
@@ -947,7 +994,7 @@ function renderFriendDetail(d) {
                     ${_currentWorldCard}${_fdBadgesCard}${avatarRowHtml}${_bioCard}${_noteCard}
                 </div>
                 <div class="fd-info-right">
-                    ${_ownerCard}${_infosCard}${_trustCard}${_modCard}
+                    ${_ownerCard}${_infosCard}${_memoCard}${_trustCard}${_modCard}
                 </div>
             </div>
             ${_tlCard}
@@ -1008,6 +1055,7 @@ function renderFriendDetail(d) {
             <div class="fd-left-body">
                 <div class="fd-left-id"><div class="fd-left-avatar-wrap">${imgTag}${_fdDotHtml}</div><div class="fd-left-name-wrap"><div class="fd-name" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${esc(d.displayName)}${vrcPlusBadge}</div>${pronounsHtml}${_fdStatusRowCompact}</div></div>
                 ${actionsHtml}${favPickerHtml}
+                ${_memoCard}
                 ${_fdBadgesCard}
                 ${_fdLangCard}
                 ${_infosCard}

@@ -543,6 +543,18 @@
                         <div class="set-desc" style="margin-bottom:8px;" data-i18n="settings.db.cleanup.events">It will also delete certain events in your Personal and Friends Timeline. In the Personal Timeline, all notifications and URL entries will be wiped. In the Friends Timeline, all "Online", "Offline", and "Status Change" entries, for example "Ask Me" > "Join Me", will be wiped.</div>
                         <div class="set-desc" style="margin-bottom:4px;" data-i18n="settings.db.cleanup.instructions">Run the analysis first. After that, you will see what will be wiped. It is recommended to create a backup of your database in case you still need those entries. Your database is usually stored at:</div>
                         <div class="set-desc" style="font-family:monospace;color:var(--tx2);">C:\Users\USERNAME\AppData\Roaming\VRCNext</div>
+                        <div style="margin-top:12px;padding:10px 12px;border:1px solid var(--warn);border-radius:8px;background:color-mix(in srgb, var(--warn) 12%, transparent);">
+                            <div style="font-weight:700;color:var(--warn);margin-bottom:6px;display:flex;align-items:center;gap:6px;"><span class="msi" style="font-size:16px;">warning</span> <span data-i18n="settings.db.warn.title">What gets deleted, and what stays</span></div>
+                            <div style="font-size:12px;color:var(--tx1);line-height:1.5;">
+                                <div style="font-weight:600;margin-top:2px;" data-i18n="settings.db.warn.friends_head">Friends Timeline</div>
+                                <div data-i18n="settings.db.warn.friends_body">Status changes, status texts, online and offline states, bio changes and avatar changes get trimmed. The most recent entries always remain (the last 1000 online and offline states, the last 200 status texts and bio changes, the last 100 status changes and avatar changes). Only the older, bloated history is removed.</div>
+                                <div style="font-weight:600;margin-top:8px;" data-i18n="settings.db.warn.personal_head">Personal Timeline</div>
+                                <div data-i18n="settings.db.warn.personal_body">Notifications, video URLs and avatar switches get trimmed to the last 100 each. The player lists of past instances are also trimmed, the players are kept only for your most recent 100 instances.</div>
+                                <div style="font-weight:600;margin-top:8px;" data-i18n="settings.db.warn.users_head">Cached Users and Bio Links</div>
+                                <div data-i18n="settings.db.warn.users_body">Cached data of non friended users is cleared (Time Spent and Meet Counts stay). Bio links of all profiles are cleared. All of this is re-fetched from VRChat when needed.</div>
+                                <div style="margin-top:8px;color:var(--tx2);" data-i18n="settings.db.warn.note">So not everything is gone, only the bloated data that is not really needed. The database is then compacted to free up disk space. If you still want to keep the old entries, create a backup before running optimization.</div>
+                            </div>
+                        </div>
                         <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
                             <button class="vrcn-button" id="btnDbAnalyze" onclick="dbRunAnalysis()"><span class="msi" style="font-size:16px;">analytics</span> Run Analysis</button>
                             <button class="vrcn-button" id="btnDbMemory" onclick="dbMemoryUsage()"><span class="msi" style="font-size:16px;">memory</span> <span data-i18n="settings.db.memory_usage">Memory Usage</span></button>

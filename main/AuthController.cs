@@ -293,8 +293,10 @@ public class AuthController
                             friendStatusCount   = result.FriendStatusCount,
                             friendStatusDescCount = result.FriendStatusDescCount,
                             friendBioCount        = result.FriendBioCount,
+                            friendAvatarCount     = result.FriendAvatarCount,
                             notificationCount      = result.NotificationCount,
                             videoUrlCount          = result.VideoUrlCount,
+                            avatarSwitchCount      = result.AvatarSwitchCount,
                             instancePlayersCount   = result.InstancePlayersCount,
                         }));
                     }

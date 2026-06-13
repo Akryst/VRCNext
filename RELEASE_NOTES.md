@@ -1,6 +1,9 @@
 **2026.30.2**
 
-This update is mostly focused on Timeline improvements and bug fixes.
+This update mostly focuses on Timeline improvements, Database improvements, and bug fixes.
+
+**User Profiles**
+* Added "Memo" to use rprofiles so you can easily remember someone even if they change their username. the Memo will initially show the current username but can be changed by you.
 
 **Timeline**
 
@@ -14,8 +17,8 @@ This update is mostly focused on Timeline improvements and bug fixes.
 
 **Changes**
 
-* Every timeline filter now always shows the last “N” events based on the Database settings, instead of using the last “N” event pool from the “All” filter.
-* Database Optimization when runned manually by user deletes everything except the last 100 entries to keep Online behavior intact.
+* Every timeline filter now always shows the last “N” events based on the Database settings, instead of using the last “N” event pool from the **All** filter.
+* Manually running Database Optimization now deletes everything except the last 100 entries to keep online behavior intact.
 
 **Fixes**
 

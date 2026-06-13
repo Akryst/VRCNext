@@ -1257,9 +1257,11 @@ function handleDbAnalyzeResult(data) {
         const fStatus     = (data.friendStatusCount     || 0).toLocaleString(settingsUiLocale());
         const fStatusDesc = (data.friendStatusDescCount || 0).toLocaleString(settingsUiLocale());
         const fBio        = (data.friendBioCount        || 0).toLocaleString(settingsUiLocale());
-        const fTotal      = ((data.friendOnlineCount || 0) + (data.friendOfflineCount || 0) + (data.friendStatusCount || 0) + (data.friendStatusDescCount || 0) + (data.friendBioCount || 0)).toLocaleString(settingsUiLocale());
+        const fAvatar     = (data.friendAvatarCount     || 0).toLocaleString(settingsUiLocale());
+        const fTotal      = ((data.friendOnlineCount || 0) + (data.friendOfflineCount || 0) + (data.friendStatusCount || 0) + (data.friendStatusDescCount || 0) + (data.friendBioCount || 0) + (data.friendAvatarCount || 0)).toLocaleString(settingsUiLocale());
         const eNotif    = (data.notificationCount    || 0).toLocaleString(settingsUiLocale());
         const eVideo    = (data.videoUrlCount        || 0).toLocaleString(settingsUiLocale());
+        const eAvatar   = (data.avatarSwitchCount    || 0).toLocaleString(settingsUiLocale());
         const epPlayers = (data.instancePlayersCount || 0).toLocaleString(settingsUiLocale());
 
         res.innerHTML =
@@ -1290,6 +1292,10 @@ function handleDbAnalyzeResult(data) {
                     <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Video URL</div>
                     <div style="font-size:14px;font-weight:700;color:var(--tx0);">${eVideo}</div>
                 </div>
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Avatars</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--tx0);">${eAvatar}</div>
+                </div>
             </div>
             <div style="font-size:11px;font-weight:600;color:var(--tx3);margin-bottom:6px;margin-top:4px;text-transform:uppercase;letter-spacing:.05em;">friend_events</div>
             <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:12px;">
@@ -1314,6 +1320,10 @@ function handleDbAnalyzeResult(data) {
                     <div style="font-size:14px;font-weight:700;color:var(--tx0);">${fBio}</div>
                 </div>
                 <div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Friend Avatar</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--tx0);">${fAvatar}</div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;grid-column:span 6;">
                     <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Total Deletable Rows</div>
                     <div style="font-size:14px;font-weight:700;color:var(--accent);">${fTotal}</div>
                 </div>

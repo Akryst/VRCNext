@@ -691,6 +691,7 @@ public partial class AppShell
 
                 // User Notes
                 case "vrcUpdateNote":
+                case "setUserMemo":
                     await _friends.HandleMessage(action, msg);
                     break;
 

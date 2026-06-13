@@ -51,8 +51,10 @@ public static class SQLiteOptimizing
         public long FriendStatusCount      { get; set; }
         public long FriendStatusDescCount  { get; set; }
         public long FriendBioCount         { get; set; }
+        public long FriendAvatarCount      { get; set; }
         public long NotificationCount      { get; set; }
         public long VideoUrlCount          { get; set; }
+        public long AvatarSwitchCount      { get; set; }
         public long InstancePlayersCount   { get; set; }
     }
 
@@ -104,7 +106,8 @@ public static class SQLiteOptimizing
                 COALESCE(SUM(CASE WHEN type='friend_offline'    THEN 1 ELSE 0 END),0),
                 COALESCE(SUM(CASE WHEN type='friend_status'     THEN 1 ELSE 0 END),0),
                 COALESCE(SUM(CASE WHEN type='friend_statusdesc' THEN 1 ELSE 0 END),0),
-                COALESCE(SUM(CASE WHEN type='friend_bio'        THEN 1 ELSE 0 END),0)
+                COALESCE(SUM(CASE WHEN type='friend_bio'        THEN 1 ELSE 0 END),0),
+                COALESCE(SUM(CASE WHEN type='friend_avatar'     THEN 1 ELSE 0 END),0)
                 FROM friend_events";
             using var r = cmd.ExecuteReader();
             if (r.Read())
@@ -114,6 +117,7 @@ public static class SQLiteOptimizing
                 result.FriendStatusCount     = r.IsDBNull(2) ? 0 : r.GetInt64(2);
                 result.FriendStatusDescCount = r.IsDBNull(3) ? 0 : r.GetInt64(3);
                 result.FriendBioCount        = r.IsDBNull(4) ? 0 : r.GetInt64(4);
+                result.FriendAvatarCount     = r.IsDBNull(5) ? 0 : r.GetInt64(5);
             }
         }
 
@@ -129,6 +133,13 @@ public static class SQLiteOptimizing
             cmd.CommandText = "SELECT COALESCE(COUNT(*),0) FROM events WHERE type='video_url'";
             using var r = cmd.ExecuteReader();
             if (r.Read()) result.VideoUrlCount = r.IsDBNull(0) ? 0 : r.GetInt64(0);
+        }
+
+        using (var cmd = db.CreateCommand())
+        {
+            cmd.CommandText = "SELECT COALESCE(COUNT(*),0) FROM events WHERE type='avatar_switch'";
+            using var r = cmd.ExecuteReader();
+            if (r.Read()) result.AvatarSwitchCount = r.IsDBNull(0) ? 0 : r.GetInt64(0);
         }
 
         using (var cmd = db.CreateCommand())
@@ -183,6 +194,7 @@ public static class SQLiteOptimizing
             ["friend_status"]      = keepRecent,
             ["friend_statusdesc"]  = 200,
             ["friend_bio"]         = 200,
+            ["friend_avatar"]      = keepRecent,
         };
 
         int feCleaned = 0;
@@ -198,7 +210,7 @@ public static class SQLiteOptimizing
         }
 
         int notifCleaned = 0;
-        foreach (var etype in new[] { "notification", "video_url" })
+        foreach (var etype in new[] { "notification", "video_url", "avatar_switch" })
         {
             using var cmd = db.CreateCommand();
             cmd.CommandText = @"DELETE FROM events

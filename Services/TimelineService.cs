@@ -242,6 +242,18 @@ public class TimelineService : IDisposable
             ws.ExecuteNonQuery();
         }
         catch { }
+        try
+        {
+            using var um = _db.CreateCommand();
+            um.CommandText = @"
+                CREATE TABLE IF NOT EXISTS user_memos (
+                    user_id    TEXT PRIMARY KEY,
+                    memo       TEXT NOT NULL DEFAULT '',
+                    updated_at TEXT NOT NULL DEFAULT ''
+                )";
+            um.ExecuteNonQuery();
+        }
+        catch { }
         // Dedupe photo events caused by concurrent BootstrapPhotoTimeline runs.
         try
         {
@@ -1593,6 +1605,35 @@ public class TimelineService : IDisposable
         var hasMore = result.Count > limit;
         if (hasMore) result.RemoveAt(result.Count - 1);
         return (result, hasMore);
+    }
+
+    public string GetUserMemo(string userId)
+    {
+        if (string.IsNullOrEmpty(userId)) return "";
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT memo FROM user_memos WHERE user_id=$id";
+            cmd.Parameters.AddWithValue("$id", userId);
+            return cmd.ExecuteScalar() as string ?? "";
+        }
+        catch { return ""; }
+    }
+
+    public void SetUserMemo(string userId, string memo)
+    {
+        if (string.IsNullOrEmpty(userId)) return;
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"INSERT INTO user_memos(user_id, memo, updated_at) VALUES($id, $m, $ts)
+                ON CONFLICT(user_id) DO UPDATE SET memo=$m, updated_at=$ts";
+            cmd.Parameters.AddWithValue("$id", userId);
+            cmd.Parameters.AddWithValue("$m", memo ?? "");
+            cmd.Parameters.AddWithValue("$ts", DateTime.UtcNow.ToString("o"));
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
     }
 
     public string GetLastKnownFriendName(string friendId)

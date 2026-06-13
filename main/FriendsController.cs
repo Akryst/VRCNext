@@ -494,6 +494,18 @@ public class FriendsController
                 break;
             }
 
+            case "setUserMemo":
+            {
+                var uid = msg["userId"]?.ToString() ?? "";
+                var memo = msg["memo"]?.ToString() ?? "";
+                if (!string.IsNullOrEmpty(uid))
+                {
+                    _core.Timeline?.SetUserMemo(uid, memo);
+                    _core.SendToJS("userMemoUpdated", new { userId = uid, memo });
+                }
+                break;
+            }
+
             case "vrcBatchInvite":
             {
                 var ids = msg["userIds"]?.ToObject<List<string>>() ?? new();
@@ -2018,6 +2030,7 @@ public class FriendsController
             bioLinks = user["bioLinks"]?.ToObject<List<string>>() ?? new List<string>(),
             isFavorited = _favoriteFriends.ContainsKey(userId),
             favFriendId = GetFavoriteFriendId(userId),
+            memo = _core.Timeline?.GetUserMemo(userId) ?? "",
             badges,
             cachedAvatar = TryParseJObject(dbCache?.ProfileCurrentAvatar ?? "") ?? (object?)null,
             rawJson = user,
