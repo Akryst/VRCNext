@@ -365,9 +365,19 @@
                         <div class="sf-section-label" data-i18n="settings.launch.apps_vr">Start With VR</div>
                         <div class="set-desc" style="margin-bottom:8px;" data-i18n="settings.launch.apps_vr_desc">Apps launched when starting VRChat in VR mode.</div>
                         <div class="exe-list" id="extraExeVRList"><div class="folder-empty" data-i18n="common.none">None</div></div>
-                        <div class="folder-btns" style="margin-top:10px;">
+                        <div class="folder-btns" style="margin-top:10px;margin-bottom:14px;">
                             <button class="vrcn-button" onclick="browseExe('extra-vr')"><span class="msi" style="font-size:16px;">add</span> <span data-i18n="settings.launch.add_app">Add App</span></button>
                         </div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.launch.close_with_vrc">Close with VRChat</span>
+                            <label class="toggle"><input type="checkbox" id="setCloseWithVrc" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" style="margin-bottom:14px;" data-i18n="settings.launch.close_with_vrc_desc">When enabled, all startup apps that were launched with VRChat will be closed when the game is closed.</div>
+                        <div class="sf-toggle-row">
+                            <span data-i18n="settings.launch.start_always_with_vrc">Start always with VRChat</span>
+                            <label class="toggle"><input type="checkbox" id="setStartAlwaysWithVrc" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
+                        </div>
+                        <div class="set-desc" data-i18n="settings.launch.start_always_with_vrc_desc">When enabled, VRCNext will launch the startup apps even if VRChat is started outside of VRCNext, for example when you start VRChat through Steam.</div>
                     </div>
 
                     <!-- AUTO-BACKUPS -->

@@ -214,6 +214,8 @@ public class AppSettings
     public List<string> ExtraExe { get; set; } = new(); // legacy — kept for JSON compat / migration
     public List<string> ExtraExeDesktop { get; set; } = new();
     public List<string> ExtraExeVR { get; set; } = new();
+    public bool CloseWithVrc { get; set; } = false;
+    public bool StartAlwaysWithVrc { get; set; } = true;
     public bool AutoStart { get; set; }
     public bool StartWithWindows { get; set; }
     public bool PostAll { get; set; }
@@ -494,6 +496,8 @@ public class AppSettings
     public bool EventPlayerSessionsMigrated { get; set; } = false;
 
     public bool DuplicateFriendRemovedCleaned { get; set; } = false;
+
+    public int RewindShownYear { get; set; } = 0;
 
     // Auto-Update on startup
     public bool AutoUpdate { get; set; } = true;

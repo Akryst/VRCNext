@@ -96,6 +96,8 @@ function saveSettings() {
             vrcPath: document.getElementById('setVrcPath').value,
             extraExeDesktop: settings.extraExeDesktop || [],
             extraExeVR: settings.extraExeVR || [],
+            closeWithVrc:       document.getElementById('setCloseWithVrc')?.checked       ?? false,
+            startAlwaysWithVrc: document.getElementById('setStartAlwaysWithVrc')?.checked ?? true,
             extraExe: [], // clear legacy field so migration doesn't re-fire after user deletes apps
             autoStart: false, // legacy kept for JSON compat
             relayAutoStartVR:        document.getElementById('setAutoStartVR')?.checked       ?? false,
@@ -302,6 +304,7 @@ function initAutoSave() {
         'setFriendsSidebarLocationOnly','setDirectModalNav',
         'setRandomBg','setClockEnabled','setClockAmPm',
         'setAutoStartVR','setAutoStartDesktop',
+        'setCloseWithVrc','setStartAlwaysWithVrc',
         'setCbAutoStartVR','setCbAutoStartDesktop',
         'setSfAutoStartVR',
         'setYtAutoStartVR','setYtAutoStartDesktop',
@@ -370,6 +373,10 @@ function loadSettingsToUI(s) {
     settings.extraExeVR = (s.ExtraExeVR || s.extraExeVR || []).length
         ? (s.ExtraExeVR || s.extraExeVR)
         : (_legacyExe.length ? [..._legacyExe] : []);
+    const _cwvEl = document.getElementById('setCloseWithVrc');
+    if (_cwvEl) _cwvEl.checked = s.CloseWithVrc ?? s.closeWithVrc ?? false;
+    const _sawvEl = document.getElementById('setStartAlwaysWithVrc');
+    if (_sawvEl) _sawvEl.checked = s.StartAlwaysWithVrc ?? s.startAlwaysWithVrc ?? true;
     settings.notifySoundEnabled = s.NotifySoundEnabled ?? s.notifySoundEnabled ?? false;
     settings.messageSoundEnabled = s.MessageSoundEnabled ?? s.messageSoundEnabled ?? false;
     settings.mediaRelaySoundEnabled = s.MediaRelaySoundEnabled ?? s.mediaRelaySoundEnabled ?? false;

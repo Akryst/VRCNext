@@ -467,7 +467,9 @@ public class AuthController
             case "browseExe":
                 {
                     var target = msg["target"]?.ToString() ?? "extra";
-                    var r = Dialog.FileOpen("exe");
+                    // VRChat path picker stays exe-only; startup-app pickers also accept
+                    // shortcuts (.lnk) and launch scripts (.bat/.cmd).
+                    var r = target == "vrchat" ? Dialog.FileOpen("exe") : Dialog.FileOpen("exe,lnk,bat,cmd");
                     if (r.IsOk)
                     {
                         _core.SendToJS("exeAdded", new { target, path = r.Path });
@@ -1717,6 +1719,9 @@ public class AuthController
 
             var extraExeVR = data["extraExeVR"]?.ToObject<List<string>>();
             if (extraExeVR != null) _core.Settings.ExtraExeVR = extraExeVR;
+
+            _core.Settings.CloseWithVrc = data["closeWithVrc"]?.Value<bool>() ?? false;
+            _core.Settings.StartAlwaysWithVrc = data["startAlwaysWithVrc"]?.Value<bool>() ?? true;
 
             // Credentials are no longer accepted through saveSettings, login runs through the Accounts tab.
 

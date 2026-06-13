@@ -77,6 +77,31 @@ window.external.receiveMessage(rawMsg => {
                     () => { if (!_asConnected) sendToCS({ action: 'asConnect' }); });
                 break;
             }
+            case 'vrcClosed': {
+                // Fired when VRChat closes and "Close with VRChat" is enabled.
+                // Mirror of vrcLaunched: shut down the VRCNext tools that are running.
+                let delay = 0;
+                const stop = fn => { setTimeout(fn, delay); delay += 80; };
+                // Chatbox
+                if (typeof chatboxEnabled !== 'undefined' && chatboxEnabled) stop(() => toggleChatbox());
+                // Space Flight
+                if (typeof sfConnected !== 'undefined' && sfConnected) stop(() => sendToCS({ action: 'sfDisconnect' }));
+                // FrameShot
+                if (typeof fsConnected !== 'undefined' && fsConnected) stop(() => sendToCS({ action: 'fsDisconnect' }));
+                // Media Relay
+                if (typeof relayOn !== 'undefined' && relayOn) stop(() => sendToCS({ action: 'stopRelay' }));
+                // YouTube Fix (VRCVideoCacher)
+                if (document.getElementById('vcDot')?.classList.contains('online')) stop(() => sendToCS({ action: 'vcStop' }));
+                // Voice Fight
+                if (typeof vfRunning !== 'undefined' && vfRunning) stop(() => sendToCS({ action: 'vfStop' }));
+                // Discord Presence
+                if (typeof _dpRunning !== 'undefined' && _dpRunning) stop(() => sendToCS({ action: 'dpStop' }));
+                // VR Overlay
+                if (typeof vroConnected !== 'undefined' && vroConnected) stop(() => sendToCS({ action: 'vroDisconnect' }));
+                // Avatar Scaling
+                if (typeof _asConnected !== 'undefined' && _asConnected) stop(() => sendToCS({ action: 'asDisconnect' }));
+                break;
+            }
             case 'asState': if (typeof handleAsState === 'function') handleAsState(payload); break;
             case 'relayState': setRelayState(payload.running, payload.streams); break;
             case 'imgCacheSize':             updateImgCacheSizeBar(payload.bytes); break;
@@ -969,6 +994,7 @@ case 'vrcNews':
             case 'timelineEventDeleted': handleTimelineEventDeleted(payload); renderDashRecentPhotos(); break;
             case 'friendTimelineEventDeleted': handleFriendTimelineEventDeleted(payload); break;
             case 'timelineReload': handleTimelineReload(payload); break;
+            case 'rewindData': if (typeof handleRewindData === 'function') handleRewindData(payload); break;
             case 'timelineSearchResults': handleTlSearchResults(payload); break;
             case 'friendTimelineData':          renderFriendTimeline(payload); break;
             case 'friendTimelineEvent':         handleFriendTimelineEvent(payload); break;

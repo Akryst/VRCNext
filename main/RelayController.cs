@@ -20,6 +20,13 @@ public class RelayController : IDisposable
     private Process? _vcProcess;
     private VRChatWebSocketService? _wsService;
 
+    // VRChat process monitor + startup-app tracking (Close / Start always with VRChat)
+    private System.Threading.Timer? _vrcMonitorTimer;
+    private bool _vrcWasRunning;
+    private DateTime _vrcLaunchByUsAt = DateTime.MinValue;
+    private readonly List<string> _launchedExeNames = new();
+    private readonly object _launchedLock = new();
+
     // Sleep/wake detection + resume retry
     private System.Threading.Timer? _wakeTimer;
     private DateTime _lastWakeTick = DateTime.UtcNow;
@@ -56,6 +63,11 @@ public class RelayController : IDisposable
         // Timer fires every 10s; if actual elapsed > WakeThresholdSec the PC just woke from sleep
         _wakeTimer = new System.Threading.Timer(_ => CheckForWake(), null,
             TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
+
+        // Monitor VRChat process to drive "Close with VRChat" / "Start always with VRChat"
+        _vrcWasRunning = IsVrcRunning();
+        _vrcMonitorTimer = new System.Threading.Timer(_ => CheckVrcState(), null,
+            TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
     }
 
     private void CheckForWake()
@@ -193,21 +205,9 @@ public class RelayController : IDisposable
                             break;
                         }
                     }
+                    _vrcLaunchByUsAt = DateTime.UtcNow;
                     var llExtraApps = llVr ? _core.Settings.ExtraExeVR : _core.Settings.ExtraExeDesktop;
-                    foreach (var exe in llExtraApps)
-                    {
-                        try
-                        {
-                            if (File.Exists(exe))
-                                Process.Start(new ProcessStartInfo
-                                {
-                                    FileName = exe,
-                                    WorkingDirectory = Path.GetDirectoryName(exe) ?? "",
-                                    UseShellExecute = true
-                                });
-                        }
-                        catch { }
-                    }
+                    LaunchExtraApps(llExtraApps, log: true);
 #else
                     // On Linux, launch via Steam so Proton is applied automatically
                     string steamArgs;
@@ -458,33 +458,165 @@ public class RelayController : IDisposable
 #endif
             _core.SendToJS("log", new { msg = "Launched VRChat", color = "ok" });
 
-            foreach (var exe in _core.Settings.ExtraExeDesktop)
-            {
-                try
-                {
-                    if (!File.Exists(exe))
-                    {
-                        _core.SendToJS("log", new { msg = $"Not found: {Path.GetFileName(exe)}", color = "warn" });
-                        continue;
-                    }
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = exe,
-                        WorkingDirectory = Path.GetDirectoryName(exe) ?? "",
-                        UseShellExecute = true
-                    });
-                    _core.SendToJS("log", new { msg = $"Launched: {Path.GetFileName(exe)}", color = "ok" });
-                }
-                catch (Exception ex)
-                {
-                    _core.SendToJS("log", new { msg = $"Failed to launch {Path.GetFileName(exe)}: {ex.Message}", color = "err" });
-                }
-            }
+            _vrcLaunchByUsAt = DateTime.UtcNow;
+            LaunchExtraApps(_core.Settings.ExtraExeDesktop, log: true);
         }
         catch (Exception ex)
         {
             _core.SendToJS("log", new { msg = $"Launch error: {ex.Message}", color = "err" });
         }
+    }
+
+    // Launches the configured startup apps and remembers them so they can be
+    // closed again when "Close with VRChat" is enabled. Handles .exe, .lnk
+    // shortcuts and .bat/.cmd scripts.
+    //
+    // Apps are launched through explorer.exe so they run detached, exactly like
+    // a user double-click. Launching an app as a direct child process makes
+    // Electron/Chromium apps (e.g. SlimeVR) exit immediately, while native apps
+    // survive — which is why a direct Process.Start started Voicemeeter but not
+    // SlimeVR.
+    private void LaunchExtraApps(IEnumerable<string> apps, bool log)
+    {
+        foreach (var raw in apps)
+        {
+            var path = (raw ?? "").Trim().Trim('"');
+            if (string.IsNullOrEmpty(path)) continue;
+
+            if (!File.Exists(path))
+            {
+                _core.SendToJS("log", new { msg = $"Startup app not found: {path}", color = "warn" });
+                continue;
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"\"{path}\"",
+                    UseShellExecute = false
+                });
+
+                var exeName = ResolveTargetExeName(path);
+                if (!string.IsNullOrEmpty(exeName))
+                    lock (_launchedLock)
+                    {
+                        if (!_launchedExeNames.Contains(exeName, StringComparer.OrdinalIgnoreCase))
+                            _launchedExeNames.Add(exeName);
+                    }
+
+                if (log) _core.SendToJS("log", new { msg = $"Launched: {Path.GetFileName(path)}", color = "ok" });
+            }
+            catch (Exception ex)
+            {
+                _core.SendToJS("log", new { msg = $"Failed to launch {Path.GetFileName(path)}: {ex.Message}", color = "err" });
+            }
+        }
+    }
+
+    // Maps a configured startup-app path to the process name that will be
+    // running (so Close-with-VRChat can find and stop it). Resolves .lnk
+    // shortcuts to their target executable.
+    private static string ResolveTargetExeName(string path)
+    {
+        try
+        {
+            var ext = Path.GetExtension(path).ToLowerInvariant();
+            if (ext == ".exe")
+                return Path.GetFileNameWithoutExtension(path);
+            if (ext == ".lnk")
+            {
+                var target = ResolveShortcutTarget(path);
+                if (!string.IsNullOrEmpty(target) && target.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                    return Path.GetFileNameWithoutExtension(target);
+            }
+        }
+        catch { }
+        return "";
+    }
+
+    private static string ResolveShortcutTarget(string lnkPath)
+    {
+        try
+        {
+            var t = Type.GetTypeFromProgID("WScript.Shell");
+            if (t == null) return "";
+            dynamic? shell = Activator.CreateInstance(t);
+            if (shell == null) return "";
+            dynamic sc = shell.CreateShortcut(lnkPath);
+            string target = sc.TargetPath as string ?? "";
+            try { System.Runtime.InteropServices.Marshal.FinalReleaseComObject(sc); } catch { }
+            try { System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shell); } catch { }
+            return target;
+        }
+        catch { return ""; }
+    }
+
+    // VRChat process monitor (Close / Start always with VRChat)
+
+    private void CheckVrcState()
+    {
+        bool running;
+        try { running = IsVrcRunning(); }
+        catch { return; }
+        if (running == _vrcWasRunning) return;
+        _vrcWasRunning = running;
+
+        if (running)
+        {
+            // VRChat just started. If we launched it ourselves the startup apps
+            // were already handled by the launch path, so skip.
+            bool launchedByUs = (DateTime.UtcNow - _vrcLaunchByUsAt).TotalSeconds < 120;
+            _vrcLaunchByUsAt = DateTime.MinValue;
+            if (launchedByUs) return;
+
+            if (!_core.Settings.StartAlwaysWithVrc) return;
+
+            bool vr = IsSteamVrRunning();
+            var apps = vr ? _core.Settings.ExtraExeVR : _core.Settings.ExtraExeDesktop;
+            Invoke(() =>
+            {
+                _core.SendToJS("log", new { msg = "VRChat started outside VRCNext — launching startup apps...", color = "sec" });
+                LaunchExtraApps(apps, log: true);
+                _core.SendToJS("vrcLaunched", new { vr });
+            });
+        }
+        else
+        {
+            // VRChat just closed.
+            if (_core.Settings.CloseWithVrc)
+            {
+                CloseTrackedExtraApps();
+                Invoke(() => _core.SendToJS("vrcClosed", new { }));
+            }
+        }
+    }
+
+    private void CloseTrackedExtraApps()
+    {
+        List<string> names;
+        lock (_launchedLock)
+        {
+            names = new List<string>(_launchedExeNames);
+            _launchedExeNames.Clear();
+        }
+        int closed = 0;
+        foreach (var name in names)
+        {
+            try
+            {
+                foreach (var p in Process.GetProcessesByName(name))
+                {
+                    try { if (!p.HasExited) { p.Kill(entireProcessTree: true); closed++; } }
+                    catch { }
+                    finally { try { p.Dispose(); } catch { } }
+                }
+            }
+            catch { }
+        }
+        if (closed > 0)
+            Invoke(() => _core.SendToJS("log", new { msg = $"VRChat closed — closed {closed} startup app process(es).", color = "sec" }));
     }
 
     // Find steam.exe via registry (Windows only)
@@ -620,6 +752,8 @@ public class RelayController : IDisposable
     {
         _wakeTimer?.Dispose();
         _wakeTimer = null;
+        _vrcMonitorTimer?.Dispose();
+        _vrcMonitorTimer = null;
         try { _vcProcess?.Kill(entireProcessTree: true); } catch { }
         _wsService?.Dispose();
     }

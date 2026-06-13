@@ -2359,6 +2359,9 @@ public partial class AppShell
                 case "deleteFriendTimelineEvents":
                 case "deleteTimelineByType":
                 case "deleteFriendTimelineByType":
+                case "getRewind":
+                case "checkRewind":
+                case "rewindSeen":
                     await _timelineCtrl.HandleMessage(action, msg);
                     break;
 

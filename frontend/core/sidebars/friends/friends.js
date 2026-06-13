@@ -34,6 +34,7 @@ function renderVrcProfile(u) {
     if (!u) { a.innerHTML = ''; currentVrcUser = null; return; }
     if (u.rawJson) _mypRawJson = u.rawJson;
     currentVrcUser = u;
+    if (!window._rewindChecked) { window._rewindChecked = true; setTimeout(() => sendToCS({ action: 'checkRewind' }), 4000); }
     // If My Profile modal is open, refresh it immediately
     const _myp = document.getElementById('modalMyProfile');
     if (_myp && _myp.style.display !== 'none') renderMyProfileContent();
