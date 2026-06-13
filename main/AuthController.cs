@@ -291,6 +291,8 @@ public class AuthController
                             friendOnlineCount   = result.FriendOnlineCount,
                             friendOfflineCount  = result.FriendOfflineCount,
                             friendStatusCount   = result.FriendStatusCount,
+                            friendStatusDescCount = result.FriendStatusDescCount,
+                            friendBioCount        = result.FriendBioCount,
                             notificationCount      = result.NotificationCount,
                             videoUrlCount          = result.VideoUrlCount,
                             instancePlayersCount   = result.InstancePlayersCount,
@@ -299,6 +301,28 @@ public class AuthController
                     catch (Exception ex)
                     {
                         Invoke(() => _core.SendToJS("dbAnalyzeResult", new { error = ex.Message }));
+                    }
+                });
+                break;
+
+            case "dbMemoryUsage":
+                _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        var tables = SQLiteOptimizing.MemoryUsage();
+                        var (fileBytes, freeBytes) = SQLiteOptimizing.DbFileStats();
+                        Invoke(() => _core.SendToJS("dbMemoryResult", new
+                        {
+                            tables = tables.Select(t => new { table = t.Table, label = t.Label, bytes = t.Bytes, rows = t.Rows }).ToArray(),
+                            liveBytes = tables.Sum(t => t.Bytes),
+                            fileBytes,
+                            freeBytes,
+                        }));
+                    }
+                    catch (Exception ex)
+                    {
+                        Invoke(() => _core.SendToJS("dbMemoryResult", new { error = ex.Message }));
                     }
                 });
                 break;

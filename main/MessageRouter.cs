@@ -353,6 +353,7 @@ public partial class AppShell
                 case "optimizeImgCache":
                 case "clearFfcCache":
                 case "dbAnalyze":
+                case "dbMemoryUsage":
                 case "dbOptimize":
                 case "dbBackup":
                 case "regBackup":

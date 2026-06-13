@@ -1115,6 +1115,89 @@ function dbRunAnalysis() {
     sendToCS({ action: 'dbAnalyze' });
 }
 
+function dbMemoryUsage() {
+    const btn = document.getElementById('btnDbMemory');
+    if (btn) btn.disabled = true;
+    const optBtn = document.getElementById('btnDbOptimize');
+    if (optBtn) optBtn.style.display = 'none';
+    document.getElementById('dbAnalysisResults').style.display = 'none';
+    const wrap = document.getElementById('dbOptProgressWrap');
+    const bar  = document.getElementById('dbOptProgressBar');
+    const lbl  = document.getElementById('dbOptProgressLabel');
+    if (wrap) wrap.style.display = '';
+    if (bar)  bar.style.width = '40%';
+    if (lbl)  lbl.textContent = t('settings.db.memory_calculating', 'Calculating table sizes…');
+    sendToCS({ action: 'dbMemoryUsage' });
+}
+
+function _dbFmtBytes(bytes) {
+    bytes = bytes || 0;
+    if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+    if (bytes >= 1024 * 1024)        return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    if (bytes >= 1024)               return (bytes / 1024).toFixed(1) + ' KB';
+    return bytes + ' B';
+}
+
+function handleDbMemoryResult(data) {
+    const wrap = document.getElementById('dbOptProgressWrap');
+    const bar  = document.getElementById('dbOptProgressBar');
+    const lbl  = document.getElementById('dbOptProgressLabel');
+    const btn  = document.getElementById('btnDbMemory');
+    const res  = document.getElementById('dbAnalysisResults');
+
+    if (bar) bar.style.width = '100%';
+
+    if (data.error) {
+        if (lbl) lbl.textContent = 'Error: ' + data.error;
+        if (btn) btn.disabled = false;
+        return;
+    }
+
+    setTimeout(() => {
+        if (wrap) wrap.style.display = 'none';
+        if (bar)  bar.style.width = '0%';
+        if (btn)  btn.disabled = false;
+
+        const tables   = data.tables || [];
+        const maxBytes = tables.reduce((m, x) => Math.max(m, x.bytes || 0), 0) || 1;
+        const rowsHtml = tables.map(tb => {
+            const pct = Math.max(2, Math.round((tb.bytes || 0) / maxBytes * 100));
+            return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--brd);">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:12px;color:var(--tx0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(tb.label)}</div>
+                    <div style="height:4px;border-radius:2px;background:var(--bg-input);margin-top:4px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:var(--accent);"></div></div>
+                </div>
+                <div style="text-align:right;flex-shrink:0;">
+                    <div style="font-size:13px;font-weight:700;color:var(--tx0);">${esc(_dbFmtBytes(tb.bytes))}</div>
+                    <div style="font-size:10px;color:var(--tx3);">${(tb.rows || 0).toLocaleString(settingsUiLocale())} ${esc(t('settings.db.memory_rows', 'rows'))}</div>
+                </div>
+            </div>`;
+        }).join('');
+
+        const liveBytes = data.liveBytes || tables.reduce((s, x) => s + (x.bytes || 0), 0);
+        const fileBytes = data.fileBytes || liveBytes;
+        const freeBytes = data.freeBytes || 0;
+        const overhead  = Math.max(0, fileBytes - freeBytes - liveBytes);
+
+        const extraRow = (label, bytes, color) =>
+            `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--brd);">
+                <div style="font-size:12px;color:var(--tx2);">${esc(label)}</div>
+                <div style="font-size:13px;font-weight:700;color:${color};">${esc(_dbFmtBytes(bytes))}</div>
+            </div>`;
+
+        let extras = '';
+        if (overhead  > 1024 * 1024) extras += extraRow(t('settings.db.memory_overhead', 'Indexes & overhead'), overhead, 'var(--tx2)');
+        if (freeBytes > 0)           extras += extraRow(t('settings.db.memory_free', 'Free (reclaimable)'), freeBytes, 'var(--tx3)');
+
+        res.innerHTML =
+            `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <div style="font-size:12px;font-weight:700;color:var(--tx0);">${esc(t('settings.db.memory_total', 'Total database size'))}</div>
+                <div style="font-size:15px;font-weight:700;color:var(--accent);">${esc(_dbFmtBytes(fileBytes))}</div>
+            </div>${rowsHtml}${extras}`;
+        res.style.display = '';
+    }, 200);
+}
+
 function dbRunOptimize() {
     const btn = document.getElementById('btnDbOptimize');
     if (btn) btn.disabled = true;
@@ -1169,10 +1252,12 @@ function handleDbAnalyzeResult(data) {
             </div>`
         ).join('');
 
-        const fOnline   = (data.friendOnlineCount    || 0).toLocaleString(settingsUiLocale());
-        const fOffline  = (data.friendOfflineCount   || 0).toLocaleString(settingsUiLocale());
-        const fStatus   = (data.friendStatusCount    || 0).toLocaleString(settingsUiLocale());
-        const fTotal    = ((data.friendOnlineCount || 0) + (data.friendOfflineCount || 0) + (data.friendStatusCount || 0)).toLocaleString(settingsUiLocale());
+        const fOnline     = (data.friendOnlineCount     || 0).toLocaleString(settingsUiLocale());
+        const fOffline    = (data.friendOfflineCount    || 0).toLocaleString(settingsUiLocale());
+        const fStatus     = (data.friendStatusCount     || 0).toLocaleString(settingsUiLocale());
+        const fStatusDesc = (data.friendStatusDescCount || 0).toLocaleString(settingsUiLocale());
+        const fBio        = (data.friendBioCount        || 0).toLocaleString(settingsUiLocale());
+        const fTotal      = ((data.friendOnlineCount || 0) + (data.friendOfflineCount || 0) + (data.friendStatusCount || 0) + (data.friendStatusDescCount || 0) + (data.friendBioCount || 0)).toLocaleString(settingsUiLocale());
         const eNotif    = (data.notificationCount    || 0).toLocaleString(settingsUiLocale());
         const eVideo    = (data.videoUrlCount        || 0).toLocaleString(settingsUiLocale());
         const epPlayers = (data.instancePlayersCount || 0).toLocaleString(settingsUiLocale());
@@ -1220,7 +1305,15 @@ function handleDbAnalyzeResult(data) {
                     <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Friend Status</div>
                     <div style="font-size:14px;font-weight:700;color:var(--tx0);">${fStatus}</div>
                 </div>
-                <div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;grid-column:span 3;">
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Friend Status Text</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--tx0);">${fStatusDesc}</div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;">
+                    <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Friend Bio</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--tx0);">${fBio}</div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:8px;padding:8px 10px;min-width:0;">
                     <div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">Total Deletable Rows</div>
                     <div style="font-size:14px;font-weight:700;color:var(--accent);">${fTotal}</div>
                 </div>

@@ -83,6 +83,7 @@ window.external.receiveMessage(rawMsg => {
             case 'imgCacheOptimizeProgress': handleImgCacheOptimizeProgress(payload); break;
             case 'dbAnalyzeProgress': handleDbAnalyzeProgress(payload); break;
             case 'dbAnalyzeResult':   handleDbAnalyzeResult(payload); break;
+            case 'dbMemoryResult':    handleDbMemoryResult(payload); break;
             case 'dbOptimizeProgress':handleDbOptimizeProgress(payload); break;
             case 'dbOptimizeDone':    handleDbOptimizeDone(payload); break;
             case 'dbBackupDone':      handleDbBackupDone(payload); break;
