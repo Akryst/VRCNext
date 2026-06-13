@@ -957,7 +957,7 @@ function renderFriendDetail(d) {
         </div>
         <div id="fdMemoView" style="font-size:13px;color:var(--tx1);line-height:1.5;word-break:break-word;">${_memoView}</div>
         <div id="fdMemoEdit" style="display:none;">
-            <input id="fdMemoInput" type="text" class="vrcn-input" maxlength="128" placeholder="${esc(t('profiles.memo.placeholder', 'Custom name or note for this user'))}">
+            <input id="fdMemoInput" type="text" class="myp-textarea" maxlength="128" placeholder="${esc(t('profiles.memo.placeholder', 'Custom name or note for this user'))}">
             <div class="myp-edit-actions">
                 <button class="vrcn-button" onclick="fdCancelMemo()">${t('common.cancel', 'Cancel')}</button>
                 <button id="fdMemoSaveBtn" class="vrcn-button vrcn-btn-primary" onclick="fdSaveMemo()">${t('common.save', 'Save')}</button>
