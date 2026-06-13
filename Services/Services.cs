@@ -493,6 +493,8 @@ public class AppSettings
     // One-time migration: convert event_players.joined_at/left_at from single timestamp to JSON array of sessions
     public bool EventPlayerSessionsMigrated { get; set; } = false;
 
+    public bool DuplicateFriendRemovedCleaned { get; set; } = false;
+
     // Auto-Update on startup
     public bool AutoUpdate { get; set; } = true;
 

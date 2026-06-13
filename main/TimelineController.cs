@@ -102,7 +102,95 @@ public class TimelineController
             case "getTimelineMonthActivity":
                 HandleGetTimelineMonthActivity(msg);
                 break;
+
+            case "deleteTimelineEvent":
+                HandleDeleteTimelineEvent(msg);
+                break;
+
+            case "deleteFriendTimelineEvent":
+                HandleDeleteFriendTimelineEvent(msg);
+                break;
+
+            case "deleteTimelineEvents":
+                HandleDeleteTimelineEvents(msg);
+                break;
+
+            case "deleteFriendTimelineEvents":
+                HandleDeleteFriendTimelineEvents(msg);
+                break;
+
+            case "deleteTimelineByType":
+                HandleDeleteTimelineByType(msg);
+                break;
+
+            case "deleteFriendTimelineByType":
+                HandleDeleteFriendTimelineByType(msg);
+                break;
         }
+    }
+
+    private void HandleDeleteTimelineEvent(JObject msg)
+    {
+        var id = msg["id"]?.ToString() ?? "";
+        _ = Task.Run(() =>
+        {
+            if (_core.Timeline.DeleteEvent(id))
+                _core.SendToJS("timelineEventDeleted", new { id });
+        });
+    }
+
+    private void HandleDeleteFriendTimelineEvent(JObject msg)
+    {
+        var id = msg["id"]?.ToString() ?? "";
+        _ = Task.Run(() =>
+        {
+            if (_core.Timeline.DeleteFriendEvent(id))
+                _core.SendToJS("friendTimelineEventDeleted", new { id });
+        });
+    }
+
+    private void HandleDeleteTimelineEvents(JObject msg)
+    {
+        var ids = (msg["ids"] as JArray)?.Select(x => x.ToString()).ToList() ?? new();
+        _ = Task.Run(() =>
+        {
+            _core.Timeline.DeleteEvents(ids);
+            _core.SendToJS("timelineReload", new { mode = "personal" });
+        });
+    }
+
+    private void HandleDeleteFriendTimelineEvents(JObject msg)
+    {
+        var ids = (msg["ids"] as JArray)?.Select(x => x.ToString()).ToList() ?? new();
+        _ = Task.Run(() =>
+        {
+            _core.Timeline.DeleteFriendEvents(ids);
+            _core.SendToJS("timelineReload", new { mode = "friends" });
+        });
+    }
+
+    private void HandleDeleteTimelineByType(JObject msg)
+    {
+        var type  = msg["type"]?.ToString() ?? "";
+        var limit = msg["limit"]?.Value<int>() ?? 0;
+        _ = Task.Run(() =>
+        {
+            _core.Timeline.DeleteEventsByType(type, limit);
+            try { SQLiteOptimizing.Vacuum(); } catch { }
+            _core.SendToJS("timelineReload", new { mode = "personal" });
+        });
+    }
+
+    private void HandleDeleteFriendTimelineByType(JObject msg)
+    {
+        var type  = msg["type"]?.ToString() ?? "";
+        var limit = msg["limit"]?.Value<int>() ?? 0;
+        _ = Task.Run(() =>
+        {
+            _core.Timeline.DeleteFriendEventsByType(type, limit);
+            try { SQLiteOptimizing.Vacuum(); } catch { }
+            _core.SendToJS("timelineReload", new { mode = "friends" });
+        });
     }
 
     // getTimeline

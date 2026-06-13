@@ -622,6 +622,110 @@ public class TimelineService : IDisposable
             return _events.OrderByDescending(e => e.Timestamp).ToList();
     }
 
+    public bool DeleteEvent(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return false;
+        lock (_lock)
+        {
+            int n;
+            try
+            {
+                using var tx = _db.BeginTransaction();
+                using (var c = _db.CreateCommand())
+                {
+                    c.Transaction = tx;
+                    c.CommandText = "DELETE FROM event_players WHERE event_id=$id";
+                    c.Parameters.AddWithValue("$id", id);
+                    c.ExecuteNonQuery();
+                }
+                using (var c = _db.CreateCommand())
+                {
+                    c.Transaction = tx;
+                    c.CommandText = "DELETE FROM events WHERE id=$id";
+                    c.Parameters.AddWithValue("$id", id);
+                    n = c.ExecuteNonQuery();
+                }
+                tx.Commit();
+            }
+            catch { return false; }
+            _events.RemoveAll(e => e.Id == id);
+            return n > 0;
+        }
+    }
+
+    public int DeleteEvents(IEnumerable<string> ids)
+    {
+        var list = ids?.Where(x => !string.IsNullOrEmpty(x)).Distinct().ToList() ?? new();
+        if (list.Count == 0) return 0;
+        int total = 0;
+        lock (_lock)
+        {
+            try
+            {
+                using var tx = _db.BeginTransaction();
+                using var delP = _db.CreateCommand();
+                using var delE = _db.CreateCommand();
+                delP.Transaction = tx; delE.Transaction = tx;
+                delP.CommandText = "DELETE FROM event_players WHERE event_id=$id";
+                delE.CommandText = "DELETE FROM events WHERE id=$id";
+                var pP = delP.Parameters.Add("$id", SqliteType.Text);
+                var pE = delE.Parameters.Add("$id", SqliteType.Text);
+                foreach (var id in list)
+                {
+                    pP.Value = id; delP.ExecuteNonQuery();
+                    pE.Value = id; total += delE.ExecuteNonQuery();
+                }
+                tx.Commit();
+            }
+            catch { return 0; }
+            var set = new HashSet<string>(list);
+            _events.RemoveAll(e => set.Contains(e.Id));
+        }
+        return total;
+    }
+
+    public int DeleteEventsByType(string type, int limit)
+    {
+        lock (_lock)
+        {
+            var ids = new List<string>();
+            try
+            {
+                using (var sel = _db.CreateCommand())
+                {
+                    var typeClause = string.IsNullOrEmpty(type) ? "" : "WHERE type=$type";
+                    sel.CommandText = limit > 0
+                        ? $"SELECT id FROM events {typeClause} ORDER BY timestamp DESC LIMIT $n"
+                        : $"SELECT id FROM events {typeClause}";
+                    if (!string.IsNullOrEmpty(type)) sel.Parameters.AddWithValue("$type", type);
+                    if (limit > 0) sel.Parameters.AddWithValue("$n", limit);
+                    using var r = sel.ExecuteReader();
+                    while (r.Read()) ids.Add(r.GetString(0));
+                }
+                if (ids.Count == 0) return 0;
+
+                using var tx = _db.BeginTransaction();
+                using var delP = _db.CreateCommand();
+                using var delE = _db.CreateCommand();
+                delP.Transaction = tx; delE.Transaction = tx;
+                delP.CommandText = "DELETE FROM event_players WHERE event_id=$id";
+                delE.CommandText = "DELETE FROM events WHERE id=$id";
+                var pP = delP.Parameters.Add("$id", SqliteType.Text);
+                var pE = delE.Parameters.Add("$id", SqliteType.Text);
+                foreach (var id in ids)
+                {
+                    pP.Value = id; delP.ExecuteNonQuery();
+                    pE.Value = id; delE.ExecuteNonQuery();
+                }
+                tx.Commit();
+            }
+            catch { return 0; }
+            var set = new HashSet<string>(ids);
+            _events.RemoveAll(e => set.Contains(e.Id));
+            return ids.Count;
+        }
+    }
+
     public List<string> PruneOrphanedPhotos(Action<int>? onProgress = null)
     {
         var deleted = new List<string>();
@@ -760,13 +864,11 @@ public class TimelineService : IDisposable
 
     public long GetEventCount(string typeFilter = "")
     {
-        if (_optimizeMode)
+        if (_optimizeMode && string.IsNullOrEmpty(typeFilter))
         {
             lock (_lock)
             {
-                return string.IsNullOrEmpty(typeFilter)
-                    ? _events.Count
-                    : _events.Count(e => e.Type == typeFilter);
+                return _events.Count;
             }
         }
 
@@ -776,30 +878,31 @@ public class TimelineService : IDisposable
             var typeClause = string.IsNullOrEmpty(typeFilter) ? "" : "WHERE type = $type";
             cmd.CommandText = $"SELECT COUNT(*) FROM events {typeClause}";
             if (!string.IsNullOrEmpty(typeFilter)) cmd.Parameters.AddWithValue("$type", typeFilter);
-            return Convert.ToInt64(cmd.ExecuteScalar() ?? 0L);
+            var count = Convert.ToInt64(cmd.ExecuteScalar() ?? 0L);
+            return (_optimizeMode && count > _maxN) ? (long)_maxN : count;
         }
         catch { return 0; }
     }
 
     public long GetFriendEventCount(string typeFilter = "")
     {
-        if (_optimizeMode)
+        var hasTypeCount = !string.IsNullOrEmpty(typeFilter) && typeFilter != "all";
+        if (_optimizeMode && !hasTypeCount)
         {
             lock (_lock)
             {
-                var hasType = !string.IsNullOrEmpty(typeFilter) && typeFilter != "all";
-                return hasType ? _friendEvents.Count(e => e.Type == typeFilter) : _friendEvents.Count;
+                return _friendEvents.Count;
             }
         }
 
         try
         {
             using var cmd = _db.CreateCommand();
-            var hasType = !string.IsNullOrEmpty(typeFilter) && typeFilter != "all";
-            var typeClause = hasType ? "WHERE type = $type" : "";
+            var typeClause = hasTypeCount ? "WHERE type = $type" : "";
             cmd.CommandText = $"SELECT COUNT(*) FROM friend_events {typeClause}";
-            if (hasType) cmd.Parameters.AddWithValue("$type", typeFilter);
-            return Convert.ToInt64(cmd.ExecuteScalar() ?? 0L);
+            if (hasTypeCount) cmd.Parameters.AddWithValue("$type", typeFilter);
+            var count = Convert.ToInt64(cmd.ExecuteScalar() ?? 0L);
+            return (_optimizeMode && count > _maxN) ? (long)_maxN : count;
         }
         catch { return 0; }
     }
@@ -982,13 +1085,11 @@ public class TimelineService : IDisposable
 
     public (List<TimelineEvent> Events, bool HasMore) GetEventsPaged(int limit, int offset, string typeFilter = "")
     {
-        if (_optimizeMode)
+        if (_optimizeMode && string.IsNullOrEmpty(typeFilter))
         {
             lock (_lock)
             {
-                var filtered = string.IsNullOrEmpty(typeFilter)
-                    ? _events.ToList()
-                    : _events.Where(e => e.Type == typeFilter).ToList();
+                var filtered = _events.ToList();
                 return (filtered.Skip(offset).Take(limit).ToList(), offset + limit < filtered.Count);
             }
         }
@@ -1006,6 +1107,13 @@ public class TimelineService : IDisposable
             while (r.Read()) ids.Add(r.GetString(0));
         }
         catch { return (new List<TimelineEvent>(), false); }
+
+        if (_optimizeMode)
+        {
+            int remaining = _maxN - offset;
+            if (remaining <= 0) return (new List<TimelineEvent>(), false);
+            if (ids.Count > remaining) ids = ids.Take(remaining).ToList();
+        }
 
         var hasMore = ids.Count > limit;
         if (hasMore) ids.RemoveAt(ids.Count - 1);
@@ -1321,15 +1429,120 @@ public class TimelineService : IDisposable
             return _friendEvents.OrderByDescending(e => e.Timestamp).ToList();
     }
 
+    public bool DeleteFriendEvent(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return false;
+        lock (_lock)
+        {
+            int n;
+            try
+            {
+                using var tx = _db.BeginTransaction();
+                using (var c = _db.CreateCommand())
+                {
+                    c.Transaction = tx;
+                    c.CommandText = "DELETE FROM friend_event_colocated WHERE event_id=$id";
+                    c.Parameters.AddWithValue("$id", id);
+                    c.ExecuteNonQuery();
+                }
+                using (var c = _db.CreateCommand())
+                {
+                    c.Transaction = tx;
+                    c.CommandText = "DELETE FROM friend_events WHERE id=$id";
+                    c.Parameters.AddWithValue("$id", id);
+                    n = c.ExecuteNonQuery();
+                }
+                tx.Commit();
+            }
+            catch { return false; }
+            _friendEvents.RemoveAll(e => e.Id == id);
+            return n > 0;
+        }
+    }
+
+    public int DeleteFriendEvents(IEnumerable<string> ids)
+    {
+        var list = ids?.Where(x => !string.IsNullOrEmpty(x)).Distinct().ToList() ?? new();
+        if (list.Count == 0) return 0;
+        int total = 0;
+        lock (_lock)
+        {
+            try
+            {
+                using var tx = _db.BeginTransaction();
+                using var delC = _db.CreateCommand();
+                using var delE = _db.CreateCommand();
+                delC.Transaction = tx; delE.Transaction = tx;
+                delC.CommandText = "DELETE FROM friend_event_colocated WHERE event_id=$id";
+                delE.CommandText = "DELETE FROM friend_events WHERE id=$id";
+                var pC = delC.Parameters.Add("$id", SqliteType.Text);
+                var pE = delE.Parameters.Add("$id", SqliteType.Text);
+                foreach (var id in list)
+                {
+                    pC.Value = id; delC.ExecuteNonQuery();
+                    pE.Value = id; total += delE.ExecuteNonQuery();
+                }
+                tx.Commit();
+            }
+            catch { return 0; }
+            var set = new HashSet<string>(list);
+            _friendEvents.RemoveAll(e => set.Contains(e.Id));
+        }
+        return total;
+    }
+
+    public int DeleteFriendEventsByType(string type, int limit)
+    {
+        var hasType = !string.IsNullOrEmpty(type) && type != "all";
+        lock (_lock)
+        {
+            var ids = new List<string>();
+            try
+            {
+                using (var sel = _db.CreateCommand())
+                {
+                    var typeClause = hasType ? "WHERE type=$type" : "";
+                    sel.CommandText = limit > 0
+                        ? $"SELECT id FROM friend_events {typeClause} ORDER BY timestamp DESC LIMIT $n"
+                        : $"SELECT id FROM friend_events {typeClause}";
+                    if (hasType) sel.Parameters.AddWithValue("$type", type);
+                    if (limit > 0) sel.Parameters.AddWithValue("$n", limit);
+                    using var r = sel.ExecuteReader();
+                    while (r.Read()) ids.Add(r.GetString(0));
+                }
+                if (ids.Count == 0) return 0;
+
+                using var tx = _db.BeginTransaction();
+                using var delC = _db.CreateCommand();
+                using var delE = _db.CreateCommand();
+                delC.Transaction = tx; delE.Transaction = tx;
+                delC.CommandText = "DELETE FROM friend_event_colocated WHERE event_id=$id";
+                delE.CommandText = "DELETE FROM friend_events WHERE id=$id";
+                var pC = delC.Parameters.Add("$id", SqliteType.Text);
+                var pE = delE.Parameters.Add("$id", SqliteType.Text);
+                foreach (var id in ids)
+                {
+                    pC.Value = id; delC.ExecuteNonQuery();
+                    pE.Value = id; delE.ExecuteNonQuery();
+                }
+                tx.Commit();
+            }
+            catch { return 0; }
+            var set = new HashSet<string>(ids);
+            _friendEvents.RemoveAll(e => set.Contains(e.Id));
+            return ids.Count;
+        }
+    }
+
     public (List<FriendTimelineEvent> Events, bool HasMore) GetFriendEventsPaged(
         int limit, int offset, string? type = null)
     {
-        if (_optimizeMode)
+        var hasType = !string.IsNullOrEmpty(type) && type != "all";
+        if (_optimizeMode && !hasType)
         {
             lock (_lock)
             {
-                var hasType  = !string.IsNullOrEmpty(type) && type != "all";
-                var filtered = (hasType ? _friendEvents.Where(e => e.Type == type) : _friendEvents).ToList();
+                var filtered = _friendEvents.ToList();
                 return (filtered.Skip(offset).Take(limit).ToList(), offset + limit < filtered.Count);
             }
         }
@@ -1338,7 +1551,6 @@ public class TimelineService : IDisposable
         try
         {
             using var cmd = _db.CreateCommand();
-            var hasType = !string.IsNullOrEmpty(type) && type != "all";
             cmd.CommandText = hasType
                 ? @"SELECT id,type,timestamp,friend_id,friend_name,friend_image,
                        world_id,world_name,world_thumb,location,old_value,new_value,left_at,tracked
@@ -1372,9 +1584,30 @@ public class TimelineService : IDisposable
                 });
         }
         catch { }
+        if (_optimizeMode)
+        {
+            int remaining = _maxN - offset;
+            if (remaining <= 0) return (new List<FriendTimelineEvent>(), false);
+            if (result.Count > remaining) result = result.Take(remaining).ToList();
+        }
         var hasMore = result.Count > limit;
         if (hasMore) result.RemoveAt(result.Count - 1);
         return (result, hasMore);
+    }
+
+    public string GetLastKnownFriendName(string friendId)
+    {
+        if (string.IsNullOrEmpty(friendId)) return "";
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT friend_name FROM friend_events
+                WHERE friend_id = $fid AND friend_name <> ''
+                ORDER BY timestamp DESC LIMIT 1";
+            cmd.Parameters.AddWithValue("$fid", friendId);
+            return cmd.ExecuteScalar() as string ?? "";
+        }
+        catch { return ""; }
     }
 
     public List<FriendTimelineEvent> GetFriendEventsForUser(string friendId, int limit = 10)

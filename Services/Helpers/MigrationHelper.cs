@@ -275,6 +275,39 @@ public static class MigrationHelper
         return JsonConvert.SerializeObject(new[] { raw });
     }
 
+    public static async Task CleanDuplicateFriendRemovedAsync(AppSettings settings)
+    {
+        if (settings.DuplicateFriendRemovedCleaned) return;
+        await Task.Delay(7000);
+
+        try
+        {
+            using var db = Database.OpenConnection();
+
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = @"
+                DELETE FROM friend_events
+                WHERE type = 'friend_removed'
+                  AND friend_name = ''
+                  AND friend_id <> ''
+                  AND EXISTS (
+                    SELECT 1 FROM friend_events f2
+                    WHERE f2.friend_id = friend_events.friend_id
+                      AND f2.type = 'friend_removed'
+                      AND f2.friend_name <> ''
+                  )";
+            cmd.ExecuteNonQuery();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Migration] CleanDuplicateFriendRemoved failed: {ex.Message}");
+            return;
+        }
+
+        settings.DuplicateFriendRemovedCleaned = true;
+        settings.Save();
+    }
+
     public static void MigrateCachesToSubdir()
     {
         var root  = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VRCNext");

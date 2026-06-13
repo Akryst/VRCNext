@@ -164,6 +164,7 @@ public partial class AppShell
             pct => _core?.SendToJS("dbMigrationProgress", new { percent = pct })); // backfill first_meet_date + meet_again_count in background
         _ = MigrationHelper.MigrateEventPlayerSessionsAsync(_settings,
             pct => _core?.SendToJS("dbMigrationProgress", new { percent = pct })); // convert event_players to JSON session arrays
+        _ = MigrationHelper.CleanDuplicateFriendRemovedAsync(_settings);
         _core.IsVrcRunning = RelayController.IsVrcRunning;
         _core.IsSteamVrRunning = RelayController.IsSteamVrRunning;
         _core.DispatchMessage = rawMsg => OnWebMessage(rawMsg);

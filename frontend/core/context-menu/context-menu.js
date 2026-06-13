@@ -471,6 +471,20 @@
             return null;
         }
 
+        const tlFilterBtn = el.closest('#tlPersonalFilters .sub-tab-btn, #tlFriendsFilters .sub-tab-btn');
+        if (tlFilterBtn) {
+            const oc = tlFilterBtn.getAttribute('onclick') || '';
+            const pm = oc.match(/setTlFilter\('([^']+)'\)/);
+            const fm = oc.match(/setFtFilter\('([^']+)'\)/);
+            if (pm) return buildTlTypeDeleteItems(pm[1], 'personal');
+            if (fm) return buildTlTypeDeleteItems(fm[1], 'friends');
+        }
+
+        const tlEntry = el.closest('#tlContainer .tl-card[data-tlid], #tlContainer .tl-list-row[data-tlid]');
+        if (tlEntry) return buildTlEntryDeleteItems(tlEntry.dataset.tlid, 'personal');
+        const ftEntry = el.closest('#tlContainer .tl-card[data-ftid], #tlContainer .tl-list-row[data-ftid]');
+        if (ftEntry) return buildTlEntryDeleteItems(ftEntry.dataset.ftid, 'friends');
+
         if (el.closest('.nav-btn[data-nav="dashboard"]')) {
             return [
                 { icon: 'dashboard_customize', label: cm('dash_layout', 'Edit Dashboard'), action: () => openDashLayoutEditor() },
@@ -641,6 +655,27 @@
     }
 
     /* Menu item builders */
+    function buildTlEntryDeleteItems(id, mode) {
+        const action = mode === 'friends' ? 'deleteFriendTimelineEvent' : 'deleteTimelineEvent';
+        return [{
+            icon: 'delete',
+            label: cm('timeline.delete_entry', 'Delete Entry'),
+            danger: true,
+            confirm: true,
+            action: () => sendToCS({ action, id })
+        }];
+    }
+
+    function buildTlTypeDeleteItems(filterKey, mode) {
+        const typeParam = filterKey === 'all' ? '' : filterKey;
+        const action = mode === 'friends' ? 'deleteFriendTimelineByType' : 'deleteTimelineByType';
+        return [
+            { icon: 'delete',         label: cm('timeline.delete_last_100', 'Delete Last 100'),  danger: true, confirm: true, action: () => sendToCS({ action, type: typeParam, limit: 100 }) },
+            { icon: 'delete',         label: cm('timeline.delete_last_500', 'Delete Last 500'),  danger: true, confirm: true, action: () => sendToCS({ action, type: typeParam, limit: 500 }) },
+            { icon: 'delete_forever', label: cm('timeline.delete_everything', 'Delete Everything'), danger: true, confirm: true, action: () => sendToCS({ action, type: typeParam, limit: 0 }) },
+        ];
+    }
+
     function buildGroupItems(id) {
         const g = (typeof myGroups !== 'undefined') && myGroups.find(x => x.id === id);
         const isJoined = !!g;

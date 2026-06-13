@@ -2351,6 +2351,12 @@ public partial class AppShell
                 case "getUserOnlineHeatmap":
                 case "getUserStatusTime":
                 case "getTimelineMonthActivity":
+                case "deleteTimelineEvent":
+                case "deleteFriendTimelineEvent":
+                case "deleteTimelineEvents":
+                case "deleteFriendTimelineEvents":
+                case "deleteTimelineByType":
+                case "deleteFriendTimelineByType":
                     await _timelineCtrl.HandleMessage(action, msg);
                     break;
 

@@ -36,6 +36,12 @@ let _todayMidnightTimer = null;
 // View mode: 'timeline' (card view) or 'list' (table view) — persisted in localStorage
 let tlViewMode = localStorage.getItem('tlViewMode') || 'timeline';
 
+// Edit/selection mode for bulk delete
+let tlEditMode = false;
+let tlEditKind = 'personal';
+const tlEditSelected = new Set();
+let _tlEditHandlerBound = false;
+
 // Server-side search state – Personal Timeline
 let _tlSearchTimer  = null;
 let _tlSearchMode   = false;
@@ -202,6 +208,7 @@ function tlDetailClearedHtml() {
 // Public API
 
 function setTlMode(mode) {
+    if (tlEditMode) _tlExitEditMode();
     tlMode = mode;
     document.getElementById('tlModePersonal')?.classList.toggle('active', mode === 'personal');
     document.getElementById('tlModeFriends')?.classList.toggle('active',  mode === 'friends');
@@ -248,6 +255,120 @@ function setTlViewMode(mode) {
 function _initTlViewButtons() {
     document.getElementById('tlViewTimeline')?.classList.toggle('active', tlViewMode === 'timeline');
     document.getElementById('tlViewList')?.classList.toggle('active', tlViewMode === 'list');
+}
+
+function toggleTlEditMode() {
+    if (tlMode === 'gamelog') return;
+    if (tlEditMode) { _tlExitEditMode(); return; }
+    tlEditMode = true;
+    tlEditKind = tlMode === 'friends' ? 'friends' : 'personal';
+    tlEditSelected.clear();
+    _tlBindEditHandler();
+    document.getElementById('tlEditBtn')?.classList.add('active');
+    _tlApplyEditDecor();
+    _tlUpdateEditUI();
+}
+
+function _tlExitEditMode() {
+    tlEditMode = false;
+    tlEditSelected.clear();
+    document.getElementById('tlEditBtn')?.classList.remove('active');
+    const c = document.getElementById('tlContainer');
+    if (c) {
+        c.classList.remove('tl-edit');
+        c.querySelectorAll('.tl-selected').forEach(el => el.classList.remove('tl-selected'));
+        c.querySelectorAll('.wd-edit-check, .wd-edit-sel-border, .tl-row-check').forEach(el => el.remove());
+    }
+    _tlUpdateEditUI();
+}
+
+function _tlBindEditHandler() {
+    if (_tlEditHandlerBound) return;
+    _tlEditHandlerBound = true;
+    document.addEventListener('click', e => {
+        if (!tlEditMode) return;
+        const c = document.getElementById('tlContainer');
+        if (!c || !c.contains(e.target)) return;
+        const el = e.target.closest('[data-tlid],[data-ftid]');
+        if (!el || !c.contains(el)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        _tlEditToggleId(el.dataset.tlid || el.dataset.ftid, el);
+    }, true);
+}
+
+function _tlEditToggleId(id, el) {
+    if (!id) return;
+    const sel = !tlEditSelected.has(id);
+    if (sel) tlEditSelected.add(id); else tlEditSelected.delete(id);
+    if (el) _tlDecorateEl(el, sel);
+    _tlUpdateEditUI();
+}
+
+function _tlUpdateEditUI() {
+    const del = document.getElementById('tlEditDeleteBtn');
+    const cnt = document.getElementById('tlEditDeleteCount');
+    const n   = tlEditSelected.size;
+    if (del) del.style.display = (tlEditMode && n > 0) ? '' : 'none';
+    if (cnt) cnt.textContent = n > 0 ? String(n) : '';
+}
+
+function _tlEditCheckHtml(selected) {
+    return selected
+        ? '<span class="msi" style="color:var(--accent);">check_circle</span>'
+        : '<span class="msi" style="color:rgba(255,255,255,0.7);">radio_button_unchecked</span>';
+}
+
+function _tlDecorateEl(el, selected) {
+    if (el.classList.contains('tl-list-row')) {
+        const cell = el.querySelector('td');
+        if (cell) {
+            let chk = cell.querySelector('.tl-row-check');
+            if (!chk) { cell.insertAdjacentHTML('afterbegin', '<span class="tl-row-check"></span>'); chk = cell.querySelector('.tl-row-check'); }
+            chk.innerHTML = _tlEditCheckHtml(selected);
+        }
+        el.classList.toggle('tl-selected', selected);
+        return;
+    }
+    let chk = el.querySelector('.wd-edit-check');
+    if (!chk) el.insertAdjacentHTML('afterbegin', `<div class="wd-edit-check">${_tlEditCheckHtml(selected)}</div>`);
+    else chk.innerHTML = _tlEditCheckHtml(selected);
+    const border = el.querySelector('.wd-edit-sel-border');
+    if (selected && !border) el.insertAdjacentHTML('beforeend', '<div class="wd-edit-sel-border"></div>');
+    else if (!selected && border) border.remove();
+}
+
+function _tlApplyEditDecor() {
+    const c = document.getElementById('tlContainer');
+    if (!c) return;
+    c.classList.toggle('tl-edit', tlEditMode);
+    if (!tlEditMode) return;
+    c.querySelectorAll('[data-tlid],[data-ftid]').forEach(el => {
+        const id = el.dataset.tlid || el.dataset.ftid;
+        _tlDecorateEl(el, tlEditSelected.has(id));
+    });
+}
+
+function tlEditDeleteSelected() {
+    const ids = [...tlEditSelected];
+    if (!ids.length) return;
+    const action = tlEditKind === 'friends' ? 'deleteFriendTimelineEvents' : 'deleteTimelineEvents';
+    sendToCS({ action, ids });
+    _tlExitEditMode();
+}
+
+function handleFriendTimelineEventDeleted(payload) {
+    if (!payload?.id) return;
+    const before = friendTimelineEvents.length;
+    friendTimelineEvents = friendTimelineEvents.filter(e => e.id !== payload.id);
+    if (friendTimelineEvents.length !== before && tlMode === 'friends') filterFriendTimeline();
+}
+
+function handleTimelineReload(payload) {
+    if (payload?.mode === 'friends') { if (tlMode === 'friends') refreshFriendTimeline(); }
+    else if (tlMode === 'personal')  { refreshTimeline(); }
+    if (typeof renderDashRecentPhotos === 'function') renderDashRecentPhotos();
+    if (typeof renderDashMyRecentTimeline === 'function') renderDashMyRecentTimeline();
 }
 
 function refreshTimeline() {
@@ -400,13 +521,10 @@ function filterTimeline() {
     if (!c) return;
 
     if (!timelineEvents.length && !tlLoading) {
-        if (tlDateFilter) {
-            c.innerHTML = `<div class="empty-msg">${esc(t('timeline.empty.initial', 'No events for this day.'))}</div>`;
-            setPaginator('tlPaginatorBar','');
-            return;
-        }
-        // Events cleared (e.g. filter switched while searching) — reload from server
-        refreshTimeline();
+        c.innerHTML = tlDateFilter
+            ? `<div class="empty-msg">${esc(t('timeline.empty.initial', 'No events for this day.'))}</div>`
+            : `<div class="empty-msg">${esc(t('timeline.list.empty.personal', 'No timeline events match your filter.'))}</div>`;
+        setPaginator('tlPaginatorBar','');
         return;
     }
 
@@ -427,6 +545,7 @@ function filterTimeline() {
         : buildTimelineHtml(eventsToRender);
     c.innerHTML = contentHtml;
     setPaginator('tlPaginatorBar',buildTlPagination(tlListPage, totalPages, tlDateFilter ? false : tlHasMore));
+    _tlApplyEditDecor();
 
     if (prevScrollTop > 0) c.scrollTop = prevScrollTop;
 
@@ -468,6 +587,7 @@ function _renderTlSearchResults(search) {
     let html = banner + (tlViewMode === 'list' ? buildPersonalListHtml(events) : buildTimelineHtml(events));
     c.innerHTML = html;
     setPaginator('tlPaginatorBar',buildSearchPagination(_tlSearchPage, totalPages, 'tlGoSearchPage', _tlSearchTotal));
+    _tlApplyEditDecor();
 }
 
 // Called when backend delivers search results
@@ -1129,6 +1249,7 @@ function setFtFilter(f) {
 }
 
 function filterFriendTimeline() {
+    if (tlMode !== 'friends') return;
     const search = (document.getElementById('tlSearchInput')?.value ?? '').toLowerCase().trim();
     const c = document.getElementById('tlContainer');
     if (!c) return;
@@ -1156,13 +1277,10 @@ function filterFriendTimeline() {
     _ftlSearchEvents = [];
 
     if (!friendTimelineEvents.length && !ftlLoading) {
-        if (tlDateFilter) {
-            c.innerHTML = `<div class="empty-msg">${esc(t('timeline.empty.initial', 'No events for this day.'))}</div>`;
-            setPaginator('tlPaginatorBar','');
-            return;
-        }
-        // Events cleared (e.g. filter switched while searching) — reload from server
-        refreshFriendTimeline();
+        c.innerHTML = tlDateFilter
+            ? `<div class="empty-msg">${esc(t('timeline.empty.initial', 'No events for this day.'))}</div>`
+            : `<div class="empty-msg">${esc(t('timeline.list.empty.friends', 'No friend activity logged yet.'))}</div>`;
+        setPaginator('tlPaginatorBar','');
         return;
     }
 
@@ -1183,6 +1301,7 @@ function filterFriendTimeline() {
         : buildFriendTimelineHtml(ftlEventsToRender);
     c.innerHTML = contentHtml;
     setPaginator('tlPaginatorBar',buildFtlPagination(ftlListPage, totalPages, tlDateFilter ? false : ftlHasMore));
+    _tlApplyEditDecor();
 
     if (prevScrollTop > 0) c.scrollTop = prevScrollTop;
 }
@@ -1211,6 +1330,7 @@ function _renderFtlSearchResults(search) {
     let html = banner + (tlViewMode === 'list' ? buildFriendListHtml(events) : buildFriendTimelineHtml(events));
     c.innerHTML = html;
     setPaginator('tlPaginatorBar',buildSearchPagination(_ftlSearchPage, totalPages, 'ftlGoSearchPage', _ftlSearchTotal));
+    _tlApplyEditDecor();
 }
 
 function handleFtlSearchResults(payload) {

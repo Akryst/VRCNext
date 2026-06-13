@@ -698,7 +698,7 @@ function buildPersonalListHtml(events) {
         const listMeetCount = ev.type === 'meet_again' ? (ev.meetCount || 0) : 0;
         const listTypeLabel = listMeetCount > 0 ? `${meta.label} (${listMeetCount})` : meta.label;
 
-        rows += `<tr class="tl-list-row" onclick="openTlDetail('${ei}')">
+        rows += `<tr class="tl-list-row" data-tlid="${esc(ev.id)}" onclick="openTlDetail('${ei}')">
             <td class="tl-list-dt">${esc(`${tlFormatShortDate(ev.timestamp)} | ${tlFormatTime(ev.timestamp)}`)}</td>
             <td class="tl-list-type"><span class="msi tl-list-icon" style="color:${color}">${meta.icon}</span><span>${esc(listTypeLabel)}</span></td>
             <td style="width:34px;padding:4px 8px;">${_tlPersonalProfHtml(ev)}</td>
@@ -782,7 +782,7 @@ function buildFriendListHtml(events) {
             ? `openFtGpsDetail('${ei}')`
             : `openFtDetail('${ei}')`;
 
-        rows += `<tr class="tl-list-row" onclick="${clickAction}">
+        rows += `<tr class="tl-list-row" data-ftid="${esc(ev.id)}" onclick="${clickAction}">
             <td class="tl-list-dt">${esc(`${tlFormatShortDate(ev.timestamp)} | ${tlFormatTime(ev.timestamp)}`)}</td>
             <td class="tl-list-type"><span class="msi tl-list-icon" style="color:${color}">${meta.icon}</span><span>${esc(meta.label)}</span></td>
             <td style="width:34px;padding:4px 8px;">${_tlListProfHtml(ev.friendImage, ev.friendName)}</td>

@@ -147,6 +147,17 @@
 .tl-datebtn { padding: 0 10px; }
 #tlDateBtn.dp-active { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-lt); }
 #tlDpTodayBtn.active { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent-lt); border-color: var(--accent); }
+#tlEditBtn.active { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent-lt); border-color: var(--accent); }
+#tlEditDeleteBtn { gap: 4px; }
+
+#tlContainer.tl-edit .tl-card,
+#tlContainer.tl-edit .tl-list-row { cursor: pointer; }
+#tlContainer.tl-edit .tl-card { position: relative; }
+
+#tlContainer .wd-edit-check .msi { font-size: 22px; }
+.tl-row-check { display: inline-flex; vertical-align: middle; margin-right: 6px; }
+.tl-row-check .msi { font-size: 18px; }
+#tlContainer.tl-edit .tl-list-row.tl-selected { background: color-mix(in srgb, var(--accent) 18%, transparent); }
 
 .tl-date-picker {
     position: fixed;

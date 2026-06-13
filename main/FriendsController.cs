@@ -2415,14 +2415,16 @@ public class FriendsController
     {
         if (string.IsNullOrEmpty(e.UserId) || !_friendStateSeeded) return;
 
-        // Grab name/image before they're removed from the store
+        if (!IsInStore(e.UserId)) return;
+
         var (fname, fimg) = _friendNameImg.GetValueOrDefault(e.UserId, ("", ""));
 
-        // If we don't have a name, try the friend store
         if (string.IsNullOrEmpty(fname) && _friendStore.TryGetValue(e.UserId, out var stored))
             fname = stored["displayName"]?.ToString() ?? e.UserId;
 
-        // Clean up tracking dictionaries
+        if (string.IsNullOrEmpty(fname))
+            fname = _core.Timeline.GetLastKnownFriendName(e.UserId);
+
         _friendStore.Remove(e.UserId);
         _friendLastLoc.Remove(e.UserId);
         _friendLastStatus.Remove(e.UserId);
@@ -2453,10 +2455,13 @@ public class FriendsController
             var disk = ImageCacheHelper.GetWorldCached(ev.WorldId);
             wThumb = disk != null ? ImageCacheHelper.ToLocalUrl(disk) : ImageCacheHelper.NormalizeTo512(ev.WorldThumb ?? "");
         }
+        var friendName = ev.FriendName;
+        if (string.IsNullOrEmpty(friendName) && !string.IsNullOrEmpty(ev.FriendId))
+            friendName = _core.Timeline.GetLastKnownFriendName(ev.FriendId);
         return new
         {
             id = ev.Id, type = ev.Type, timestamp = ev.Timestamp,
-            friendId = ev.FriendId, friendName = ev.FriendName,
+            friendId = ev.FriendId, friendName = friendName,
             friendImage = ResolveWithDiskFallback(ev.FriendId, ev.FriendImage),
             worldId = ev.WorldId, worldName = ev.WorldName,
             worldThumb = wThumb,
