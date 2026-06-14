@@ -387,6 +387,17 @@ function _wdRenderPhotosPage() {
     if (bar) bar.innerHTML = buildMiniPaginator(_wdPhotosPage, totalPages, '_wdPhotosGoPage');
 }
 
+function _wdOnFileDeleted(path) {
+    if (!_wdCurrentWorldId) return;
+    if (!document.getElementById('wdPhotosGrid')) return;
+    const idx = _wdPhotosItems.findIndex(x => x.path === path);
+    if (idx < 0) return;
+    _wdPhotosItems.splice(idx, 1);
+    const totalPages = Math.ceil(_wdPhotosItems.length / MINI_IMAGE_PG_SIZE) || 1;
+    if (_wdPhotosPage >= totalPages) _wdPhotosPage = totalPages - 1;
+    _wdRenderPhotosPage();
+}
+
 function _wdOpenInLibrary(path) {
     closeWorldSearchDetail();
     showTab(7);

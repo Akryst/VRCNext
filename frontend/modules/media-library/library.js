@@ -968,6 +968,8 @@ function onLibraryFileDeleted(path) {
     libraryFiles = libraryFiles.filter(f => f.path !== path);
     filterLibrary(true); // stay on current page after delete
 
+    if (typeof _wdOnFileDeleted === 'function') _wdOnFileDeleted(path);
+
     if (showingDeleted) {
         if (neighbor) openPhotoDetail(neighbor);
         else          closePhotoDetail();
