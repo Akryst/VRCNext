@@ -1650,65 +1650,104 @@ public partial class AppShell
                         {
                             var categories = new List<object>();
 
+                            void AddLocalCats(string kind, Func<LocalFavoritesStore.LocalItem, string> nameOf)
+                            {
+                                var byGroup = _core.LocalFavorites.GetItems(kind)
+                                    .GroupBy(it => it.GroupName)
+                                    .ToDictionary(gr => gr.Key, gr => gr.ToList());
+                                foreach (var lg in _core.LocalFavorites.GetGroups(kind))
+                                {
+                                    var its  = byGroup.TryGetValue(lg.Name, out var l) ? l : new List<LocalFavoritesStore.LocalItem>();
+                                    var rows = its.Select(it => new { id = it.EntityId, name = nameOf(it) })
+                                        .Where(x => x.id.Length > 0).ToList();
+                                    categories.Add(new { key = (string?)null, title = string.IsNullOrEmpty(lg.DisplayName) ? lg.Name : lg.DisplayName, local = true, items = rows });
+                                }
+                            }
+
                             if (exType == "worlds")
                             {
                                 var mine = await _core.World.GetMyWorldsAsync();
-                                categories.Add(new { key = "my_worlds", items = mine.OfType<JObject>()
+                                categories.Add(new { key = (string?)"my_worlds", title = (string?)null, local = false, items = mine.OfType<JObject>()
                                     .Select(w => new { id = w["id"]?.ToString() ?? "", name = w["name"]?.ToString() ?? "" })
                                     .Where(x => x.id.Length > 0).ToList() });
 
-                                var favWorlds = new List<object>();
-                                var seenW = new HashSet<string>();
                                 var favGroups = await _core.Favorites.GetFavoriteGroupsAsync();
                                 var worldTypes = new HashSet<string> { "world", "vrcPlusWorld" };
                                 foreach (var g in favGroups.Where(g => worldTypes.Contains(g["type"]?.ToString() ?? "")))
                                 {
-                                    var gname = g["name"]?.ToString() ?? "";
-                                    if (gname.Length == 0) continue;
-                                    foreach (var w in await _core.Favorites.GetFavoriteWorldsByGroupAsync(gname, 100))
-                                    {
-                                        var id = w["id"]?.ToString() ?? "";
-                                        if (id.Length == 0 || !seenW.Add(id)) continue;
-                                        favWorlds.Add(new { id, name = w["name"]?.ToString() ?? "" });
-                                    }
+                                    var gtag = g["name"]?.ToString() ?? "";
+                                    if (gtag.Length == 0) continue;
+                                    var gtitle = g["displayName"]?.ToString();
+                                    if (string.IsNullOrEmpty(gtitle)) gtitle = gtag;
+                                    var items = (await _core.Favorites.GetFavoriteWorldsByGroupAsync(gtag, 100))
+                                        .Select(w => new { id = w["id"]?.ToString() ?? "", name = w["name"]?.ToString() ?? "" })
+                                        .Where(x => x.id.Length > 0).ToList();
+                                    categories.Add(new { key = (string?)null, title = gtitle, local = false, items });
                                 }
-                                categories.Add(new { key = "favorited_worlds", items = favWorlds });
+                                AddLocalCats("world", it => it.Snapshot["name"]?.ToString() ?? "");
                             }
                             else if (exType == "avatars")
                             {
                                 var mine = await _core.Avatars.GetOwnAvatarsAsync();
-                                categories.Add(new { key = "my_avatars", items = mine
+                                categories.Add(new { key = (string?)"my_avatars", title = (string?)null, local = false, items = mine
                                     .Select(a => new { id = a["id"]?.ToString() ?? "", name = a["name"]?.ToString() ?? "" })
                                     .Where(x => x.id.Length > 0).ToList() });
 
-                                var fav = await _core.Avatars.GetFavoriteAvatarsAsync();
-                                categories.Add(new { key = "favorited_avatars", items = fav
-                                    .Select(a => new { id = a["id"]?.ToString() ?? "", name = a["name"]?.ToString() ?? "" })
-                                    .Where(x => x.id.Length > 0).ToList() });
+                                var favGroups = await _core.Favorites.GetFavoriteGroupsAsync();
+                                foreach (var g in favGroups.Where(g => (g["type"]?.ToString() ?? "") == "avatar"))
+                                {
+                                    var gtag = g["name"]?.ToString() ?? "";
+                                    if (gtag.Length == 0) continue;
+                                    var gtitle = g["displayName"]?.ToString();
+                                    if (string.IsNullOrEmpty(gtitle)) gtitle = gtag;
+                                    var items = (await _core.Favorites.GetFavoriteAvatarsByGroupAsync(gtag, 100))
+                                        .Select(a => new { id = a["id"]?.ToString() ?? "", name = a["name"]?.ToString() ?? "" })
+                                        .Where(x => x.id.Length > 0).ToList();
+                                    categories.Add(new { key = (string?)null, title = gtitle, local = false, items });
+                                }
+                                AddLocalCats("avatar", it => it.Snapshot["name"]?.ToString() ?? "");
                             }
                             else if (exType == "groups")
                             {
                                 var groups = await _core.Groups.GetUserGroupsAsync();
-                                categories.Add(new { key = "my_groups", items = groups.OfType<JObject>()
+                                categories.Add(new { key = (string?)"my_groups", title = (string?)null, local = false, items = groups.OfType<JObject>()
                                     .Select(g => new { id = g["groupId"]?.ToString() ?? g["id"]?.ToString() ?? "", name = g["name"]?.ToString() ?? "" })
                                     .Where(x => x.id.Length > 0).ToList() });
                             }
                             else if (exType == "friends")
                             {
                                 var store = _friends.GetStoreSnapshot();
-                                categories.Add(new { key = "friends", items = store
+                                var nameById = new Dictionary<string, string>();
+                                foreach (var f in store)
+                                {
+                                    var id = f["id"]?.ToString() ?? "";
+                                    if (id.Length > 0) nameById[id] = f["displayName"]?.ToString() ?? "";
+                                }
+
+                                categories.Add(new { key = (string?)"friends", title = (string?)null, local = false, items = store
                                     .Select(f => new { id = f["id"]?.ToString() ?? "", name = f["displayName"]?.ToString() ?? "" })
                                     .Where(x => x.id.Length > 0)
                                     .OrderBy(x => x.name, StringComparer.OrdinalIgnoreCase).ToList() });
 
-                                var favEntries = await _core.Favorites.GetFavoriteFriendsAsync();
-                                var favIds = favEntries.OfType<JObject>()
-                                    .Select(e => e["favoriteId"]?.ToString() ?? "")
-                                    .Where(s => s.Length > 0).ToHashSet();
-                                categories.Add(new { key = "favorited_friends", items = store
-                                    .Where(f => favIds.Contains(f["id"]?.ToString() ?? ""))
-                                    .Select(f => new { id = f["id"]?.ToString() ?? "", name = f["displayName"]?.ToString() ?? "" })
-                                    .OrderBy(x => x.name, StringComparer.OrdinalIgnoreCase).ToList() });
+                                var favGroups = await _core.Favorites.GetFavoriteGroupsAsync();
+                                var favs = await _core.Favorites.GetFavoriteFriendsAsync();
+                                var byTag = favs.OfType<JObject>()
+                                    .Select(e => new { uid = e["favoriteId"]?.ToString() ?? "", tag = (e["tags"] as JArray)?.FirstOrDefault()?.ToString() ?? "group_0" })
+                                    .Where(x => x.uid.Length > 0)
+                                    .GroupBy(x => x.tag)
+                                    .ToDictionary(gr => gr.Key, gr => gr.Select(x => x.uid).ToList());
+                                foreach (var g in favGroups.Where(g => (g["type"]?.ToString() ?? "") == "friend"))
+                                {
+                                    var gtag = g["name"]?.ToString() ?? "";
+                                    if (gtag.Length == 0) continue;
+                                    var gtitle = g["displayName"]?.ToString();
+                                    if (string.IsNullOrEmpty(gtitle)) gtitle = gtag;
+                                    var uids = byTag.TryGetValue(gtag, out var l) ? l : new List<string>();
+                                    var items = uids.Select(uid => new { id = uid, name = nameById.TryGetValue(uid, out var nm) && nm.Length > 0 ? nm : uid })
+                                        .OrderBy(x => x.name, StringComparer.OrdinalIgnoreCase).ToList();
+                                    categories.Add(new { key = (string?)null, title = gtitle, local = false, items });
+                                }
+                                AddLocalCats("friend", it => it.Snapshot["name"]?.ToString() ?? it.Snapshot["displayName"]?.ToString() ?? (nameById.TryGetValue(it.EntityId, out var n) ? n : ""));
                             }
                             else return;
 

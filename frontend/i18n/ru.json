@@ -2286,6 +2286,7 @@
   "export.cat.friends": "Друзья",
   "export.cat.favorited_friends": "Избранные друзья",
   "export.cat_empty": "(нет)",
+  "export.local_prefix": "Локальные",
   "export.copy": "Копировать",
   "export.export_csv": "Экспорт CSV",
   "export.loading": "Загрузка...",

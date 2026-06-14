@@ -2303,6 +2303,7 @@
   "export.cat.friends": "Freunde",
   "export.cat.favorited_friends": "Favorisierte Freunde",
   "export.cat_empty": "(keine)",
+  "export.local_prefix": "Lokal",
   "export.copy": "Kopieren",
   "export.export_csv": "CSV exportieren",
   "export.loading": "Lädt...",

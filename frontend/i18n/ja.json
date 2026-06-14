@@ -2300,6 +2300,7 @@
   "export.cat.friends": "フレンド",
   "export.cat.favorited_friends": "お気に入りフレンド",
   "export.cat_empty": "（なし）",
+  "export.local_prefix": "ローカル",
   "export.copy": "コピー",
   "export.export_csv": "CSVをエクスポート",
   "export.loading": "読み込み中...",

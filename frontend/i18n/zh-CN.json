@@ -2301,6 +2301,7 @@
   "export.cat.friends": "好友",
   "export.cat.favorited_friends": "收藏的好友",
   "export.cat_empty": "（无）",
+  "export.local_prefix": "本地",
   "export.copy": "复制",
   "export.export_csv": "导出 CSV",
   "export.loading": "加载中...",

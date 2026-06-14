@@ -2301,6 +2301,7 @@
   "export.cat.friends": "Amis",
   "export.cat.favorited_friends": "Amis favoris",
   "export.cat_empty": "(aucun)",
+  "export.local_prefix": "Local",
   "export.copy": "Copier",
   "export.export_csv": "Exporter CSV",
   "export.loading": "Chargement...",
