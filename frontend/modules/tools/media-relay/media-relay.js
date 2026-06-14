@@ -62,8 +62,16 @@ function deleteFile(i) {
 }
 
 function renderWebhookCards(w) {
-    const e = document.getElementById('whCards'), s = (w || []).slice(0, 4);
+    const e = document.getElementById('whCards');
+    if (!e) return;
+    const s = (w || []).slice(0, 4);
     while (s.length < 4) s.push({});
+    const incomingEmpty = s.every(x => !(x.Name || x.name || x.Url || x.url || x.Enabled || x.enabled));
+    const domHasValues = [0, 1, 2, 3].some(i => {
+        const u = document.getElementById('whUrl' + i), n = document.getElementById('whName' + i);
+        return (u && u.value.trim()) || (n && n.value.trim());
+    });
+    if (incomingEmpty && domHasValues) return;
     e.innerHTML = s.map((w, i) =>
         `<div class="wh-card"><div class="wh-top"><span class="wh-num">#${i + 1}</span><input class="vrcn-edit-field" id="whName${i}" value="${esc(w.Name || w.name || '')}" placeholder="${esc(tf('relay.webhook.channel_placeholder', { index: i + 1 }, `Channel ${i + 1}`))}" style="width:120px;" oninput="autoSave()"><label class="toggle"><input type="checkbox" id="whOn${i}" ${(w.Enabled || w.enabled) ? 'checked' : ''} onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div><input class="vrcn-edit-field" id="whUrl${i}" value="${esc(w.Url || w.url || '')}" placeholder="${esc(t('relay.webhook.url_placeholder', 'https://discord.com/api/webhooks/...'))}" style="width:100%;" oninput="autoSave()"></div>`
     ).join('');

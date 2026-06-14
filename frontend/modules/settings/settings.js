@@ -274,6 +274,8 @@ function saveSettings() {
     settings.steamOverlaySoundEnabled = payload.data.steamOverlaySoundEnabled;
     settings.friendOnlineToastEnabled = payload.data.friendOnlineToastEnabled;
     settings.friendOnlineToastFavOnly = payload.data.friendOnlineToastFavOnly;
+    settings.webhooks = w;
+    settings.Webhooks = w;
     sendToCS(payload);
 }
 
@@ -404,7 +406,9 @@ function loadSettingsToUI(s) {
         document.getElementById('dashBgName').textContent = dashBgPath.split(/[\\\\/]/).pop();
         sendToCS({ action: 'vrcLoadDashBg', path: dashBgPath });
     }
-    renderWebhookCards((s.Webhooks || s.webhooks || []).slice(0, 4));
+    settings.webhooks = (s.Webhooks || s.webhooks || []).slice(0, 4);
+    settings.Webhooks = settings.webhooks;
+    renderWebhookCards(settings.webhooks);
     renderFolders(settings.folders);
     if (typeof renderRelayFolders === 'function') renderRelayFolders();
     renderExtraExeDesktop(settings.extraExeDesktop);

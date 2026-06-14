@@ -66,12 +66,7 @@ function _rwBuildPages(d) {
     const bfPics = (d.bestFriendPhotos || []).filter(p => !hidden.has(p.path));
     const wPics  = (d.worldPhotos || []).filter(p => !hidden.has(p.path));
 
-    const slides = (d.slideshow || []).filter(s => !hidden.has(s.path)).slice(0, 14);
-    const slideHtml = slides.length ? `<div class="rw-slideshow">
-        ${slides.map((s, i) => `<div class="rw-slide${i === 0 ? ' active' : ''}" style="background-image:url('${cssUrl(s.url)}')"></div>`).join('')}
-        <div class="rw-slide-dim"></div>
-    </div>` : '';
-    pages.push(`${slideHtml}<div class="rw-intro-fg${slideHtml ? ' rw-on-media' : ''}">${_rwHeader('VRCN Rewind ' + d.year,
+    pages.push(`<div class="rw-intro-fg rw-on-media">${_rwHeader('VRCN Rewind ' + d.year,
         rwTf('intro.title', { year: d.year }, `Your VRCN Rewind ${d.year} is ready!`),
         rwT('intro.sub', "Let's look back at your year in VRChat."), 'rw-title-lg')}</div>`);
 
@@ -202,10 +197,18 @@ function openRewindModal(d) {
     _rwState = { pages, idx: 0, auto: !!d.auto };
     if (d.auto) sendToCS({ action: 'rewindSeen' });
 
+    const hidden = _rwHidden();
+    const slides = (d.slideshow || []).filter(s => !hidden.has(s.path)).slice(0, 14);
+    const bgHtml = `<div class="rw-bg" id="rwBg">
+        ${slides.map((s, i) => `<div class="rw-slide${i === 0 ? ' active' : ''}" style="background-image:url('${cssUrl(s.url)}')"></div>`).join('')}
+        <div class="rw-bg-scrim"></div>
+    </div>`;
+
     const ov = document.createElement('div');
     ov.id = 'rwOverlay';
     ov.className = 'modal-overlay';
     ov.innerHTML = `<div class="modal-box wide rw-box">
+        ${bgHtml}
         <div class="rw-head">
             <span class="rw-brand">VRCN</span>
             <div class="rw-dots" id="rwDots"></div>
@@ -220,6 +223,7 @@ function openRewindModal(d) {
     </div>`;
     document.body.appendChild(ov);
     ov.addEventListener('mousedown', e => { if (e.target === ov) closeRewind(); });
+    _rwStartSlideshow();
     _rwRenderPage();
 }
 
@@ -234,7 +238,8 @@ function _rwRenderPage() {
     const i = _rwState.idx, n = _rwState.pages.length;
 
     body.innerHTML = `<div class="rw-page">${_rwState.pages[i]}</div>`;
-    _rwStartSlideshow(body);
+    const bg = document.getElementById('rwBg');
+    if (bg) bg.classList.toggle('rw-bg-blur', i !== 0);
     if (dots) dots.innerHTML = _rwState.pages.map((_, k) =>
         `<span class="rw-dot ${k === i ? 'active' : (k < i ? 'done' : '')}"></span>`).join('');
     if (count) count.textContent = `${i + 1} / ${n}`;
@@ -247,9 +252,9 @@ function _rwRenderPage() {
     }
 }
 
-function _rwStartSlideshow(body) {
+function _rwStartSlideshow() {
     if (_rwState && _rwState.slideTimer) { clearInterval(_rwState.slideTimer); _rwState.slideTimer = null; }
-    const ss = body.querySelector('.rw-slideshow');
+    const ss = document.getElementById('rwBg');
     if (!ss || !_rwState) return;
     const slides = ss.querySelectorAll('.rw-slide');
     if (slides.length < 2) return;
@@ -258,7 +263,7 @@ function _rwStartSlideshow(body) {
         slides[si].classList.remove('active');
         si = (si + 1) % slides.length;
         slides[si].classList.add('active');
-    }, 3200);
+    }, 4500);
 }
 
 function rwNext() {
