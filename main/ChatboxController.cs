@@ -22,6 +22,7 @@ public class ChatboxController : IDisposable
     {
         _core = core;
         _vroCtrl = vroCtrl;
+        _core.OnChatboxPauseRequest = ms => _chatbox?.PauseDirectSend(ms);
     }
 
     // Message Handler

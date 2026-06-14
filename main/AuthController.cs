@@ -957,6 +957,9 @@ public class AuthController
 
         _core.SendToJS("log", new { msg = $"VRChat: Session expired ({reason}) — please log in again", color = "warn" });
         _core.SendToJS("vrcLoggedOut", (object?)null);
+#if WINDOWS
+        _core.OnTrayLoggedOut?.Invoke();
+#endif
         if (!string.IsNullOrEmpty(username))
             _core.SendToJS("vrcPrefillLogin", new { username, password });
     }
@@ -1551,7 +1554,12 @@ public class AuthController
                 ?? System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
             if (!string.IsNullOrEmpty(exe))
             {
-                System.Diagnostics.Process.Start(exe);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = exe,
+                    Arguments = $"--waitpid {Environment.ProcessId}",
+                    UseShellExecute = true
+                });
             }
         }
         catch { }

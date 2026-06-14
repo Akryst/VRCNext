@@ -562,3 +562,104 @@
     display: inline-flex;
     align-items: center;
 }
+
+/* Instance Chart */
+.tl-ic-wrap {
+    position: relative;
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 2px 12px;
+}
+.tl-ic-summary {
+    font-size: 11px;
+    color: var(--tx3);
+    margin-bottom: 10px;
+}
+.tl-ic-axis {
+    position: relative;
+    height: 16px;
+    margin: 0 4px;
+}
+.tl-ic-tick {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    font-size: 9px;
+    color: var(--tx3);
+    white-space: nowrap;
+}
+.tl-ic-tick:first-child { transform: none; }
+.tl-ic-tick:last-child { transform: translateX(-100%); }
+.tl-ic-track {
+    position: relative;
+    height: 26px;
+    margin: 2px 4px 16px;
+    background: var(--bg-card);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.tl-ic-bar {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: .85;
+    transition: opacity .12s ease, transform .12s ease;
+}
+.tl-ic-bar:hover { opacity: 1; transform: scaleY(1.12); }
+.tl-ic-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.tl-ic-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-card);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background .12s;
+}
+.tl-ic-card:hover { background: var(--bg-hover); }
+.tl-ic-card-thumb {
+    position: relative;
+    width: 46px;
+    height: 34px;
+    border-radius: 6px;
+    background: var(--bg-input) center/cover no-repeat;
+    flex-shrink: 0;
+}
+.tl-ic-card-bar-wrap {
+    position: relative;
+    height: 4px;
+    background: var(--bg-hover);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+.tl-ic-card-bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    min-width: 3px;
+    border-radius: 2px;
+}
+.tl-ic-card-main { flex: 1; min-width: 0; }
+.tl-ic-card-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tx0);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.tl-ic-card-meta {
+    font-size: 10px;
+    color: var(--tx2);
+    margin-top: 3px;
+}
+.tl-ic-live { color: var(--ok); font-weight: 700; }
+.tl-ic-card-arrow { color: var(--tx3); font-size: 18px; }

@@ -19,6 +19,7 @@ public sealed class KikitanXDService : IDisposable
     public event Action<string, bool>? OnRecognized;
     public event Action<string>? OnTranslated;
     public event Action<string>? OnLog;
+    public event Action? OnChatboxSent;
     public bool IsRunning => false;
     public float MeterLevel => 0f;
     public static string[] GetInputDevices() => [];
@@ -35,6 +36,7 @@ public sealed class KikitanXDService : IDisposable
     public event Action<string, bool>? OnRecognized;
     public event Action<string>? OnTranslated;
     public event Action<string>? OnLog;
+    public event Action? OnChatboxSent;
 
     private WaveInEvent? _waveIn;
     private volatile float _meterLevel;
@@ -267,7 +269,7 @@ public sealed class KikitanXDService : IDisposable
                     string withKaomoji = AppendKaomojiAsync(srcText).GetAwaiter().GetResult();
                     if (!string.IsNullOrWhiteSpace(withKaomoji)) outText = withKaomoji;
                 }
-                if (_oscEnabled) SendChatbox(outText);
+                if (_oscEnabled) { SendChatbox(outText); OnChatboxSent?.Invoke(); }
                 return;
             }
 
@@ -275,7 +277,7 @@ public sealed class KikitanXDService : IDisposable
             if (!string.IsNullOrWhiteSpace(translated))
             {
                 OnTranslated?.Invoke(translated);
-                if (_oscEnabled) SendChatbox(translated);
+                if (_oscEnabled) { SendChatbox(translated); OnChatboxSent?.Invoke(); }
             }
         }
         catch (Exception ex)

@@ -34,7 +34,7 @@ const NAV_ICON_OPTIONS = [
     'inventory_2','timeline','photo_library','settings','chat','cell_tower','rocket_launch',
     'photo_camera',
     'tune','smart_display','article','hub','schedule','mic','sensors','watch','lock',
-    'translate','gps_fixed','height','build','folder','star','favorite','bookmark',
+    'translate','gps_fixed','height','build','adjust','folder','star','favorite','bookmark',
     'home','explore','map','music_note','videocam','image','code','analytics','bar_chart',
     'notifications','sports_esports','emoji_events','diamond','auto_awesome','bolt',
     'local_fire_department','cloud','terminal','bug_report','water_drop','edit',
@@ -77,7 +77,7 @@ const NAV_DEFAULT_LAYOUT = [
     { type: 'item', key: 'timeline' },
     { type: 'item', key: 'media-library' },
     {
-        type: 'folder', id: 'folder-tools', name: 'Tools', icon: 'build',
+        type: 'folder', id: 'folder-tools', name: 'Tools', icon: 'adjust',
         items: [
             'chatbox','media-relay','space-flight','frame-shot','osc-tool','youtube-fix',
             'activity-log','mutual-network','time-spent','voice-fight',

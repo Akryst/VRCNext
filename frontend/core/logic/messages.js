@@ -989,6 +989,7 @@ case 'vrcNews':
                 handleOscOutputsEnabled(payload);
                 break;
             case 'timelineMonthActivity': handleTimelineMonthActivity(payload); break;
+            case 'instanceChartData': if (typeof renderInstanceChart === 'function') renderInstanceChart(payload); break;
             case 'timelineData': renderTimeline(payload); renderDashRecentPhotos(); break;
             case 'timelineEvent': handleTimelineEvent(payload); renderDashRecentPhotos(); break;
             case 'timelineEventDeleted': handleTimelineEventDeleted(payload); renderDashRecentPhotos(); break;

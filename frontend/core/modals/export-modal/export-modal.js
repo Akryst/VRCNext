@@ -22,7 +22,8 @@ function _exportRow(id, name) {
 
 function buildExportText(categories) {
     return (categories || []).map(cat => {
-        const title = t('export.cat.' + cat.key, cat.key);
+        let title = cat.title ? cat.title : t('export.cat.' + cat.key, cat.key);
+        if (cat.local) title = t('export.local_prefix', 'Local') + ' · ' + title;
         const items = cat.items || [];
         const rows = items.length
             ? items.map(it => _exportRow(it.id || '', it.name || '')).join('\n')

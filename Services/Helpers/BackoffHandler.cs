@@ -5,6 +5,8 @@ namespace VRCNext.Services.Helpers;
 
 public class BackoffHandler : DelegatingHandler
 {
+    public const string NoBackoffHeader = "X-VRCNext-NoBackoff";
+
     private static readonly int[] _delays = [30, 60, 300, 900];
     private readonly ConcurrentDictionary<string, int> _attempts = new();
     private readonly Action<string>? _log;
@@ -13,6 +15,12 @@ public class BackoffHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
+        if (request.Headers.Contains(NoBackoffHeader))
+        {
+            request.Headers.Remove(NoBackoffHeader);
+            return await base.SendAsync(request, ct);
+        }
+
         byte[]? body = null;
         string? contentType = null;
         if (request.Content != null)

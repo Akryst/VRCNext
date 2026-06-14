@@ -212,20 +212,40 @@ function setTlMode(mode) {
     tlMode = mode;
     document.getElementById('tlModePersonal')?.classList.toggle('active', mode === 'personal');
     document.getElementById('tlModeFriends')?.classList.toggle('active',  mode === 'friends');
+    document.getElementById('tlModeInstanceChart')?.classList.toggle('active', mode === 'instancechart');
     document.getElementById('tlModeGameLog')?.classList.toggle('active',  mode === 'gamelog');
     const pf  = document.getElementById('tlPersonalFilters');
     const ff  = document.getElementById('tlFriendsFilters');
     const gf  = document.getElementById('glFilters');
     const tc  = document.getElementById('tlContainer');
     const gc  = document.getElementById('glContent');
+    const ic  = document.getElementById('tlInstanceChart');
     const sb  = document.getElementById('tlSearchInput');
-    const tb  = document.getElementById('tlTopbar') ?? document.querySelector('.tl-topbar');
+    const isChart = mode === 'instancechart';
     if (pf) pf.style.display = mode === 'personal' ? '' : 'none';
     if (ff) ff.style.display = mode === 'friends'  ? '' : 'none';
     if (gf) gf.style.display = mode === 'gamelog'  ? '' : 'none';
-    if (tc) tc.style.display = mode === 'gamelog'  ? 'none' : '';
+    if (tc) tc.style.display = (mode === 'gamelog' || isChart) ? 'none' : '';
     if (gc) gc.style.display = mode === 'gamelog'  ? '' : 'none';
-    if (sb) sb.closest('.search-bar-row') && (sb.closest('.search-bar-row').style.display = '');
+    if (ic) ic.style.display = isChart ? '' : 'none';
+    if (sb) { const row = sb.closest('.search-bar-row'); if (row) row.style.display = isChart ? 'none' : ''; }
+    ['tlEditBtn','tlViewTimeline','tlViewList'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = isChart ? 'none' : '';
+    });
+    ['tlIcPrev','tlIcNext'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = isChart ? '' : 'none';
+    });
+    const icSpacer = document.getElementById('tlIcSpacer');
+    if (icSpacer) icSpacer.style.display = isChart ? '' : 'none';
+    if (isChart) {
+        const pb = document.getElementById('tlPaginatorBar');
+        if (pb) pb.innerHTML = '';
+        if (tlDateFilter) loadInstanceChart();
+        else applyTlDateFilter(_todayDateStr());
+        return;
+    }
     if (mode === 'gamelog') {
         const pb = document.getElementById('tlPaginatorBar');
         if (pb) pb.innerHTML = '';
@@ -373,6 +393,7 @@ function handleTimelineReload(payload) {
 
 function refreshTimeline() {
     _initTlViewButtons();
+    if (tlMode === 'instancechart') { if (typeof loadInstanceChart === 'function') loadInstanceChart(); return; }
     if (tlMode === 'friends') { refreshFriendTimeline(); return; }
     if (!tlTabInited) {
         tlTabInited = true;
@@ -855,6 +876,8 @@ function applyTlDateFilter(dateStr) {
     }
     if (clear) clear.style.display = '';
     if (btn)   btn.classList.add('dp-active');
+
+    if (tlMode === 'instancechart') { loadInstanceChart(); return; }
 
     // Reset state and reload for current mode
     const activeSearch = (document.getElementById('tlSearchInput')?.value ?? '').trim();

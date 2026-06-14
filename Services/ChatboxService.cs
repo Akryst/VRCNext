@@ -423,6 +423,11 @@ namespace VRCNext
             else _pauseUntilTick = Environment.TickCount + 10_000;
         }
 
+        public void PauseDirectSend(int ms)
+        {
+            _pauseUntilTick = Environment.TickCount + ms;
+        }
+
         public void Dispose() { Stop(); _cts?.Dispose(); }
     }
 }

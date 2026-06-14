@@ -29,6 +29,8 @@ public static class ImageCacheHelper
 
     private static readonly string[] _imageExtensions = [".jpg", ".png", ".webp", ".gif"];
 
+    private static readonly SemaphoreSlim _downloadSem = new(6, 6);
+
     public static void Initialize(HttpClient http)
     {
         _baseDir = Path.Combine(
@@ -424,60 +426,67 @@ public static class ImageCacheHelper
 
         Log?.Invoke($"CDN - {subdir} - {fetchUrl}", "sec");
 
+        await _downloadSem.WaitAsync();
         try
         {
-            using var resp = await _http!.GetAsync(fetchUrl, HttpCompletionOption.ResponseHeadersRead);
-            var code = (int)resp.StatusCode;
-            if (!resp.IsSuccessStatusCode)
+            try
             {
-                var color = code == 429 ? "warn" : "err";
-                Log?.Invoke($"CDN {code} - {subdir} - {fetchUrl}", color);
-                if (code == 403 || code == 404) PermafailHelper.Add(fetchUrl, "Image", code);
+                using var req = new HttpRequestMessage(HttpMethod.Get, fetchUrl);
+                req.Headers.TryAddWithoutValidation(BackoffHandler.NoBackoffHeader, "1");
+                using var resp = await _http!.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
+                var code = (int)resp.StatusCode;
+                if (!resp.IsSuccessStatusCode)
+                {
+                    var color = code == 429 ? "warn" : "err";
+                    Log?.Invoke($"CDN {code} - {subdir} - {fetchUrl}", color);
+                    if (code == 403 || code == 404) PermafailHelper.Add(fetchUrl, "Image", code);
+                    return null;
+                }
+
+                using (var stream = await resp.Content.ReadAsStreamAsync())
+                using (var fs    = File.Create(tmpPath))
+                    await stream.CopyToAsync(fs);
+            }
+            catch (Exception ex)
+            {
+                Log?.Invoke($"CDN ERR - {subdir} - {fetchUrl} ({ex.Message})", "err");
+                TryDelete(tmpPath);
                 return null;
             }
 
-            using (var stream = await resp.Content.ReadAsStreamAsync())
-            using (var fs    = File.Create(tmpPath))
-                await stream.CopyToAsync(fs);
-        }
-        catch (Exception ex)
-        {
-            Log?.Invoke($"CDN ERR - {subdir} - {fetchUrl} ({ex.Message})", "err");
-            TryDelete(tmpPath);
-            return null;
-        }
+            var ext = DetectExtension(tmpPath);
+            if (ext == null)
+            {
+                Log?.Invoke($"CDN SKIP - {subdir} - {fetchUrl} (not an image)", "warn");
+                TryDelete(tmpPath);
+                return null;
+            }
 
-        var ext = DetectExtension(tmpPath);
-        if (ext == null)
-        {
-            Log?.Invoke($"CDN SKIP - {subdir} - {fetchUrl} (not an image)", "warn");
-            TryDelete(tmpPath);
-            return null;
-        }
+            if (forceRefresh)
+            {
+                _pathCache.TryRemove($"{subdir}/{entityId}", out _);
+                foreach (var old in _imageExtensions)
+                    TryDelete(Path.Combine(dir, entityId + old));
+            }
 
-        if (forceRefresh)
-        {
-            _pathCache.TryRemove($"{subdir}/{entityId}", out _);
-            foreach (var old in _imageExtensions)
-                TryDelete(Path.Combine(dir, entityId + old));
-        }
+            var finalPath = Path.Combine(dir, entityId + ext);
+            try
+            {
+                File.Move(tmpPath, finalPath, overwrite: true);
+            }
+            catch
+            {
+                TryDelete(tmpPath);
+                return null;
+            }
 
-        var finalPath = Path.Combine(dir, entityId + ext);
-        try
-        {
-            File.Move(tmpPath, finalPath, overwrite: true);
+            _pathCache[$"{subdir}/{entityId}"] = finalPath;
+            SaveUrl(subdir, entityId, fetchUrl);
+            Log?.Invoke($"CDN 200 - {subdir} - {fetchUrl}", "ok");
+            _ = Task.Run(() => TrimIfNeeded());
+            return finalPath;
         }
-        catch
-        {
-            TryDelete(tmpPath);
-            return null;
-        }
-
-        _pathCache[$"{subdir}/{entityId}"] = finalPath;
-        SaveUrl(subdir, entityId, fetchUrl);
-        Log?.Invoke($"CDN 200 - {subdir} - {fetchUrl}", "ok");
-        _ = Task.Run(() => TrimIfNeeded());
-        return finalPath;
+        finally { _downloadSem.Release(); }
     }
 
 // Helpers

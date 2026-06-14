@@ -252,6 +252,7 @@ public partial class AppShell
         _trayService.Initialize();
         _core.OnTraySettingChanged = (enabled, autoHide) => ApplyTraySetting(enabled, autoHide);
         _core.OnTrayUserUpdate = UpdateTrayUser;
+        _core.OnTrayLoggedOut = () => _trayService?.SetLoggedIn(false);
         _core.OnTrayThemeUpdate = colors => _trayService?.UpdateTheme(colors);
 #endif
     }

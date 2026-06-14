@@ -1172,6 +1172,7 @@ public class FriendsController
                     if (string.IsNullOrEmpty(uid)) continue;
                     _friendLastLoc[uid] = f["location"]?.ToString() ?? "";
                     _friendLastStatus[uid] = f["status"]?.ToString() ?? "";
+                    _core.Timeline.UpdateUserLastStatus(uid, f["status"]?.ToString() ?? "");
                     _friendLastStatusDesc[uid] = (f["statusDescription"]?.ToString() ?? "").Trim();
                     _friendLastBio[uid] = (f["bio"]?.ToString() ?? "").Trim();
                     var img0 = VRChatApiService.GetUserImage(f);
@@ -1649,6 +1650,7 @@ public class FriendsController
                 ["mutualsOptedOut"]       = cMutualsOptedOut,
                 ["userWorlds"]            = JArray.FromObject(cWorlds),
                 ["bioLinks"]              = liveBioLinks ?? TryParseJArray(cachedEntry.ProfileBioLinks) ?? new JArray(),
+                ["discordId"]             = live?["discordId"]?.ToString() ?? "",
                 ["isFavorited"]           = _favoriteFriends.ContainsKey(userId),
                 ["favFriendId"]           = GetFavoriteFriendId(userId),
                 ["badges"]                = liveBadges ?? TryParseJArray(cachedEntry.ProfileBadges) ?? new JArray(),
@@ -2028,6 +2030,7 @@ public class FriendsController
             allowAvatarCopying = user["allowAvatarCopying"]?.Value<bool>() ?? false,
             representedGroup, userGroups, mutuals = mutualsList, mutualGroups = mutualGroupsList, mutualsOptedOut, userWorlds,
             bioLinks = user["bioLinks"]?.ToObject<List<string>>() ?? new List<string>(),
+            discordId = user["discordId"]?.ToString() ?? "",
             isFavorited = _favoriteFriends.ContainsKey(userId),
             favFriendId = GetFavoriteFriendId(userId),
             memo = _core.Timeline?.GetUserMemo(userId) ?? "",
@@ -2309,6 +2312,7 @@ public class FriendsController
 
         if (!string.IsNullOrEmpty(newStatus))
         {
+            _core.Timeline.UpdateUserLastStatus(e.UserId, newStatus);
             var oldStatus = _friendLastStatus.GetValueOrDefault(e.UserId, "");
             if (oldStatus != newStatus && !string.IsNullOrEmpty(oldStatus))
             {

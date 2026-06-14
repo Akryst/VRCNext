@@ -1418,6 +1418,96 @@ public class TimelineService : IDisposable
         return result;
     }
 
+    public List<TimelineEvent> GetInstanceVisitsForDay(DateTime localDate)
+    {
+        var utcStart = localDate.ToUniversalTime().ToString("o");
+        var utcEnd   = localDate.AddDays(1).ToUniversalTime().ToString("o");
+
+        var ids = new List<string>();
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT id FROM events
+                WHERE type='instance_join' AND timestamp < $e AND (left_at = '' OR left_at >= $s)
+                ORDER BY timestamp ASC";
+            cmd.Parameters.AddWithValue("$s", utcStart);
+            cmd.Parameters.AddWithValue("$e", utcEnd);
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) ids.Add(r.GetString(0));
+        }
+        catch { return new List<TimelineEvent>(); }
+
+        if (ids.Count == 0) return new List<TimelineEvent>();
+
+        var playerMap = new Dictionary<string, List<PlayerSnap>>();
+        try
+        {
+            var inP = string.Join(",", ids.Select((_, i) => $"$p{i}"));
+            using var pcmd = _db.CreateCommand();
+            pcmd.CommandText = $"SELECT event_id,user_id,display_name,image,joined_at,left_at FROM event_players WHERE event_id IN ({inP})";
+            for (int i = 0; i < ids.Count; i++) pcmd.Parameters.AddWithValue($"$p{i}", ids[i]);
+            using var pr = pcmd.ExecuteReader();
+            while (pr.Read())
+            {
+                var eid = pr.GetString(0);
+                if (!playerMap.TryGetValue(eid, out var list)) playerMap[eid] = list = new();
+                list.Add(new PlayerSnap {
+                    UserId      = pr.GetString(1),
+                    DisplayName = pr.GetString(2),
+                    Image       = pr.GetString(3),
+                    JoinedAts   = PlayerSnap.ParseSessions(pr.IsDBNull(4) ? "" : pr.GetString(4)),
+                    LeftAts     = PlayerSnap.ParseSessions(pr.IsDBNull(5) ? "" : pr.GetString(5)),
+                });
+            }
+        }
+        catch { }
+
+        var result = new List<TimelineEvent>();
+        try
+        {
+            var inE = string.Join(",", ids.Select((_, i) => $"$e{i}"));
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = $@"SELECT id,type,timestamp,world_id,world_name,world_thumb,
+                location,photo_path,photo_url,user_id,user_name,user_image,
+                notif_id,notif_type,notif_title,sender_name,sender_id,sender_image,message,
+                left_at,tracked
+                FROM events WHERE id IN ({inE}) ORDER BY timestamp ASC";
+            for (int i = 0; i < ids.Count; i++) cmd.Parameters.AddWithValue($"$e{i}", ids[i]);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var id = r.GetString(0);
+                result.Add(new TimelineEvent
+                {
+                    Id          = id,
+                    Type        = r.GetString(1),
+                    Timestamp   = r.GetString(2),
+                    WorldId     = r.GetString(3),
+                    WorldName   = r.GetString(4),
+                    WorldThumb  = r.GetString(5),
+                    Location    = r.GetString(6),
+                    PhotoPath   = r.GetString(7),
+                    PhotoUrl    = r.GetString(8),
+                    UserId      = r.GetString(9),
+                    UserName    = r.GetString(10),
+                    UserImage   = r.GetString(11),
+                    NotifId     = r.GetString(12),
+                    NotifType   = r.GetString(13),
+                    NotifTitle  = r.GetString(14),
+                    SenderName  = r.GetString(15),
+                    SenderId    = r.GetString(16),
+                    SenderImage = r.GetString(17),
+                    Message     = r.GetString(18),
+                    LeftAt      = r.IsDBNull(19) ? "" : r.GetString(19),
+                    Tracked     = r.GetInt32(20),
+                    Players     = playerMap.TryGetValue(id, out var pl) ? pl : new(),
+                });
+            }
+        }
+        catch { }
+        return result;
+    }
+
     // Friend timeline
 
     public void AddFriendEvent(FriendTimelineEvent ev)
@@ -2770,6 +2860,46 @@ public class TimelineService : IDisposable
         public double TotalSeconds { get; set; }
     }
 
+    public void UpdateUserLastStatus(string userId, string status)
+    {
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(status) || status == "offline") return;
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"INSERT INTO user_tracking (user_id, last_status, last_status_at)
+                    VALUES ($uid, $st, $ts)
+                    ON CONFLICT(user_id) DO UPDATE SET last_status = excluded.last_status, last_status_at = excluded.last_status_at";
+                cmd.Parameters.AddWithValue("$uid", userId);
+                cmd.Parameters.AddWithValue("$st",  status);
+                cmd.Parameters.AddWithValue("$ts",  DateTime.UtcNow.ToString("o"));
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    private string GetUserSeedStatus(string userId)
+    {
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT last_status, profile_status FROM user_tracking WHERE user_id=$uid";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            using var r = cmd.ExecuteReader();
+            if (r.Read())
+            {
+                var ls = r.IsDBNull(0) ? "" : r.GetString(0);
+                if (!string.IsNullOrEmpty(ls) && ls != "offline") return ls;
+                var ps = r.IsDBNull(1) ? "" : r.GetString(1);
+                if (!string.IsNullOrEmpty(ps) && ps != "offline") return ps;
+            }
+        }
+        catch { }
+        return "";
+    }
+
     public StatusBreakdown GetUserStatusBreakdown(string userId, int days = 30)
     {
         var bd = new StatusBreakdown();
@@ -2797,7 +2927,11 @@ public class TimelineService : IDisposable
         }
         catch { }
 
-        if (string.IsNullOrEmpty(initialStatus)) initialStatus = "active";
+        if (string.IsNullOrEmpty(initialStatus))
+        {
+            var seed = GetUserSeedStatus(userId);
+            initialStatus = string.IsNullOrEmpty(seed) ? "active" : seed;
+        }
 
         var now = DateTime.UtcNow;
         var windowStart = days > 0 ? now.AddDays(-days) : new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);

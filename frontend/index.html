@@ -69,11 +69,57 @@
     <link rel="stylesheet" href="core/Keybinds/Keybind.css">
     <link rel="stylesheet" href="Debug/CacheTests/cache-debug.css">
     <link rel="stylesheet" href="core/Taskbar/taskbar.css">
+    <style id="vrcnSplashStyle">
+        #vrcnSplash {
+            position: fixed;
+            inset: 0;
+            z-index: 2147483646;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-base, #090814);
+            transition: opacity .45s ease;
+        }
+        #vrcnSplash.vrcn-splash-hide { opacity: 0; pointer-events: none; }
+        #vrcnSplashLogo {
+            width: 132px;
+            height: auto;
+            filter: drop-shadow(0 6px 26px rgba(0, 0, 0, .45));
+            animation: vrcnSplashPulse 1.8s ease-in-out infinite;
+        }
+        @keyframes vrcnSplashPulse {
+            0%, 100% { opacity: .82; transform: scale(1); }
+            50%      { opacity: 1;   transform: scale(1.05); }
+        }
+        #vrcnSplashBarWrap {
+            position: absolute;
+            bottom: 58px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 220px;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--bg-hover, #1c2030);
+            overflow: hidden;
+            opacity: .75;
+        }
+        #vrcnSplashBar {
+            height: 100%;
+            width: 0;
+            border-radius: 2px;
+            background: var(--accent, #6F6CFF);
+            transition: width .25s ease;
+        }
+    </style>
 </head>
 <body>
+    <div id="vrcnSplash">
+        <img id="vrcnSplashLogo" src="logo.png" alt="VRCNext">
+        <div id="vrcnSplashBarWrap"><div id="vrcnSplashBar"></div></div>
+    </div>
     <div class="app-body">
     <div class="sidebar" id="sidebarEl">
-        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.30.6</div></div></div>
+        <div class="logo"><div class="logo-icon" id="logoIcon">V</div><div class="logo-txt"><div class="logo-text-row"><div class="logo-text">VRCNext</div></div><div class="logo-sub">v2026.30.7</div></div></div>
         <div class="nav vrcn-scrollbar" id="navEl"></div>
         <div class="clock-area"><div class="clock-time" id="clock">00:00:00</div><div class="clock-date" id="clockDate"></div></div>
         <div class="play-area"><button class="btn-play" onclick="playVRChat()"><span class="msi play-icon">play_arrow</span><span class="pl" data-i18n="sidebar.play_vrchat">Play VRChat</span></button></div>
@@ -215,7 +261,7 @@
                     <div class="tb-sep"></div>
                 </div>
                 <button class="tb-sidebar-btn" id="btnUpdate" onclick="toggleUpdatePanel()" title="Update available" data-i18n-title="update.available" style="display:none;"><span class="msi">system_update_alt</span><span class="notif-count" id="updateBadge">1</span></button>
-                <button class="tb-sidebar-btn" id="tbToolsToggle" onclick="tbToggleTools()" title="Tools" data-i18n-title="nav.tools"><span class="msi">construction</span></button>
+                <button class="tb-sidebar-btn" id="tbToolsToggle" onclick="tbToggleTools()" title="Tools" data-i18n-title="nav.tools"><span class="msi">adjust</span></button>
                 <button class="tb-sidebar-btn" id="btnChat" onclick="toggleChatPanel()" title="Messages" data-i18n-title="common.messages"><span class="msi">forum</span><span class="notif-count" id="chatBadge" style="display:none;">0</span></button>
                 <button class="tb-sidebar-btn" id="btnNotif" onclick="toggleNotifPanel()" title="Notifications" data-i18n-title="common.notifications"><span class="msi">notifications</span><span class="notif-count" id="notifBadge" style="display:none;">0</span></button>
                 <div class="tb-sep"></div>
@@ -543,6 +589,8 @@
     (async function () {
         function showFatalError(msg, detail) {
             console.error('[FRAGMENT LOADER]', msg, detail || '');
+            const sp = document.getElementById('vrcnSplash');
+            if (sp) sp.remove();
             const banner = document.createElement('div');
             banner.style.cssText =
                 'position:fixed;top:0;left:0;right:0;z-index:2147483647;' +
@@ -655,6 +703,7 @@
             'modules/tools/osc-tool/osc-tool.js',
             'modules/timeline/timeline.js',
             'modules/timeline/game-log.js',
+            'modules/timeline/instance-chart.js',
             'modules/rewind/rewind.js',
             'core/modals/timeline-modal/timeline-modal.js',
             'modules/inventory/inventory_upload.js',
@@ -687,10 +736,19 @@
 
         try {
             const entries = Object.entries({ ...tabFragments, ...modalFragments });
+            let _splashDone = 0;
+            const _splashTotal = entries.length + scripts.length;
+            const _splashTick = () => {
+                _splashDone++;
+                const bar = document.getElementById('vrcnSplashBar');
+                if (bar) bar.style.width = Math.min(100, Math.round(_splashDone / _splashTotal * 100)) + '%';
+            };
             const htmls = await Promise.all(entries.map(async ([tabId, p]) => {
                 const r = await fetch(p);
                 if (!r.ok) throw new Error('fetch ' + p + ' -> HTTP ' + r.status);
-                return [tabId, await r.text()];
+                const txt = await r.text();
+                _splashTick();
+                return [tabId, txt];
             }));
             for (const [tabId, html] of htmls) {
                 const host = document.getElementById(tabId);
@@ -706,6 +764,7 @@
                     s.onerror = () => reject(new Error('script ' + src + ' failed to load'));
                     document.body.appendChild(s);
                 });
+                _splashTick();
             }
             // All scripts loaded — signal backend that JS is ready.
             // Must run AFTER init.js so that the backend's loadSettings response
@@ -714,6 +773,14 @@
                 sendToCS({ action: 'ready' });
                 sendToCS({ action: 'kxdGetDevices' });
             }
+            const _splashBar = document.getElementById('vrcnSplashBar');
+            if (_splashBar) _splashBar.style.width = '100%';
+            setTimeout(() => {
+                const sp = document.getElementById('vrcnSplash');
+                if (!sp) return;
+                sp.classList.add('vrcn-splash-hide');
+                setTimeout(() => sp.remove(), 550);
+            }, 2000);
         } catch (err) {
             showFatalError(err.message, err.stack);
             throw err;

@@ -34,6 +34,8 @@ public class SystemTrayService : IDisposable
 
     // Status tray icons (loaded once on tray thread from PNG assets)
     private Icon? _defaultIcon;
+    private Icon? _warningIcon;
+    private bool _loggedIn;
     private readonly Dictionary<string, Icon> _statusIcons = new();
 
     // Localization
@@ -101,9 +103,11 @@ public class SystemTrayService : IDisposable
             if (icon != null) _statusIcons[status] = icon;
         }
 
+        _warningIcon = LoadPngAsIcon(Path.Combine(trayDir, "warning.png"));
+
         _trayIcon = new NotifyIcon
         {
-            Icon = _defaultIcon,
+            Icon = _warningIcon ?? _defaultIcon,
             Text = "VRCNext",
             Visible = _pendingVisible,
         };
@@ -169,14 +173,26 @@ public class SystemTrayService : IDisposable
         }
         _syncCtx?.Post(_ =>
         {
-            // Switch tray icon to match status
-            if (statusChanged && _trayIcon != null)
+            if (_trayIcon != null && (statusChanged || !_loggedIn))
             {
                 _trayIcon.Icon = _statusIcons.TryGetValue(status, out var sIcon) ? sIcon : _defaultIcon;
                 _trayIcon.Text = $"VRCNext · {name}";
             }
-            // Update popup if open
+            _loggedIn = true;
             _popup?.UpdateUserData(name, status, statusDesc);
+        }, null);
+    }
+
+    public void SetLoggedIn(bool loggedIn)
+    {
+        _syncCtx?.Post(_ =>
+        {
+            _loggedIn = loggedIn;
+            if (_trayIcon == null) return;
+            _trayIcon.Icon = loggedIn
+                ? (_statusIcons.TryGetValue(_status, out var sIcon) ? sIcon : _defaultIcon)
+                : (_warningIcon ?? _defaultIcon);
+            if (!loggedIn) _trayIcon.Text = "VRCNext";
         }, null);
     }
 
@@ -379,6 +395,8 @@ public class SystemTrayService : IDisposable
             }
             foreach (var icon in _statusIcons.Values) icon.Dispose();
             _statusIcons.Clear();
+            _warningIcon?.Dispose();
+            _warningIcon = null;
             System.Windows.Forms.Application.ExitThread();
         }, null);
         _trayThread?.Join(3000);
