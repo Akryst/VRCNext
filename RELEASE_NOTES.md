@@ -1,7 +1,15 @@
-**2026.30.6**
+**2026.30.7**
 
-**Fixes**
+**Action Flow**
 
-* Fixed an issue where images created with the VRC Camera could show incorrect world data.
-* Fixed an issue where webhook urls/names aren't loaded correctly in Media Relay.
-* Fixed an issue where Auto-Start Up apps don't open at some cases like the path requires admin rights to execute the file.
+Discord Webhook Integration
+* Added "Send own instance info"
+* Added "Send own advanced instance info"
+* Added "Send friend instance info"
+
+Those blocks can send instance informations to an webhook. As Example "Send own instance info" would send:
+
+Image, World Name, Instance Type, Player Count
+Eg: Image, The Black Cat, Group Public, 43/80 Players.
+
+* Added scrollbar to the action list.

@@ -132,7 +132,16 @@
     color: var(--tx1) !important;
     padding-top: 6px !important;
     min-width: 175px !important;
+    max-height: 350px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
 }
+.af-blockly-host .blocklyToolboxDiv::-webkit-scrollbar { width: 8px; }
+.af-blockly-host .blocklyToolboxDiv::-webkit-scrollbar-thumb {
+    background: var(--brd-lt);
+    border-radius: 4px;
+}
+.af-blockly-host .blocklyToolboxDiv::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 .af-blockly-host .blocklyTreeRow {
     color: var(--tx1) !important;
     padding: 4px 8px !important;

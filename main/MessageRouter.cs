@@ -2135,6 +2135,7 @@ public partial class AppShell
                 case "afTrayNotify":
                 case "afGetGameRunning":
                 case "afSendChatMessage":
+                case "afInstanceWebhook":
                     _afCtrl.HandleMessage(action, msg);
                     break;
 

@@ -48,6 +48,38 @@ public class WebhookService : IDisposable
         catch (Exception ex) { return new() { Error = ex.Message }; }
     }
 
+    public async Task<PostResult> PostJsonAsync(string url, string json)
+    {
+        try
+        {
+            using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            var resp = await _http.PostAsync(url, content);
+            if (resp.IsSuccessStatusCode) return new() { Success = true };
+            return new() { Error = $"HTTP {(int)resp.StatusCode}" };
+        }
+        catch (Exception ex) { return new() { Error = ex.Message }; }
+    }
+
+    public async Task<PostResult> PostEmbedWithFilesAsync(string url, string json, IEnumerable<(string Path, string Name)> files)
+    {
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            content.Add(new StringContent(json, System.Text.Encoding.UTF8, "application/json"), "payload_json");
+            int i = 0;
+            foreach (var (path, name) in files)
+            {
+                if (string.IsNullOrEmpty(path) || !File.Exists(path)) continue;
+                content.Add(new ByteArrayContent(await File.ReadAllBytesAsync(path)), $"files[{i}]", name);
+                i++;
+            }
+            var resp = await _http.PostAsync(url, content);
+            if (resp.IsSuccessStatusCode) return new() { Success = true };
+            return new() { Error = $"HTTP {(int)resp.StatusCode}" };
+        }
+        catch (Exception ex) { return new() { Error = ex.Message }; }
+    }
+
     public async Task<bool> DeleteAsync(string url, string msgId)
     {
         try

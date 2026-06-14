@@ -1,5 +1,6 @@
 using Newtonsoft.Json.Linq;
 using VRCNext.Services;
+using VRCNext.Services.Helpers;
 
 namespace VRCNext;
 
@@ -108,6 +109,109 @@ public class ActionFlowController : IDisposable
             {
                 var running = _core.IsVrcRunning?.Invoke() ?? false;
                 _core.SendToJS("afGameRunning", new { running });
+                break;
+            }
+
+            case "afInstanceWebhook":
+            {
+                var url = msg["url"]?.ToString();
+                if (string.IsNullOrWhiteSpace(url) || !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) break;
+                var scope         = msg["scope"]?.ToString() ?? "own";
+                var advanced      = msg["advanced"]?.Value<bool>() ?? false;
+                var worldId       = msg["worldId"]?.ToString() ?? "";
+                var worldName     = msg["worldName"]?.ToString() ?? "";
+                var typeLabel     = msg["instanceTypeLabel"]?.ToString() ?? "";
+                var authorName    = msg["authorName"]?.ToString() ?? "";
+                var authorUserId  = msg["authorUserId"]?.ToString() ?? "";
+                var authorIconUrl = msg["authorIconUrl"]?.ToString() ?? "";
+                var capacity      = msg["capacity"]?.Value<int>() ?? 0;
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        static string ExtOrPng(string p)
+                        {
+                            var e = Path.GetExtension(p);
+                            return string.IsNullOrEmpty(e) ? ".png" : e;
+                        }
+
+                        var lines = new List<string>();
+                        if (!string.IsNullOrEmpty(typeLabel)) lines.Add($"**Instance Type:** {typeLabel}");
+
+                        if (scope == "own")
+                        {
+                            var players = _core.LogWatcher.GetCurrentPlayers().OrderBy(p => p.JoinedAt).ToList();
+                            int count = players.Count;
+                            lines.Add($"**Players:** {(capacity > 0 ? $"{count}/{capacity}" : count.ToString())}");
+                            if (advanced && count > 0)
+                            {
+                                lines.Add("");
+                                lines.Add($"**Players in Instance ({count})**");
+                                lines.AddRange(players.Select(p => p.DisplayName));
+                            }
+                        }
+
+                        var description = string.Join("\n", lines);
+                        if (description.Length > 4000) description = description[..4000];
+
+                        var embed = new JObject
+                        {
+                            ["color"]     = 10459903,
+                            ["timestamp"] = DateTime.UtcNow.ToString("o"),
+                        };
+                        if (!string.IsNullOrEmpty(worldName))   embed["title"]       = $"Joined \"{worldName}\"";
+                        if (!string.IsNullOrEmpty(description))  embed["description"] = description;
+
+                        var attachments = new List<(string, string)>();
+
+                        var worldFile = string.IsNullOrEmpty(worldId) ? null : ImageCacheHelper.GetWorldCached(worldId);
+                        if (worldFile != null && File.Exists(worldFile))
+                        {
+                            var wn = "world" + ExtOrPng(worldFile);
+                            embed["thumbnail"] = new JObject { ["url"] = "attachment://" + wn };
+                            attachments.Add((worldFile, wn));
+                        }
+
+                        if (!string.IsNullOrEmpty(authorName))
+                        {
+                            var author = new JObject { ["name"] = authorName };
+                            var iconFile = string.IsNullOrEmpty(authorUserId) ? null : ImageCacheHelper.GetUserCached(authorUserId);
+                            if (iconFile == null && !string.IsNullOrEmpty(authorUserId)
+                                && authorIconUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                            {
+                                try { iconFile = await ImageCacheHelper.CacheUserAsync(authorUserId, authorIconUrl); } catch { }
+                            }
+                            if (iconFile != null && File.Exists(iconFile))
+                            {
+                                var inm = "icon" + ExtOrPng(iconFile);
+                                author["icon_url"] = "attachment://" + inm;
+                                attachments.Add((iconFile, inm));
+                            }
+                            else if (authorIconUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                            {
+                                author["icon_url"] = authorIconUrl;
+                            }
+                            embed["author"] = author;
+                        }
+
+                        var payload = new JObject
+                        {
+                            ["embeds"] = new JArray { embed },
+                        };
+
+                        var json = payload.ToString(Newtonsoft.Json.Formatting.None);
+                        var res = attachments.Count > 0
+                            ? await _core.Webhook.PostEmbedWithFilesAsync(url, json, attachments)
+                            : await _core.Webhook.PostJsonAsync(url, json);
+                        if (!res.Success)
+                            _core.SendToJS("log", new { msg = "[ActionFlow] webhook send failed: " + res.Error, color = "err" });
+                    }
+                    catch (Exception ex)
+                    {
+                        _core.SendToJS("log", new { msg = "[ActionFlow] webhook error: " + ex.Message, color = "err" });
+                    }
+                });
                 break;
             }
 

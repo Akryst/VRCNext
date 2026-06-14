@@ -11,7 +11,8 @@ const COLOR_TIME    = '#7dd1ff';
 const COLOR_PARAM   = '#cb71ff';
 const COLOR_ACTION  = '#937dff';
 const COLOR_TRIGGER = '#c27dff';
-const COLOR_GAME    = '#2c4e8a'; 
+const COLOR_GAME    = '#2c4e8a';
+const COLOR_OTHER   = '#43c59e';
 
 const WORLD_CHANGE_DELAY_MS = 15 * 1000;
 const EVENT_TICK_MS = 5 * 1000;
@@ -21,7 +22,12 @@ const TRIGGER_LIMIT = 16;
 const TASK_WINDOW_MS = 10 * 60 * 1000;
 const TASK_SOFT_LIMIT = 20;
 const TASK_HARD_LIMIT = 25;
-const TASK_EXEMPT_TYPES = new Set(['af_send_notification']);
+const TASK_EXEMPT_TYPES = new Set([
+    'af_send_notification',
+    'af_send_own_instance_info',
+    'af_send_own_advanced_instance_info',
+    'af_send_friend_instance_info',
+]);
 const ACTION_TYPES = new Set([
     'af_set_status',
     'af_set_bio_text',
@@ -32,6 +38,9 @@ const ACTION_TYPES = new Set([
     'af_send_notification',
     'af_switch_own_avatar',
     'af_switch_favorite_avatar',
+    'af_send_own_instance_info',
+    'af_send_own_advanced_instance_info',
+    'af_send_friend_instance_info',
 ]);
 
 const aft  = (k, f) => (typeof t  === 'function' ? t ('action_flow.' + k, f)        : f);
@@ -101,6 +110,7 @@ function afDefineBlocks() {
         } catch {}
         return [[aft('block.no_friends', '(no friends loaded)'), '']];
     };
+    const friendDropdownAny = () => [[aft('block.any_friend', '(any friend)'), '']].concat(friendDropdown());
 
     function makeTriggerHat(typeName, labelFn) {
         B.Blocks[typeName] = { init() {
@@ -162,6 +172,9 @@ function afDefineBlocks() {
         .appendField(new B.FieldDropdown(AMPM_DROPDOWN_FACTORY()), 'AMPM'));
     makeTriggerHat('af_trigger_invite_received',         b => b.appendDummyInput().appendField(aft('trigger.invite_received', 'when someone invites me')));
     makeTriggerHat('af_trigger_invite_request_received', b => b.appendDummyInput().appendField(aft('trigger.invite_request_received', 'when someone requests an invite from me')));
+    makeTriggerHat('af_trigger_friend_joins_instance',   b => b.appendDummyInput()
+        .appendField(aft('trigger.friend_joins_instance', 'when a friend joins an instance'))
+        .appendField(new B.FieldDropdown(friendDropdownAny), 'FRIEND_ID'));
 
     B.Blocks['af_triggering_user'] = { init() {
         this.appendDummyInput().appendField(aft('triggering_user', 'triggering user'));
@@ -600,6 +613,39 @@ function afDefineBlocks() {
         this.setColour(COLOR_ACTION);
         this.setTooltip(aft('action.switch_favorite_avatar_tooltip', 'Switch to one of your favorited avatars.'));
     } };
+
+    B.Blocks['af_send_own_instance_info'] = { init() {
+        this.appendDummyInput()
+            .appendField(aft('action.send_own_instance_info', 'send own instance info to'))
+            .appendField('"').appendField(new B.FieldTextInput(''), 'WEBHOOK').appendField('"').appendField(aft('action.webhook_hint', 'discord webhook url'));
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COLOR_OTHER);
+        this.setTooltip(aft('action.send_own_instance_info_tooltip', 'Sends your current instance (world image, name, type, player count) to a Discord webhook. Uses cached data, no VRChat request.'));
+    } };
+
+    B.Blocks['af_send_own_advanced_instance_info'] = { init() {
+        this.appendDummyInput()
+            .appendField(aft('action.send_own_advanced_instance_info', 'send own advanced instance info to'))
+            .appendField('"').appendField(new B.FieldTextInput(''), 'WEBHOOK').appendField('"').appendField(aft('action.webhook_hint', 'discord webhook url'));
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COLOR_OTHER);
+        this.setTooltip(aft('action.send_own_advanced_instance_info_tooltip', 'Like send own instance info, plus the player list. Uses cached data, no VRChat request.'));
+    } };
+
+    B.Blocks['af_send_friend_instance_info'] = { init() {
+        this.appendDummyInput()
+            .appendField(aft('action.send_friend_instance_info', 'send friend instance info to'))
+            .appendField('"').appendField(new B.FieldTextInput(''), 'WEBHOOK').appendField('"').appendField(aft('action.webhook_hint', 'discord webhook url'));
+        this.appendDummyInput()
+            .appendField(aft('action.friend_label', 'friend'))
+            .appendField(new B.FieldDropdown(friendDropdownAny), 'FRIEND_ID');
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COLOR_OTHER);
+        this.setTooltip(aft('action.send_friend_instance_info_tooltip', 'Sends a friend instance info to a Discord webhook. Keep friend on (any friend) to use the friend from a "when a friend joins an instance" trigger.'));
+    } };
 }
 
 function afToolbox() {
@@ -619,6 +665,7 @@ function afToolbox() {
                 { kind: 'block', type: 'af_trigger_websocket_friend' },
                 { kind: 'block', type: 'af_trigger_invite_received' },
                 { kind: 'block', type: 'af_trigger_invite_request_received' },
+                { kind: 'block', type: 'af_trigger_friend_joins_instance' },
                 { kind: 'block', type: 'af_trigger_manual' },
                 { kind: 'sep' },
                 { kind: 'block', type: 'af_triggering_user' },
@@ -685,6 +732,11 @@ function afToolbox() {
                 { kind: 'block', type: 'af_answer_invite' },
                 { kind: 'block', type: 'af_answer_invite_request' },
                 { kind: 'block', type: 'af_send_notification' },
+            ]},
+            { kind: 'category', name: aft('toolbox.other', 'Other Actions'), colour: COLOR_OTHER, contents: [
+                { kind: 'block', type: 'af_send_own_instance_info' },
+                { kind: 'block', type: 'af_send_own_advanced_instance_info' },
+                { kind: 'block', type: 'af_send_friend_instance_info' },
             ]},
         ],
     };
@@ -1230,6 +1282,7 @@ const TRIGGER_TYPES = new Set([
     'af_trigger_invite_request_received',
     'af_trigger_manual',
     'af_trigger_time',
+    'af_trigger_friend_joins_instance',
 ]);
 
 function afIsTriggerBlock(type) { return TRIGGER_TYPES.has(type); }
@@ -1369,6 +1422,7 @@ function afEvalTrigger(flow, block, obs) {
         case 'af_trigger_websocket_friend':
         case 'af_trigger_invite_received':
         case 'af_trigger_invite_request_received':
+        case 'af_trigger_friend_joins_instance':
         case 'af_trigger_manual':
             return;
     }
@@ -1405,6 +1459,34 @@ function afLookupUser(id) {
 }
 
 window.__afOnWebsocketEvent = function (type, payload) {
+    if (type === 'friendTimelineEvent' && payload && typeof payload === 'object') {
+        const evType = payload.type || '';
+        const loc    = payload.location || '';
+        const joined = (evType === 'friend_gps' || evType === 'friend_online')
+            && loc && loc !== 'private' && loc !== 'offline' && loc !== 'traveling';
+        if (joined) {
+            const friendId = payload.friendId || '';
+            const triggeringFriend = {
+                id: friendId,
+                displayName: payload.friendName || friendId,
+                location: loc,
+                _worldId: payload.worldId || '',
+                _worldName: payload.worldName || '',
+                _worldImage: payload.worldThumb || '',
+                _friendImage: payload.friendImage || '',
+            };
+            for (const flow of afFlows) {
+                if (!flow.enabled || !flow.workspace?.blocks?.blocks) continue;
+                for (const root of flow.workspace.blocks.blocks) {
+                    if (root.type !== 'af_trigger_friend_joins_instance') continue;
+                    const want = root.fields?.FRIEND_ID;
+                    if (want && want !== friendId) continue;
+                    afFireTrigger(flow, root, 'friend joined instance: ' + (payload.friendName || friendId), triggeringFriend);
+                }
+            }
+        }
+        return;
+    }
     if (!type || !type.startsWith('vrc')) return;
     if (type === 'vrcFriends' || type === 'vrcCredits') return;
 
@@ -1471,6 +1553,46 @@ function afExecStatements(flow, block) {
         afExecAction(flow, cur);
         cur = cur.next?.block;
     }
+}
+
+function afInstanceTypeLabel(internalType) {
+    if (typeof getInstanceBadge === 'function') {
+        const b = getInstanceBadge(internalType);
+        if (b && b.label) return b.label;
+    }
+    return internalType || '';
+}
+
+function afWorldNameFor(worldId, fallbackName) {
+    let name = fallbackName || '';
+    if (!name && worldId && typeof worldInfoCache !== 'undefined' && worldInfoCache[worldId])
+        name = worldInfoCache[worldId].name || '';
+    return name || worldId || '';
+}
+
+function afOwnInstanceInfo() {
+    const ci = (typeof currentInstanceData !== 'undefined') ? currentInstanceData : null;
+    if (!ci || ci.empty || ci.error || !ci.location) return null;
+    const worldId   = String(ci.location).split(':')[0];
+    const raw       = String(ci.instanceType || '');
+    const typeLabel = afInstanceTypeLabel(raw === 'hidden' ? 'friends+' : raw === 'group-members' ? 'group' : raw);
+    return { worldId, worldName: afWorldNameFor(worldId, ci.worldName), typeLabel, capacity: Number(ci.capacity) || 0 };
+}
+
+function afFriendInstanceInfo(friend) {
+    if (!friend) return null;
+    const loc = friend.location || '';
+    if (!loc || loc === 'private' || loc === 'offline' || loc === 'traveling') return null;
+    const parsed = (typeof parseFriendLocation === 'function')
+        ? parseFriendLocation(loc)
+        : { worldId: String(loc).split(':')[0], instanceType: 'public' };
+    const worldId = friend._worldId || parsed.worldId;
+    return {
+        friendName: friend.displayName || friend.id,
+        worldId,
+        worldName: afWorldNameFor(worldId, friend._worldName),
+        typeLabel: afInstanceTypeLabel(parsed.instanceType),
+    };
 }
 
 function afExecAction(flow, block) {
@@ -1575,6 +1697,48 @@ function afExecAction(flow, block) {
             if (typeof sendToCS === 'function') sendToCS({ action: 'afSendChatMessage', userId: target.id, text, notificationId: notifId, notifType });
             afRecordTask();
             afLog('ok', '[' + flow.name + '] ' + aftf('log.reply_sent', { target: target.displayName || target.id, text }, 'reply to ' + (target.displayName || target.id) + ': "' + text + '"'));
+            break;
+        }
+        case 'af_send_own_instance_info':
+        case 'af_send_own_advanced_instance_info': {
+            const url = String(f.WEBHOOK || '').trim();
+            if (!/^https:\/\//i.test(url)) { afLog('err', '[' + flow.name + '] ' + aft('log.webhook_missing', 'instance info skipped: missing or invalid webhook url')); break; }
+            const info = afOwnInstanceInfo();
+            if (!info) { afLog('err', '[' + flow.name + '] ' + aft('log.no_own_instance', 'instance info skipped: not currently in an instance')); break; }
+            const advanced = block.type === 'af_send_own_advanced_instance_info';
+            const me = (typeof currentVrcUser !== 'undefined' && currentVrcUser) ? currentVrcUser : null;
+            const meRaw = (me && me.rawJson) ? me.rawJson : (me || {});
+            const meIcon = meRaw.userIcon || meRaw.profilePicOverride
+                || meRaw.currentAvatarThumbnailImageUrl || meRaw.currentAvatarImageUrl || '';
+            if (typeof sendToCS === 'function') sendToCS({
+                action: 'afInstanceWebhook', url, scope: 'own', advanced,
+                worldId: info.worldId, worldName: info.worldName,
+                instanceTypeLabel: info.typeLabel, capacity: info.capacity,
+                authorName: me ? (me.displayName || me.username || '') : '',
+                authorUserId: me ? (me.id || '') : '',
+                authorIconUrl: meIcon,
+            });
+            afLog('ok', '[' + flow.name + '] ' + aftf('log.sent_own_instance_info', { world: info.worldName }, 'sent own instance info (' + info.worldName + ')'));
+            break;
+        }
+        case 'af_send_friend_instance_info': {
+            const url = String(f.WEBHOOK || '').trim();
+            if (!/^https:\/\//i.test(url)) { afLog('err', '[' + flow.name + '] ' + aft('log.webhook_missing', 'instance info skipped: missing or invalid webhook url')); break; }
+            const wantId = String(f.FRIEND_ID || '').trim();
+            let friend = wantId
+                ? ((typeof vrcFriendsData !== 'undefined' && vrcFriendsData.find(x => x.id === wantId)) || afContext.triggeringUser)
+                : afContext.triggeringUser;
+            const info = afFriendInstanceInfo(friend);
+            if (!info) { afLog('err', '[' + flow.name + '] ' + aft('log.no_friend_instance', 'friend instance info skipped: no friend in an instance (use inside a "when a friend joins an instance" trigger, or pick a friend)')); break; }
+            if (typeof sendToCS === 'function') sendToCS({
+                action: 'afInstanceWebhook', url, scope: 'friend',
+                worldId: info.worldId, worldName: info.worldName,
+                instanceTypeLabel: info.typeLabel,
+                authorName: info.friendName,
+                authorUserId: (friend && friend.id) || '',
+                authorIconUrl: (friend && (friend.userIcon || friend.currentAvatarThumbnailImageUrl || friend.profilePicOverride)) || '',
+            });
+            afLog('ok', '[' + flow.name + '] ' + aftf('log.sent_friend_instance_info', { friend: info.friendName }, 'sent friend instance info (' + info.friendName + ')'));
             break;
         }
         default:
