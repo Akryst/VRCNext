@@ -1,5 +1,9 @@
 **2026.30.8**
 
+**Changes**
+* Changed the "Tools" Icon in sidebar.
+* Changed the "Tools" Icon in Taskbar.
+
 **Improvements**
 
 * Added missing i18n to Local Lists/Exports.
