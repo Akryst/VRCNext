@@ -1715,10 +1715,20 @@ public class AuthController
             if (extraExe != null) _core.Settings.ExtraExe = extraExe;
 
             var extraExeDesktop = data["extraExeDesktop"]?.ToObject<List<string>>();
-            if (extraExeDesktop != null) _core.Settings.ExtraExeDesktop = extraExeDesktop;
+            if (extraExeDesktop != null)
+            {
+                bool desktopChanged = !_core.Settings.ExtraExeDesktop.SequenceEqual(extraExeDesktop);
+                _core.Settings.ExtraExeDesktop = extraExeDesktop;
+                if (desktopChanged) AutoStartShortcutHelper.Sync(extraExeDesktop, vr: false);
+            }
 
             var extraExeVR = data["extraExeVR"]?.ToObject<List<string>>();
-            if (extraExeVR != null) _core.Settings.ExtraExeVR = extraExeVR;
+            if (extraExeVR != null)
+            {
+                bool vrChanged = !_core.Settings.ExtraExeVR.SequenceEqual(extraExeVR);
+                _core.Settings.ExtraExeVR = extraExeVR;
+                if (vrChanged) AutoStartShortcutHelper.Sync(extraExeVR, vr: true);
+            }
 
             _core.Settings.CloseWithVrc = data["closeWithVrc"]?.Value<bool>() ?? false;
             _core.Settings.StartAlwaysWithVrc = data["startAlwaysWithVrc"]?.Value<bool>() ?? true;

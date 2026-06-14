@@ -497,6 +497,8 @@ public class AppSettings
 
     public bool DuplicateFriendRemovedCleaned { get; set; } = false;
 
+    public bool ExtraExeAutoStartMigrated { get; set; } = false;
+
     public int RewindShownYear { get; set; } = 0;
 
     // Auto-Update on startup

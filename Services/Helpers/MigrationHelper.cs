@@ -339,4 +339,15 @@ public static class MigrationHelper
             catch { }
         }
     }
+
+    public static void MigrateAutoStartShortcuts(AppSettings settings)
+    {
+        if (settings.ExtraExeAutoStartMigrated) return;
+
+        AutoStartShortcutHelper.Sync(settings.ExtraExeDesktop, vr: false);
+        AutoStartShortcutHelper.Sync(settings.ExtraExeVR, vr: true);
+
+        settings.ExtraExeAutoStartMigrated = true;
+        settings.Save();
+    }
 }

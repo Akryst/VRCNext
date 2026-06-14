@@ -133,6 +133,7 @@ public partial class AppShell
         MigrationHelper.MigrateFavorites(_settings);           // silently moves Favorites → favorited_images.json
         MigrationHelper.MigrateCachesToSubdir();               // moves 5 cache JSONs from root → Caches/
         MigrationHelper.MigrateBuiltInDashboardTheme(_settings); // removes AppData copy; now hardcoded in index.html
+        MigrationHelper.MigrateAutoStartShortcuts(_settings);
         if (_settings.MemoryTrimEnabled) _memTrim.SetEnabled(true);
         WindowsFixes.Log = s => SendToJS("log", new { msg = s, color = "sec" });
         WindowsFixes.SetEnabled(_settings.MediaFixEnabled);

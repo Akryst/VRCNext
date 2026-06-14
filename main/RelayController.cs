@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Newtonsoft.Json.Linq;
 using VRCNext.Services;
+using VRCNext.Services.Helpers;
 
 namespace VRCNext;
 
@@ -207,7 +208,7 @@ public class RelayController : IDisposable
                     }
                     _vrcLaunchByUsAt = DateTime.UtcNow;
                     var llExtraApps = llVr ? _core.Settings.ExtraExeVR : _core.Settings.ExtraExeDesktop;
-                    LaunchExtraApps(llExtraApps, log: true);
+                    LaunchExtraApps(llExtraApps, log: true, vr: llVr);
 #else
                     // On Linux, launch via Steam so Proton is applied automatically
                     string steamArgs;
@@ -459,7 +460,7 @@ public class RelayController : IDisposable
             _core.SendToJS("log", new { msg = "Launched VRChat", color = "ok" });
 
             _vrcLaunchByUsAt = DateTime.UtcNow;
-            LaunchExtraApps(_core.Settings.ExtraExeDesktop, log: true);
+            LaunchExtraApps(_core.Settings.ExtraExeDesktop, log: true, vr: false);
         }
         catch (Exception ex)
         {
@@ -476,7 +477,7 @@ public class RelayController : IDisposable
     // Electron/Chromium apps (e.g. SlimeVR) exit immediately, while native apps
     // survive — which is why a direct Process.Start started Voicemeeter but not
     // SlimeVR.
-    private void LaunchExtraApps(IEnumerable<string> apps, bool log)
+    private void LaunchExtraApps(IEnumerable<string> apps, bool log, bool vr)
     {
         foreach (var raw in apps)
         {
@@ -491,10 +492,17 @@ public class RelayController : IDisposable
 
             try
             {
+                var launchPath = path;
+                if (path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    var lnk = AutoStartShortcutHelper.EnsureShortcut(path, vr);
+                    if (!string.IsNullOrEmpty(lnk) && File.Exists(lnk)) launchPath = lnk;
+                }
+
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = "explorer.exe",
-                    Arguments = $"\"{path}\"",
+                    Arguments = $"\"{launchPath}\"",
                     UseShellExecute = false
                 });
 
@@ -578,7 +586,7 @@ public class RelayController : IDisposable
             Invoke(() =>
             {
                 _core.SendToJS("log", new { msg = "VRChat started outside VRCNext — launching startup apps...", color = "sec" });
-                LaunchExtraApps(apps, log: true);
+                LaunchExtraApps(apps, log: true, vr: vr);
                 _core.SendToJS("vrcLaunched", new { vr });
             });
         }
