@@ -1172,6 +1172,7 @@ public class FriendsController
                     if (string.IsNullOrEmpty(uid)) continue;
                     _friendLastLoc[uid] = f["location"]?.ToString() ?? "";
                     _friendLastStatus[uid] = f["status"]?.ToString() ?? "";
+                    _core.Timeline.UpdateUserLastStatus(uid, f["status"]?.ToString() ?? "");
                     _friendLastStatusDesc[uid] = (f["statusDescription"]?.ToString() ?? "").Trim();
                     _friendLastBio[uid] = (f["bio"]?.ToString() ?? "").Trim();
                     var img0 = VRChatApiService.GetUserImage(f);
@@ -2309,6 +2310,7 @@ public class FriendsController
 
         if (!string.IsNullOrEmpty(newStatus))
         {
+            _core.Timeline.UpdateUserLastStatus(e.UserId, newStatus);
             var oldStatus = _friendLastStatus.GetValueOrDefault(e.UserId, "");
             if (oldStatus != newStatus && !string.IsNullOrEmpty(oldStatus))
             {

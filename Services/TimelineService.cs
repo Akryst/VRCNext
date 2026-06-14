@@ -2770,6 +2770,46 @@ public class TimelineService : IDisposable
         public double TotalSeconds { get; set; }
     }
 
+    public void UpdateUserLastStatus(string userId, string status)
+    {
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(status) || status == "offline") return;
+        lock (_lock)
+        {
+            try
+            {
+                using var cmd = _db.CreateCommand();
+                cmd.CommandText = @"INSERT INTO user_tracking (user_id, last_status, last_status_at)
+                    VALUES ($uid, $st, $ts)
+                    ON CONFLICT(user_id) DO UPDATE SET last_status = excluded.last_status, last_status_at = excluded.last_status_at";
+                cmd.Parameters.AddWithValue("$uid", userId);
+                cmd.Parameters.AddWithValue("$st",  status);
+                cmd.Parameters.AddWithValue("$ts",  DateTime.UtcNow.ToString("o"));
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+        }
+    }
+
+    private string GetUserSeedStatus(string userId)
+    {
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT last_status, profile_status FROM user_tracking WHERE user_id=$uid";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            using var r = cmd.ExecuteReader();
+            if (r.Read())
+            {
+                var ls = r.IsDBNull(0) ? "" : r.GetString(0);
+                if (!string.IsNullOrEmpty(ls) && ls != "offline") return ls;
+                var ps = r.IsDBNull(1) ? "" : r.GetString(1);
+                if (!string.IsNullOrEmpty(ps) && ps != "offline") return ps;
+            }
+        }
+        catch { }
+        return "";
+    }
+
     public StatusBreakdown GetUserStatusBreakdown(string userId, int days = 30)
     {
         var bd = new StatusBreakdown();
@@ -2797,7 +2837,11 @@ public class TimelineService : IDisposable
         }
         catch { }
 
-        if (string.IsNullOrEmpty(initialStatus)) initialStatus = "active";
+        if (string.IsNullOrEmpty(initialStatus))
+        {
+            var seed = GetUserSeedStatus(userId);
+            initialStatus = string.IsNullOrEmpty(seed) ? "active" : seed;
+        }
 
         var now = DateTime.UtcNow;
         var windowStart = days > 0 ? now.AddDays(-days) : new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);

@@ -1718,6 +1718,8 @@ public class UnifiedTimeEngine : IDisposable
             "mutual_groups_cached_at     TEXT    NOT NULL DEFAULT ''",
             "profile_current_avatar      TEXT    NOT NULL DEFAULT ''",
             "friend_alert                INTEGER NOT NULL DEFAULT 0",
+            "last_status                 TEXT    NOT NULL DEFAULT ''",
+            "last_status_at              TEXT    NOT NULL DEFAULT ''",
         })
         {
             try
