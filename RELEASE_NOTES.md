@@ -1,5 +1,8 @@
 **2026.30.8**
 
+**Loading Screen**
+* Added loading screen when booting up VRCN.
+
 **Instance Charts**
 
 * Added "Instance Chart" to the Timeline tab. Pick a day to see the instances you visited that day on a 24h timeline, with join/leave times, duration and player count. Click an instance to open the usual instance details.
@@ -13,6 +16,7 @@
 * Changed the "Tools" Icon in sidebar.
 * Changed the "Tools" Icon in Taskbar.
 * Removed the "Personal" "Friends" and "Game Log" text and use a Icon button instead with hover.
+* Some changes on the VRChat Rewind screen.
 
 **Improvements**
 
@@ -33,3 +37,5 @@
 * Fixed an issue where images created with the VRC Camera could show incorrect world data.
 * Fixed an issue where webhook urls/names aren't loaded correctly in Media Relay.
 * Fixed an issue where Auto-Start Up apps don't open at some cases like the path requires admin rights to execute the file.
+* Fixed some image issues on rewind screen.
+* Fixed some issues that could cause VRCN to crash when using the VR Overlay.
