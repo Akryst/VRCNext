@@ -5,6 +5,7 @@
 
 **Fixes**
 
+* Fixed an issue that caused to show "VRCnext is already running" when trying to switch to a different account.
 * Fixed an issue that caused Action Flow to send duplicates to Discord servers when using the **Friend Instance** block.
 * Fixed an issue that caused the heatmap to show the wrong online status when there was not enough online, offline, or user status content saved in the Timeline.
 * Fixed an issue where deleting an image inside a world modal still showed the image until the same world was reopened.

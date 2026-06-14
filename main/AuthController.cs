@@ -1551,7 +1551,12 @@ public class AuthController
                 ?? System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
             if (!string.IsNullOrEmpty(exe))
             {
-                System.Diagnostics.Process.Start(exe);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = exe,
+                    Arguments = $"--waitpid {Environment.ProcessId}",
+                    UseShellExecute = true
+                });
             }
         }
         catch { }
