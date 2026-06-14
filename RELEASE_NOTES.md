@@ -1,8 +1,18 @@
 **2026.30.8**
 
+**Instance Charts**
+
+* Added "Instance Chart" to the Timeline tab. Pick a day to see the instances you visited that day on a 24h timeline, with join/leave times, duration and player count. Click an instance to open the usual instance details.
+
+**User Profiles**
+
+* Added Discord buttons to the link section when an user has an Discord account.
+
 **Changes**
+
 * Changed the "Tools" Icon in sidebar.
 * Changed the "Tools" Icon in Taskbar.
+* Removed the "Personal" "Friends" and "Game Log" text and use a Icon button instead with hover.
 
 **Improvements**
 

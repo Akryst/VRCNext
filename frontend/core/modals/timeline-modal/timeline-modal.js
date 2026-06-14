@@ -7,7 +7,8 @@ function _instanceLinkBtn(location, closeJs) {
 function openTlDetail(id) {
     const ev = timelineEvents.find(e => e.id === id)
              || _tlSearchEvents.find(e => e.id === id)
-             || _fdTimelineEvents.find(e => e.id === id);
+             || _fdTimelineEvents.find(e => e.id === id)
+             || (typeof _icData !== 'undefined' ? _icData.find(e => e.id === id) : null);
     if (!ev) return;
 
     if (ev.type === 'photo') {

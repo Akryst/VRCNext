@@ -103,6 +103,10 @@ public class TimelineController
                 HandleGetTimelineMonthActivity(msg);
                 break;
 
+            case "getInstanceChart":
+                HandleGetInstanceChart(msg);
+                break;
+
             case "deleteTimelineEvent":
                 HandleDeleteTimelineEvent(msg);
                 break;
@@ -1568,6 +1572,23 @@ public class TimelineController
         {
             var bd = _core.Timeline.GetUserStatusBreakdown(userId, days);
             _core.SendToJS("userStatusTime", new { userId, days, buckets = bd.Buckets, totals = bd.Seconds, totalSeconds = bd.TotalSeconds });
+        });
+    }
+
+    private void HandleGetInstanceChart(JObject msg)
+    {
+        var dateStr = msg["date"]?.ToString() ?? "";
+        if (!DateTime.TryParse(dateStr, out var localDate)) return;
+        localDate = DateTime.SpecifyKind(localDate, DateTimeKind.Local);
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                var events  = _core.Timeline.GetInstanceVisitsForDay(localDate);
+                var payload = events.Select(e => _instance.BuildTimelinePayload(e)).ToList();
+                _core.SendToJS("instanceChartData", new { date = dateStr, events = payload });
+            }
+            catch { }
         });
     }
 

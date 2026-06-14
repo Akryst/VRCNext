@@ -2393,6 +2393,7 @@ public partial class AppShell
                 case "getUserOnlineHeatmap":
                 case "getUserStatusTime":
                 case "getTimelineMonthActivity":
+                case "getInstanceChart":
                 case "deleteTimelineEvent":
                 case "deleteFriendTimelineEvent":
                 case "deleteTimelineEvents":

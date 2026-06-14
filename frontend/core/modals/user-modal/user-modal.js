@@ -567,6 +567,12 @@ function _getFdBannerImg(userId, src) {
     return _fdBannerImgs[userId].img;
 }
 
+function renderDiscordChip(discordId) {
+    const label = t('profiles.common.discord', 'Discord');
+    const svg = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="flex-shrink:0"><path d="${PLATFORM_ICONS['discord'].svg}"/></svg>`;
+    return `<button class="fd-bio-link" onclick="sendToCS({action:'openUrl',url:'${jsq('https://discord.com/users/' + discordId)}'})" title="${esc(discordId)}">${svg}<span>${esc(label)}</span></button>`;
+}
+
 function renderFriendDetail(d) {
     if (d.id && d.rawJson) _fdRawJsonCache[d.id] = d.rawJson;
     currentFriendDetail = d;
@@ -634,10 +640,11 @@ function renderFriendDetail(d) {
 
     const bioHtml = d.bio ? `<div class="fd-bio">${esc(d.bio)}</div>` : '';
 
-    let bioLinksHtml = '';
-    if (d.bioLinks && d.bioLinks.length) {
-        bioLinksHtml = `<div class="fd-bio-links">${d.bioLinks.map(u => renderBioLink(u)).join('')}</div>`;
-    }
+    const _bioLinkParts = (d.bioLinks || []).map(u => renderBioLink(u));
+    if (d.discordId) _bioLinkParts.push(renderDiscordChip(d.discordId));
+    const bioLinksHtml = _bioLinkParts.length
+        ? `<div class="fd-bio-links">${_bioLinkParts.join('')}</div>`
+        : '';
 
     const avatarId = d.currentAvatarId || '';
     const avatarFileId = d.avatarFileId || '';
@@ -1178,7 +1185,11 @@ function patchFriendDetailLive(f) {
     // bio links
     if (f.bioLinks) {
         const linksEl = c.querySelector('.fd-bio-links');
-        if (linksEl) linksEl.innerHTML = f.bioLinks.map(u => renderBioLink(u)).join('');
+        if (linksEl) {
+            let html = f.bioLinks.map(u => renderBioLink(u)).join('');
+            if (currentFriendDetail.discordId) html += renderDiscordChip(currentFriendDetail.discordId);
+            linksEl.innerHTML = html;
+        }
         currentFriendDetail.bioLinks = f.bioLinks;
     }
 
