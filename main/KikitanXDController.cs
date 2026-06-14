@@ -71,6 +71,7 @@ public class KikitanXDController : IDisposable
                     Invoke(() => _core.SendToJS("kxdRecognized", new { text, isPartial }));
                 _service.OnTranslated += text =>
                     Invoke(() => _core.SendToJS("kxdTranslated", new { text }));
+                _service.OnChatboxSent += () => _core.OnChatboxPauseRequest?.Invoke(15_000);
                 _service.Start(devIdx, apiKey, srcLang, tgtLang, translate, osc, gate, personality);
                 _core.SendToJS("kxdState", new { running = true });
                 break;

@@ -1,4 +1,4 @@
-**2026.30.8**
+**2026.31.0**
 
 **Loading Screen**
 * Added loading screen when booting up VRCN.
@@ -23,6 +23,7 @@
 * Added missing i18n to Local Lists/Exports.
 * Added warning icon to system tray when not logged in.
 * Added warning icon to system tray when VRChat cookies are invalid.
+* When using KikitanXD for Speech-To-Text it will now set Custom Chatbox Tool to 15 seconds cooldown to prevent your chat being killed by it.
 
 **Fixes**
 
