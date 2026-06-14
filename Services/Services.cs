@@ -929,6 +929,24 @@ public class PhotoPlayersStore : IDisposable
         catch { }
     }
 
+    public void UpdateWorldId(string fileName, string worldId)
+    {
+        if (Photos.TryGetValue(fileName, out var rec))
+            rec.WorldId = worldId;
+        else
+            Photos[fileName] = new PhotoRecord { WorldId = worldId };
+
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "INSERT OR REPLACE INTO photo_records(file_name,world_id) VALUES($fn,$wid)";
+            cmd.Parameters.AddWithValue("$fn",  fileName);
+            cmd.Parameters.AddWithValue("$wid", worldId);
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
     public PhotoRecord? GetPhotoRecord(string fileName)
         => Photos.TryGetValue(fileName, out var rec) ? rec : null;
 
