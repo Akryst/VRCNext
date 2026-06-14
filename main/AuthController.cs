@@ -957,6 +957,9 @@ public class AuthController
 
         _core.SendToJS("log", new { msg = $"VRChat: Session expired ({reason}) — please log in again", color = "warn" });
         _core.SendToJS("vrcLoggedOut", (object?)null);
+#if WINDOWS
+        _core.OnTrayLoggedOut?.Invoke();
+#endif
         if (!string.IsNullOrEmpty(username))
             _core.SendToJS("vrcPrefillLogin", new { username, password });
     }

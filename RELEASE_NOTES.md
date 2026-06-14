@@ -1,7 +1,10 @@
 **2026.30.8**
 
 **Improvements**
+
 * Added missing i18n to Local Lists/Exports.
+* Added warning icon to system tray when not logged in.
+* Added warning icon to system tray when VRChat cookies are invalid.
 
 **Fixes**
 
