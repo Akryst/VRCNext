@@ -564,6 +564,15 @@ public class PhotosController
         {
             var logPlayers = _core.LogWatcher.GetCurrentPlayers();
             var wid = _core.LogWatcher.CurrentWorldId ?? "";
+            if (Path.GetExtension(filePath).Equals(".png", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var pngWid = UnifiedTimeEngine.ExtractWorldIdFromPng(filePath);
+                    if (!string.IsNullOrEmpty(pngWid)) wid = pngWid;
+                }
+                catch { }
+            }
 
             var players = new List<(string userId, string displayName, string image)>();
 
@@ -628,8 +637,10 @@ public class PhotosController
 
             // Timeline: log photo event
             var photoUrl = GetVirtualMediaUrl(filePath);
-            var phWorldName  = _instance.CachedInstWorldName;
-            var phWorldThumb = _instance.CachedInstWorldThumb;
+            var phWorldName  = "";
+            var phWorldThumb = "";
+            if (wid == (_core.LogWatcher.CurrentWorldId ?? ""))
+            { phWorldName = _instance.CachedInstWorldName; phWorldThumb = _instance.CachedInstWorldThumb; }
             if (string.IsNullOrEmpty(phWorldName) && _core.TimeEngine.Worlds.TryGetValue(wid, out var phWRec) && !string.IsNullOrEmpty(phWRec.WorldName))
             { phWorldName = phWRec.WorldName; phWorldThumb = phWRec.WorldThumb; }
             var photoEv = new TimelineService.TimelineEvent
@@ -780,11 +791,12 @@ public class PhotosController
             catch { }
 
             var rec = _core.PhotoPlayersStore.GetPhotoRecord(f.Name);
-            if (rec == null || string.IsNullOrEmpty(rec.WorldId))
+            string? worldId = null;
+            try { worldId = UnifiedTimeEngine.ExtractWorldIdFromPng(f.FullName); } catch { }
+            if (!string.IsNullOrEmpty(worldId) && (rec == null || rec.WorldId != worldId))
             {
-                string? worldId = null;
-                try { worldId = UnifiedTimeEngine.ExtractWorldIdFromPng(f.FullName); } catch { }
-                if (!string.IsNullOrEmpty(worldId)) batch[f.FullName] = worldId;
+                _core.PhotoPlayersStore.UpdateWorldId(f.Name, worldId);
+                batch[f.FullName] = worldId;
             }
 
             if (batch.Count >= 50 || authorBatch.Count >= 50)

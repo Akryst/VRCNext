@@ -149,18 +149,20 @@ function applyLibraryWorldIds(dict) {
         if (!worldId) continue;
         // Patch in-memory item
         const item = libraryFiles.find(f => f.path === path);
-        if (item && !item.worldId) { item.worldId = worldId; }
+        if (item) { item.worldId = worldId; }
         if (!worldInfoCache[worldId]) newIds.push(worldId);
-        // Patch visible card if rendered and badge not yet there
+        // Patch visible card if rendered
         const card = document.querySelector(`.lib-card[data-path="${CSS.escape(path)}"]`);
         if (!card) continue;
         const wrap = card.querySelector('.lib-thumb-wrap');
-        if (!wrap || wrap.querySelector('.lib-world-badge')) continue;
+        if (!wrap) continue;
         const wInfo = worldInfoCache[worldId];
         const wName  = wInfo ? esc(wInfo.name) : t('library.view_world', 'View World');
         const wThumb = wInfo?.thumbnailImageUrl || '';
-        wrap.insertAdjacentHTML('beforeend',
-            `<button class="lib-world-badge" data-wid="${esc(worldId)}" onclick="event.stopPropagation();openWorldSearchDetail('${esc(worldId)}')" title="${wName}"><span class="lib-world-badge-thumb" style="${wThumb ? `background-image:url('${cssUrl(wThumb)}')` : ''}"></span><span class="lib-world-badge-text">${wName}</span></button>`);
+        const badgeHtml = `<button class="lib-world-badge" data-wid="${esc(worldId)}" onclick="event.stopPropagation();openWorldSearchDetail('${esc(worldId)}')" title="${wName}"><span class="lib-world-badge-thumb" style="${wThumb ? `background-image:url('${cssUrl(wThumb)}')` : ''}"></span><span class="lib-world-badge-text">${wName}</span></button>`;
+        const existingBadge = wrap.querySelector('.lib-world-badge');
+        if (existingBadge) existingBadge.outerHTML = badgeHtml;
+        else wrap.insertAdjacentHTML('beforeend', badgeHtml);
     }
     if (newIds.length) sendToCS({ action: 'vrcResolveWorlds', worldIds: [...new Set(newIds)].slice(0, 30) });
     _renderLibIconSelects();
