@@ -1458,6 +1458,33 @@ function afLookupUser(id) {
     return live || { id };
 }
 
+let _afFriendJoinDebounce = {};
+let _afFriendJoinFired = {};
+const AF_FRIEND_JOIN_DEBOUNCE_MS = 3000;
+const AF_FRIEND_JOIN_COOLDOWN_MS = 15000;
+
+function afFireFriendJoinInstance(payload) {
+    const friendId = payload.friendId || '';
+    const triggeringFriend = {
+        id: friendId,
+        displayName: payload.friendName || friendId,
+        location: payload.location || '',
+        _worldId: payload.worldId || '',
+        _worldName: payload.worldName || '',
+        _worldImage: payload.worldThumb || '',
+        _friendImage: payload.friendImage || '',
+    };
+    for (const flow of afFlows) {
+        if (!flow.enabled || !flow.workspace?.blocks?.blocks) continue;
+        for (const root of flow.workspace.blocks.blocks) {
+            if (root.type !== 'af_trigger_friend_joins_instance') continue;
+            const want = root.fields?.FRIEND_ID;
+            if (want && want !== friendId) continue;
+            afFireTrigger(flow, root, 'friend joined instance: ' + (payload.friendName || friendId), triggeringFriend);
+        }
+    }
+}
+
 window.__afOnWebsocketEvent = function (type, payload) {
     if (type === 'friendTimelineEvent' && payload && typeof payload === 'object') {
         const evType = payload.type || '';
@@ -1465,24 +1492,20 @@ window.__afOnWebsocketEvent = function (type, payload) {
         const joined = (evType === 'friend_gps' || evType === 'friend_online')
             && loc && loc !== 'private' && loc !== 'offline' && loc !== 'traveling';
         if (joined) {
-            const friendId = payload.friendId || '';
-            const triggeringFriend = {
-                id: friendId,
-                displayName: payload.friendName || friendId,
-                location: loc,
-                _worldId: payload.worldId || '',
-                _worldName: payload.worldName || '',
-                _worldImage: payload.worldThumb || '',
-                _friendImage: payload.friendImage || '',
-            };
-            for (const flow of afFlows) {
-                if (!flow.enabled || !flow.workspace?.blocks?.blocks) continue;
-                for (const root of flow.workspace.blocks.blocks) {
-                    if (root.type !== 'af_trigger_friend_joins_instance') continue;
-                    const want = root.fields?.FRIEND_ID;
-                    if (want && want !== friendId) continue;
-                    afFireTrigger(flow, root, 'friend joined instance: ' + (payload.friendName || friendId), triggeringFriend);
-                }
+            const key = (payload.friendId || '') + '|' + loc;
+            const firedAt = _afFriendJoinFired[key];
+            if (firedAt && (Date.now() - firedAt) < AF_FRIEND_JOIN_COOLDOWN_MS) return;
+            const existing = _afFriendJoinDebounce[key];
+            if (existing) {
+                existing.payload = payload;
+            } else {
+                const entry = { payload };
+                entry.timer = setTimeout(() => {
+                    delete _afFriendJoinDebounce[key];
+                    _afFriendJoinFired[key] = Date.now();
+                    try { afFireFriendJoinInstance(entry.payload); } catch (e) { console.error('[ActionFlow] friend join', e); }
+                }, AF_FRIEND_JOIN_DEBOUNCE_MS);
+                _afFriendJoinDebounce[key] = entry;
             }
         }
         return;

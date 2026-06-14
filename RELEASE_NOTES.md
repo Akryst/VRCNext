@@ -1,15 +1,9 @@
-**2026.30.7**
+**2026.30.8**
 
-**Action Flow**
-
-Discord Webhook Integration
-* Added "Send own instance info"
-* Added "Send own advanced instance info"
-* Added "Send friend instance info"
-
-Those blocks can send instance informations to an webhook. As Example "Send own instance info" would send:
-
-Image, World Name, Instance Type, Player Count
-Eg: Image, The Black Cat, Group Public, 43/80 Players.
-
-* Added scrollbar to the action list.
+**Fixes**
+* Fixed an issue that caused Action Flow to send duplicates into discord servers when using the "Friend Instance" Block.
+* 
+* 
+* 
+* 
+* 
