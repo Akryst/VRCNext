@@ -1917,6 +1917,8 @@ public class FriendsController
         }
         if (mutualGroupsTask.IsCompletedSuccessfully && mutualGroupsArr.Count > 0)
             _core.TimeEngine.SaveUserMutualGroupsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(mutualGroupsArr));
+        if (grpsTask.IsCompletedSuccessfully && groups.Count > 0)
+            _core.TimeEngine.SaveUserGroupsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(groups));
 
         var (mutualsArr, mutualsOptedOut) = mutualsTask.IsCompletedSuccessfully
             ? mutualsTask.Result : (new JArray(), false);
