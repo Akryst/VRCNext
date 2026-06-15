@@ -659,7 +659,11 @@ public partial class AppShell
                 case "vrcGetFriendDetail":
                     var friendId = msg["userId"]?.ToString();
                     if (!string.IsNullOrEmpty(friendId))
+                    {
+                        if (msg["force"]?.Value<bool>() == true)
+                            VRCNext.Services.Helpers.ModalCacheHelper.Invalidate(friendId);
                         await _friends.GetFriendDetailAsync(friendId);
+                    }
                     break;
 
                 case "vrcGetFriendPreview":

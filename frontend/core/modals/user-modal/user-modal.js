@@ -574,6 +574,8 @@ function renderDiscordChip(discordId) {
 }
 
 function renderFriendDetail(d) {
+    const _fdPrevTab = document.querySelector('#modalFriendDetail .fd-tab.active')?.dataset.fdtab || '';
+    const _fdPrevId  = (typeof currentFriendDetail !== 'undefined' && currentFriendDetail) ? currentFriendDetail.id : '';
     if (d.id && d.rawJson) _fdRawJsonCache[d.id] = d.rawJson;
     currentFriendDetail = d;
     if (typeof vrcnPlusOnProfileOpened === 'function' && d.id) {
@@ -1019,12 +1021,12 @@ function renderFriendDetail(d) {
     const _tabBadge = (n) => `<span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${n}</span>`;
     let tabsHtml = '';
     if (hasTabs) {
-        tabsHtml = `<div class="fd-tabs"><button class="fd-tab active" onclick="switchFdTab('info',this)">${t('profiles.tabs.info', 'Info')}</button>`;
-        if (hasGroups) tabsHtml += `<button class="fd-tab" onclick="switchFdTab('groups',this)">${t('profiles.tabs.groups_label', 'Groups')} ${_tabBadge(groupsTabCount)}</button>`;
-        if (hasMutuals) tabsHtml += `<button class="fd-tab" onclick="switchFdTab('mutuals',this)">${t('profiles.tabs.mutuals_label', 'Mutuals')} ${_tabBadge(mutualTotal)}</button>`;
-        tabsHtml += `<button class="fd-tab" id="fdTabContentBtn" onclick="switchFdTab('content',this)">${t('profiles.tabs.content_label', 'Content')} ${_tabBadge(allUserWorlds.length)}</button>`;
-        tabsHtml += `<button class="fd-tab" onclick="switchFdTab('favs',this)">${t('profiles.tabs.favs', 'Favs.')}</button>`;
-        tabsHtml += `<button class="fd-tab" onclick="switchFdTab('json',this)">Json</button>`;
+        tabsHtml = `<div class="fd-tabs"><button class="fd-tab active" data-fdtab="info" onclick="switchFdTab('info',this)">${t('profiles.tabs.info', 'Info')}</button>`;
+        if (hasGroups) tabsHtml += `<button class="fd-tab" data-fdtab="groups" onclick="switchFdTab('groups',this)">${t('profiles.tabs.groups_label', 'Groups')} ${_tabBadge(groupsTabCount)}</button>`;
+        if (hasMutuals) tabsHtml += `<button class="fd-tab" data-fdtab="mutuals" onclick="switchFdTab('mutuals',this)">${t('profiles.tabs.mutuals_label', 'Mutuals')} ${_tabBadge(mutualTotal)}</button>`;
+        tabsHtml += `<button class="fd-tab" id="fdTabContentBtn" data-fdtab="content" onclick="switchFdTab('content',this)">${t('profiles.tabs.content_label', 'Content')} ${_tabBadge(allUserWorlds.length)}</button>`;
+        tabsHtml += `<button class="fd-tab" data-fdtab="favs" onclick="switchFdTab('favs',this)">${t('profiles.tabs.favs', 'Favs.')}</button>`;
+        tabsHtml += `<button class="fd-tab" data-fdtab="json" onclick="switchFdTab('json',this)">Json</button>`;
         tabsHtml += `</div>`;
     }
 
@@ -1093,6 +1095,11 @@ function renderFriendDetail(d) {
     filterFdMutuals();
     filterFdMutualsGroups();
     renderFdWorldsPage(0);
+
+    if (_fdPrevTab && _fdPrevTab !== 'info' && _fdPrevId === d.id) {
+        const _restoreBtn = document.querySelector(`#modalFriendDetail .fd-tab[data-fdtab="${_fdPrevTab}"]`);
+        if (_restoreBtn) switchFdTab(_fdPrevTab, _restoreBtn);
+    }
 
     const _avatarKey = avatarFileId || avatarId;
     const ca = d.cachedAvatar;
@@ -1916,6 +1923,7 @@ function _fdBuildTaskbarActions(d) {
         ] },
     ].filter(Boolean);
     const out = [
+        { icon: 'refresh', iconClass: _fdRefreshing ? 'fd-action-spin' : '', title: t('common.refresh', 'Refresh'), label: t('common.refresh', 'Refresh'), onclick: `refreshFriendDetailModal('${_fid}')` },
         { icon: 'share', title: t('common.share', 'Share'), label: t('common.share_profile', 'Share Profile'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(d.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
     ];
     if (_moreItems.length) out.push({ label: t('common.more', 'More'), dropdown: _moreItems });
@@ -1927,6 +1935,21 @@ function refreshFdTaskbarActions() {
     const md = document.getElementById('modalFriendDetail');
     if (!md || md.style.display === 'none') return;
     refreshModalActions(_fdBuildTaskbarActions(currentFriendDetail));
+}
+
+let _fdRefreshing = false;
+let _fdRefreshTimer = null;
+function refreshFriendDetailModal(userId) {
+    if (!userId) return;
+    _fdRefreshing = true;
+    if (_fdRefreshTimer) clearTimeout(_fdRefreshTimer);
+    _fdRefreshTimer = setTimeout(() => {
+        _fdRefreshing = false;
+        _fdRefreshTimer = null;
+        refreshFdTaskbarActions();
+    }, 1500);
+    refreshFdTaskbarActions();
+    sendToCS({ action: 'vrcGetFriendDetail', userId, force: true });
 }
 
 function handleUserBasic(payload) {

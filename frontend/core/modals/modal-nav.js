@@ -17,7 +17,7 @@ function _mnActionHtml(a, asText) {
     if (asText) {
         return `<button class="tb-modal-action${a.danger ? ' tb-modal-action-danger' : ''}"${a.disabled ? ' disabled' : ''} onclick="${a.onclick}">${esc(a.label || a.title || '')}</button>`;
     }
-    return `<button class="btn-notif fd-action-btn${a.danger ? ' fd-action-danger' : ''}"${a.disabled ? ' disabled' : ''} title="${esc(a.title || a.label || '')}" onclick="${a.onclick}"><span class="msi" style="font-size:20px;">${esc(a.icon)}</span></button>`;
+    return `<button class="btn-notif fd-action-btn${a.danger ? ' fd-action-danger' : ''}"${a.disabled ? ' disabled' : ''} title="${esc(a.title || a.label || '')}" onclick="${a.onclick}"><span class="msi${a.iconClass ? ' ' + esc(a.iconClass) : ''}" style="font-size:20px;">${esc(a.icon)}</span></button>`;
 }
 
 function _mnActionsHtml(actions, asText) {
