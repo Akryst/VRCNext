@@ -16,3 +16,4 @@
 **Fixes**
 * Fixed a bug where the FFC cacher could show outdated group or mutual data when opening a profile a second time.
 * Fixed a bug where Mutuals/Groups show 0 entries after opening the same user profile twice.
+* Fixed smart-search icon size.
