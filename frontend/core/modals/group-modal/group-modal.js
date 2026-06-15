@@ -113,7 +113,8 @@ function renderGroupDetail(g) {
                 { icon: 'visibility_off', label: t('groups.visibility.hidden',  'Visible for None'),     active: (g.visibility || 'visible') === 'hidden',  onclick: `setGroupVisibility('${gidJs}','hidden')` },
             ] },
         ] } : null,
-        { icon: 'share', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/group/${esc(g.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
+        { icon: 'refresh', iconClass: 'fd-refresh-spin', title: t('common.refresh', 'Refresh'), onclick: `triggerModalRefresh({action:'vrcGetGroup',groupId:'${gidJs}',force:true})` },
+        { icon: 'link_2', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/group/${esc(g.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
         { icon: 'close', title: t('common.close', 'Close'), onclick: `closeGroupDetail()`, header: true },
     ]);
 

@@ -659,7 +659,11 @@ public partial class AppShell
                 case "vrcGetFriendDetail":
                     var friendId = msg["userId"]?.ToString();
                     if (!string.IsNullOrEmpty(friendId))
+                    {
+                        if (msg["force"]?.Value<bool>() == true)
+                            VRCNext.Services.Helpers.ModalCacheHelper.Invalidate(friendId);
                         await _friends.GetFriendDetailAsync(friendId);
+                    }
                     break;
 
                 case "vrcGetFriendPreview":
@@ -1347,6 +1351,7 @@ public partial class AppShell
                     var avdId = msg["avatarId"]?.ToString() ?? "";
                     if (!string.IsNullOrEmpty(avdId))
                     {
+                        if (msg["force"]?.Value<bool>() == true) ModalCacheHelper.Invalidate(avdId);
                         var avdCached = _core.TimeEngine.GetAvatarDetail(avdId);
                         if (avdCached != null)
                             Invoke(() => SendToJS("vrcAvatarDetail", new {

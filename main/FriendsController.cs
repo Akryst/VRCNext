@@ -1659,7 +1659,35 @@ public class FriendsController
             _core.SendToJS("vrcFriendDetail", diskProfile);
 
             if (ModalCacheHelper.IsCached(userId))
+            {
+                if (!ModalCacheHelper.IsGroupsMutualsCached(userId))
+                {
+                    ModalCacheHelper.MarkGroupsMutuals(userId);
+                    _ = Task.Run(async () =>
+                    {
+                    try
+                    {
+                        var gm = await RefreshGroupsMutualsAsync(userId);
+                        if (gm == null) return;
+                        var v = gm.Value;
+                        var changed =
+                            !JToken.DeepEquals(diskProfile["userGroups"],      v.userGroups) ||
+                            !JToken.DeepEquals(diskProfile["representedGroup"], v.representedGroup) ||
+                            !JToken.DeepEquals(diskProfile["mutuals"],          v.mutuals) ||
+                            !JToken.DeepEquals(diskProfile["mutualGroups"],     v.mutualGroups) ||
+                            (diskProfile["mutualsOptedOut"]?.Value<bool>() ?? false) != v.optedOut;
+                        diskProfile["userGroups"]       = v.userGroups;
+                        diskProfile["representedGroup"]  = v.representedGroup;
+                        diskProfile["mutuals"]           = v.mutuals;
+                        diskProfile["mutualGroups"]      = v.mutualGroups;
+                        diskProfile["mutualsOptedOut"]   = v.optedOut;
+                        if (changed) _core.SendToJS("vrcFriendDetail", diskProfile);
+                    }
+                    catch { }
+                    });
+                }
                 return;
+            }
 
             ModalCacheHelper.Mark(userId);
 
@@ -1673,6 +1701,7 @@ public class FriendsController
                     {
                         var fresh = await BuildUserDetailPayloadAsync(userId);
                         if (fresh == null) return;
+                        ModalCacheHelper.MarkGroupsMutuals(userId);
                         _core.TimeEngine.SaveUserProfileCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(fresh));
                         _core.SendToJS("vrcFriendDetail", fresh);
                     }
@@ -1691,6 +1720,7 @@ public class FriendsController
                 _core.SendToJS("vrcFriendDetailError", new { error = "Could not load user profile" });
                 return;
             }
+            ModalCacheHelper.MarkGroupsMutuals(userId);
             _core.TimeEngine.SaveUserProfileCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(payload));
             _core.SendToJS("vrcFriendDetail", payload);
         }
@@ -1917,6 +1947,8 @@ public class FriendsController
         }
         if (mutualGroupsTask.IsCompletedSuccessfully && mutualGroupsArr.Count > 0)
             _core.TimeEngine.SaveUserMutualGroupsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(mutualGroupsArr));
+        if (grpsTask.IsCompletedSuccessfully && groups.Count > 0)
+            _core.TimeEngine.SaveUserGroupsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(groups));
 
         var (mutualsArr, mutualsOptedOut) = mutualsTask.IsCompletedSuccessfully
             ? mutualsTask.Result : (new JArray(), false);
@@ -2038,6 +2070,58 @@ public class FriendsController
             cachedAvatar = TryParseJObject(dbCache?.ProfileCurrentAvatar ?? "") ?? (object?)null,
             rawJson = user,
         };
+    }
+
+    private async Task<(JArray userGroups, JToken representedGroup, JArray mutuals, JArray mutualGroups, bool optedOut)?> RefreshGroupsMutualsAsync(string userId)
+    {
+        if (!_core.VrcApi.IsLoggedIn) return null;
+
+        var grpsTask         = _core.Users.GetUserGroupsByIdAsync(userId);
+        var mutualsTask      = _core.Users.GetUserMutualsAsync(userId);
+        var mutualGroupsTask = _core.Users.GetUserMutualGroupsAsync(userId);
+        var repGroupTask     = _core.Users.GetUserRepresentedGroupAsync(userId);
+
+        await Task.WhenAll(new Task[] { grpsTask, mutualsTask, mutualGroupsTask, repGroupTask }
+            .Select(t => t.ContinueWith(_ => { })));
+
+        var groups          = grpsTask.IsCompletedSuccessfully ? grpsTask.Result : new JArray();
+        var (mutualsArr, mutualsOptedOut) = mutualsTask.IsCompletedSuccessfully ? mutualsTask.Result : (new JArray(), false);
+        var mutualGroupsArr = mutualGroupsTask.IsCompletedSuccessfully ? mutualGroupsTask.Result : new JArray();
+        var freshRepGroup   = repGroupTask.IsCompletedSuccessfully ? repGroupTask.Result : null;
+
+        if (grpsTask.IsCompletedSuccessfully && groups.Count > 0)
+            _core.TimeEngine.SaveUserGroupsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(groups));
+        if (mutualGroupsTask.IsCompletedSuccessfully && mutualGroupsArr.Count > 0)
+            _core.TimeEngine.SaveUserMutualGroupsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(mutualGroupsArr));
+        if (mutualsTask.IsCompletedSuccessfully && (mutualsArr.Count > 0 || mutualsOptedOut))
+            _core.TimeEngine.SaveUserMutualsCache(userId, Newtonsoft.Json.JsonConvert.SerializeObject(new { mutuals = mutualsArr, optedOut = mutualsOptedOut }));
+
+        var freshRepGid = freshRepGroup?["groupId"]?.ToString() ?? freshRepGroup?["id"]?.ToString();
+        if (string.IsNullOrEmpty(freshRepGid)) freshRepGid = null;
+
+        var (userGroups, representedGroup) = BuildGroupsDisplay(groups, freshRepGid);
+        if (representedGroup == null && freshRepGroup != null && freshRepGid != null)
+            representedGroup = new
+            {
+                id = freshRepGid,
+                name = freshRepGroup["name"]?.ToString() ?? "",
+                shortCode = freshRepGroup["shortCode"]?.ToString() ?? "",
+                discriminator = freshRepGroup["discriminator"]?.ToString() ?? "",
+                iconUrl = ImageCacheHelper.GetGroupUrl(freshRepGid, freshRepGroup["iconUrl"]?.ToString()),
+                bannerUrl = ImageCacheHelper.NormalizeTo512(freshRepGroup["bannerUrl"]?.ToString() ?? ""),
+                memberCount = freshRepGroup["memberCount"]?.Value<int>() ?? 0,
+            };
+
+        var mutualGroupsList = BuildMutualGroupsDisplay(mutualGroupsArr);
+        var mutualsList      = BuildMutualsDisplay(mutualsArr);
+
+        return (
+            JArray.FromObject(userGroups),
+            representedGroup != null ? JObject.FromObject(representedGroup) : (JToken)JValue.CreateNull(),
+            JArray.FromObject(mutualsList),
+            JArray.FromObject(mutualGroupsList),
+            mutualsOptedOut
+        );
     }
 
     // Join Friend

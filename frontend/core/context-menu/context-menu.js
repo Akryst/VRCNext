@@ -683,7 +683,7 @@
         if (!isJoined) {
             return [
                 { icon: 'open_in_new', label: cm('group.open_details', 'Open Details'), action: () => navOpenModal('group', id, '') },
-                { icon: 'share', label: cm('group.share', 'Share Group'), action: () => copyWithToast('https://vrchat.com/home/group/' + id, 'group.share_copied', 'Group link copied to clipboard') },
+                { icon: 'link_2', label: cm('group.share', 'Share Group'), action: () => copyWithToast('https://vrchat.com/home/group/' + id, 'group.share_copied', 'Group link copied to clipboard') },
                 'sep',
                 { icon: 'group_add', label: cm('group.join', 'Join Group'), action: () => sendToCS({ action: 'vrcJoinGroup', groupId: id }) },
             ];
@@ -695,7 +695,7 @@
         const curVis = g.visibility || 'visible';
         const items = [
             { icon: 'open_in_new', label: cm('group.open_details', 'Open Details'), action: () => navOpenModal('group', id, g.name || '') },
-            { icon: 'share', label: cm('group.share', 'Share Group'), action: () => copyWithToast('https://vrchat.com/home/group/' + id, 'group.share_copied', 'Group link copied to clipboard') },
+            { icon: 'link_2', label: cm('group.share', 'Share Group'), action: () => copyWithToast('https://vrchat.com/home/group/' + id, 'group.share_copied', 'Group link copied to clipboard') },
             'sep',
         ];
         if (canPost) items.push({ icon: 'edit_note', label: cm('group.post', 'Post'), action: () => openGroupPostModal(id) });
@@ -1033,7 +1033,7 @@
         const favEntry = (typeof favAvatarsData !== 'undefined') && favAvatarsData.find(a => a.id === id);
         const items = [
             { icon: 'info', label: cm('avatar.show', 'Show Avatar'), action: () => navOpenModal('avatar', id, '') },
-            { icon: 'share', label: cm('avatar.share', 'Share Avatar'), action: () => copyWithToast('https://vrchat.com/home/avatar/' + id, 'avatar.share_copied', 'Avatar link copied to clipboard') },
+            { icon: 'link_2', label: cm('avatar.share', 'Share Avatar'), action: () => copyWithToast('https://vrchat.com/home/avatar/' + id, 'avatar.share_copied', 'Avatar link copied to clipboard') },
             { icon: 'checkroom', label: cm('avatar.use', 'Use Avatar'), action: () => sendToCS({ action: 'vrcSelectAvatar', avatarId: id }) },
             'sep',
             { icon: 'style', label: cm('avatar.similar', 'Similar Avatars'), action: () => { showTab(4); setAvatarFilter('search'); setTimeout(() => { const inp = document.getElementById('avatarSearchInput'); if (inp) { inp.value = 'similar: ' + id; doAvatarSearch(); } }, 100); } },
@@ -1063,7 +1063,7 @@
         }
         items.push({ icon: 'open_in_new', label: cm('world.open_details', 'Open Details'), action: () => navOpenModal('worldSearch', worldId, wn) });
         items.push({ icon: 'add_circle_outline', label: cm('world.create_instance', 'Create Instance'), action: () => createWorldInstance(worldId) });
-        items.push({ icon: 'share', label: cm('world.share', 'Share World'), action: () => copyWithToast('https://vrchat.com/home/world/' + worldId, 'world.share_copied', 'World link copied to clipboard') });
+        items.push({ icon: 'link_2', label: cm('world.share', 'Share World'), action: () => copyWithToast('https://vrchat.com/home/world/' + worldId, 'world.share_copied', 'World link copied to clipboard') });
         items.push({ icon: 'home', label: cm('world.set_home', 'Set as Home'), action: () => sendToCS({ action: 'vrcSetHomeWorld', worldId }), confirm: true });
         items.push('sep');
         if (favEntry) {
@@ -1121,7 +1121,7 @@
         const items = [
             { icon: 'open_in_new', label: cm('world.open_details', 'Open Details'), action: () => navOpenModal('worldSearch', id, '') },
             { icon: 'add_circle_outline', label: cm('world.create_instance', 'Create Instance'), action: () => createWorldInstance(id) },
-            { icon: 'share', label: cm('world.share', 'Share World'), action: () => copyWithToast('https://vrchat.com/home/world/' + id, 'world.share_copied', 'World link copied to clipboard') },
+            { icon: 'link_2', label: cm('world.share', 'Share World'), action: () => copyWithToast('https://vrchat.com/home/world/' + id, 'world.share_copied', 'World link copied to clipboard') },
             { icon: 'home', label: cm('world.set_home', 'Set as Home'), action: () => sendToCS({ action: 'vrcSetHomeWorld', worldId: id }), confirm: true },
             'sep',
         ];
@@ -1153,7 +1153,7 @@
         const f = (typeof vrcFriendsData !== 'undefined') && vrcFriendsData.find(x => x.id === id);
         const items = [
             { icon: 'person', label: cm('friend.view_profile', 'View Profile'), action: () => navOpenModal('friend', id, f?.displayName || '') },
-            { icon: 'share', label: cm('friend.share_profile', 'Share Profile'), action: () => copyWithToast('https://vrchat.com/home/user/' + id, 'friend.share_copied', 'Profile link copied to clipboard') },
+            { icon: 'link_2', label: cm('friend.share_profile', 'Share Profile'), action: () => copyWithToast('https://vrchat.com/home/user/' + id, 'friend.share_copied', 'Profile link copied to clipboard') },
         ];
         if (f) {
             const loc = f.location || '';

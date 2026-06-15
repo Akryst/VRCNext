@@ -1101,12 +1101,5 @@ function confirmDeleteAll() {
 
 // Clipboard.
 function copyToClipboard(_url, path, type) {
-    if (type === 'image' || type === 'gif') {
-        sendToCS({ action: 'copyImageToClipboard', path });
-    } else {
-        navigator.clipboard.writeText(path).then(
-            () => showToast(true, t('library.clipboard.success', 'Path copied to clipboard')),
-            () => showToast(false, t('library.clipboard.failed', 'Clipboard copy failed'))
-        );
-    }
+    sendToCS({ action: 'copyImageToClipboard', path });
 }

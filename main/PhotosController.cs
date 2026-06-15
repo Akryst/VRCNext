@@ -387,7 +387,7 @@ public class PhotosController
                                 $"-NonInteractive -WindowStyle Hidden -Command \"{psCommand}\"")
                             { CreateNoWindow = true, UseShellExecute = false };
                             System.Diagnostics.Process.Start(psi);
-                            _core.SendToJS("toast", new { ok = true, msg = "Image copied to clipboard" });
+                            _core.SendToJS("toast", new { ok = true, msg = "Copied to clipboard" });
                         }
                         catch (Exception ex)
                         {
