@@ -219,7 +219,8 @@ function renderAvatarDetail(a) {
     const avHeaderActions = renderModalActions([
         isOwn ? { icon: 'edit', title: t('avatars.detail.actions.change_image', 'Change Image'), onclick: `avUploadBannerImage('${aid}')`, header: true } : null,
         { icon: 'checkroom', title: t('avatars.detail.actions.use_avatar', 'Use Avatar'), onclick: `selectAvatar('${aid}');closeAvatarDetail()` },
-        { icon: 'share', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/avatar/${esc(a.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
+        { icon: 'refresh', iconClass: 'fd-refresh-spin', title: t('common.refresh', 'Refresh'), onclick: `triggerModalRefresh({action:'vrcGetAvatarDetail',avatarId:'${aid}',force:true})` },
+        { icon: 'link_2', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/avatar/${esc(a.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
         { icon: 'close', title: t('common.close', 'Close'), onclick: `closeAvatarDetail()`, header: true },
     ]);
     c.innerHTML = `${avHeaderActions}

@@ -52,7 +52,7 @@ function renderMyProfileContent() {
                 { icon: 'palette', label: t('vrcnplus.dropdown.customize_profile', 'Customize Profile'), onclick: 'openVrcnPlusEditor()' },
             ],
         },
-        { icon: 'share', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(u.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
+        { icon: 'link_2', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(u.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
         { icon: 'close', title: t('common.close', 'Close'), onclick: `closeMyProfile()`, header: true },
     ]);
 

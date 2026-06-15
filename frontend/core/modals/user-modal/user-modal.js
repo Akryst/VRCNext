@@ -1924,7 +1924,7 @@ function _fdBuildTaskbarActions(d) {
     ].filter(Boolean);
     const out = [
         { icon: 'refresh', iconClass: _fdRefreshing ? 'fd-action-spin' : '', title: t('common.refresh', 'Refresh'), label: t('common.refresh', 'Refresh'), onclick: `refreshFriendDetailModal('${_fid}')` },
-        { icon: 'share', title: t('common.share', 'Share'), label: t('common.share_profile', 'Share Profile'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(d.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
+        { icon: 'link_2', title: t('common.share', 'Share'), label: t('common.share_profile', 'Share Profile'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/user/${esc(d.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
     ];
     if (_moreItems.length) out.push({ label: t('common.more', 'More'), dropdown: _moreItems });
     return out;

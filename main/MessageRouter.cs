@@ -1351,6 +1351,7 @@ public partial class AppShell
                     var avdId = msg["avatarId"]?.ToString() ?? "";
                     if (!string.IsNullOrEmpty(avdId))
                     {
+                        if (msg["force"]?.Value<bool>() == true) ModalCacheHelper.Invalidate(avdId);
                         var avdCached = _core.TimeEngine.GetAvatarDetail(avdId);
                         if (avdCached != null)
                             Invoke(() => SendToJS("vrcAvatarDetail", new {

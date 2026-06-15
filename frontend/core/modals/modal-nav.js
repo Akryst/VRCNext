@@ -65,6 +65,17 @@ function setTaskbarModalActions(actions) {
     if (el) el.innerHTML = _mnActionsHtml(actions, true);
 }
 
+let _modalRefreshTimer = null;
+function triggerModalRefresh(action) {
+    document.documentElement.classList.add('modal-refreshing');
+    if (_modalRefreshTimer) clearTimeout(_modalRefreshTimer);
+    _modalRefreshTimer = setTimeout(() => {
+        _modalRefreshTimer = null;
+        document.documentElement.classList.remove('modal-refreshing');
+    }, 1200);
+    if (action) sendToCS(action);
+}
+
 function _tbDropdownItem(o) {
     if (o.submenu) {
         const sub = o.submenu.filter(Boolean).map(_tbDropdownItem).join('');

@@ -1,5 +1,8 @@
 /* === Core Modal Base Shell === */
 
+@keyframes modal-refresh-spin { to { transform: rotate(360deg); } }
+html.modal-refreshing .fd-refresh-spin { animation: modal-refresh-spin 0.8s linear infinite; }
+
 .modal-overlay {
     position: fixed;
     top: 0;
