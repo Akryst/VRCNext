@@ -8,6 +8,7 @@
 * Mutual groups now always show up-to-date data when opening a user profile instead of using hard-cached data.
 * Mutual friends now always show up-to-date data when opening a user profile instead of using hard-cached data.
 * Groups, mutual groups, and mutual friends are now cached for 1 minute to prevent request spam when opening profiles.
+* Video files in Media Library are now copied to clipboard.
 
 **Changes**
 * Changed the Share icon in Worlds, Groups, Avatars, Events, Profiles to a new "link" icon.
