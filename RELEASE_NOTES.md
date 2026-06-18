@@ -7,6 +7,9 @@ This can be used to throw you around with gravity applied similiar to OVR Advanc
 **VR Overlay, Frameshot**
 * Added new Keybind visuals with Quest 2 controllers to make keybinding easier. 
 You can use the legacy view by pressing the legacy icon.
+* Added FPS counter.
+* Added HMD Battery (Quest 2, Quest 3/s, Quest Pro, Pico X)
+* Added Controller Battery (Index, Wands, Quest 3/3s)
 
 **New**
 * You can now see your status history in the Status Update modal to quick choose a previous status or just write a new one.

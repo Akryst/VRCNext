@@ -68,6 +68,13 @@ namespace VRCNext.Services
         private uint _rightIdx = OpenVR.k_unTrackedDeviceIndexInvalid;
         private readonly TrackedDevicePose_t[] _poses = new TrackedDevicePose_t[OpenVR.k_unMaxTrackedDeviceCount];
 
+        private float _fps = 0f;
+        private uint _lastFrameIndex;
+        private double _lastFrameTime;
+        private float _hmdBattery = -1f;
+        private float _leftBattery = -1f;
+        private float _rightBattery = -1f;
+
         // Keybind recording
         private ulong _lastPressedButtons;
         private int   _stableFrames;
@@ -1543,6 +1550,7 @@ namespace VRCNext.Services
                         if (ds != _lastDashSecond)
                         {
                             _lastDashSecond = ds;
+                            UpdateStats();
                             _dirty = true;
                         }
 
@@ -2333,6 +2341,45 @@ namespace VRCNext.Services
             _rightIdx = _vrSystem.GetTrackedDeviceIndexForControllerRole(ETrackedControllerRole.RightHand);
         }
 
+        private void UpdateStats()
+        {
+            _hmdBattery   = ReadBattery(OpenVR.k_unTrackedDeviceIndex_Hmd);
+            _leftBattery  = ReadBattery(_leftIdx);
+            _rightBattery = ReadBattery(_rightIdx);
+
+            var comp = OpenVR.Compositor;
+            if (comp != null)
+            {
+                var ft = new Compositor_FrameTiming { m_nSize = (uint)Marshal.SizeOf<Compositor_FrameTiming>() };
+                if (comp.GetFrameTiming(ref ft, 0))
+                {
+                    if (_lastFrameTime > 0)
+                    {
+                        double dt  = ft.m_flSystemTimeInSeconds - _lastFrameTime;
+                        long   dfi = (long)ft.m_nFrameIndex - (long)_lastFrameIndex;
+                        if (dt > 0.1 && dfi > 0 && dfi < 100000)
+                        {
+                            float inst = (float)(dfi / dt);
+                            _fps = _fps <= 0f ? inst : _fps * 0.5f + inst * 0.5f;
+                        }
+                    }
+                    _lastFrameIndex = ft.m_nFrameIndex;
+                    _lastFrameTime  = ft.m_flSystemTimeInSeconds;
+                }
+            }
+        }
+
+        private float ReadBattery(uint idx)
+        {
+            var sys = _vrSystem;
+            if (sys == null || idx == OpenVR.k_unTrackedDeviceIndexInvalid) return -1f;
+
+            var err = ETrackedPropertyError.TrackedProp_Success;
+            float pct = sys.GetFloatTrackedDeviceProperty(idx, ETrackedDeviceProperty.Prop_DeviceBatteryPercentage_Float, ref err);
+            if (err != ETrackedPropertyError.TrackedProp_Success) return -1f;
+            return Math.Clamp(pct, 0f, 1f);
+        }
+
         private void ApplyTransform()
         {
             if (!IsConnected || OpenVR.Overlay == null || _overlayHandle == 0) return;
@@ -2806,7 +2853,32 @@ namespace VRCNext.Services
                 g.DrawString(line, df, wb2, new RectangleF(padX, 37f, W, 16f), sfNoPad);
             }
 
+            DrawHeaderStats(g);
             DrawHeaderAvatar(g);
+        }
+
+        private void DrawHeaderStats(Graphics g)
+        {
+            const int avSz = 36;
+            int statsRight = W - avSz - 12 - 12;
+
+            var parts = new System.Collections.Generic.List<string>
+            {
+                $"FPS: {(_fps > 0f ? (int)MathF.Round(_fps) : 0)}"
+            };
+            if (_leftBattery  >= 0f) parts.Add($"L: {(int)MathF.Round(_leftBattery  * 100f)}%");
+            if (_rightBattery >= 0f) parts.Add($"R: {(int)MathF.Round(_rightBattery * 100f)}%");
+            if (_hmdBattery   >= 0f) parts.Add($"HMD: {(int)MathF.Round(_hmdBattery * 100f)}%");
+            string stats = string.Join("    ", parts);
+
+            using var sf = new StringFormat(StringFormat.GenericTypographic)
+            {
+                Alignment = StringAlignment.Far,
+                LineAlignment = StringAlignment.Center
+            };
+            using var font = new Font("Segoe UI", 8.5f, FontStyle.Regular, GraphicsUnit.Point);
+            using var brush = new SolidBrush(Color.FromArgb(230, 255, 255, 255));
+            g.DrawString(stats, font, brush, new RectangleF(120f, 36f, statsRight - 120f, 18f), sf);
         }
 
         private void DrawHeaderAvatar(Graphics g)
