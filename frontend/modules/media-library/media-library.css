@@ -364,7 +364,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: calc(20px / var(--gui-zoom, 1));
+    padding: calc(var(--tb-h) + 20px / var(--gui-zoom, 1)) calc(20px / var(--gui-zoom, 1)) calc(20px / var(--gui-zoom, 1));
 }
 
 .photo-detail-box {

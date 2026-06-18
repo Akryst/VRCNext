@@ -1,19 +1,13 @@
-**2026.31.1**
+**2026.31.2**
 
-**Modals**
-* Added a **Refresh** to Profiles, Groups, Avatars and World Modals.
+**New**
+* You can now see your status history in the Status Update modal to quick choose a previous status or just write a new one.
 
-**Improvements**
-* Groups now always show up-to-date data when opening a user profile instead of using hard-cached data.
-* Mutual groups now always show up-to-date data when opening a user profile instead of using hard-cached data.
-* Mutual friends now always show up-to-date data when opening a user profile instead of using hard-cached data.
-* Groups, mutual groups, and mutual friends are now cached for 1 minute to prevent request spam when opening profiles.
-* Video files in Media Library are now copied to clipboard.
-
-**Changes**
-* Changed the Share icon in Worlds, Groups, Avatars, Events, Profiles to a new "link" icon.
+**Media Library**
+* Added "Set as Profile Icon" to set the current image as profile Icon.
+* Added "Set as Profile Banner" to set the czrrebnt image as profile Banner.
+* Added "Upload to Icon" to upload the image to icons section without setting it as profile icon.
+* Added "Upload to Photos" to upload the image to Photos without setting it as banner.
 
 **Fixes**
-* Fixed a bug where the FFC cacher could show outdated group or mutual data when opening a profile a second time.
-* Fixed a bug where Mutuals/Groups show 0 entries after opening the same user profile twice.
-* Fixed smart-search icon size.
+* Fixed Photo Modal screen position to be centered.

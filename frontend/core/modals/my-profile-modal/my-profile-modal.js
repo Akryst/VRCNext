@@ -414,14 +414,64 @@ function openStatusModal() {
     opts.innerHTML = STATUS_LIST.map(s =>
         `<div class="status-option${selectedStatus === s.key ? ' selected' : ''}" data-status-key="${s.key}" onclick="selectStatusOption('${s.key}')"><div class="status-option-dot" style="background:${s.color}"></div><div><div class="status-option-label">${t(s.labelKey || '', s.label)}</div><div class="status-option-desc">${t(s.descKey || '', s.desc)}</div></div></div>`
     ).join('');
+
+    const curDesc = currentVrcUser.statusDescription || '';
+    const history = Array.isArray(currentVrcUser.statusHistory) ? currentVrcUser.statusHistory : [];
+    const seen = new Set();
+    const entries = [];
+    [curDesc, ...history].forEach(s => {
+        const v = (s || '').trim();
+        if (!v || seen.has(v)) return;
+        seen.add(v);
+        entries.push(v);
+    });
+
+    const sel = document.getElementById('statusDescSelect');
+    sel.innerHTML = `<option value="">${esc(t('profiles.status.no_message', 'No status message'))}</option>`
+        + entries.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+    sel.value = curDesc && entries.includes(curDesc) ? curDesc : '';
+    sel.onchange = () => updateStatusDescCount(sel.value.length);
+    if (typeof initVnSelect === 'function') {
+        initVnSelect(sel);
+        if (sel._vnRefresh) sel._vnRefresh();
+    }
+
     const inp = document.getElementById('statusDescInput');
-    inp.value = currentVrcUser.statusDescription || '';
-    document.getElementById('statusDescCount').textContent = (inp.value.length) + '/32';
-    inp.oninput = () => {
-        document.getElementById('statusDescCount').textContent = inp.value.length + '/32';
-    };
+    inp.value = curDesc;
+    inp.oninput = () => updateStatusDescCount(inp.value.length);
+
+    // Default to the dropdown. Fall back to free-text only when there are no recent statuses.
+    setStatusDescMode(entries.length === 0);
+    updateStatusDescCount((entries.length === 0 ? inp.value : sel.value).length);
     m.style.display = 'flex';
-    setTimeout(() => inp.focus(), 100);
+}
+
+function updateStatusDescCount(len) {
+    document.getElementById('statusDescCount').textContent = (len || 0) + '/32';
+}
+
+function setStatusDescMode(textMode) {
+    const sel = document.getElementById('statusDescSelect');
+    const inp = document.getElementById('statusDescInput');
+    const btn = document.getElementById('statusDescEditBtn');
+    const wrap = sel.parentElement && sel.parentElement.classList.contains('vn-select') ? sel.parentElement : sel;
+    wrap.style.display = textMode ? 'none' : '';
+    inp.style.display = textMode ? '' : 'none';
+    btn.classList.toggle('active', textMode);
+    if (textMode) setTimeout(() => inp.focus(), 50);
+}
+
+function toggleStatusDescEdit() {
+    const inp = document.getElementById('statusDescInput');
+    const sel = document.getElementById('statusDescSelect');
+    const goingToText = inp.style.display === 'none';
+    if (goingToText) {
+        inp.value = sel.value;
+        updateStatusDescCount(inp.value.length);
+    } else {
+        updateStatusDescCount(sel.value.length);
+    }
+    setStatusDescMode(goingToText);
 }
 
 function selectStatusOption(key) {
@@ -432,7 +482,10 @@ function selectStatusOption(key) {
 }
 
 function submitStatusChange() {
-    const desc = document.getElementById('statusDescInput').value.trim();
+    const inp = document.getElementById('statusDescInput');
+    const sel = document.getElementById('statusDescSelect');
+    const textMode = inp.style.display !== 'none';
+    const desc = (textMode ? inp.value : sel.value).trim();
     sendToCS({ action: 'vrcUpdateStatus', status: selectedStatus, statusDescription: desc });
     document.getElementById('modalStatus').style.display = 'none';
 }

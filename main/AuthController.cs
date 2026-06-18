@@ -1145,6 +1145,7 @@ public class AuthController
             image = userImage,
             status = userStatus,
             statusDescription = userStatusDesc,
+            statusHistory = user["statusHistory"]?.ToObject<List<string>>() ?? new List<string>(),
             currentAvatar = user["currentAvatar"]?.ToString() ?? "",
             bio = user["bio"]?.ToString() ?? "",
             pronouns = user["pronouns"]?.ToString() ?? "",
