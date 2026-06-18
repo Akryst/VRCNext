@@ -1,5 +1,9 @@
 **2026.31.2**
 
+**Space Flight**
+* Added Gravity Trigger
+This can be used to throw you around with gravity applied similiar to OVR Advanced Settings Gravity modifier for Space Drag.
+
 **VR Overlay, Frameshot**
 * Added new Keybind visuals with Quest 2 controllers to make keybinding easier. 
 You can use the legacy view by pressing the legacy icon.
