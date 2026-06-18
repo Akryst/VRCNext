@@ -2,6 +2,63 @@
 
 let _fsLastState = null;
 
+let _fsKeybindMode = 'frame';
+const FS_MODE_SELECTS = {
+    frame: { left: 'fsLeftButton', right: 'fsRightButton', allowNone: false },
+    gif:   { left: 'fsLeftRecord', right: 'fsRightRecord', allowNone: true  },
+    video: { left: 'fsLeftVideo',  right: 'fsRightVideo',  allowNone: true  },
+};
+
+function fsSetMode(mode) {
+    if (!FS_MODE_SELECTS[mode]) return;
+    _fsKeybindMode = mode;
+    fsRenderKeybind();
+}
+
+function fsRenderKeybind() {
+    const pills = { frame: 'fsModeFrame', gif: 'fsModeGif', video: 'fsModeVideo' };
+    for (const [m, id] of Object.entries(pills)) {
+        document.getElementById(id)?.classList.toggle('active', m === _fsKeybindMode);
+    }
+
+    const map = FS_MODE_SELECTS[_fsKeybindMode];
+    const leftVal  = parseInt(document.getElementById(map.left)?.value  ?? '0', 10);
+    const rightVal = parseInt(document.getElementById(map.right)?.value ?? '0', 10);
+
+    document.querySelectorAll('#fsControllerVisual .vro-btn').forEach(el => {
+        const id   = parseInt(el.dataset.fsBtnId, 10);
+        const want = el.dataset.side === 'left' ? leftVal : rightVal;
+        el.classList.toggle('active', want !== 0 && id === want);
+    });
+}
+
+function fsKeybindClick(el) {
+    const id   = parseInt(el.dataset.fsBtnId, 10);
+    const side = el.dataset.side;
+    const map  = FS_MODE_SELECTS[_fsKeybindMode];
+    const sel  = document.getElementById(side === 'left' ? map.left : map.right);
+    if (!sel) return;
+
+    const cur = parseInt(sel.value, 10);
+    sel.value = (map.allowNone && cur === id) ? '0' : String(id);
+    if (sel._vnRefresh) sel._vnRefresh();
+
+    fsRenderKeybind();
+    fsAutoSave();
+}
+
+let _fsLegacyView = false;
+function fsToggleView(btn) {
+    _fsLegacyView = !_fsLegacyView;
+    const vis  = document.getElementById('fsControllerVisual');
+    const pill = document.getElementById('fsKeybindPills');
+    const leg  = document.getElementById('fsLegacyView');
+    if (vis)  vis.style.display  = _fsLegacyView ? 'none' : '';
+    if (pill) pill.style.display = _fsLegacyView ? 'none' : '';
+    if (leg)  leg.style.display  = _fsLegacyView ? '' : 'none';
+    btn?.classList.toggle('active', _fsLegacyView);
+}
+
 function fsConnectBtnHtml() {
     return `<span class="msi" style="font-size:16px;">link</span> ${esc(t('common.connect', 'Connect'))}`;
 }

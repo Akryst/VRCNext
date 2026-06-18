@@ -1939,6 +1939,7 @@
   "vro.visibility.focus_radius": "Radio de enfoque",
   "vro.visibility.radius_value": "{value} cm",
   "vro.keybind.title": "Atajo de alternancia",
+  "vro.keybind.toggle_view": "Cambiar entre vista de mando y lista",
   "vro.keybind.mode.keybind": "Atajo",
   "vro.keybind.mode.double_tap": "Doble toque",
   "vro.keybind.none": "No se ha establecido atajo",

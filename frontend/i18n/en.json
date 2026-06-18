@@ -1973,6 +1973,7 @@
   "vro.visibility.focus_radius": "Focus Radius",
   "vro.visibility.radius_value": "{value} cm",
   "vro.keybind.title": "Toggle Keybind",
+  "vro.keybind.toggle_view": "Switch between controller and list view",
   "vro.keybind.mode.keybind": "Keybind",
   "vro.keybind.mode.double_tap": "Double Tap",
   "vro.keybind.none": "No keybind set",

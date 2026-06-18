@@ -1938,6 +1938,7 @@
   "vro.visibility.focus_radius": "フォーカス半径",
   "vro.visibility.radius_value": "{value} cm",
   "vro.keybind.title": "トグルキーバインド",
+  "vro.keybind.toggle_view": "コントローラー表示とリスト表示を切り替え",
   "vro.keybind.mode.keybind": "キーバインド",
   "vro.keybind.mode.double_tap": "ダブルタップ",
   "vro.keybind.none": "キーバインドが設定されていません",

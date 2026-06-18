@@ -1939,6 +1939,7 @@
   "vro.visibility.focus_radius": "Радиус фокуса",
   "vro.visibility.radius_value": "{value} см",
   "vro.keybind.title": "Горячие клавиши",
+  "vro.keybind.toggle_view": "Переключить между видом контроллера и списком",
   "vro.keybind.mode.keybind": "Клавиша",
   "vro.keybind.mode.double_tap": "Двойное нажатие",
   "vro.keybind.none": "Не назначено",

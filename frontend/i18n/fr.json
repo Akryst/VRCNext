@@ -1939,6 +1939,7 @@
   "vro.visibility.focus_radius": "Rayon de focus",
   "vro.visibility.radius_value": "{value} cm",
   "vro.keybind.title": "Raccourci de bascule",
+  "vro.keybind.toggle_view": "Basculer entre la vue manette et la liste",
   "vro.keybind.mode.keybind": "Raccourci",
   "vro.keybind.mode.double_tap": "Double appui",
   "vro.keybind.none": "Aucun raccourci défini",

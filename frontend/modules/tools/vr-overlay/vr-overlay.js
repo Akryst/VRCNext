@@ -33,6 +33,23 @@ function vroGetNames(ids) {
     return ids.map(id => VRO_BTN_NAMES[id] ?? `Button${id}`);
 }
 
+function _vroSideActive(hand, side) {
+    if (!side) return true;
+    return hand === 0 || (hand === 1 && side === 'left') || (hand === 2 && side === 'right');
+}
+
+function vroToggleKeybindView(btn) {
+    const v = document.getElementById('vroControllerVisual');
+    if (!v) return;
+    btn?.classList.toggle('active', v.classList.toggle('legacy'));
+}
+
+function vroToggleScaleView(btn) {
+    const v = document.getElementById('vroScaleControllerVisual');
+    if (!v) return;
+    btn?.classList.toggle('active', v.classList.toggle('legacy'));
+}
+
 function vroRadiusLabelText(value) {
     return tf('vro.transform.radius_value', { value }, `${value} cm`);
 }
@@ -278,9 +295,12 @@ function vroStartManualEdit() {
     _vroManualHand = vroActiveHand();
     _vroSetManualHandUI(_vroManualHand);
     // Wire clicks
-    document.getElementById('vroControllerVisual')?.querySelectorAll('.vro-btn').forEach(el => {
+    const visual = document.getElementById('vroControllerVisual');
+    visual?.classList.add('editing');
+    visual?.querySelectorAll('.vro-btn').forEach(el => {
         el.onclick = () => vroToggleManualBtn(parseInt(el.dataset.btnId, 10));
     });
+    _vroRenderManualToggle();
     updateRecordingUI();
 }
 
@@ -288,9 +308,18 @@ function vroStopManualEdit() {
     _vroManualEditing = false;
     _vroManualIds = [];
     // Unwire clicks
-    document.getElementById('vroControllerVisual')?.querySelectorAll('.vro-btn').forEach(el => { el.onclick = null; });
+    const visual = document.getElementById('vroControllerVisual');
+    visual?.classList.remove('editing');
+    visual?.querySelectorAll('.vro-btn').forEach(el => { el.onclick = null; });
     updateRecordingUI();
     updateKeybindDisplay(); // restore display to current saved keybind
+}
+
+function _vroRenderManualToggle() {
+    document.getElementById('vroControllerVisual')?.querySelectorAll('.vro-btn').forEach(el => {
+        const btnId = parseInt(el.dataset.btnId, 10);
+        el.classList.toggle('active', _vroManualIds.includes(btnId) && _vroSideActive(_vroManualHand, el.dataset.side));
+    });
 }
 
 function vroToggleManualBtn(id) {
@@ -300,15 +329,13 @@ function vroToggleManualBtn(id) {
     const max = vroKeybindMode === 1 ? 1 : 4;
     if (i >= 0) _vroManualIds.splice(i, 1);
     else { if (_vroManualIds.length >= max) _vroManualIds = [id]; else _vroManualIds.push(id); }
-    // Update visual
-    document.getElementById('vroControllerVisual')?.querySelectorAll('.vro-btn').forEach(el => {
-        el.classList.toggle('active', _vroManualIds.includes(parseInt(el.dataset.btnId, 10)));
-    });
+    _vroRenderManualToggle();
 }
 
 function vroSetManualHand(hand) {
     _vroManualHand = hand;
     _vroSetManualHandUI(hand);
+    if (_vroManualEditing) _vroRenderManualToggle();
 }
 
 function _vroSetManualHandUI(hand) {
@@ -452,17 +479,21 @@ function vroScaleCancelRecord() {
 function vroScaleStartManual() {
     _vroScaleManualEditing = true;
     _vroScaleManualIds = [..._vroScaleKeybindIds];
-    document.getElementById('vroScaleControllerVisual')?.querySelectorAll('.vro-btn').forEach(el => {
+    const visual = document.getElementById('vroScaleControllerVisual');
+    visual?.classList.add('editing');
+    visual?.querySelectorAll('.vro-btn').forEach(el => {
         el.onclick = () => vroScaleToggleManualBtn(parseInt(el.dataset.scaleBtnId, 10));
-        el.classList.toggle('active', _vroScaleManualIds.includes(parseInt(el.dataset.scaleBtnId, 10)));
     });
+    _vroScaleRenderManual();
     updateScaleRecordingUI();
 }
 
 function vroScaleStopManual() {
     _vroScaleManualEditing = false;
     _vroScaleManualIds = [];
-    document.getElementById('vroScaleControllerVisual')?.querySelectorAll('.vro-btn').forEach(el => {
+    const visual = document.getElementById('vroScaleControllerVisual');
+    visual?.classList.remove('editing');
+    visual?.querySelectorAll('.vro-btn').forEach(el => {
         el.onclick = null;
         el.classList.remove('active');
     });
@@ -470,20 +501,26 @@ function vroScaleStopManual() {
     updateScaleKeybindDisplay();
 }
 
+function _vroScaleRenderManual() {
+    document.getElementById('vroScaleControllerVisual')?.querySelectorAll('.vro-btn').forEach(el => {
+        const btnId = parseInt(el.dataset.scaleBtnId, 10);
+        el.classList.toggle('active', _vroScaleManualIds.includes(btnId) && _vroSideActive(_vroScaleKeybindHand, el.dataset.side));
+    });
+}
+
 function vroScaleToggleManualBtn(id) {
     if (!_vroScaleManualEditing) return;
     const i = _vroScaleManualIds.indexOf(id);
     if (i >= 0) _vroScaleManualIds.splice(i, 1);
     else { if (_vroScaleManualIds.length >= 4) _vroScaleManualIds = [id]; else _vroScaleManualIds.push(id); }
-    document.getElementById('vroScaleControllerVisual')?.querySelectorAll('.vro-btn').forEach(el => {
-        el.classList.toggle('active', _vroScaleManualIds.includes(parseInt(el.dataset.scaleBtnId, 10)));
-    });
+    _vroScaleRenderManual();
 }
 
 function vroScaleSetHand(hand) {
     _vroScaleKeybindHand = hand;
     _vroScaleSetManualHandUI(hand);
-    if (!_vroScaleManualEditing) vroScaleAutoSave();
+    if (_vroScaleManualEditing) _vroScaleRenderManual();
+    else vroScaleAutoSave();
 }
 
 function _vroScaleSetManualHandUI(hand) {
@@ -532,9 +569,8 @@ function updateScaleKeybindDisplay() {
 
     if (!visual) return;
     visual.querySelectorAll('.vro-btn').forEach(el => {
-        el.classList.remove('active');
         const btnId = parseInt(el.dataset.scaleBtnId ?? '999', 10);
-        if (_vroScaleKeybindIds.includes(btnId)) el.classList.add('active');
+        el.classList.toggle('active', _vroScaleKeybindIds.includes(btnId) && _vroSideActive(_vroScaleKeybindHand, el.dataset.side));
     });
 }
 
@@ -650,9 +686,8 @@ function updateKeybindDisplay() {
 
     if (!visual) return;
     visual.querySelectorAll('.vro-btn').forEach(el => {
-        el.classList.remove('active');
         const btnId = parseInt(el.dataset.btnId ?? '999', 10);
-        if (ids.includes(btnId)) el.classList.add('active');
+        el.classList.toggle('active', ids.includes(btnId) && _vroSideActive(hand, el.dataset.side));
     });
 }
 

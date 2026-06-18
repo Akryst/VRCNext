@@ -495,6 +495,7 @@ function loadSettingsToUI(s) {
     const _fsRV  = document.getElementById('fsRightVideo');
     if (_fsLV) _fsLV.value = String(s.FsLeftVideoButton  ?? s.fsLeftVideoButton  ?? 0);
     if (_fsRV) _fsRV.value = String(s.FsRightVideoButton ?? s.fsRightVideoButton ?? 0);
+    if (typeof fsRenderKeybind === 'function') fsRenderKeybind();
     if (typeof _fsSavedAudioA !== 'undefined') _fsSavedAudioA = s.FsVideoDeviceA ?? s.fsVideoDeviceA ?? '';
     if (typeof _fsSavedAudioB !== 'undefined') _fsSavedAudioB = s.FsVideoDeviceB ?? s.fsVideoDeviceB ?? '';
     if (typeof fsRequestAudioDevices === 'function') fsRequestAudioDevices();

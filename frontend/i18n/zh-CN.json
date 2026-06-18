@@ -1939,6 +1939,7 @@
   "vro.visibility.focus_radius": "聚焦半径",
   "vro.visibility.radius_value": "{value} 厘米",
   "vro.keybind.title": "切换快捷键",
+  "vro.keybind.toggle_view": "在手柄视图和列表视图之间切换",
   "vro.keybind.mode.keybind": "快捷键",
   "vro.keybind.mode.double_tap": "双击",
   "vro.keybind.none": "未设置快捷键",

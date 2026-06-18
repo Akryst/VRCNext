@@ -1,5 +1,9 @@
 **2026.31.2**
 
+**VR Overlay, Frameshot**
+* Added new Keybind visuals with Quest 2 controllers to make keybinding easier. 
+You can use the legacy view by pressing the legacy icon.
+
 **New**
 * You can now see your status history in the Status Update modal to quick choose a previous status or just write a new one.
 
