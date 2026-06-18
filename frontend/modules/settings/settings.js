@@ -470,6 +470,7 @@ function loadSettingsToUI(s) {
     if (_sfRR) _sfRR.value = String(s.SfRightResetButton ?? s.sfRightResetButton ?? 0);
     if (_sfLD) _sfLD.value = String(s.SfLeftDragButton   ?? s.sfLeftDragButton   ?? 0);
     if (_sfRD) _sfRD.value = String(s.SfRightDragButton  ?? s.sfRightDragButton  ?? 32);
+    if (typeof sfRenderKeybind === 'function') sfRenderKeybind();
 
     // Restore VR/Desktop auto-start flags
     const _set = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
