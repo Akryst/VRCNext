@@ -116,6 +116,58 @@ function iuAnimLabel(style) {
     return t(style.key, style.fallback);
 }
 
+// Media Library -> upload. Opens the upload modal pre-loaded with an existing
+// library image (fetched from its local URL), so the crop/compress/resize
+// pipeline applies just like a hand-picked file.
+function mediaLibUploadFlow(tab, sourceUrl, sourceName, callback) {
+    if (!sourceUrl) return;
+    openInvUploadModal(tab, callback || null);
+    iuLoadFromUrl(sourceUrl, sourceName);
+}
+
+function mediaSetAsProfileIcon(url, name) {
+    mediaLibUploadFlow('icons', url, name, file => {
+        if (file?.fileUrl) sendToCS({ action: 'vrcUpdateProfile', userIcon: file.fileUrl });
+    });
+}
+
+function mediaSetAsProfileBanner(url, name) {
+    mediaLibUploadFlow('photos', url, name, file => {
+        if (file?.fileUrl) sendToCS({ action: 'vrcUpdateProfile', profilePicOverride: file.fileUrl });
+    });
+}
+
+function mediaUploadToPhotos(url, name) { mediaLibUploadFlow('photos', url, name, null); }
+function mediaUploadToIcons(url, name)  { mediaLibUploadFlow('icons',  url, name, null); }
+
+// Fetch a library image and normalize it to a PNG File via a same-origin blob
+// URL (never taints the canvas), then hand it to the normal upload pipeline.
+// Flattens GIFs to their first frame, matching VRChat's static icon/photo uploads.
+function iuLoadFromUrl(url, name) {
+    iuClearError();
+    fetch(url)
+        .then(resp => { if (!resp.ok) throw new Error('fetch failed'); return resp.blob(); })
+        .then(srcBlob => {
+            const objUrl = URL.createObjectURL(srcBlob);
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                canvas.getContext('2d').drawImage(img, 0, 0);
+                URL.revokeObjectURL(objUrl);
+                canvas.toBlob(blob => {
+                    if (!blob) { iuShowError(t('inventory.upload.error.load_failed', 'Failed to load image.')); return; }
+                    const base = (name || 'image').replace(/\.[^.]+$/, '');
+                    iuHandleFile(new File([blob], base + '.png', { type: 'image/png' }));
+                }, 'image/png');
+            };
+            img.onerror = () => { URL.revokeObjectURL(objUrl); iuShowError(t('inventory.upload.error.load_failed', 'Failed to load image.')); };
+            img.src = objUrl;
+        })
+        .catch(() => iuShowError(t('inventory.upload.error.load_failed', 'Failed to load image.')));
+}
+
 function openInvUploadModal(tabOverride, callback) {
     const tab = tabOverride || activeInvTab;
     if (!tabOverride && !INV_TABS[tab]?.canUpload) return;

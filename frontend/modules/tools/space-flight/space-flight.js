@@ -2,6 +2,63 @@
 
 let _sfLastState = null;
 
+let _sfKeybindMode = 'reset';
+const SF_MODE_SELECTS = {
+    reset:   { left: 'sfLeftReset',    right: 'sfRightReset'    },
+    drag:    { left: 'sfLeftDrag',     right: 'sfRightDrag'     },
+    gravity: { left: 'sfLeftGravity',  right: 'sfRightGravity'  },
+};
+
+function sfSetMode(mode) {
+    if (!SF_MODE_SELECTS[mode]) return;
+    _sfKeybindMode = mode;
+    sfRenderKeybind();
+}
+
+function sfRenderKeybind() {
+    const pills = { reset: 'sfModeReset', drag: 'sfModeDrag', gravity: 'sfModeGravity' };
+    for (const [m, id] of Object.entries(pills)) {
+        document.getElementById(id)?.classList.toggle('active', m === _sfKeybindMode);
+    }
+
+    const map = SF_MODE_SELECTS[_sfKeybindMode];
+    const leftVal  = parseInt(document.getElementById(map.left)?.value  ?? '0', 10);
+    const rightVal = parseInt(document.getElementById(map.right)?.value ?? '0', 10);
+
+    document.querySelectorAll('#sfControllerVisual .vro-btn').forEach(el => {
+        const id   = parseInt(el.dataset.sfBtnId, 10);
+        const want = el.dataset.side === 'left' ? leftVal : rightVal;
+        el.classList.toggle('active', want !== 0 && id === want);
+    });
+}
+
+function sfKeybindClick(el) {
+    const id   = parseInt(el.dataset.sfBtnId, 10);
+    const side = el.dataset.side;
+    const map  = SF_MODE_SELECTS[_sfKeybindMode];
+    const sel  = document.getElementById(side === 'left' ? map.left : map.right);
+    if (!sel) return;
+
+    const cur = parseInt(sel.value, 10);
+    sel.value = cur === id ? '0' : String(id);
+    if (sel._vnRefresh) sel._vnRefresh();
+
+    sfRenderKeybind();
+    sfAutoSave();
+}
+
+let _sfLegacyView = false;
+function sfToggleView(btn) {
+    _sfLegacyView = !_sfLegacyView;
+    const vis  = document.getElementById('sfControllerVisual');
+    const pill = document.getElementById('sfKeybindPills');
+    const leg  = document.getElementById('sfLegacyView');
+    if (vis)  vis.style.display  = _sfLegacyView ? 'none' : '';
+    if (pill) pill.style.display = _sfLegacyView ? 'none' : '';
+    if (leg)  leg.style.display  = _sfLegacyView ? '' : 'none';
+    btn?.classList.toggle('active', _sfLegacyView);
+}
+
 function sfConnectBtnHtml() {
     return `<span class="msi" style="font-size:16px;">link</span> ${esc(t('common.connect', 'Connect'))}`;
 }
@@ -41,6 +98,9 @@ function sfSendConfig() {
         rightResetBtn: parseInt(document.getElementById('sfRightReset')?.value ?? '0',  10),
         leftDragBtn:   parseInt(document.getElementById('sfLeftDrag')?.value   ?? '0',  10),
         rightDragBtn:  parseInt(document.getElementById('sfRightDrag')?.value  ?? '32', 10),
+        leftGravityBtn:  parseInt(document.getElementById('sfLeftGravity')?.value  ?? '0', 10),
+        rightGravityBtn: parseInt(document.getElementById('sfRightGravity')?.value ?? '0', 10),
+        gravity:       parseFloat(document.getElementById('sfGravity')?.value) || 9.8,
     });
 }
 

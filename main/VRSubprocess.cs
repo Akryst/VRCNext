@@ -293,7 +293,10 @@ static class VRSubprocess
                         (uint)I(cmd, "leftResetBtn",  32),
                         (uint)I(cmd, "rightResetBtn",  0),
                         (uint)I(cmd, "leftDragBtn",    0),
-                        (uint)I(cmd, "rightDragBtn",  32));
+                        (uint)I(cmd, "rightDragBtn",  32),
+                        (uint)I(cmd, "leftGravityBtn",  0),
+                        (uint)I(cmd, "rightGravityBtn", 0),
+                        F(cmd, "gravity", 9.8f));
                     sf.StartPolling();
                 }
                 break;
@@ -309,7 +312,10 @@ static class VRSubprocess
                     (uint)I(cmd, "leftResetBtn",  32),
                     (uint)I(cmd, "rightResetBtn",  0),
                     (uint)I(cmd, "leftDragBtn",    0),
-                    (uint)I(cmd, "rightDragBtn",  32));
+                    (uint)I(cmd, "rightDragBtn",  32),
+                    (uint)I(cmd, "leftGravityBtn",  0),
+                    (uint)I(cmd, "rightGravityBtn", 0),
+                    F(cmd, "gravity", 9.8f));
                 break;
 
             case "sf_reset":

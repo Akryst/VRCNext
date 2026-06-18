@@ -390,6 +390,9 @@ public class AppSettings
     public uint  SfRightResetButton { get; set; } = 0;
     public uint  SfLeftDragButton   { get; set; } = 0;
     public uint  SfRightDragButton  { get; set; } = 32; // Axis0 / Thumbstick
+    public uint  SfLeftGravityButton  { get; set; } = 0;
+    public uint  SfRightGravityButton { get; set; } = 0;
+    public float SfGravity { get; set; } = 9.8f;
 
     // FrameShot settings
     public uint   FsLeftButton       { get; set; } = 2;  // EVRButtonId.k_EButton_Grip

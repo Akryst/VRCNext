@@ -441,12 +441,13 @@
             const cls = [item.danger ? 'danger' : '', hasSub ? 'has-sub' : ''].filter(Boolean).join(' ');
             const arrow = hasSub ? '<span class="msi vn-ctx-arrow">chevron_right</span>' : '';
             const check = item.checked ? '<span class="msi vn-ctx-check">check</span>' : '';
+            const plus = item.plusBadge ? '<span class="vrcn-supporter-badge" style="margin-left:auto;flex-shrink:0;">VRC+</span>' : '';
             const iconEl = item.dotColor
                 ? `<span class="vn-ctx-dot" style="background:${item.dotColor}"></span>`
                 : `<span class="msi">${item.icon}</span>`;
             return `<button class="vn-ctx-item${cls ? ' ' + cls : ''}" data-idx="${idx}">
                 ${iconEl}
-                <span class="vn-ctx-label">${esc(item.label)}</span>${check}${arrow}
+                <span class="vn-ctx-label">${esc(item.label)}</span>${plus}${check}${arrow}
             </button>`;
         }).join('');
     }
@@ -1215,6 +1216,16 @@
         return items;
     }
 
+    // VRC+ upload actions shared by the library grid and the photo detail modal.
+    function buildMediaUploadItems(url, name) {
+        return [
+            { icon: 'account_circle', label: cm('library.set_profile_icon',   'Set as Profile Icon'),   plusBadge: true, action: () => mediaSetAsProfileIcon(url, name) },
+            { icon: 'image',          label: cm('library.set_profile_banner', 'Set as Profile Banner'), plusBadge: true, action: () => mediaSetAsProfileBanner(url, name) },
+            { icon: 'photo_library',  label: cm('library.upload_to_photos',   'Upload to Photos'),      plusBadge: true, action: () => mediaUploadToPhotos(url, name) },
+            { icon: 'add_photo_alternate', label: cm('library.upload_to_icons', 'Upload to Icons'),     plusBadge: true, action: () => mediaUploadToIcons(url, name) },
+        ];
+    }
+
     function buildLibCardItems(path, url, type, name) {
         const isFav = (typeof favorites !== 'undefined') && favorites.has(path);
         const isHidden = (typeof hiddenMedia !== 'undefined') && hiddenMedia.has(path);
@@ -1226,6 +1237,7 @@
         }
         if (type === 'image' || type === 'gif') {
             items.push({ icon: 'desktop_windows', label: cm('library.set_wallpaper', 'Set as Desktop Background'), action: () => sendToCS({ action: 'setDesktopBackground', path }) });
+            items.push('sep', ...buildMediaUploadItems(url, name));
         }
         items.push({ icon: 'folder_open', label: cm('library.reveal_in_explorer', 'Reveal in Explorer'), action: () => sendToCS({ action: 'revealInExplorer', path }) });
         if (typeof relayOn !== 'undefined' && relayOn) {
@@ -1255,6 +1267,7 @@
         }
         if (type === 'image' || type === 'gif') {
             items.push({ icon: 'desktop_windows', label: cm('library.set_wallpaper', 'Set as Desktop Background'), action: () => sendToCS({ action: 'setDesktopBackground', path }) });
+            items.push('sep', ...buildMediaUploadItems(url, name));
         }
         items.push({ icon: 'folder_open', label: cm('library.reveal_in_explorer', 'Reveal in Explorer'), action: () => sendToCS({ action: 'revealInExplorer', path }) });
         items.push('sep');

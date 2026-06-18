@@ -67,7 +67,9 @@ public class SpaceFlightController : IDisposable
                     _core.Settings.SfMultiplier,
                     _core.Settings.SfLockX, _core.Settings.SfLockY, _core.Settings.SfLockZ,
                     _core.Settings.SfLeftResetButton, _core.Settings.SfRightResetButton,
-                    _core.Settings.SfLeftDragButton,  _core.Settings.SfRightDragButton);
+                    _core.Settings.SfLeftDragButton,  _core.Settings.SfRightDragButton,
+                    _core.Settings.SfLeftGravityButton, _core.Settings.SfRightGravityButton,
+                    _core.Settings.SfGravity);
                 _vroCtrl.UpdateToolStates();
                 break;
             }
@@ -102,7 +104,10 @@ public class SpaceFlightController : IDisposable
                 var rr   = (uint)(msg["rightResetBtn"]?.Value<int>() ?? 0);
                 var ld   = (uint)(msg["leftDragBtn"]?.Value<int>()   ?? 0);
                 var rd   = (uint)(msg["rightDragBtn"]?.Value<int>()  ?? 32);
-                _core.VrOverlay?.SfConfig(mult, lx, ly, lz, lr, rr, ld, rd);
+                var lg   = (uint)(msg["leftGravityBtn"]?.Value<int>()  ?? 0);
+                var rg   = (uint)(msg["rightGravityBtn"]?.Value<int>() ?? 0);
+                var grav = msg["gravity"]?.Value<float>() ?? 9.8f;
+                _core.VrOverlay?.SfConfig(mult, lx, ly, lz, lr, rr, ld, rd, lg, rg, grav);
                 break;
             }
 #endif
@@ -133,7 +138,9 @@ public class SpaceFlightController : IDisposable
                 _core.Settings.SfMultiplier,
                 _core.Settings.SfLockX, _core.Settings.SfLockY, _core.Settings.SfLockZ,
                 _core.Settings.SfLeftResetButton, _core.Settings.SfRightResetButton,
-                _core.Settings.SfLeftDragButton,  _core.Settings.SfRightDragButton);
+                _core.Settings.SfLeftDragButton,  _core.Settings.SfRightDragButton,
+                _core.Settings.SfLeftGravityButton, _core.Settings.SfRightGravityButton,
+                _core.Settings.SfGravity);
         }
 #endif
     }
