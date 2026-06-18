@@ -29,6 +29,7 @@
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">tune</span> <span data-i18n="steamvr.settings.title">Settings</span></div>
                         <div class="sf-row"><label data-i18n="steamvr.settings.drag_multiplier">Drag Multiplier</label><input type="range" id="sfMultiplier" min="0.1" max="100" step="0.1" value="1" oninput="document.getElementById('sfMultVal').textContent=this.value+'x';sfAutoSave()"><span id="sfMultVal" style="font-size:11px;color:var(--tx2);min-width:28px;text-align:right;">1x</span></div>
+                        <div class="sf-row"><label data-i18n="steamvr.settings.gravity">Gravity</label><input type="range" id="sfGravity" min="1" max="20" step="0.1" value="9.8" oninput="document.getElementById('sfGravityVal').textContent=this.value;sfAutoSave()"><span id="sfGravityVal" style="font-size:11px;color:var(--tx2);min-width:28px;text-align:right;">9.8</span></div>
                         <div class="sf-section-label" data-i18n="steamvr.settings.axis_lock">Axis Lock</div>
                         <div class="sf-toggle-row"><span data-i18n="steamvr.settings.lock_x">Lock X</span><label class="toggle"><input type="checkbox" id="sfLockX" onchange="sfAutoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
                         <div class="sf-toggle-row"><span data-i18n="steamvr.settings.lock_y">Lock Y</span><label class="toggle"><input type="checkbox" id="sfLockY" onchange="sfAutoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
@@ -46,6 +47,7 @@
                         <div class="fd-tabs" id="sfKeybindPills" style="margin-bottom:10px;">
                             <button class="fd-tab active" id="sfModeReset" onclick="sfSetMode('reset')" data-i18n="steamvr.controls.reset_position">Reset Position</button>
                             <button class="fd-tab" id="sfModeDrag" onclick="sfSetMode('drag')" data-i18n="steamvr.controls.drag_control">Drag Control</button>
+                            <button class="fd-tab" id="sfModeGravity" onclick="sfSetMode('gravity')" data-i18n="steamvr.controls.gravity_control">Gravity Control</button>
                         </div>
 
                         <div id="sfControllerVisual" class="vro-controller-visual editing">
@@ -80,6 +82,7 @@
                                 <span></span>
                                 <span data-i18n="steamvr.controls.reset_position">Reset Position</span>
                                 <span data-i18n="steamvr.controls.drag_control">Drag Control</span>
+                                <span data-i18n="steamvr.controls.gravity_control">Gravity Control</span>
                             </div>
 
                             <div class="sf-ctrl-grid">
@@ -100,6 +103,14 @@
                                     <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
                                     <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
                                 </select>
+                                <select id="sfLeftGravity" class="vrcn-select" onchange="sfAutoSave();sfRenderKeybind()">
+                                    <option value="0"  data-i18n="frameshot.keybind.none">None</option>
+                                    <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
+                                    <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
+                                    <option value="32" data-i18n="vro.keybind.button.thumbstick">Thumbstick</option>
+                                    <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
+                                    <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
+                                </select>
                             </div>
 
                             <div class="sf-ctrl-grid">
@@ -113,6 +124,14 @@
                                     <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
                                 </select>
                                 <select id="sfRightDrag" class="vrcn-select" onchange="sfAutoSave();sfRenderKeybind()">
+                                    <option value="0"  data-i18n="frameshot.keybind.none">None</option>
+                                    <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
+                                    <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>
+                                    <option value="32" data-i18n="vro.keybind.button.thumbstick">Thumbstick</option>
+                                    <option value="7"  data-i18n="vro.keybind.button.ax">A / X</option>
+                                    <option value="1"  data-i18n="vro.keybind.button.by">B / Y</option>
+                                </select>
+                                <select id="sfRightGravity" class="vrcn-select" onchange="sfAutoSave();sfRenderKeybind()">
                                     <option value="0"  data-i18n="frameshot.keybind.none">None</option>
                                     <option value="2"  data-i18n="vro.keybind.button.grip">Grip</option>
                                     <option value="33" data-i18n="vro.keybind.button.trigger">Trigger</option>

@@ -4,8 +4,9 @@ let _sfLastState = null;
 
 let _sfKeybindMode = 'reset';
 const SF_MODE_SELECTS = {
-    reset: { left: 'sfLeftReset', right: 'sfRightReset' },
-    drag:  { left: 'sfLeftDrag',  right: 'sfRightDrag'  },
+    reset:   { left: 'sfLeftReset',    right: 'sfRightReset'    },
+    drag:    { left: 'sfLeftDrag',     right: 'sfRightDrag'     },
+    gravity: { left: 'sfLeftGravity',  right: 'sfRightGravity'  },
 };
 
 function sfSetMode(mode) {
@@ -15,7 +16,7 @@ function sfSetMode(mode) {
 }
 
 function sfRenderKeybind() {
-    const pills = { reset: 'sfModeReset', drag: 'sfModeDrag' };
+    const pills = { reset: 'sfModeReset', drag: 'sfModeDrag', gravity: 'sfModeGravity' };
     for (const [m, id] of Object.entries(pills)) {
         document.getElementById(id)?.classList.toggle('active', m === _sfKeybindMode);
     }
@@ -97,6 +98,9 @@ function sfSendConfig() {
         rightResetBtn: parseInt(document.getElementById('sfRightReset')?.value ?? '0',  10),
         leftDragBtn:   parseInt(document.getElementById('sfLeftDrag')?.value   ?? '0',  10),
         rightDragBtn:  parseInt(document.getElementById('sfRightDrag')?.value  ?? '32', 10),
+        leftGravityBtn:  parseInt(document.getElementById('sfLeftGravity')?.value  ?? '0', 10),
+        rightGravityBtn: parseInt(document.getElementById('sfRightGravity')?.value ?? '0', 10),
+        gravity:       parseFloat(document.getElementById('sfGravity')?.value) || 9.8,
     });
 }
 

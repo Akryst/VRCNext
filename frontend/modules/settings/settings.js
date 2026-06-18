@@ -139,6 +139,9 @@ function saveSettings() {
             sfRightResetBtn: parseInt(document.getElementById('sfRightReset')?.value ?? '0',  10),
             sfLeftDragBtn:   parseInt(document.getElementById('sfLeftDrag')?.value   ?? '0',  10),
             sfRightDragBtn:  parseInt(document.getElementById('sfRightDrag')?.value  ?? '32', 10),
+            sfLeftGravityBtn:  parseInt(document.getElementById('sfLeftGravity')?.value  ?? '0', 10),
+            sfRightGravityBtn: parseInt(document.getElementById('sfRightGravity')?.value ?? '0', 10),
+            sfGravity: parseFloat(document.getElementById('sfGravity')?.value) || 9.8,
             chatboxAutoStart: false, // legacy
             chatboxAutoStartVR:       document.getElementById('setCbAutoStartVR')?.checked        ?? false,
             chatboxAutoStartDesktop:  document.getElementById('setCbAutoStartDesktop')?.checked   ?? false,
@@ -470,6 +473,16 @@ function loadSettingsToUI(s) {
     if (_sfRR) _sfRR.value = String(s.SfRightResetButton ?? s.sfRightResetButton ?? 0);
     if (_sfLD) _sfLD.value = String(s.SfLeftDragButton   ?? s.sfLeftDragButton   ?? 0);
     if (_sfRD) _sfRD.value = String(s.SfRightDragButton  ?? s.sfRightDragButton  ?? 32);
+    const _sfLG = document.getElementById('sfLeftGravity');
+    const _sfRG = document.getElementById('sfRightGravity');
+    if (_sfLG) _sfLG.value = String(s.SfLeftGravityButton  ?? s.sfLeftGravityButton  ?? 0);
+    if (_sfRG) _sfRG.value = String(s.SfRightGravityButton ?? s.sfRightGravityButton ?? 0);
+    const _sfGrav = document.getElementById('sfGravity');
+    if (_sfGrav) {
+        _sfGrav.value = s.SfGravity ?? s.sfGravity ?? 9.8;
+        const _sfGravV = document.getElementById('sfGravityVal');
+        if (_sfGravV) _sfGravV.textContent = String(_sfGrav.value);
+    }
     if (typeof sfRenderKeybind === 'function') sfRenderKeybind();
 
     // Restore VR/Desktop auto-start flags

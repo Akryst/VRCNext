@@ -1756,6 +1756,9 @@ public class AuthController
             _core.Settings.SfRightResetButton = (uint)(data["sfRightResetBtn"]?.Value<int>() ?? 0);
             _core.Settings.SfLeftDragButton   = (uint)(data["sfLeftDragBtn"]?.Value<int>()   ?? 0);
             _core.Settings.SfRightDragButton  = (uint)(data["sfRightDragBtn"]?.Value<int>()  ?? 32);
+            _core.Settings.SfLeftGravityButton  = (uint)(data["sfLeftGravityBtn"]?.Value<int>()  ?? 0);
+            _core.Settings.SfRightGravityButton = (uint)(data["sfRightGravityBtn"]?.Value<int>() ?? 0);
+            _core.Settings.SfGravity = data["sfGravity"]?.Value<float>() ?? 9.8f;
             _core.Settings.ChatboxAutoStart = data["chatboxAutoStart"]?.Value<bool>() ?? false;
             _core.Settings.SfAutoStart = data["sfAutoStart"]?.Value<bool>() ?? false;
             _core.Settings.DiscordPresenceAutoStart = data["discordPresenceAutoStart"]?.Value<bool>() ?? false;

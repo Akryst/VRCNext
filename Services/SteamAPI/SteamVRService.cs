@@ -46,6 +46,22 @@ namespace VRCNext.Services
         private bool _leftResetHeldPrev;
         private bool _rightResetHeldPrev;
 
+        public float Gravity { get; set; } = 9.8f;
+        public uint LeftGravityButton  { get; set; } = 0;
+        public uint RightGravityButton { get; set; } = 0;
+        private bool _leftGravDragging;
+        private bool _rightGravDragging;
+        private Vector3 _leftGravRawAnchor;
+        private Vector3 _rightGravRawAnchor;
+        private Vector3 _leftGravOffsetAtGrab;
+        private Vector3 _rightGravOffsetAtGrab;
+        private Vector3 _offsetVel;
+        private Vector3 _prevOffset;
+        private bool _ballistic;
+        private Vector3 _ballVel;
+        private const float DT = 0.011f;
+        private const float GRAV_AIR_DRAG = 0.1f;
+
         private uint _leftIdx = OpenVR.k_unTrackedDeviceIndexInvalid;
         private uint _rightIdx = OpenVR.k_unTrackedDeviceIndexInvalid;
         private readonly TrackedDevicePose_t[] _rawPoses = new TrackedDevicePose_t[OpenVR.k_unMaxTrackedDeviceCount];
@@ -358,7 +374,74 @@ namespace VRCNext.Services
             else
                 _rightDragging = false;
 
-            IsDragging = _rightDragging || _leftDragging;
+            bool gravWasDragging = _leftGravDragging || _rightGravDragging;
+
+            bool lgp = false, rgp = false;
+            Vector3 lgRaw = default, rgRaw = default;
+            if (LeftGravityButton != 0 && _leftIdx != OpenVR.k_unTrackedDeviceIndexInvalid)
+            {
+                lgp = IsBitSet(leftBtns, LeftGravityButton);
+                if (lgp) lgRaw = GetRawPos(_leftIdx);
+            }
+            if (RightGravityButton != 0 && _rightIdx != OpenVR.k_unTrackedDeviceIndexInvalid)
+            {
+                rgp = IsBitSet(rightBtns, RightGravityButton);
+                if (rgp) rgRaw = GetRawPos(_rightIdx);
+            }
+
+            if (LeftGravityButton != 0)
+                HandleHandDrag(ref _leftGravDragging, lgp, lgRaw, ref _leftGravRawAnchor, ref _leftGravOffsetAtGrab);
+            else
+                _leftGravDragging = false;
+
+            if (RightGravityButton != 0)
+                HandleHandDrag(ref _rightGravDragging, rgp, rgRaw, ref _rightGravRawAnchor, ref _rightGravOffsetAtGrab);
+            else
+                _rightGravDragging = false;
+
+            bool gravNowDragging = _leftGravDragging || _rightGravDragging;
+            bool anyHold = _leftDragging || _rightDragging || gravNowDragging;
+
+            if (anyHold)
+            {
+                _ballistic = false;
+            }
+            else if (gravWasDragging && !gravNowDragging)
+            {
+                _ballistic = true;
+                _ballVel = _offsetVel;
+            }
+
+            var curOff = new Vector3(OffsetX, OffsetY, OffsetZ);
+            var instVel = (curOff - _prevOffset) / DT;
+            _offsetVel = Vector3.Lerp(_offsetVel, instVel, 0.6f);
+            _prevOffset = curOff;
+
+            if (_ballistic && !anyHold)
+                StepBallistic();
+
+            IsDragging = _rightDragging || _leftDragging || gravNowDragging || _ballistic;
+        }
+
+        private void StepBallistic()
+        {
+            _ballVel.Y += Gravity * DT;
+            _ballVel *= (1f - GRAV_AIR_DRAG * DT);
+
+            var target = new Vector3(OffsetX, OffsetY, OffsetZ) + _ballVel * DT;
+
+            bool landed = false;
+            if (target.Y > 0f) { target.Y = 0f; landed = true; }
+
+            ApplyOffset(target);
+
+            if (landed
+                || _ballVel.Length() < 0.03f
+                || MathF.Abs(target.X) > 300f || MathF.Abs(target.Z) > 300f || target.Y < -300f)
+            {
+                _ballistic = false;
+                _ballVel = Vector3.Zero;
+            }
         }
 
         private ulong ReadButtons(uint deviceIdx)
@@ -460,6 +543,12 @@ namespace VRCNext.Services
             _rightRawAnchor = Vector3.Zero;
             _leftOffsetAtGrab = Vector3.Zero;
             _rightOffsetAtGrab = Vector3.Zero;
+            _leftGravDragging = false;
+            _rightGravDragging = false;
+            _ballistic = false;
+            _ballVel = Vector3.Zero;
+            _offsetVel = Vector3.Zero;
+            _prevOffset = Vector3.Zero;
 
             if (OpenVR.ChaperoneSetup != null)
             {
@@ -530,7 +619,8 @@ namespace VRCNext.Services
 
         public void ApplyConfig(float dragMultiplier, bool lockX, bool lockY, bool lockZ,
                                 uint leftResetBtn, uint rightResetBtn,
-                                uint leftDragBtn,  uint rightDragBtn)
+                                uint leftDragBtn,  uint rightDragBtn,
+                                uint leftGravityBtn, uint rightGravityBtn, float gravity)
         {
             DragMultiplier    = Math.Clamp(dragMultiplier, 0.1f, 100f);
             LockX             = lockX;
@@ -540,6 +630,9 @@ namespace VRCNext.Services
             RightResetButton  = rightResetBtn;
             LeftDragButton    = leftDragBtn;
             RightDragButton   = rightDragBtn;
+            LeftGravityButton = leftGravityBtn;
+            RightGravityButton= rightGravityBtn;
+            Gravity           = Math.Clamp(gravity, 1.0f, 20.0f);
         }
 
         // Monitors vrserver.exe with WaitForExitAsync — zero overhead in the poll loop.

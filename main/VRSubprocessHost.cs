@@ -330,10 +330,11 @@ public sealed class VRSubprocessHost : IDisposable
         => Send("vro_tool_states", new { discord, voice, kikitan, space, relay, chatbox, frameShot });
 
     public void SfConnect(float multiplier, bool lockX, bool lockY, bool lockZ,
-        uint leftResetBtn, uint rightResetBtn, uint leftDragBtn, uint rightDragBtn)
+        uint leftResetBtn, uint rightResetBtn, uint leftDragBtn, uint rightDragBtn,
+        uint leftGravityBtn, uint rightGravityBtn, float gravity)
     {
         SfConnected = true;
-        Send("sf_connect", new { multiplier, lockX, lockY, lockZ, leftResetBtn, rightResetBtn, leftDragBtn, rightDragBtn });
+        Send("sf_connect", new { multiplier, lockX, lockY, lockZ, leftResetBtn, rightResetBtn, leftDragBtn, rightDragBtn, leftGravityBtn, rightGravityBtn, gravity });
     }
 
     public void SfDisconnect()
@@ -344,8 +345,9 @@ public sealed class VRSubprocessHost : IDisposable
     }
 
     public void SfConfig(float multiplier, bool lockX, bool lockY, bool lockZ,
-        uint leftResetBtn, uint rightResetBtn, uint leftDragBtn, uint rightDragBtn)
-        => Send("sf_config", new { multiplier, lockX, lockY, lockZ, leftResetBtn, rightResetBtn, leftDragBtn, rightDragBtn });
+        uint leftResetBtn, uint rightResetBtn, uint leftDragBtn, uint rightDragBtn,
+        uint leftGravityBtn, uint rightGravityBtn, float gravity)
+        => Send("sf_config", new { multiplier, lockX, lockY, lockZ, leftResetBtn, rightResetBtn, leftDragBtn, rightDragBtn, leftGravityBtn, rightGravityBtn, gravity });
 
     public void SfReset() => Send("sf_reset");
 
@@ -430,9 +432,9 @@ public sealed class VRSubprocessHost : IDisposable
     public void SetSelfUser(string userId, string imageUrl, string status) { }
     public void UpdateMediaInfo(string a, string b, double c, double d, bool e) { }
     public void SetToolStates(bool a, bool b, bool c, bool d, bool e, bool f, bool g) { }
-    public void SfConnect(float a, bool b, bool c, bool d, uint e, uint f, uint g, uint h) { }
+    public void SfConnect(float a, bool b, bool c, bool d, uint e, uint f, uint g, uint h, uint i, uint j, float k) { }
     public void SfDisconnect() { }
-    public void SfConfig(float a, bool b, bool c, bool d, uint e, uint f, uint g, uint h) { }
+    public void SfConfig(float a, bool b, bool c, bool d, uint e, uint f, uint g, uint h, uint i, uint j, float k) { }
     public void SfReset() { }
     public void FsConnect(uint a, uint b, string c, int d, uint e, uint f, int g, int h, bool i, uint j, uint k, string l, string m, int n2, string n, string o, int p) { }
     public void FsDisconnect() { }
