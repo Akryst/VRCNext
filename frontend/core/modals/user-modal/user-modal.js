@@ -813,6 +813,15 @@ function renderFriendDetail(d) {
     const allMutualGroups = d.mutualGroups || [];
     const mutualTotal = allMutuals.length + allMutualGroups.length;
     window._fdAllMutuals = allMutuals;
+
+    if (!isSelf && !d.isFriend && !d.mutualsOptedOut && allMutuals.length > 0 && typeof networkAddNonFriend === 'function') {
+        networkAddNonFriend({
+            userId:      d.id,
+            displayName: d.displayName,
+            image:       d.image || '',
+            mutualIds:   allMutuals.map(m => m && m.id).filter(Boolean),
+        });
+    }
     window._fdAllMutualGroups = allMutualGroups;
 
     let mutualsFriendsHtml = '';

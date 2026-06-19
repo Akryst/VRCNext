@@ -6,6 +6,47 @@
 let _netGraph        = null;
 let _mutualCache     = {};
 let _cacheLoadPending = false;
+let _externalNonFriends = {};
+let _netShowNonFriends = true;
+let _netForceRefetch = false;
+const NET_NF_STORAGE_KEY = 'vrcnext_net_nonfriends';
+
+function _netLoadNonFriends() {
+    try {
+        const raw = localStorage.getItem(NET_NF_STORAGE_KEY);
+        if (!raw) return;
+        const obj = JSON.parse(raw) || {};
+        for (const k in obj) if (!_externalNonFriends[k]) _externalNonFriends[k] = obj[k];
+    } catch { /* ignore */ }
+}
+
+function _netSaveNonFriends() {
+    try { localStorage.setItem(NET_NF_STORAGE_KEY, JSON.stringify(_externalNonFriends)); } catch { /* ignore */ }
+}
+
+_netLoadNonFriends();
+
+function networkAddNonFriend(data) {
+    if (!data || !data.userId || !Array.isArray(data.mutualIds) || data.mutualIds.length === 0) return;
+    _externalNonFriends[data.userId] = {
+        id:          data.userId,
+        displayName: data.displayName || data.userId,
+        image:       data.image || '',
+        mutualIds:   data.mutualIds.slice(),
+    };
+    _netSaveNonFriends();
+    if (_netGraph) _netGraph.addNonFriend(_externalNonFriends[data.userId]);
+}
+
+function networkToggleNonFriends(btn) {
+    _netShowNonFriends = !_netShowNonFriends;
+    if (btn) {
+        btn.classList.toggle('active', _netShowNonFriends);
+        const ic = btn.querySelector('.msi');
+        if (ic) ic.textContent = _netShowNonFriends ? 'visibility' : 'visibility_off';
+    }
+    if (_netGraph) _netGraph._render();
+}
 
 function networkProgressText(done, total) {
     return tf('network.progress', { done, total }, `Loading connections: ${done} / ${total}`);
@@ -44,8 +85,13 @@ function networkRefresh() {
 
 function networkReFetch() {
     _mutualCache = {};
+    _netForceRefetch = true;
     sendToCS({ action: 'vrcClearMutualCache' });
     networkRefresh();
+}
+
+function networkSearch(value) {
+    if (_netGraph) _netGraph.setSearch(value);
 }
 
 function networkResetView() {
@@ -83,6 +129,8 @@ class MutualGraph {
         this.dragging = null;
         this.selected = null;
         this.hovered  = null;
+        this.searchQuery = '';
+        this.searchMatch = null;
 
         this.fetchQueue  = [];
         this.fetchDone   = 0;
@@ -146,9 +194,57 @@ class MutualGraph {
         this.fetchDone  = 0;
         this.cancelled  = false;
 
+        Object.values(_externalNonFriends).forEach(nf => this.addNonFriend(nf));
+
+        if (_netForceRefetch) {
+            Object.keys(_externalNonFriends).forEach(id => {
+                if (this.nodeMap[id] !== undefined && !this.fetchQueue.includes(id)) this.fetchQueue.push(id);
+            });
+            _netForceRefetch = false;
+            this.fetchTotal = this.fetchQueue.length;
+        }
+
         this._updateProgress();
         this._startSim();
         this._startFetching();
+    }
+
+    addNonFriend(nf) {
+        if (!this._friendsLoaded || !nf || !Array.isArray(nf.mutualIds)) return;
+
+        const mutualIdxs = nf.mutualIds
+            .map(id => this.nodeMap[id])
+            .filter(ix => ix !== undefined);
+        if (mutualIdxs.length === 0) return;
+
+        let idx = this.nodeMap[nf.id];
+        if (idx === undefined) {
+            let ax = 0, ay = 0;
+            mutualIdxs.forEach(ix => { ax += this.nodes[ix].x; ay += this.nodes[ix].y; });
+            ax /= mutualIdxs.length; ay /= mutualIdxs.length;
+            idx = this._addNode({
+                id:          nf.id,
+                displayName: nf.displayName || nf.id,
+                image:       nf.image || '',
+                status:      'offline',
+                x: ax + (Math.random() - 0.5) * 40,
+                y: ay + (Math.random() - 0.5) * 40,
+            });
+        }
+        this.nodes[idx].isNonFriend = true;
+
+        let changed = false;
+        mutualIdxs.forEach(bIdx => {
+            if (bIdx === idx) return;
+            const key = idx < bIdx ? `${idx},${bIdx}` : `${bIdx},${idx}`;
+            if (!this._edgeSet.has(key)) {
+                this._edgeSet.add(key);
+                this.edges.push({ a: idx, b: bIdx, nf: true });
+                changed = true;
+            }
+        });
+        if (changed) this._edgesChanged = true;
+        this._startSim();
     }
 
     _addNode(opts) {
@@ -233,6 +329,17 @@ class MutualGraph {
     }
 
     onMutualsReceived(data) {
+        if (_externalNonFriends[data.userId]) {
+            _externalNonFriends[data.userId].mutualIds = data.optedOut ? [] : (data.mutualIds || []);
+            _netSaveNonFriends();
+            this.fetchDone++;
+            this.addNonFriend(_externalNonFriends[data.userId]);
+            this._updateProgress();
+            this._startSim();
+            if (this.fetchDone >= this.fetchTotal) this._hideProgress();
+            return;
+        }
+
         _mutualCache[data.userId] = { mutualIds: data.mutualIds || [], optedOut: !!data.optedOut };
         clearTimeout(this._saveTimer);
         this._saveTimer = setTimeout(() => {
@@ -376,6 +483,41 @@ class MutualGraph {
         if (maxV < 0.12) this._settled = true;
     }
 
+    /* ── Search ── */
+    setSearch(value) {
+        const q = (value || '').trim().toLowerCase();
+        this.searchQuery = q;
+        if (!q) { this.searchMatch = null; this._render(); return; }
+
+        let best = -1, bestStarts = false;
+        for (let i = 0; i < this.nodes.length; i++) {
+            if (!_netShowNonFriends && this.nodes[i].isNonFriend) continue;
+            const name = (this.nodes[i].displayName || '').toLowerCase();
+            if (!name.includes(q)) continue;
+            const starts = name.startsWith(q);
+            if (best === -1 || (starts && !bestStarts)) { best = i; bestStarts = starts; }
+            if (starts) break;
+        }
+        this.searchMatch = best >= 0 ? best : null;
+        if (this.searchMatch !== null) this._centerOn(this.searchMatch);
+        this._render();
+    }
+
+    _clearSearch() {
+        this.searchQuery = '';
+        this.searchMatch = null;
+        const inp = document.getElementById('netSearchInput');
+        if (inp) inp.value = '';
+    }
+
+    _centerOn(idx) {
+        const nd = this.nodes[idx];
+        if (!nd) return;
+        const W = this.canvas.width, H = this.canvas.height;
+        this.tx = W / 2 - nd.x * this.scale;
+        this.ty = H / 2 - nd.y * this.scale;
+    }
+
     /* ── Render ── */
 
     // Deferred render — coalesces multiple calls within the same frame into one
@@ -402,11 +544,14 @@ class MutualGraph {
         const vx1 = vx0 + W / this.scale + margin * 2;
         const vy1 = vy0 + H / this.scale + margin * 2;
 
-        const sel = this.selected;
+        const searching = this.searchMatch !== null && this.searchMatch !== undefined;
+        const sel = searching ? null : this.selected;
         const scaleInv = 1 / this.scale;
 
         let activeSet = null;
-        if (sel !== null) {
+        if (searching) {
+            activeSet = new Set([this.searchMatch]);
+        } else if (sel !== null) {
             activeSet = new Set([sel]);
             this.edges.forEach(e => {
                 if (e.a === sel) activeSet.add(e.b);
@@ -415,13 +560,16 @@ class MutualGraph {
         }
 
         const ac = this._getAccentRgb();
+        const nf = this._getNonFriendRgb();
 
         // Batch edges into style groups — one path per group instead of one per edge
-        const edgesHighlighted = [];
-        const edgesDimmed      = [];
-        const edgesNormal      = [];
+        const groups = {
+            normal: [], dimmed: [], highlighted: [],
+            nfNormal: [], nfDimmed: [], nfHighlighted: [],
+        };
 
         this.edges.forEach(e => {
+            if (!_netShowNonFriends && e.nf) return;
             const a = this.nodes[e.a], b = this.nodes[e.b];
             // Skip edges where both endpoints are off-screen
             if (a.x < vx0 && b.x < vx0) return;
@@ -429,43 +577,30 @@ class MutualGraph {
             if (a.y < vy0 && b.y < vy0) return;
             if (a.y > vy1 && b.y > vy1) return;
 
-            if (sel !== null && (e.a === sel || e.b === sel)) edgesHighlighted.push(e);
-            else if (activeSet !== null)                       edgesDimmed.push(e);
-            else                                               edgesNormal.push(e);
+            const k = e.nf ? 'nf' : '';
+            if (sel !== null && (e.a === sel || e.b === sel)) groups[k + (k ? 'Highlighted' : 'highlighted')].push(e);
+            else if (activeSet !== null)                       groups[k + (k ? 'Dimmed' : 'dimmed')].push(e);
+            else                                               groups[k + (k ? 'Normal' : 'normal')].push(e);
         });
 
-        if (edgesNormal.length) {
+        const strokeBatch = (arr, col, alpha, w) => {
+            if (!arr.length) return;
             ctx.beginPath();
-            ctx.strokeStyle = `rgba(${ac.r},${ac.g},${ac.b},0.42)`;
-            ctx.lineWidth   = 1.2 * scaleInv;
-            edgesNormal.forEach(e => {
+            ctx.strokeStyle = `rgba(${col.r},${col.g},${col.b},${alpha})`;
+            ctx.lineWidth   = w * scaleInv;
+            arr.forEach(e => {
                 const a = this.nodes[e.a], b = this.nodes[e.b];
                 ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
             });
             ctx.stroke();
-        }
+        };
 
-        if (edgesDimmed.length) {
-            ctx.beginPath();
-            ctx.strokeStyle = `rgba(${ac.r},${ac.g},${ac.b},0.08)`;
-            ctx.lineWidth   = scaleInv;
-            edgesDimmed.forEach(e => {
-                const a = this.nodes[e.a], b = this.nodes[e.b];
-                ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-            });
-            ctx.stroke();
-        }
-
-        if (edgesHighlighted.length) {
-            ctx.beginPath();
-            ctx.strokeStyle = `rgba(${ac.r},${ac.g},${ac.b},0.95)`;
-            ctx.lineWidth   = 2.5 * scaleInv;
-            edgesHighlighted.forEach(e => {
-                const a = this.nodes[e.a], b = this.nodes[e.b];
-                ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-            });
-            ctx.stroke();
-        }
+        strokeBatch(groups.normal,        ac, 0.42, 1.2);
+        strokeBatch(groups.dimmed,        ac, 0.08, 1);
+        strokeBatch(groups.highlighted,   ac, 0.95, 2.5);
+        strokeBatch(groups.nfNormal,      nf, 0.6,  1.4);
+        strokeBatch(groups.nfDimmed,      nf, 0.12, 1);
+        strokeBatch(groups.nfHighlighted, nf, 0.95, 2.6);
 
         // level of detail based on zoom. less detail when zoomed out:
         // lod 0: tiny dot only (< 0.35) (no images or detauk)
@@ -476,6 +611,7 @@ class MutualGraph {
         if (lod === 0) {
             const byColor = new Map();
             this.nodes.forEach((nd, i) => {
+                if (!_netShowNonFriends && nd.isNonFriend) return;
                 const r = nd.r || 5;
                 if (nd.x + r < vx0 || nd.x - r > vx1 || nd.y + r < vy0 || nd.y - r > vy1) return;
                 const inActive = activeSet === null || activeSet.has(i);
@@ -494,6 +630,7 @@ class MutualGraph {
             ctx.globalAlpha = 1;
         } else {
             this.nodes.forEach((nd, i) => {
+                if (!_netShowNonFriends && nd.isNonFriend) return;
                 const r = nd.r || 5;
                 if (nd.x + r < vx0 || nd.x - r > vx1 || nd.y + r < vy0 || nd.y - r > vy1) return;
                 const inActive = activeSet === null || activeSet.has(i);
@@ -507,7 +644,9 @@ class MutualGraph {
         if (lod > 0) {
             if (activeSet !== null) {
                 activeSet.forEach(i => {
-                    if (this.nodes[i]) this._drawLabel(ctx, this.nodes[i], i === sel);
+                    if (!this.nodes[i]) return;
+                    if (!_netShowNonFriends && this.nodes[i].isNonFriend) return;
+                    this._drawLabel(ctx, this.nodes[i], i === sel);
                 });
             } else if (this.hovered !== null && this.nodes[this.hovered]) {
                 this._drawLabel(ctx, this.nodes[this.hovered], false);
@@ -527,6 +666,10 @@ class MutualGraph {
         return this._accentCache;
     }
 
+    _getNonFriendRgb() {
+        return { r: 255, g: 138, b: 61, raw: 'rgb(255,138,61)' };
+    }
+
     _statusColor(status) {
         if (typeof STATUS_LIST !== 'undefined') {
             const s = STATUS_LIST.find(x => x.key === status);
@@ -539,9 +682,9 @@ class MutualGraph {
     _drawNode(ctx, nd, idx, lod = 2) {
         const r        = nd.r || 5;
         const x        = nd.x, y = nd.y;
-        const sel      = this.selected === idx;
+        const sel      = this.selected === idx || this.searchMatch === idx;
         const hov      = this.hovered  === idx;
-        const sc       = this._statusColor(nd.status);
+        const sc       = nd.isNonFriend ? this._getNonFriendRgb().raw : this._statusColor(nd.status);
         const scaleInv = 1 / this.scale;
 
         if (sel || hov) {
@@ -571,6 +714,7 @@ class MutualGraph {
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.clip();
+        if (nd.isNonFriend) ctx.filter = 'grayscale(1)';
         ctx.drawImage(nd.imgEl, x - r, y - r, r * 2, r * 2);
         ctx.restore();
     }
@@ -644,6 +788,7 @@ class MutualGraph {
     _hitTest(wx, wy) {
         for (let i = this.nodes.length - 1; i >= 0; i--) {
             const nd = this.nodes[i];
+            if (!_netShowNonFriends && nd.isNonFriend) continue;
             const r  = (nd.r || 5) + 5;
             const dx = nd.x - wx, dy = nd.y - wy;
             if (dx * dx + dy * dy <= r * r) return i;
@@ -709,6 +854,7 @@ class MutualGraph {
         const rect = this.canvas.getBoundingClientRect();
         const { x: wx, y: wy } = this._canvasToWorld(e.clientX - rect.left, e.clientY - rect.top);
         const hit = this._hitTest(wx, wy);
+        if (hit >= 0 && (this.searchQuery || this.searchMatch !== null)) this._clearSearch();
         this.selected = (hit >= 0 && hit !== this.selected) ? hit : null;
         this._render();
     }

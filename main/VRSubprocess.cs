@@ -42,6 +42,11 @@ static class VRSubprocess
 
         void Log(string s) => SendLine(new JObject { ["t"] = "log", ["text"] = s });
 
+        var settings = AppSettings.Load();
+        ImageCacheHelper.LimitGb         = settings.ImgCacheLimitGb;
+        ImageCacheHelper.OptimizeEnabled = settings.ImgCacheOptimizeEnabled;
+        ImageCacheHelper.Log             = (msg, color) => Log(msg);
+
         var vro = new VROverlayService(Log);
 
         var sf = new SteamVRService(Log);

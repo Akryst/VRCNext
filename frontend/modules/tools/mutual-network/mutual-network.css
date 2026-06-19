@@ -24,5 +24,7 @@
 .net-progress-cancel:hover { color: var(--err); }
 .net-toolbar {
     position: absolute; top: 62px; right: 10px;
-    display: flex; gap: 6px; z-index: 10;
+    display: flex; align-items: center; gap: 8px; z-index: 10;
 }
+.net-search { width: 200px; flex: 0 0 auto; margin: 0; }
+.net-search .vrcn-input { min-width: 0; width: 100%; }
