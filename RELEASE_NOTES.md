@@ -9,4 +9,5 @@
 
 **Fixes**
 * Fixed an Caching issue causing images to be wiped while runtime.
+* Fixed an issue causing images to invalidate them self when using the app longer than 24 hours.
 * Fixed the image cache being trimmed down to 5 GB regardless of the configured Max Cache Size. The VR subprocess used the default 5 GB limit and trimmed the shared cache, deleting cached images (even on desktop while the overlay was off). The VR subprocess now uses the configured cache limit, and its cache activity is now visible in the activity log.
