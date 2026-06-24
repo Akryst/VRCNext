@@ -249,6 +249,7 @@ function setTlMode(mode) {
     if (mode === 'gamelog') {
         const pb = document.getElementById('tlPaginatorBar');
         if (pb) pb.innerHTML = '';
+        if (typeof sendToCS === 'function') sendToCS({ action: 'getGameLog' });
         renderGameLog();
         return;
     }

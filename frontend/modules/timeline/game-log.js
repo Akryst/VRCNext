@@ -32,7 +32,21 @@ function setGlFilter(f) {
     renderGameLog();
 }
 
+function _glKey(e) {
+    return `${e.timestamp}|${e.type}|${e.message || ''}|${e.detail || ''}`;
+}
+
+function setGameLogHistory(entries) {
+    _glEntries = (entries || []).map(e => {
+        e.id = e.id || ('gl_' + _glKey(e));
+        return e;
+    });
+    if (_glEntries.length > GL_MAX) _glEntries.length = GL_MAX;
+    if (tlMode === 'gamelog') renderGameLog();
+}
+
 function addGameLogEntry(entry) {
+    if (_glEntries.some(e => _glKey(e) === _glKey(entry))) return;
     entry.id = entry.id || ('gl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6));
     _glEntries.unshift(entry);
     if (_glEntries.length > GL_MAX) _glEntries.length = GL_MAX;

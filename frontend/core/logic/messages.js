@@ -903,6 +903,7 @@ case 'vrcNews':
             case 'updateReady':          onUpdateReady(); break;
             case 'dbMigrationProgress':  onDbMigrationProgress(payload); break;
             case 'gameLogEvent':         addGameLogEntry(payload);        break;
+            case 'gameLogHistory':       if (typeof setGameLogHistory === 'function') setGameLogHistory(payload.entries || []); break;
             case 'vrcRefreshNotifs':
                 refreshNotifications();
                 break;

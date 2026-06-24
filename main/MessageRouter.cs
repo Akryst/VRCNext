@@ -343,6 +343,10 @@ public partial class AppShell
                     });
                     break;
 
+                case "getGameLog":
+                    _authCtrl.HandleGetGameLog();
+                    break;
+
                 // Setup / Auth / Settings — delegated to AuthController
                 case "setupReady":
                 case "setupDone":

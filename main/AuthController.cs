@@ -623,12 +623,10 @@ public class AuthController
         _core.LogWatcher.WorldChanged += (wId, loc) =>
         {
             try { _instance.HandleWorldChangedOnUiThread(wId, loc); } catch { }
-            try { GlSend("gl_world_join", _core.LogWatcher.PendingWorldName is { Length: > 0 } n ? n : wId, wId); } catch { }
         };
         _core.LogWatcher.PlayerJoined += (uid, name) =>
         {
             try { _instance.HandlePlayerJoinedOnUiThread(uid, name); } catch { }
-            try { GlSend("gl_player_join", name, uid); } catch { }
         };
         _core.LogWatcher.PlayerLeft += (uid, name) =>
         {
@@ -640,7 +638,6 @@ public class AuthController
                 _instance.PushCurrentInstanceFromCache();
             }
             catch { }
-            try { GlSend("gl_player_left", name, uid); } catch { }
         };
         _core.LogWatcher.InstanceClosed += loc =>
         {
@@ -654,7 +651,6 @@ public class AuthController
                 }
             }
             catch { }
-            try { GlSend("gl_instance_closed", "Instance closed", loc); } catch { }
         };
         _core.LogWatcher.AvatarChanged += (displayName, avatarName) =>
         {
@@ -720,38 +716,37 @@ public class AuthController
                 };
                 _core.Timeline.AddEvent(ev);
                 _core.SendToJS("timelineEvent", _instance.BuildTimelinePayload(ev));
-                try
-                {
-                    var host = Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.Host : url;
-                    GlSend("gl_video_url", host, url);
-                }
-                catch { }
             }
             catch { }
         };
-        _core.LogWatcher.ScreenshotTaken  += path => { try { GlSend("gl_screenshot",     System.IO.Path.GetFileName(path), path); } catch { } };
-        _core.LogWatcher.PortalUsed       += ()   => { try { GlSend("gl_portal",         "Portal used", ""); } catch { } };
-        _core.LogWatcher.AvatarBlockedPerf += ()  => { try { GlSend("gl_avatar_blocked", "Avatar blocked (perf limit)", ""); } catch { } };
-        _core.LogWatcher.ConnectionLost   += ()   => { try { GlSend("gl_connection_lost","Connection lost", ""); } catch { } };
-        _core.LogWatcher.ImageLoadError   += url  =>
+        _core.LogWatcher.GameLogEntry += gle =>
         {
             try
             {
-                var host = Uri.TryCreate(url, UriKind.Absolute, out var u2) ? u2.Host : url;
-                GlSend("gl_image_error", $"Image failed: {host}", url);
+                _core.SendToJS("gameLogEvent", new
+                {
+                    type      = gle.Type,
+                    timestamp = gle.Timestamp,
+                    message   = gle.Message,
+                    detail    = gle.Detail,
+                });
             }
             catch { }
         };
     }
 
-    private void GlSend(string type, string message, string detail)
+    public void HandleGetGameLog()
     {
-        _core.SendToJS("gameLogEvent", new
+        _ = Task.Run(() =>
         {
-            type,
-            timestamp = DateTime.UtcNow.ToString("o"),
-            message,
-            detail,
+            try
+            {
+                var entries = VRChatLogWatcher.BuildGameLogHistory(1000)
+                    .Select(g => new { type = g.Type, timestamp = g.Timestamp, message = g.Message, detail = g.Detail })
+                    .ToList();
+                _core.SendToJS("gameLogHistory", new { entries });
+            }
+            catch { }
         });
     }
 
