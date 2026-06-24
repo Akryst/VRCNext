@@ -18,6 +18,7 @@ let _wdCurrentId = '';
 let _wdCurrentTab = 'info';
 let _wdRefreshing = false;
 const _wdRawJsonCache = {};
+let _wdInstanceHistory = [];
 
 /* === Detail Modals (shared) === */
 function openWorldSearchDetail(id) {
@@ -303,6 +304,10 @@ function renderWorldSearchDetail(w) {
                 ${wdPopularityRows ? `<div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.popularity_title', 'Popularity')}</div><div style="display:grid;gap:6px;">${wdPopularityRows}</div></div>` : ''}
             </div>
         </div>
+        <div class="fd-info-card" style="margin-top:10px;">
+            <div class="fd-group-rep-label">${t('worlds.instance_history.title', 'Instance History')}</div>
+            <div id="wdInstanceHistory" style="max-height:160px;overflow-y:auto;"><div style="padding:4px 0;font-size:12px;color:var(--tx3);">${t('profiles.insights.loading', 'Loading...')}</div></div>
+        </div>
         </div>
         <div id="wdTabInstances" style="display:none;">
             <div class="wd-section-label wd-instances-label" style="margin-top:4px;"><span>${t('worlds.instances.active_title_label', 'ACTIVE INSTANCES')} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${allInstances.length}</span></span><button class="mi-refresh-btn" id="wdInstancesRefreshBtn" onclick="refreshWorldInstances()" title="Refresh instances">&#8635;</button></div>
@@ -315,6 +320,7 @@ function renderWorldSearchDetail(w) {
 
     if (thumb) { const s = document.getElementById('wd-banner-slot'); const bi = _getWorldBannerImg(wid, thumb); if (s && bi) s.insertBefore(bi, s.firstChild); }
     if (hasWorldPhotos) { _wdPreloadPhotos(wid); _wdLoadPhotos(wid); }
+    if (wid) { _wdInstanceHistory = []; sendToCS({ action: 'getTimelineForWorld', worldId: wid }); }
     if (_wdCurrentTab !== 'info') {
         if (_wdCurrentTab === 'photos' && !hasWorldPhotos) {
             _wdCurrentTab = 'info';
@@ -334,6 +340,34 @@ function renderWorldSearchDetail(w) {
             else { clearInterval(_wdLiveTimer); _wdLiveTimer = null; }
         }, 1000);
     }
+}
+
+function renderWdInstanceHistory(worldId, events) {
+    if (_wdCurrentId !== worldId) return;
+    const el = document.getElementById('wdInstanceHistory');
+    if (!el) return;
+
+    _wdInstanceHistory = events || [];
+
+    if (!_wdInstanceHistory.length) {
+        el.innerHTML = `<div style="padding:4px 0;font-size:12px;color:var(--tx3);">${t('timeline.empty.initial', 'No events yet')}</div>`;
+        return;
+    }
+
+    el.innerHTML = _wdInstanceHistory.map(ev => {
+        const meta   = typeof tlTypeMeta === 'function' ? tlTypeMeta(ev.type) : { icon: 'event', label: ev.type };
+        const color  = { instance_join:'var(--accent)', photo:'var(--ok)', first_meet:'var(--cyan)', meet_again:'#AB47BC', notification:'var(--warn)', avatar_switch:'#FF7043', video_url:'#29B6F6' }[ev.type] || 'var(--tx3)';
+        const d      = new Date(ev.timestamp);
+        const dt     = `${fmtShortDate(d)} | ${fmtTime(d)}`;
+        const ei     = ev.id.replace(/'/g, "\\'");
+        const detail = typeof _tlListData === 'function' ? (_tlListData(ev).detail || '') : '';
+        return `<div style="display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid var(--brd);cursor:pointer;" onclick="openTlDetail('${ei}')">
+            <span style="font-size:11px;color:var(--tx3);white-space:nowrap;">${esc(dt)}</span>
+            <span class="msi" style="font-size:14px;color:${color};flex-shrink:0;">${meta.icon}</span>
+            <span style="font-size:12px;">${esc(meta.label)}</span>
+            ${detail ? `<span style="font-size:11px;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;">${detail}</span>` : ''}
+        </div>`;
+    }).join('');
 }
 
 let _wdCurrentWorldId = '';

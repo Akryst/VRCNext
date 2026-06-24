@@ -87,6 +87,10 @@ public class TimelineController
                 HandleGetTimelineForUser(msg);
                 break;
 
+            case "getTimelineForWorld":
+                HandleGetTimelineForWorld(msg);
+                break;
+
             case "getProfileInsights":
                 HandleGetProfileInsights(msg);
                 break;
@@ -1512,6 +1516,18 @@ public class TimelineController
             var events  = _core.Timeline.GetEventsForUser(userId, 10);
             var payload = events.Select(e => _instance.BuildTimelinePayload(e)).ToList();
             _core.SendToJS("timelineForUser", new { userId, events = payload });
+        });
+    }
+
+    private void HandleGetTimelineForWorld(JObject msg)
+    {
+        var worldId = msg["worldId"]?.ToString() ?? "";
+        if (string.IsNullOrEmpty(worldId)) return;
+        _ = Task.Run(() =>
+        {
+            var events  = _core.Timeline.GetInstanceVisitsForWorld(worldId, 10);
+            var payload = events.Select(e => _instance.BuildTimelinePayload(e)).ToList();
+            _core.SendToJS("timelineForWorld", new { worldId, events = payload });
         });
     }
 

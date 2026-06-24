@@ -1,13 +1,14 @@
-**2026.31.3**
+**2026.31.5**
 
-**Mutual Network**
-* Added non-friend support.
-* When opening a user profile that is not friends with you but shares mutual friends, this person will now be added to the Mutual Network.
-* Non-friends are shown with a black-and-white profile image and a different line color so they can be clearly distinguished from friends.
-* Added Searchbar to find friends and non-friends.
-* Added Filter button "Show-Non-Friends"
+**Starting Page**
+* You can now choose which page opens when you start VRCN. Simply right-click any tab in the sidebar, click **Edit Navigation**, and then click the House icon on the tab you want to use as your starting page.
+
+**World Modal**
+
+* Added an Instance History card showing the last 10 instances you joined.
 
 **Fixes**
-* Fixed an Caching issue causing images to be wiped while runtime.
-* Fixed an issue causing images to invalidate them self when using the app longer than 24 hours.
-* Fixed the image cache being trimmed down to 5 GB regardless of the configured Max Cache Size. The VR subprocess used the default 5 GB limit and trimmed the shared cache, deleting cached images (even on desktop while the overlay was off). The VR subprocess now uses the configured cache limit, and its cache activity is now visible in the activity log.
+
+* Fixed friends being shown as **Non-Friends** in the Mutual Network.
+* Fixed an bug that caused "User Avatars" in Content tab not to be updated after changes.
+* Fixed only the first 20 avatars showing under a user's Content > Avatars. All of the user's avatars are now listed.

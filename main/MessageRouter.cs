@@ -2394,6 +2394,7 @@ public partial class AppShell
                 case "getTimelineByDate":
                 case "getFriendTimelineByDate":
                 case "getTimelineForUser":
+                case "getTimelineForWorld":
                 case "getProfileInsights":
                 case "getUserOnlineHeatmap":
                 case "getUserStatusTime":

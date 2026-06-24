@@ -223,24 +223,45 @@ public class AvatarsAPI(VRChatApiService ctx)
 
     public async Task<JArray> SearchAvatarsByAuthorAsync(string authorId, int n = 50)
     {
-        var url = $"https://api.avtrdb.com/v2/avatar/search?query={Uri.EscapeDataString(authorId)}&limit={n}";
+        var all = new JArray();
+        var seen = new HashSet<string>();
         using var client = new HttpClient();
         client.Timeout = TimeSpan.FromSeconds(15);
         client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", UA);
         client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
-        try
+
+        // avtrdb caps the page size, so paginate until a short/empty page is hit.
+        int pageSize = -1;
+        for (int page = 0; page < 25; page++)
         {
-            ctx.Log($"SearchAvatarsByAuthor: {url}");
-            var resp = await client.GetAsync(url);
-            var body = await resp.Content.ReadAsStringAsync();
-            ctx.Log($"SearchAvatarsByAuthor [{(int)resp.StatusCode}] len={body.Length}");
-            if (!resp.IsSuccessStatusCode || string.IsNullOrWhiteSpace(body)) return new JArray();
-            var parsed = JToken.Parse(body);
-            if (parsed is JObject obj && obj["avatars"] is JArray arr) return arr;
-            if (parsed is JArray directArr) return directArr;
+            var url = $"https://api.avtrdb.com/v2/avatar/search?query={Uri.EscapeDataString(authorId)}&limit={n}&page={page}";
+            JArray? arr = null;
+            try
+            {
+                ctx.Log($"SearchAvatarsByAuthor: {url}");
+                var resp = await client.GetAsync(url);
+                var body = await resp.Content.ReadAsStringAsync();
+                ctx.Log($"SearchAvatarsByAuthor [{(int)resp.StatusCode}] len={body.Length}");
+                if (!resp.IsSuccessStatusCode || string.IsNullOrWhiteSpace(body)) break;
+                var parsed = JToken.Parse(body);
+                arr = (parsed as JObject)?["avatars"] as JArray ?? parsed as JArray;
+            }
+            catch (Exception ex) { ctx.Log($"SearchAvatarsByAuthor exception: {ex.Message}"); break; }
+
+            if (arr == null || arr.Count == 0) break;
+            if (pageSize < 0) pageSize = arr.Count;
+
+            foreach (var item in arr)
+            {
+                var id = item["vrc_id"]?.ToString() ?? item["id"]?.ToString() ?? "";
+                if (id.Length > 0 && !seen.Add(id)) continue;
+                all.Add(item);
+            }
+
+            if (arr.Count < pageSize) break;
+            await Task.Delay(200);
         }
-        catch (Exception ex) { ctx.Log($"SearchAvatarsByAuthor exception: {ex.Message}"); }
-        return new JArray();
+        return all;
     }
 
     public async Task<(string? id, JObject? data)> GetAvatarIdByFileIdAsync(string fileId)
