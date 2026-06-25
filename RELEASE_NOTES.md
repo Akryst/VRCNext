@@ -1,3 +1,6 @@
+**2026.31.7** HOTFIX
+* Fixed an issue where Google Gemini loses connection and never reconnects.
+
 **2026.31.6** HOTFIX
 
 * Fixed Google Gemini Transcription not sending data to OSC.

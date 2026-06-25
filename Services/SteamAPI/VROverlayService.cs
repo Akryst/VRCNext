@@ -1217,21 +1217,16 @@ namespace VRCNext.Services
                 var mgr = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync()
                     .AsTask().WaitAsync(TimeSpan.FromSeconds(5));
                 var sessions = mgr.GetSessions();
-                _log($"[VRO/SMTC] {sessions.Count} session(s) found");
-                foreach (var sess in sessions)
-                    _log($"[VRO/SMTC]   app={sess.SourceAppUserModelId} status={sess.GetPlaybackInfo()?.PlaybackStatus}");
                 var s = sessions.FirstOrDefault(sess =>
                             sess.GetPlaybackInfo()?.PlaybackStatus ==
                             GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
                         ?? mgr.GetCurrentSession();
                 if (s == null)
                 {
-                    _log("[VRO/SMTC] No session selected → no media");
                     _smtcSession = null;
                     if (_mediaTitle != "") { _mediaTitle = ""; _mediaArtist = ""; _mediaPlaying = false; _dirty = true; }
                     return;
                 }
-                _log($"[VRO/SMTC] Using session: {s.SourceAppUserModelId}");
                 _smtcSession = s;
 
                 var playing = s.GetPlaybackInfo()?.PlaybackStatus ==
@@ -1239,7 +1234,6 @@ namespace VRCNext.Services
                 var props = await s.TryGetMediaPropertiesAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5));
                 var title  = props?.Title  ?? "";
                 var artist = props?.Artist ?? "";
-                _log($"[VRO/SMTC] title=\"{title}\" artist=\"{artist}\" playing={playing}");
                 var tl  = s.GetTimelineProperties();
                 var pos = tl?.Position.TotalSeconds ?? 0;
                 var dur = tl != null ? (tl.EndTime - tl.StartTime).TotalSeconds : 0;

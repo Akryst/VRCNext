@@ -28,9 +28,6 @@ public sealed class GeminiLiveService : IKikitanSpeechService
 }
 #else
 
-// Google Gemini Live API translation client. Streams 16 kHz mono PCM over a
-// BidiGenerateContent WebSocket and emits the input/output transcriptions.
-// https://ai.google.dev/gemini-api/docs/live-api/live-translate
 public sealed class GeminiLiveService : IKikitanSpeechService
 {
     public event Action<string, bool>? OnRecognized;
@@ -43,6 +40,7 @@ public sealed class GeminiLiveService : IKikitanSpeechService
     private CancellationTokenSource? _cts;
     private Task? _receiveTask;
     private Task? _senderTask;
+    private Task? _flushTask;
     private volatile bool _running;
 
     private volatile float _meterLevel;
@@ -58,6 +56,7 @@ public sealed class GeminiLiveService : IKikitanSpeechService
     private readonly object _turnLock = new();
     private DateTime _lastDeltaUtc = DateTime.MinValue;
     private bool _turnDirty;
+    private volatile bool _goAwayPending;
     private int _debugMsgsLeft;
     private const int TurnFlushMs = 1200;
 
@@ -89,11 +88,9 @@ public sealed class GeminiLiveService : IKikitanSpeechService
 
         _running = true;
         _deviceIndex = deviceIndex;
-        _debugMsgsLeft = 6;
         _cts = new CancellationTokenSource();
+        var token = _cts.Token;
 
-        // Start the microphone immediately so the level meter works right away,
-        // independent of the cloud connection (matches the Groq behaviour).
         _waveIn = new WaveInEvent
         {
             DeviceNumber = deviceIndex,
@@ -104,9 +101,10 @@ public sealed class GeminiLiveService : IKikitanSpeechService
         _waveIn.RecordingStopped += OnRecordingStopped;
         _waveIn.StartRecording();
 
-        // Connect and stream in the background; audio is only queued once the
-        // socket is open, so a failed connection still leaves the meter live.
-        _receiveTask = Task.Run(() => ConnectAndRunAsync(_cts.Token));
+        _senderTask = Task.Run(() => SenderLoop(token));
+        _flushTask = Task.Run(() => FlushLoop(token));
+
+        _receiveTask = Task.Run(() => ConnectAndRunAsync(token));
         Log("Kikitan XD (Google Gemini Live): microphone started, connecting...");
     }
 
@@ -115,21 +113,44 @@ public sealed class GeminiLiveService : IKikitanSpeechService
         var uri = new Uri(
             "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key="
             + Uri.EscapeDataString(_apiKey));
-        try
+        while (!token.IsCancellationRequested && _running)
         {
-            _ws = new ClientWebSocket();
-            await _ws.ConnectAsync(uri, token);
-            await SendSetupAsync();
-            Log("Kikitan XD (Google Gemini Live): connected");
-            _senderTask = Task.Run(() => SenderLoop(token));
-            _ = Task.Run(() => FlushLoop(token));
-            await ReceiveLoop(token);
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception ex)
-        {
-            CrashHandler.AddBreadcrumb($"GeminiLive.Connect: {ex.GetType().Name}: {ex.Message}");
-            Log($"Kikitan XD (Google): connection failed — {ex.Message}. Check your Google API key and network.");
+            _goAwayPending = false;
+            try
+            {
+                var ws = new ClientWebSocket();
+                _ws = ws;
+                await ws.ConnectAsync(uri, token);
+                await SendSetupAsync();
+                _debugMsgsLeft = 6;
+                Log("Kikitan XD (Google Gemini Live): connected");
+                await ReceiveLoop(token);
+            }
+            catch (OperationCanceledException) { break; }
+            catch (Exception ex)
+            {
+                CrashHandler.AddBreadcrumb($"GeminiLive.Connect: {ex.GetType().Name}: {ex.Message}");
+                Log($"Kikitan XD (Google): connection error — {ex.Message}");
+            }
+
+            var closing = _ws;
+            _ws = null;
+            if (closing != null)
+            {
+                try
+                {
+                    if (closing.State == WebSocketState.Open)
+                        await closing.CloseAsync(WebSocketCloseStatus.NormalClosure, "goaway", CancellationToken.None);
+                }
+                catch { }
+                try { closing.Dispose(); } catch { }
+            }
+            while (_pcmQueue.TryDequeue(out _)) { }
+            lock (_turnLock) { _turnInput.Clear(); _turnOutput.Clear(); _turnDirty = false; }
+
+            if (token.IsCancellationRequested || !_running) break;
+            Log("Kikitan XD (Google Gemini Live): session ended, reconnecting...");
+            try { await Task.Delay(1500, token); } catch { break; }
         }
     }
 
@@ -140,8 +161,6 @@ public sealed class GeminiLiveService : IKikitanSpeechService
         _blockedWords = NormalizeList(s.BlockedWords);
         _blockedSentences = NormalizeList(s.BlockedSentences);
 
-        // Target language / API key are fixed for the lifetime of a Live
-        // session, so reconnect when either changes while running.
         if (!_running) return;
         if (MapTargetLang(s.TargetLang) == _targetLang && (s.GoogleApiKey ?? "") == _apiKey) return;
         try { Start(_deviceIndex, s); }
@@ -177,8 +196,10 @@ public sealed class GeminiLiveService : IKikitanSpeechService
 
         try { _receiveTask?.Wait(1000); } catch { }
         try { _senderTask?.Wait(1000); } catch { }
+        try { _flushTask?.Wait(1000); } catch { }
         _receiveTask = null;
         _senderTask = null;
+        _flushTask = null;
 
         _cts?.Dispose();
         _cts = null;
@@ -196,9 +217,6 @@ public sealed class GeminiLiveService : IKikitanSpeechService
 
     private async Task SendSetupAsync()
     {
-        // The transcription configs are top-level fields of "setup", while
-        // responseModalities and translationConfig live inside generationConfig.
-        // https://ai.google.dev/gemini-api/docs/live-api/live-translate
         var setup = new JObject
         {
             ["setup"] = new JObject
@@ -224,7 +242,7 @@ public sealed class GeminiLiveService : IKikitanSpeechService
     {
         if (e.BytesRecorded <= 0 || !_running) return;
         UpdateMeter(e.Buffer, e.BytesRecorded);
-        if (_ws == null || _ws.State != WebSocketState.Open) return; // wait until connected
+        if (_ws == null || _ws.State != WebSocketState.Open) return;
         var copy = new byte[e.BytesRecorded];
         Buffer.BlockCopy(e.Buffer, 0, copy, 0, e.BytesRecorded);
         _pcmQueue.Enqueue(copy);
@@ -239,14 +257,15 @@ public sealed class GeminiLiveService : IKikitanSpeechService
 
     private async Task SenderLoop(CancellationToken token)
     {
-        try
+        while (!token.IsCancellationRequested)
         {
-            while (!token.IsCancellationRequested)
+            try
             {
                 await _pcmSignal.WaitAsync(token);
                 while (_pcmQueue.TryDequeue(out var chunk))
                 {
-                    if (_ws == null || _ws.State != WebSocketState.Open) return;
+                    var ws = _ws;
+                    if (ws == null || ws.State != WebSocketState.Open) continue;
                     var msg = new JObject
                     {
                         ["realtimeInput"] = new JObject
@@ -261,22 +280,23 @@ public sealed class GeminiLiveService : IKikitanSpeechService
                     await SendJsonAsync(msg);
                 }
             }
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception ex)
-        {
-            Log($"Kikitan XD (Google): send error — {ex.Message}");
+            catch (OperationCanceledException) { break; }
+            catch (Exception ex)
+            {
+                Log($"Kikitan XD (Google): send error — {ex.Message}");
+            }
         }
     }
 
     private async Task SendJsonAsync(JObject obj)
     {
-        if (_ws == null) return;
+        var ws = _ws;
+        if (ws == null || ws.State != WebSocketState.Open) return;
         var bytes = Encoding.UTF8.GetBytes(obj.ToString(Newtonsoft.Json.Formatting.None));
         await _sendLock.WaitAsync();
         try
         {
-            await _ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true,
+            await ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true,
                 _cts?.Token ?? CancellationToken.None);
         }
         finally { _sendLock.Release(); }
@@ -284,16 +304,18 @@ public sealed class GeminiLiveService : IKikitanSpeechService
 
     private async Task ReceiveLoop(CancellationToken token)
     {
+        var ws = _ws;
+        if (ws == null) return;
         var buffer = new byte[16384];
         var sb = new StringBuilder();
         try
         {
-            while (!token.IsCancellationRequested && _ws != null && _ws.State == WebSocketState.Open)
+            while (!token.IsCancellationRequested && ws.State == WebSocketState.Open)
             {
-                var result = await _ws.ReceiveAsync(new ArraySegment<byte>(buffer), token);
+                var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), token);
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    Log($"Kikitan XD (Google): session closed by server — {_ws.CloseStatus} {_ws.CloseStatusDescription}");
+                    Log($"Kikitan XD (Google): session closed by server — {ws.CloseStatus} {ws.CloseStatusDescription}");
                     return;
                 }
                 sb.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
@@ -302,13 +324,13 @@ public sealed class GeminiLiveService : IKikitanSpeechService
                 var text = sb.ToString();
                 sb.Clear();
                 HandleServerMessage(text);
+                if (_goAwayPending) return;
             }
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             if (_running) Log($"Kikitan XD (Google): receive error — {ex.Message}");
-            _running = false;
         }
     }
 
@@ -324,24 +346,26 @@ public sealed class GeminiLiveService : IKikitanSpeechService
             return;
         }
 
-        var sc = obj["serverContent"];
-        if (sc == null)
+        if (obj["goAway"] is JToken ga)
         {
-            // Surface anything unexpected (error / goAway) so failures are visible.
-            var raw = text.Length > 300 ? text[..300] : text;
-            Log($"Kikitan XD (Google): {raw}");
+            FinishTurn();
+            _goAwayPending = true;
+            Log($"Kikitan XD (Google): session time limit reached (goAway {ga["timeLeft"]}), reconnecting");
             return;
         }
 
-        if (_debugMsgsLeft > 0)
-        {
-            _debugMsgsLeft--;
-            var raw = text.Length > 400 ? text[..400] : text;
-            Log($"Kikitan XD (Google) raw: {raw}");
-        }
+        var sc = obj["serverContent"];
+        if (sc == null)
+            return;
 
         var inText = sc["inputTranscription"]?["text"]?.ToString();
         var outText = sc["outputTranscription"]?["text"]?.ToString();
+
+        if (_debugMsgsLeft > 0 && (!string.IsNullOrEmpty(inText) || !string.IsNullOrEmpty(outText)))
+        {
+            _debugMsgsLeft--;
+            Log($"Kikitan XD (Google) transcript: in=\"{inText}\" out=\"{outText}\"");
+        }
 
         if (!string.IsNullOrEmpty(inText) || !string.IsNullOrEmpty(outText))
         {
@@ -359,8 +383,6 @@ public sealed class GeminiLiveService : IKikitanSpeechService
             if (!string.IsNullOrEmpty(outText) && _translateEnabled) OnTranslated?.Invoke(outSnap);
         }
 
-        // The translate model does not reliably send turnComplete, so a turn is
-        // also flushed by FlushLoop after a short pause in incoming text.
         if (sc["turnComplete"]?.Value<bool>() == true || sc["generationComplete"]?.Value<bool>() == true)
             FinishTurn();
     }
@@ -396,7 +418,7 @@ public sealed class GeminiLiveService : IKikitanSpeechService
         if (src.Length == 0 && translated.Length == 0) return;
 
         string srcFiltered = ApplyBlockFilters(src);
-        if (src.Length > 0 && srcFiltered.Length == 0) return; // fully blocked
+        if (src.Length > 0 && srcFiltered.Length == 0) return;
 
         OnRecognized?.Invoke(srcFiltered.Length > 0 ? srcFiltered : src, false);
 
@@ -422,8 +444,6 @@ public sealed class GeminiLiveService : IKikitanSpeechService
         _meterLevel = Math.Min(1f, (float)Math.Sqrt(sum / samples) * 6f);
     }
 
-    // Maps Kikitan's internal language codes to the BCP-47 codes Gemini Live
-    // Translation expects. https://ai.google.dev/gemini-api/docs/live-api/live-translate
     private static readonly Dictionary<string, string> TargetLangMap = new(StringComparer.OrdinalIgnoreCase)
     {
         ["zh"] = "zh-Hans",
