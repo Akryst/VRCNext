@@ -13,6 +13,8 @@ let _libViewMode     = localStorage.getItem('libViewMode') || 'grid';
 let _libFolderPath   = null;
 let _libFriendFilter = '__all__';
 let _libWorldFilter  = '__all__';
+let _libEditMode     = false;
+let _libEditSelected = new Set();
 
 // Destroy / cleanup.
 function destroyLibrary() {
@@ -33,6 +35,7 @@ function destroyLibrary() {
     _libFolderPath   = null;
     _libFriendFilter = '__all__';
     _libWorldFilter  = '__all__';
+    if (_libEditMode) _exitLibEditModeUi();
     _renderLibIconSelects();
 }
 
@@ -542,14 +545,24 @@ function _renderFolderContents() {
 }
 
 // Resolution tag.
+const _RES_PRESETS = [
+    ['SD', 1280 * 720],
+    ['HD', 1920 * 1080],
+    ['2K', 2560 * 1440],
+    ['4K', 3840 * 2160],
+    ['8K', 7680 * 4320],
+];
+
 function _resTag(x) {
-    const h = x.imgH || 0;
-    if (!h) return '';
-    if (h <= 720)  return 'SD';
-    if (h <= 1080) return 'HD';
-    if (h <= 1440) return '2K';
-    if (h <= 2160) return '4K';
-    return '8K';
+    const px = (x.imgW || 0) * (x.imgH || 0);
+    if (!px) return '';
+    let best = _RES_PRESETS[0][0];
+    let bestDiff = Infinity;
+    for (const [label, presetPx] of _RES_PRESETS) {
+        const diff = Math.abs(Math.log(px / presetPx));
+        if (diff < bestDiff) { bestDiff = diff; best = label; }
+    }
+    return best;
 }
 
 // Card building.
@@ -566,40 +579,198 @@ function _buildLibCard(x) {
     const blurClass = iH ? ' lib-blurred' : '';
     const idx       = libraryFiles.indexOf(x);
 
-    if (x.type === 'image' || x.type === 'gif') {
-        let worldBadge = '';
-        if (x.worldId) {
-            const wInfo  = worldInfoCache[x.worldId];
-            const wName  = wInfo ? esc(wInfo.name) : t('library.view_world', 'View World');
-            const wThumb = wInfo?.thumbnailImageUrl || '';
-            worldBadge   = `<button class="lib-world-badge" data-wid="${esc(x.worldId)}" onclick="event.stopPropagation();openWorldSearchDetail('${esc(x.worldId)}')" title="${wName}"><span class="lib-world-badge-thumb" style="${wThumb ? `background-image:url('${cssUrl(wThumb)}')` : ''}"></span><span class="lib-world-badge-text">${wName}</span></button>`;
-        }
-        let playersOverlay = '';
-        const players = x.players || [];
-        if (players.length > 0) {
-            const show      = players.slice(0, 3);
-            const remaining = players.length - show.length;
-            playersOverlay  = `<div class="lib-players-overlay" onclick="event.stopPropagation();openPhotoDetail(${idx})">` +
-                show.map(p => {
-                    const isOwn = currentVrcUser && p.userId === currentVrcUser.id;
-                    const fr  = isOwn ? currentVrcUser : vrcFriendsData.find(f => f.id === p.userId);
-                    const img = fr?.image || p.image || '';
-                    return img
-                        ? `<div class="lib-player-av" style="background-image:url('${cssUrl(img)}')" title="${esc(p.displayName)}"></div>`
-                        : `<div class="lib-player-av lib-player-av-letter" title="${esc(p.displayName)}">${esc((p.displayName||'?')[0])}</div>`;
-                }).join('') +
-                (remaining > 0 ? `<div class="lib-player-av lib-player-av-more">+${remaining}</div>` : '') +
-                `</div>`;
-        }
+    if (_libEditMode) {
+        const isSel = _libEditSelected.has(x.path);
+        const checkIcon = isSel
+            ? `<span class="msi" style="font-size:22px;color:var(--accent);">check_circle</span>`
+            : `<span class="msi" style="font-size:22px;color:rgba(255,255,255,0.7);">radio_button_unchecked</span>`;
         const thumbSrc = suAttr ? suAttr + '?thumb=1' : '';
+        const isVid = x.type === 'video';
+        const media = isVid
+            ? `<img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div class=\\'lib-vid-thumb-fallback\\'>${jsq(t('library.video_badge', 'VIDEO'))}</div>'"><span class="lib-vid-badge">${t('library.video_badge', 'VIDEO')}</span>`
+            : `<img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px;font-weight:700\\'>${jsq(t('library.no_preview', 'No Preview'))}</div>'">`;
+        return `<div class="lib-card lib-card-edit${isSel ? ' lib-card-selected' : ''}" data-path="${esc(x.path||'')}" onclick="toggleLibEditSelect('${sp}',this)" style="user-select:none;cursor:pointer;"><div class="lib-thumb-wrap${blurClass}">${media}<div class="wd-edit-check">${checkIcon}</div></div><div class="lib-info"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span>${x.size}</span><span>${x.time}</span></div></div>${isSel ? '<div class="wd-edit-sel-border"></div>' : ''}</div>`;
+    }
+
+    let worldBadge = '';
+    if (x.worldId) {
+        const wInfo  = worldInfoCache[x.worldId];
+        const wName  = wInfo ? esc(wInfo.name) : t('library.view_world', 'View World');
+        const wThumb = wInfo?.thumbnailImageUrl || '';
+        worldBadge   = `<button class="lib-world-badge" data-wid="${esc(x.worldId)}" onclick="event.stopPropagation();openWorldSearchDetail('${esc(x.worldId)}')" title="${wName}"><span class="lib-world-badge-thumb" style="${wThumb ? `background-image:url('${cssUrl(wThumb)}')` : ''}"></span><span class="lib-world-badge-text">${wName}</span></button>`;
+    }
+    let playersOverlay = '';
+    const players = x.players || [];
+    if (players.length > 0) {
+        const show      = players.slice(0, 3);
+        const remaining = players.length - show.length;
+        playersOverlay  = `<div class="lib-players-overlay" onclick="event.stopPropagation();openPhotoDetail(${idx})">` +
+            show.map(p => {
+                const isOwn = currentVrcUser && p.userId === currentVrcUser.id;
+                const fr  = isOwn ? currentVrcUser : vrcFriendsData.find(f => f.id === p.userId);
+                const img = fr?.image || p.image || '';
+                return img
+                    ? `<div class="lib-player-av" style="background-image:url('${cssUrl(img)}')" title="${esc(p.displayName)}"></div>`
+                    : `<div class="lib-player-av lib-player-av-letter" title="${esc(p.displayName)}">${esc((p.displayName||'?')[0])}</div>`;
+            }).join('') +
+            (remaining > 0 ? `<div class="lib-player-av lib-player-av-more">+${remaining}</div>` : '') +
+            `</div>`;
+    }
+    const thumbSrc = suAttr ? suAttr + '?thumb=1' : '';
+
+    if (x.type === 'image' || x.type === 'gif') {
         const resTag   = _resTag(x);
         const resBadge = resTag ? `<span class="vrcn-badge accent" style="margin-left:4px;">${resTag}</span>` : '';
         return `<div class="lib-card" data-path="${esc(x.path||'')}" data-url="${suAttr}" data-type="${x.type}" data-name="${esc(x.name||'')}">${acts}<div class="lib-thumb-wrap${blurClass}" onclick="openPhotoDetail(${idx})"><img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px;font-weight:700\\'>${jsq(t('library.no_preview', 'No Preview'))}</div>'">${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}${worldBadge}${playersOverlay}</div><div class="lib-info" onclick="event.stopPropagation();openPhotoDetail(${idx})" style="cursor:pointer;"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span style="display:flex;align-items:center;">${x.size}${resBadge}</span><span>${x.time}</span></div></div></div>`;
     } else {
-        const thumbSrc = suAttr ? suAttr + '?thumb=1' : '';
         const th = `<img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div class=\\'lib-vid-thumb-fallback\\'>${jsq(t('library.video_badge', 'VIDEO'))}</div>'">`;
-        return `<div class="lib-card" data-path="${esc(x.path||'')}" data-url="${suAttr}" data-type="video" data-name="${esc(x.name||'')}">${acts}<div class="lib-thumb-wrap${blurClass}" onclick="openLightbox('${suJs}','video')">${th}<div class="lib-vid-overlay"><div class="lib-play-icon"><span class="msi" style="font-size:22px;">play_arrow</span></div></div><span class="lib-vid-badge">${t('library.video_badge', 'VIDEO')}</span>${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}</div><div class="lib-info"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span>${x.size}</span><span>${x.time}</span></div></div></div>`;
+        return `<div class="lib-card" data-path="${esc(x.path||'')}" data-url="${suAttr}" data-type="video" data-name="${esc(x.name||'')}">${acts}<div class="lib-thumb-wrap${blurClass}" onclick="openPhotoDetail(${idx})">${th}<div class="lib-vid-overlay"><div class="lib-play-icon"><span class="msi" style="font-size:22px;">play_arrow</span></div></div><span class="lib-vid-badge">${t('library.video_badge', 'VIDEO')}</span>${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}${worldBadge}${playersOverlay}</div><div class="lib-info" onclick="event.stopPropagation();openPhotoDetail(${idx})" style="cursor:pointer;"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span>${x.size}</span><span>${x.time}</span></div></div></div>`;
     }
+}
+
+function _libEditRerender() {
+    filterLibrary(true);
+}
+
+function _exitLibEditModeUi() {
+    _libEditMode = false;
+    _libEditSelected = new Set();
+    const btn = document.getElementById('libEditModeBtn');
+    if (btn) {
+        btn.innerHTML = `<span class="msi" style="font-size:16px;">edit</span> <span>${t('library.edit.button', 'Edit')}</span>`;
+        btn.classList.remove('active');
+    }
+    const bar = document.getElementById('libEditBar');
+    if (bar) bar.style.display = 'none';
+}
+
+function toggleLibEditMode() {
+    if (_libEditMode) { exitLibEditMode(); return; }
+    _libEditMode = true;
+    _libEditSelected = new Set();
+    const btn = document.getElementById('libEditModeBtn');
+    if (btn) {
+        btn.innerHTML = `<span class="msi" style="font-size:16px;">check</span> <span>${t('library.edit.done', 'Done')}</span>`;
+        btn.classList.add('active');
+    }
+    const bar = document.getElementById('libEditBar');
+    if (bar) bar.style.display = 'flex';
+    _libEditRerender();
+    updateLibEditBar();
+}
+
+function exitLibEditMode() {
+    _exitLibEditModeUi();
+    _libEditRerender();
+}
+
+function toggleLibEditSelect(path, el) {
+    if (_libEditSelected.has(path)) {
+        _libEditSelected.delete(path);
+        const chk = el?.querySelector('.wd-edit-check .msi');
+        if (chk) { chk.textContent = 'radio_button_unchecked'; chk.style.color = 'rgba(255,255,255,0.7)'; }
+        el?.querySelector('.wd-edit-sel-border')?.remove();
+        el?.classList.remove('lib-card-selected');
+    } else {
+        _libEditSelected.add(path);
+        const chk = el?.querySelector('.wd-edit-check .msi');
+        if (chk) { chk.textContent = 'check_circle'; chk.style.color = 'var(--accent)'; }
+        if (el && !el.querySelector('.wd-edit-sel-border')) el.insertAdjacentHTML('beforeend', '<div class="wd-edit-sel-border"></div>');
+        el?.classList.add('lib-card-selected');
+    }
+    updateLibEditBar();
+}
+
+function libEditSelectAll() {
+    const all = _libFiltered;
+    const allSel = all.length > 0 && all.every(x => _libEditSelected.has(x.path));
+    if (allSel) all.forEach(x => _libEditSelected.delete(x.path));
+    else        all.forEach(x => _libEditSelected.add(x.path));
+    _libEditRerender();
+    updateLibEditBar();
+}
+
+function updateLibEditBar() {
+    const sel   = [..._libEditSelected];
+    const count = sel.length;
+
+    const countEl = document.getElementById('libEditCount');
+    if (countEl) countEl.textContent = tf('library.edit.selected', { count }, '{count} selected');
+
+    const selAll = document.getElementById('libEditSelectAllBtn');
+    if (selAll) {
+        const all = _libFiltered;
+        const allSel = all.length > 0 && all.every(x => _libEditSelected.has(x.path));
+        selAll.textContent = allSel ? t('library.edit.deselect_all', 'Deselect All') : t('library.edit.select_all', 'Select All');
+    }
+
+    const setBtn = (id, icon, label) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        const ico = btn.querySelector('.msi');
+        const lbl = btn.querySelector('.lib-edit-action-label');
+        if (ico) ico.textContent = icon;
+        if (lbl) lbl.textContent = label;
+    };
+
+    const allFav = count > 0 && sel.every(p => favorites.has(p));
+    setBtn('libEditFavBtn', allFav ? 'star_border' : 'star',
+        allFav ? tf('library.edit.unfavorite', { count }, 'Unfavorite ({count})')
+               : tf('library.edit.favorite',   { count }, 'Favorite ({count})'));
+
+    const allHidden = count > 0 && sel.every(p => hiddenMedia.has(p));
+    setBtn('libEditHideBtn', allHidden ? 'visibility' : 'visibility_off',
+        allHidden ? tf('library.edit.unhide', { count }, 'Unhide ({count})')
+                  : tf('library.edit.hide',   { count }, 'Hide ({count})'));
+
+    setBtn('libEditDeleteBtn', 'delete', tf('library.edit.delete', { count }, 'Delete ({count})'));
+
+    document.querySelectorAll('.lib-edit-action').forEach(b => b.disabled = count === 0);
+}
+
+function libEditFavoriteSelected() {
+    if (_libEditSelected.size === 0) return;
+    const sel = [..._libEditSelected];
+    const allFav = sel.every(p => favorites.has(p));
+    sel.forEach(p => {
+        if (allFav) { favorites.delete(p); sendToCS({ action: 'removeFavorite', path: p }); }
+        else if (!favorites.has(p)) { favorites.add(p); sendToCS({ action: 'addFavorite', path: p }); }
+    });
+    _libEditRerender();
+    updateLibEditBar();
+    if (typeof _wdRenderPhotosPage === 'function') _wdRenderPhotosPage();
+}
+
+function libEditHideSelected() {
+    if (_libEditSelected.size === 0) return;
+    const sel = [..._libEditSelected];
+    const allHidden = sel.every(p => hiddenMedia.has(p));
+    sel.forEach(p => { if (allHidden) hiddenMedia.delete(p); else hiddenMedia.add(p); });
+    try { localStorage.setItem('vrcnext_hidden', JSON.stringify([...hiddenMedia])); } catch {}
+    _libEditRerender();
+    updateLibEditBar();
+    if (typeof renderDashRecentPhotos === 'function') renderDashRecentPhotos();
+    if (typeof _wdRenderPhotosPage === 'function') _wdRenderPhotosPage();
+}
+
+function libEditDeleteSelected() {
+    if (_libEditSelected.size === 0) return;
+    const count = _libEditSelected.size;
+    const x = document.getElementById('deleteModal');
+    if (x) x.remove();
+    const o = document.createElement('div');
+    o.className = 'modal-overlay';
+    o.id        = 'deleteModal';
+    o.onclick   = e => { if (e.target === o) closeDeleteModal(); };
+    o.innerHTML = `<div class="modal-box"><div class="modal-icon danger"><span class="msi" style="font-size:22px;">delete</span></div><div class="modal-title">${t('library.delete.title', 'Delete File')}</div><div class="modal-msg">${tf('library.edit.delete_confirm', { count }, 'Permanently delete {count} file(s) from disk?')}</div><div class="modal-btns"><button id="libDelCancelBtn" class="vrcn-button-round" onclick="closeDeleteModal()">${t('common.cancel', 'Cancel')}</button><button class="vrcn-button-round vrcn-btn-danger" onclick="confirmLibEditDelete()">${t('library.delete.confirm', 'Delete')}</button></div></div>`;
+    document.body.appendChild(o);
+    o.querySelector('#libDelCancelBtn')?.focus();
+}
+
+function confirmLibEditDelete() {
+    [..._libEditSelected].forEach(p => { sendToCS({ action: 'deleteLibraryFile', path: p }); favorites.delete(p); });
+    closeDeleteModal();
+    exitLibEditMode();
 }
 
 // World info.
@@ -752,6 +923,8 @@ function _photoCreateModal(x) {
         <div class="fd-modal-actions"><button class="btn-notif fd-action-btn" onclick="closePhotoDetail()" title="${esc(t('common.close', 'Close'))}"><span class="msi" style="font-size:20px;">close</span></button></div>
         <div class="photo-detail-img-pane">
             <img class="photo-detail-img" alt="" draggable="false" style="display:none;" onerror="this.style.display='none'">
+            <video class="photo-detail-video" playsinline style="display:none;"></video>
+            <div class="pd-video-controls-mount"></div>
             <div class="photo-detail-toolbar-mount"></div>
         </div>
         <div class="photo-detail-info-pane"></div>
@@ -776,6 +949,10 @@ function _photoCreateModal(x) {
 }
 
 function _photoRenderContent(modal, x) {
+    const isVid = x.type === 'video';
+    const box = modal.querySelector('.photo-detail-box');
+    if (box) box.classList.toggle('pd-is-video', isVid);
+
     const imgPane = modal.querySelector('.photo-detail-img-pane');
     if (imgPane) {
         imgPane.dataset.path = x.path || '';
@@ -784,16 +961,37 @@ function _photoRenderContent(modal, x) {
         imgPane.dataset.name = x.name || '';
     }
 
-    const imgEl = modal.querySelector('.photo-detail-img');
-    if (imgEl) {
-        const url = x.url || '';
-        imgEl.style.transform = '';
-        if (url) {
-            imgEl.style.display = '';
-            if (imgEl.getAttribute('src') !== url) imgEl.src = url;
-        } else {
-            imgEl.style.display = 'none';
-            imgEl.removeAttribute('src');
+    const imgEl   = modal.querySelector('.photo-detail-img');
+    const vidEl   = modal.querySelector('.photo-detail-video');
+    const vcMount = modal.querySelector('.pd-video-controls-mount');
+
+    if (isVid) {
+        if (imgEl) { imgEl.style.display = 'none'; imgEl.removeAttribute('src'); }
+        if (vidEl) {
+            const url = x.url || '';
+            vidEl.style.display = '';
+            if (vidEl.getAttribute('src') !== url) vidEl.src = url;
+        }
+        if (vcMount) vcMount.innerHTML = _photoBuildVideoControls();
+        _photoSetupVideo(vidEl, vcMount);
+    } else {
+        if (vidEl) {
+            try { vidEl.pause(); } catch {}
+            if (vidEl._pdCleanup) { vidEl._pdCleanup(); vidEl._pdCleanup = null; }
+            vidEl.removeAttribute('src');
+            vidEl.style.display = 'none';
+        }
+        if (vcMount) vcMount.innerHTML = '';
+        if (imgEl) {
+            const url = x.url || '';
+            imgEl.style.transform = '';
+            if (url) {
+                imgEl.style.display = '';
+                if (imgEl.getAttribute('src') !== url) imgEl.src = url;
+            } else {
+                imgEl.style.display = 'none';
+                imgEl.removeAttribute('src');
+            }
         }
     }
 
@@ -804,10 +1002,68 @@ function _photoRenderContent(modal, x) {
     if (infoPane) infoPane.innerHTML = _photoBuildInfoPaneContent(x);
 }
 
+function _photoBuildVideoControls() {
+    return `<div class="pd-video-controls" onmousedown="event.stopPropagation()">
+        <button class="pd-vc-btn pd-vc-play" title="${esc(t('library.detail.play', 'Play / Pause'))}"><span class="msi">play_arrow</span></button>
+        <span class="pd-vc-time pd-vc-cur">0:00</span>
+        <input type="range" class="pd-vc-seek" min="0" max="0" value="0" step="0.1">
+        <span class="pd-vc-time pd-vc-dur">0:00</span>
+        <button class="pd-vc-btn pd-vc-mute" title="${esc(t('library.detail.mute', 'Mute'))}"><span class="msi">volume_up</span></button>
+        <input type="range" class="pd-vc-vol" min="0" max="1" value="1" step="0.01">
+        <button class="pd-vc-btn pd-vc-full" title="${esc(t('library.detail.fullscreen', 'Fullscreen'))}"><span class="msi">fullscreen</span></button>
+    </div>`;
+}
+
+function _photoSetupVideo(video, mount) {
+    if (!video || !mount) return;
+    if (video._pdCleanup) { video._pdCleanup(); video._pdCleanup = null; }
+
+    const q = s => mount.querySelector(s);
+    const playBtn = q('.pd-vc-play'), seek = q('.pd-vc-seek'), curEl = q('.pd-vc-cur'),
+          durEl = q('.pd-vc-dur'), muteBtn = q('.pd-vc-mute'), volEl = q('.pd-vc-vol'), fullBtn = q('.pd-vc-full');
+
+    const fmt = s => { if (!isFinite(s) || s < 0) return '0:00'; s = Math.floor(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+    const setPlayIcon = () => { const i = playBtn?.querySelector('.msi'); if (i) i.textContent = video.paused ? 'play_arrow' : 'pause'; };
+    const setMuteIcon = () => { const i = muteBtn?.querySelector('.msi'); if (i) i.textContent = (video.muted || !video.volume) ? 'volume_off' : (video.volume < 0.5 ? 'volume_down' : 'volume_up'); };
+    const togglePlay = () => { if (video.paused) video.play().catch(() => {}); else video.pause(); };
+    const fill = (el, pct) => el && el.style.setProperty('--pd-fill', Math.max(0, Math.min(100, pct)) + '%');
+    const fillSeek = () => { const max = Number(seek?.max) || 0; fill(seek, max ? (Number(seek.value) / max) * 100 : 0); };
+    const fillVol  = () => fill(volEl, (video.muted ? 0 : video.volume) * 100);
+
+    let seeking = false;
+    const onMeta = () => { if (durEl) durEl.textContent = fmt(video.duration); if (seek) seek.max = String(Math.max(0, Math.floor(video.duration))); fillSeek(); };
+    const onTime = () => { if (seek && !seeking) seek.value = String(video.currentTime); if (curEl) curEl.textContent = fmt(video.currentTime); fillSeek(); };
+    const onVol  = () => { setMuteIcon(); if (volEl && !volEl.matches(':active')) volEl.value = String(video.muted ? 0 : video.volume); fillVol(); };
+
+    const handlers = [
+        [video,   'loadedmetadata', onMeta],
+        [video,   'durationchange', onMeta],
+        [video,   'timeupdate',     onTime],
+        [video,   'play',           setPlayIcon],
+        [video,   'pause',          setPlayIcon],
+        [video,   'ended',          setPlayIcon],
+        [video,   'volumechange',   onVol],
+        [video,   'click',          togglePlay],
+        [playBtn, 'click',          e => { e.stopPropagation(); togglePlay(); }],
+        [seek,    'input',          () => { seeking = true; video.currentTime = Number(seek.value); if (curEl) curEl.textContent = fmt(video.currentTime); fillSeek(); }],
+        [seek,    'change',         () => { seeking = false; }],
+        [muteBtn, 'click',          e => { e.stopPropagation(); video.muted = !video.muted; if (!video.muted && !video.volume) video.volume = 1; }],
+        [volEl,   'input',          () => { video.volume = Number(volEl.value); video.muted = Number(volEl.value) === 0; fillVol(); }],
+        [fullBtn, 'click',          e => { e.stopPropagation(); const tgt = video.closest('.photo-detail-img-pane') || video; if (document.fullscreenElement) document.exitFullscreen(); else (tgt.requestFullscreen || video.requestFullscreen)?.call(tgt.requestFullscreen ? tgt : video); }],
+    ];
+    handlers.forEach(([el, ev, fn]) => el && el.addEventListener(ev, fn));
+
+    onMeta(); onTime(); setPlayIcon(); setMuteIcon();
+    if (volEl) volEl.value = String(video.muted ? 0 : video.volume);
+    fillVol();
+
+    video._pdCleanup = () => handlers.forEach(([el, ev, fn]) => el && el.removeEventListener(ev, fn));
+}
+
 function _photoBuildToolbar(x) {
-    const isImg = f => f.type === 'image' || f.type === 'gif';
+    const sameKind = f => (f.type === 'video') === (x.type === 'video');
     const inFilt = x.path ? _libFiltered.some(f => f.path === x.path) : false;
-    const navList = x.path ? (inFilt ? _libFiltered : libraryFiles).filter(isImg) : [];
+    const navList = x.path ? (inFilt ? _libFiltered : libraryFiles).filter(sameKind) : [];
     const navIdx  = x.path ? navList.findIndex(f => f.path === x.path) : -1;
     const prevDisabled = (navIdx <= 0)                              ? ' disabled' : '';
     const nextDisabled = (navIdx < 0 || navIdx >= navList.length-1) ? ' disabled' : '';
@@ -900,6 +1156,8 @@ function closePhotoDetail() {
     document.removeEventListener('mousemove', _photoOnMouseMove);
     document.removeEventListener('mouseup',   _photoOnMouseUp);
     _photoState.drag = null;
+    const vid = m.querySelector('.photo-detail-video');
+    if (vid) { try { vid.pause(); } catch {} if (vid._pdCleanup) vid._pdCleanup(); vid.removeAttribute('src'); }
     m.querySelectorAll('img').forEach(img => { img.src = PLACEHOLDER; });
     m.remove();
 }
@@ -942,9 +1200,9 @@ function photoNavNext() { _photoNav(1);  }
 function _photoNav(dir) {
     const it = _photoState.item;
     if (!it || !it.path) return;
-    const isImg = f => f.type === 'image' || f.type === 'gif';
+    const sameKind = f => (f.type === 'video') === (it.type === 'video');
     const inFilt = _libFiltered.some(f => f.path === it.path);
-    const list   = (inFilt ? _libFiltered : libraryFiles).filter(isImg);
+    const list   = (inFilt ? _libFiltered : libraryFiles).filter(sameKind);
     const idx    = list.findIndex(f => f.path === it.path);
     if (idx < 0) return;
     const next = list[idx + dir];
@@ -958,9 +1216,10 @@ function onLibraryFileDeleted(path) {
     // Pick the neighbour BEFORE removal, while the deleted item is still in the list.
     let neighbor = null;
     if (showingDeleted) {
-        const isImg  = f => f.type === 'image' || f.type === 'gif';
+        const delKind = _photoState.item?.type === 'video';
+        const sameKind = f => (f.type === 'video') === delKind;
         const inFilt = _libFiltered.some(f => f.path === path);
-        const list   = (inFilt ? _libFiltered : libraryFiles).filter(isImg);
+        const list   = (inFilt ? _libFiltered : libraryFiles).filter(sameKind);
         const idx    = list.findIndex(f => f.path === path);
         if (idx >= 0) neighbor = list[idx + 1] || list[idx - 1] || null;
     }
@@ -977,6 +1236,7 @@ function onLibraryFileDeleted(path) {
 }
 
 function _photoOnWheel(e) {
+    if (_photoState.item?.type === 'video') return;
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.15 : 1/1.15;
     const pane = e.currentTarget;
@@ -996,6 +1256,7 @@ function _photoOnWheel(e) {
 
 function _photoOnMouseDown(e) {
     if (e.button !== 0) return; // left button only — right/middle pass through (e.g. for context menu)
+    if (_photoState.item?.type === 'video') return;
     if (e.target.closest('.photo-detail-toolbar')) return;
     _photoState.drag = { startX: e.clientX, startY: e.clientY, baseTx: _photoState.tx, baseTy: _photoState.ty };
     document.querySelector('#photoDetailModal .photo-detail-img-pane')?.classList.add('dragging');

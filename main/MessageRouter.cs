@@ -343,6 +343,10 @@ public partial class AppShell
                     });
                     break;
 
+                case "getGameLog":
+                    _authCtrl.HandleGetGameLog();
+                    break;
+
                 // Setup / Auth / Settings — delegated to AuthController
                 case "setupReady":
                 case "setupDone":
@@ -2394,6 +2398,7 @@ public partial class AppShell
                 case "getTimelineByDate":
                 case "getFriendTimelineByDate":
                 case "getTimelineForUser":
+                case "getTimelineForWorld":
                 case "getProfileInsights":
                 case "getUserOnlineHeatmap":
                 case "getUserStatusTime":

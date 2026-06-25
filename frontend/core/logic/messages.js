@@ -903,6 +903,7 @@ case 'vrcNews':
             case 'updateReady':          onUpdateReady(); break;
             case 'dbMigrationProgress':  onDbMigrationProgress(payload); break;
             case 'gameLogEvent':         addGameLogEntry(payload);        break;
+            case 'gameLogHistory':       if (typeof setGameLogHistory === 'function') setGameLogHistory(payload.entries || []); break;
             case 'vrcRefreshNotifs':
                 refreshNotifications();
                 break;
@@ -1003,6 +1004,7 @@ case 'vrcNews':
             case 'vrcFriendAlertState':    if (typeof _fotHandleAlertState  === 'function') _fotHandleAlertState(payload);  break;
             case 'friendTimelineSearchResults': handleFtlSearchResults(payload); break;
             case 'timelineForUser':        renderFdTimeline(payload.userId, payload.events); break;
+            case 'timelineForWorld':       if (typeof renderWdInstanceHistory === 'function') renderWdInstanceHistory(payload.worldId, payload.events); break;
             case 'friendActivityForUser':  renderFdUserActivity(payload.userId, payload.events); break;
             case 'profileInsights':        renderFdProfileInsights(payload); break;
             case 'userOnlineHeatmap':      renderFdOnlineHeatmap(payload); break;

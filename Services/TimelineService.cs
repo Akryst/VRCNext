@@ -1508,6 +1508,95 @@ public class TimelineService : IDisposable
         return result;
     }
 
+    public List<TimelineEvent> GetInstanceVisitsForWorld(string worldId, int limit = 10)
+    {
+        if (string.IsNullOrEmpty(worldId)) return new List<TimelineEvent>();
+
+        var ids = new List<string>();
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT id FROM events
+                WHERE type='instance_join' AND world_id=$wid
+                ORDER BY timestamp DESC LIMIT $limit";
+            cmd.Parameters.AddWithValue("$wid",   worldId);
+            cmd.Parameters.AddWithValue("$limit", limit);
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) ids.Add(r.GetString(0));
+        }
+        catch { return new List<TimelineEvent>(); }
+
+        if (ids.Count == 0) return new List<TimelineEvent>();
+
+        var playerMap = new Dictionary<string, List<PlayerSnap>>();
+        try
+        {
+            var inP = string.Join(",", ids.Select((_, i) => $"$p{i}"));
+            using var pcmd = _db.CreateCommand();
+            pcmd.CommandText = $"SELECT event_id,user_id,display_name,image,joined_at,left_at FROM event_players WHERE event_id IN ({inP})";
+            for (int i = 0; i < ids.Count; i++) pcmd.Parameters.AddWithValue($"$p{i}", ids[i]);
+            using var pr = pcmd.ExecuteReader();
+            while (pr.Read())
+            {
+                var eid = pr.GetString(0);
+                if (!playerMap.TryGetValue(eid, out var list)) playerMap[eid] = list = new();
+                list.Add(new PlayerSnap {
+                    UserId      = pr.GetString(1),
+                    DisplayName = pr.GetString(2),
+                    Image       = pr.GetString(3),
+                    JoinedAts   = PlayerSnap.ParseSessions(pr.IsDBNull(4) ? "" : pr.GetString(4)),
+                    LeftAts     = PlayerSnap.ParseSessions(pr.IsDBNull(5) ? "" : pr.GetString(5)),
+                });
+            }
+        }
+        catch { }
+
+        var result = new List<TimelineEvent>();
+        try
+        {
+            var inE = string.Join(",", ids.Select((_, i) => $"$e{i}"));
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = $@"SELECT id,type,timestamp,world_id,world_name,world_thumb,
+                location,photo_path,photo_url,user_id,user_name,user_image,
+                notif_id,notif_type,notif_title,sender_name,sender_id,sender_image,message,
+                left_at,tracked
+                FROM events WHERE id IN ({inE}) ORDER BY timestamp DESC";
+            for (int i = 0; i < ids.Count; i++) cmd.Parameters.AddWithValue($"$e{i}", ids[i]);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var id = r.GetString(0);
+                result.Add(new TimelineEvent
+                {
+                    Id          = id,
+                    Type        = r.GetString(1),
+                    Timestamp   = r.GetString(2),
+                    WorldId     = r.GetString(3),
+                    WorldName   = r.GetString(4),
+                    WorldThumb  = r.GetString(5),
+                    Location    = r.GetString(6),
+                    PhotoPath   = r.GetString(7),
+                    PhotoUrl    = r.GetString(8),
+                    UserId      = r.GetString(9),
+                    UserName    = r.GetString(10),
+                    UserImage   = r.GetString(11),
+                    NotifId     = r.GetString(12),
+                    NotifType   = r.GetString(13),
+                    NotifTitle  = r.GetString(14),
+                    SenderName  = r.GetString(15),
+                    SenderId    = r.GetString(16),
+                    SenderImage = r.GetString(17),
+                    Message     = r.GetString(18),
+                    LeftAt      = r.IsDBNull(19) ? "" : r.GetString(19),
+                    Tracked     = r.GetInt32(20),
+                    Players     = playerMap.TryGetValue(id, out var pl) ? pl : new(),
+                });
+            }
+        }
+        catch { }
+        return result;
+    }
+
     // Friend timeline
 
     public void AddFriendEvent(FriendTimelineEvent ev)

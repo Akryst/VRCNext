@@ -92,6 +92,11 @@
     background: rgba(255, 255, 255, .05);
 }
 
+.ne-home-btn.active,
+.ne-home-btn.active:hover {
+    color: var(--accent);
+}
+
 .ne-del-btn {
     color: var(--err);
     opacity: 0.6;

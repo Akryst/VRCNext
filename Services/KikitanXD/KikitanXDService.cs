@@ -14,7 +14,7 @@ using NAudio.Wave;
 namespace VRCNext.Services.KikitanXD;
 
 #if !WINDOWS
-public sealed class KikitanXDService : IDisposable
+public sealed class KikitanXDService : IKikitanSpeechService
 {
     public event Action<string, bool>? OnRecognized;
     public event Action<string>? OnTranslated;
@@ -23,15 +23,15 @@ public sealed class KikitanXDService : IDisposable
     public bool IsRunning => false;
     public float MeterLevel => 0f;
     public static string[] GetInputDevices() => [];
-    public void Start(int deviceIndex, string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality) { }
-    public void UpdateSettings(string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality) { }
+    public void Start(int deviceIndex, KikitanXDSettings settings) { }
+    public void UpdateSettings(KikitanXDSettings settings) { }
     public void Stop() { }
     public void Dispose() { }
     public static Task<string> TranslateStandaloneAsync(string apiKey, string text, string sourceLang, string targetLang) => Task.FromResult("");
 }
 #else
 
-public sealed class KikitanXDService : IDisposable
+public sealed class KikitanXDService : IKikitanSpeechService
 {
     public event Action<string, bool>? OnRecognized;
     public event Action<string>? OnTranslated;
@@ -54,6 +54,8 @@ public sealed class KikitanXDService : IDisposable
     private bool _translateEnabled;
     private bool _oscEnabled;
     private string _personality = "raw";
+    private volatile string[] _blockedWords = Array.Empty<string>();
+    private volatile string[] _blockedSentences = Array.Empty<string>();
 
     private static readonly HttpClient _http = new();
 
@@ -67,15 +69,64 @@ public sealed class KikitanXDService : IDisposable
     private const int MinSpeechMs = 250;
     private const int MaxSegmentMs = 10000;
 
-    public void UpdateSettings(string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality)
+    public void UpdateSettings(KikitanXDSettings s)
     {
-        _apiKey = apiKey;
-        _sourceLang = sourceLang;
-        _targetLang = targetLang;
-        _translateEnabled = translate;
-        _oscEnabled = oscEnabled;
-        _personality = personality ?? "raw";
-        _silenceThreshold = Math.Clamp(noiseGatePct / 100f / 6f, 0.001f, 0.5f);
+        _apiKey = s.ApiKey;
+        _sourceLang = s.SourceLang;
+        _targetLang = s.TargetLang;
+        _translateEnabled = s.TranslateEnabled;
+        _oscEnabled = s.OscEnabled;
+        _personality = s.Personality ?? "raw";
+        _silenceThreshold = Math.Clamp(s.NoiseGatePercent / 100f / 6f, 0.001f, 0.5f);
+        _blockedWords = NormalizeList(s.BlockedWords);
+        _blockedSentences = NormalizeList(s.BlockedSentences);
+    }
+
+    private static string[] NormalizeList(IEnumerable<string>? items)
+    {
+        if (items == null) return Array.Empty<string>();
+        var list = new List<string>();
+        foreach (var i in items)
+            if (!string.IsNullOrWhiteSpace(i)) list.Add(i.Trim());
+        return list.ToArray();
+    }
+
+    private static string NormalizeSentence(string s)
+    {
+        return s.Trim().Trim(' ', '.', ',', '!', '?', ';', ':', '"', '\'', '。', '！', '？', '、', '…').Trim();
+    }
+
+    private string ApplyBlockFilters(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return text;
+
+        var sentences = _blockedSentences;
+        if (sentences.Length > 0)
+        {
+            string norm = NormalizeSentence(text);
+            foreach (var s in sentences)
+            {
+                if (norm.Equals(NormalizeSentence(s), StringComparison.OrdinalIgnoreCase))
+                    return "";
+            }
+        }
+
+        var words = _blockedWords;
+        if (words.Length > 0)
+        {
+            foreach (var w in words)
+            {
+                if (string.IsNullOrWhiteSpace(w)) continue;
+                text = System.Text.RegularExpressions.Regex.Replace(
+                    text,
+                    $@"\b{System.Text.RegularExpressions.Regex.Escape(w)}\b",
+                    "",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            }
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"\s{2,}", " ").Trim();
+        }
+
+        return text;
     }
 
     private const string TranslateSystemPromptRaw =
@@ -111,16 +162,18 @@ public sealed class KikitanXDService : IDisposable
         return names;
     }
 
-    public void Start(int deviceIndex, string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality)
+    public void Start(int deviceIndex, KikitanXDSettings s)
     {
         Stop();
-        _apiKey = apiKey;
-        _sourceLang = sourceLang;
-        _targetLang = targetLang;
-        _translateEnabled = translate;
-        _oscEnabled = oscEnabled;
-        _personality = personality ?? "raw";
-        _silenceThreshold = Math.Clamp(noiseGatePct / 100f / 6f, 0.001f, 0.5f);
+        _apiKey = s.ApiKey;
+        _sourceLang = s.SourceLang;
+        _targetLang = s.TargetLang;
+        _translateEnabled = s.TranslateEnabled;
+        _oscEnabled = s.OscEnabled;
+        _personality = s.Personality ?? "raw";
+        _silenceThreshold = Math.Clamp(s.NoiseGatePercent / 100f / 6f, 0.001f, 0.5f);
+        _blockedWords = NormalizeList(s.BlockedWords);
+        _blockedSentences = NormalizeList(s.BlockedSentences);
 
         _waveIn = new WaveInEvent
         {
@@ -257,6 +310,9 @@ public sealed class KikitanXDService : IDisposable
         {
             var wavBytes = PcmToWav(pcm, SampleRate, Channels, BitsPerSample);
             string srcText = TranscribeAsync(wavBytes).GetAwaiter().GetResult();
+            if (string.IsNullOrWhiteSpace(srcText)) return;
+
+            srcText = ApplyBlockFilters(srcText);
             if (string.IsNullOrWhiteSpace(srcText)) return;
 
             OnRecognized?.Invoke(srcText, false);

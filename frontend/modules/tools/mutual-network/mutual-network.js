@@ -170,6 +170,7 @@ class MutualGraph {
             return;
         }
         this._friendsLoaded = true;
+        this._friendIds = new Set(friends.map(f => f.id));
         const W = this.canvas.width, H = this.canvas.height;
         const cx = W / 2, cy = H / 2;
         const R = Math.min(W, H) * 0.38;
@@ -211,6 +212,13 @@ class MutualGraph {
 
     addNonFriend(nf) {
         if (!this._friendsLoaded || !nf || !Array.isArray(nf.mutualIds)) return;
+
+        if (this._friendIds && this._friendIds.has(nf.id)) {
+            if (_externalNonFriends[nf.id]) { delete _externalNonFriends[nf.id]; _netSaveNonFriends(); }
+            const fIdx = this.nodeMap[nf.id];
+            if (fIdx !== undefined) this.nodes[fIdx].isNonFriend = false;
+            return;
+        }
 
         const mutualIdxs = nf.mutualIds
             .map(id => this.nodeMap[id])

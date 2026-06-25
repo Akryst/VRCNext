@@ -359,7 +359,9 @@ public class FriendsController
                         if (IsDbCacheFresh(avDbCache?.ContentCachedAt, TimeSpan.FromDays(1)))
                         {
                             var cached = TryParseJObject(avDbCache!.ContentJson);
-                            if (cached?["avatars"] is JArray cachedAvtrs)
+                            // avatarsV gates the cache: bumped to 2 when paginated fetch
+                            // landed, so old truncated (single-page) caches are refetched once.
+                            if (cached?["avatarsV"]?.Value<int>() == 2 && cached["avatars"] is JArray cachedAvtrs)
                             {
                                 foreach (var a in cachedAvtrs)
                                     if (a is JObject ao)
@@ -387,6 +389,7 @@ public class FriendsController
                         var avDbCache2 = _core.TimeEngine.GetUserProfileCache(uid);
                         var cf2 = (TryParseJObject(avDbCache2?.ContentJson ?? "") ?? new JObject());
                         cf2["avatars"] = JToken.FromObject(avatars);
+                        cf2["avatarsV"] = 2;
                         _core.TimeEngine.SaveUserContentCache(uid, cf2.ToString(Newtonsoft.Json.Formatting.None));
                         _core.SendToJS("vrcUserAvatars", new { userId = uid, avatars });
                     }

@@ -4,6 +4,8 @@ let kxdRunning = false;
 let _kxdDevicesPayload = null;
 let kxdNoiseGatePct = 10;
 let _kxdPendingConnect = false;
+let _kxdBlockWords = [];
+let _kxdBlockSentences = [];
 
 const KXD_SOURCE_LANGS = [
     { code: 'auto', name: 'Auto Detect' },
@@ -107,14 +109,21 @@ function kxdConnect() {
     const targetLang = tgtSel?.value || _kxdDevicesPayload.targetLang || 'en';
     const translateEnabled = document.getElementById('kxdTranslateToggle')?.checked ?? !!_kxdDevicesPayload.translateEnabled;
     const oscEnabled = document.getElementById('kxdOscToggle')?.checked ?? !!_kxdDevicesPayload.oscEnabled;
+    const model = document.getElementById('kxdModel')?.value || _kxdDevicesPayload.model || 'groq';
+    const googleApiKey = (document.getElementById('kxdGoogleApiKey')?.value || _kxdDevicesPayload.googleApiKey || '').trim();
 
-    if (!apiKey) {
+    if (model === 'google') {
+        if (!googleApiKey) {
+            alert('Please enter your Google API key.');
+            return;
+        }
+    } else if (!apiKey) {
         alert('Please enter your Groq API key.');
         return;
     }
 
     const personality = document.getElementById('kxdPersonality')?.value || _kxdDevicesPayload.personality || 'raw';
-    sendToCS({ action: 'kxdStart', deviceIndex, apiKey, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct, personality });
+    sendToCS({ action: 'kxdStart', deviceIndex, apiKey, googleApiKey, model, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct, personality, blockWords: _kxdBlockWords, blockSentences: _kxdBlockSentences });
 }
 
 function populateKxdDevices(p) {
@@ -146,6 +155,15 @@ function populateKxdDevices(p) {
 
     const apiKeyEl = document.getElementById('kxdApiKey');
     if (apiKeyEl && p.apiKey) apiKeyEl.value = p.apiKey;
+
+    const googleApiKeyEl = document.getElementById('kxdGoogleApiKey');
+    if (googleApiKeyEl && p.googleApiKey) googleApiKeyEl.value = p.googleApiKey;
+
+    const modelSel = document.getElementById('kxdModel');
+    if (modelSel) {
+        modelSel.value = p.model || 'groq';
+        if (modelSel._vnRefresh) modelSel._vnRefresh();
+    }
 
     const srcSel = document.getElementById('kxdSourceLang');
     if (srcSel) {
@@ -188,6 +206,11 @@ function populateKxdDevices(p) {
         persSel.value = p.personality;
         if (persSel._vnRefresh) persSel._vnRefresh();
     }
+
+    _kxdBlockWords = Array.isArray(p.blockWords) ? p.blockWords : [];
+    _kxdBlockSentences = Array.isArray(p.blockSentences) ? p.blockSentences : [];
+    kxdRenderBlockChips('word');
+    kxdRenderBlockChips('sentence');
 
     window._kxdProfileTranslationEnabled = p.profileTranslationEnabled !== false;
     window._kxdProfileTargetLang = p.profileTargetLang || 'en';
@@ -252,6 +275,8 @@ function kxdUpdateTranslateVisibility() {
 
 function kxdSaveSettings() {
     const apiKey = (document.getElementById('kxdApiKey')?.value || '').trim();
+    const googleApiKey = (document.getElementById('kxdGoogleApiKey')?.value || '').trim();
+    const model = document.getElementById('kxdModel')?.value || 'groq';
     const srcSel = document.getElementById('kxdSourceLang');
     const tgtSel = document.getElementById('kxdTargetLang');
     const sourceLang = srcSel ? srcSel.value : 'auto';
@@ -267,11 +292,68 @@ function kxdSaveSettings() {
     window._kxdApiKeyPresent = !!apiKey;
     const personality = document.getElementById('kxdPersonality')?.value || 'raw';
     const devSel = document.getElementById('kxdDeviceSelect');
-    const payload = { action: 'kxdSaveSettings', apiKey, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct, profileTranslationEnabled, profileTargetLang, personality };
+    const payload = { action: 'kxdSaveSettings', apiKey, googleApiKey, model, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct, profileTranslationEnabled, profileTargetLang, personality, blockWords: _kxdBlockWords, blockSentences: _kxdBlockSentences };
     if (devSel && devSel.value !== '' && !isNaN(parseInt(devSel.value, 10))) {
         payload.deviceIndex = parseInt(devSel.value, 10);
     }
     sendToCS(payload);
+}
+
+function kxdRenderBlockChips(kind) {
+    const isWord = kind === 'word';
+    const list = isWord ? _kxdBlockWords : _kxdBlockSentences;
+    const containerId = isWord ? 'kxdBlockWordChips' : 'kxdBlockSentenceChips';
+    const inputId = isWord ? 'kxdBlockWordInput' : 'kxdBlockSentenceInput';
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const chips = list.map(w =>
+        `<span class="vf-block-chip">${esc(w)}<button class="vf-block-chip-remove" onclick='kxdBlockRemove(${JSON.stringify(kind)}, ${JSON.stringify(w)})' title="${esc(t('common.remove', 'Remove'))}"><span class="msi" style="font-size:11px;">close</span></button></span>`
+    ).join('');
+    const placeholder = list.length === 0
+        ? (isWord
+            ? t('kikitan.blocked.word_placeholder', 'Type a word and press Enter...')
+            : t('kikitan.blocked.sentence_placeholder', 'Type a sentence and press Enter...'))
+        : '';
+    el.innerHTML = chips + `<input id="${inputId}" class="vf-block-inline-input" placeholder="${esc(placeholder)}" onkeydown="kxdBlockInputKey(event, '${kind}')">`;
+}
+
+function kxdBlockInputKey(e, kind) {
+    const isWord = kind === 'word';
+    const list = isWord ? _kxdBlockWords : _kxdBlockSentences;
+    const inputId = isWord ? 'kxdBlockWordInput' : 'kxdBlockSentenceInput';
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        kxdBlockAdd(kind);
+    } else if (e.key === 'Backspace' && e.target.value === '' && list.length > 0) {
+        e.preventDefault();
+        list.pop();
+        kxdRenderBlockChips(kind);
+        document.getElementById(inputId)?.focus();
+        kxdSaveSettings();
+    }
+}
+
+function kxdBlockAdd(kind) {
+    const isWord = kind === 'word';
+    const list = isWord ? _kxdBlockWords : _kxdBlockSentences;
+    const inputId = isWord ? 'kxdBlockWordInput' : 'kxdBlockSentenceInput';
+    const inp = document.getElementById(inputId);
+    if (!inp) return;
+    const val = inp.value.trim();
+    inp.value = '';
+    if (!val || list.some(w => w.toLowerCase() === val.toLowerCase())) return;
+    list.push(val);
+    kxdRenderBlockChips(kind);
+    document.getElementById(inputId)?.focus();
+    kxdSaveSettings();
+}
+
+function kxdBlockRemove(kind, val) {
+    if (kind === 'word') _kxdBlockWords = _kxdBlockWords.filter(w => w !== val);
+    else _kxdBlockSentences = _kxdBlockSentences.filter(w => w !== val);
+    kxdRenderBlockChips(kind);
+    document.getElementById(kind === 'word' ? 'kxdBlockWordInput' : 'kxdBlockSentenceInput')?.focus();
+    kxdSaveSettings();
 }
 
 function buildKxdLangOptions(langs, selectedCode) {

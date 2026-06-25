@@ -92,22 +92,41 @@ const _NAV_STORAGE_KEY = 'vrcnext_nav_layout_v1';
 function navLoadLayout() {
     try {
         const raw = localStorage.getItem(_NAV_STORAGE_KEY);
-        if (!raw) return { layout: _navClone(NAV_DEFAULT_LAYOUT), hidden: [] };
+        if (!raw) return { layout: _navClone(NAV_DEFAULT_LAYOUT), hidden: [], start: 'dashboard' };
         const parsed = JSON.parse(raw);
         const hidden = Array.isArray(parsed.hidden)
                 ? parsed.hidden.filter(k => k in NAV_ITEMS_DEF)
                 : [];
+        const start = (parsed.start && parsed.start in NAV_ITEMS_DEF) ? parsed.start : 'dashboard';
         return {
             layout: navSanitizeLayout(parsed.layout || [], hidden),
             hidden,
+            start,
         };
     } catch {
-        return { layout: _navClone(NAV_DEFAULT_LAYOUT), hidden: [] };
+        return { layout: _navClone(NAV_DEFAULT_LAYOUT), hidden: [], start: 'dashboard' };
     }
 }
 
-function navSaveLayout(layout, hidden) {
-    localStorage.setItem(_NAV_STORAGE_KEY, JSON.stringify({ layout, hidden }));
+function navSaveLayout(layout, hidden, start = 'dashboard') {
+    localStorage.setItem(_NAV_STORAGE_KEY, JSON.stringify({ layout, hidden, start }));
+}
+
+function navGetStartPage() {
+    return navLoadLayout().start;
+}
+
+// Apply the configured start page on app launch. No-op for the default (Dashboard,
+// which is already the active tab) or when the page is hidden / unavailable.
+function navApplyStartPage() {
+    try {
+        const { hidden, start } = navLoadLayout();
+        if (!start || start === 'dashboard') return;
+        const def = NAV_ITEMS_DEF[start];
+        if (!def || hidden.includes(start)) return;
+        if (def.windowsOnly && typeof _navIsLinux !== 'undefined' && _navIsLinux) return;
+        if (typeof showTab === 'function') showTab(def.tab);
+    } catch { /* ignore */ }
 }
 
 function navSanitizeLayout(layout, hidden = []) {

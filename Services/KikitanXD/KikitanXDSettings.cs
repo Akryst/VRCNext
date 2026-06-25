@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace VRCNext.Services.KikitanXD;
@@ -9,6 +10,8 @@ public class KikitanXDSettings
         "VRCNext", "kikitan_xd.json");
 
     public string ApiKey { get; set; } = "";
+    public string GoogleApiKey { get; set; } = "";
+    public string Model { get; set; } = "groq";
     public int InputDeviceIndex { get; set; } = 0;
     public string SourceLang { get; set; } = "auto";
     public string TargetLang { get; set; } = "en";
@@ -18,6 +21,8 @@ public class KikitanXDSettings
     public bool ProfileTranslationEnabled { get; set; } = true;
     public string ProfileTargetLang { get; set; } = "en";
     public string Personality { get; set; } = "raw";
+    public List<string> BlockedWords { get; set; } = new();
+    public List<string> BlockedSentences { get; set; } = new();
 
     public static KikitanXDSettings Load()
     {

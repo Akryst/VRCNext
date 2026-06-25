@@ -1,5 +1,6 @@
 let _edLayout = [];
 let _edHidden = [];
+let _edStartPage = 'dashboard';
 let _edIconPickerClose = null;
 let _edDragCleanup = null;
 
@@ -13,6 +14,7 @@ function openNavEditor() {
     const state = navLoadLayout();
     _edLayout = _navClone(state.layout);
     _edHidden = [...state.hidden];
+    _edStartPage = state.start || 'dashboard';
     const overlay = document.getElementById('navEditorOverlay');
     if (!overlay) return;
     overlay.style.display = 'flex';
@@ -27,7 +29,7 @@ function closeNavEditor() {
 
 function _edConfirm() {
     _edSyncLayoutFromDom();
-    navSaveLayout(_edLayout, _edHidden);
+    navSaveLayout(_edLayout, _edHidden, _edStartPage);
     navRender();
     closeNavEditor();
     if (typeof _prevTab !== 'undefined' && typeof showTab === 'function') showTab(_prevTab);
@@ -36,6 +38,7 @@ function _edConfirm() {
 function _edRestoreDefault() {
     _edLayout = _navClone(NAV_DEFAULT_LAYOUT);
     _edHidden = [];
+    _edStartPage = 'dashboard';
     _edRenderList();
 }
 
@@ -113,6 +116,17 @@ function _edMakeItemRow(key, iconOverride, topIdx, folderId) {
     row.appendChild(lbl);
 
     row.appendChild(Object.assign(document.createElement('span'), { className: 'ne-spacer' }));
+
+    const homeBtn = document.createElement('button');
+    homeBtn.className = 'ne-btn ne-home-btn' + (key === _edStartPage ? ' active' : '');
+    homeBtn.title = _edT('nav.editor.set_home', 'Set as start page');
+    homeBtn.innerHTML = '<span class="msi">home</span>';
+    homeBtn.addEventListener('click', () => {
+        _edSyncLayoutFromDom();
+        _edStartPage = (_edStartPage === key) ? 'dashboard' : key;
+        _edRenderList();
+    });
+    row.appendChild(homeBtn);
 
     if (key !== 'dashboard') {
         const hideBtn = document.createElement('button');
@@ -240,6 +254,7 @@ function _edHideItem(key, folderId) {
         _edLayout = _edLayout.filter(e => !(e.type === 'item' && e.key === key));
     }
     if (!_edHidden.includes(key)) _edHidden.push(key);
+    if (key === _edStartPage) _edStartPage = 'dashboard';
     _edRenderList();
 }
 

@@ -19,6 +19,8 @@ public class VRChatLogWatcher : IDisposable
         public DateTime Timestamp   { get; init; }
     }
 
+    public readonly record struct GameLogLine(string Type, string Timestamp, string Message, string Detail);
+
     private readonly Dictionary<string, PlayerInfo> _players = new();
     // Append-only log of every OnPlayerJoined / OnPlayerLeft since the last room change.
     // Captured during catchUp AND live, used as source-of-truth for restart reconciliation.
@@ -48,9 +50,19 @@ public class VRChatLogWatcher : IDisposable
     public event Action<string, string>? PlayerLeft;
     public event Action<string>? ScreenshotTaken;
     public event Action? PortalUsed;
-    public event Action? AvatarBlockedPerf;
     public event Action<string>? ImageLoadError;
+    public event Action? AvatarBlockedPerf;
     public event Action? ConnectionLost;
+
+    public event Action<GameLogLine>? GameLogEntry;
+
+    private static string GlIso(DateTime ts) => ts.ToString("yyyy-MM-ddTHH:mm:ss");
+
+    private void EmitGameLog(bool catchUp, string type, DateTime ts, string message, string detail)
+    {
+        if (catchUp) return;
+        GameLogEntry?.Invoke(new GameLogLine(type, GlIso(ts), message, detail));
+    }
 
     public DateTime? WorldJoinedAt { get; private set; }
     public string PendingWorldName { get; private set; } = "";
@@ -166,12 +178,120 @@ public class VRChatLogWatcher : IDisposable
 
     public void Stop() { _pollTimer?.Dispose(); _pollTimer = null; }
 
-    private string GetLogDirectory()
+    private static string GetLogDirectory()
     {
         // VRChat uses LocalLow, not Local
         var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var appData = Directory.GetParent(local)?.FullName ?? local;
         return Path.Combine(appData, "LocalLow", "VRChat", "VRChat");
+    }
+
+    private static List<string> GetLogFilesNewestFirst()
+    {
+        try
+        {
+            var dir = GetLogDirectory();
+            if (!Directory.Exists(dir)) return new List<string>();
+            return Directory.GetFiles(dir, "output_log_*.txt")
+                .OrderByDescending(f => new FileInfo(f).LastWriteTime)
+                .ToList();
+        }
+        catch { return new List<string>(); }
+    }
+
+    public static List<GameLogLine> BuildGameLogHistory(int limit = 1000)
+    {
+        var all = new List<GameLogLine>();
+        foreach (var f in GetLogFilesNewestFirst())
+        {
+            all.AddRange(ScanFileForGameLog(f));
+            if (all.Count >= limit) break;
+        }
+        all.Sort((a, b) => string.CompareOrdinal(b.Timestamp, a.Timestamp));
+        if (all.Count > limit) all.RemoveRange(limit, all.Count - limit);
+        return all;
+    }
+
+    private static List<GameLogLine> ScanFileForGameLog(string path)
+    {
+        var outp = new List<GameLogLine>();
+        if (!File.Exists(path)) return outp;
+        string curWorldId = "";
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new StreamReader(fs);
+            string? line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                if (line.Length < 30) continue;
+                var ts = GlIso(ParseLogTimestamp(line));
+
+                if (line.Contains("Joining wrld_"))
+                {
+                    var m = RxRoomJoin.Match(line);
+                    if (m.Success)
+                    {
+                        var loc = m.Groups[1].Value;
+                        var colon = loc.IndexOf(':');
+                        curWorldId = colon >= 0 ? loc.Substring(0, colon) : loc;
+                    }
+                    continue;
+                }
+                if (line.Contains("Entering Room:"))
+                {
+                    var m = RxRoomEnter.Match(line);
+                    if (m.Success) outp.Add(new GameLogLine("gl_world_join", ts, m.Groups[1].Value.Trim(), curWorldId));
+                    continue;
+                }
+                if (line.Contains("OnPlayerJoined"))
+                {
+                    var m = RxPlayerJoined.Match(line);
+                    if (m.Success) outp.Add(new GameLogLine("gl_player_join", ts, m.Groups[1].Value.Trim(), m.Groups[2].Success ? m.Groups[2].Value : ""));
+                    continue;
+                }
+                if (line.Contains("OnPlayerLeft"))
+                {
+                    var m = RxPlayerLeft.Match(line);
+                    if (m.Success) outp.Add(new GameLogLine("gl_player_left", ts, m.Groups[1].Value.Trim(), m.Groups[2].Success ? m.Groups[2].Value : ""));
+                    continue;
+                }
+                if (line.Contains("resolve URL '") || line.Contains("Resolving URL '"))
+                {
+                    var m = RxVideoUrl.Match(line);
+                    if (m.Success)
+                    {
+                        var url = m.Groups[1].Value;
+                        var host = Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.Host : url;
+                        outp.Add(new GameLogLine("gl_video_url", ts, host, url));
+                    }
+                    continue;
+                }
+                if (line.Contains("Instance closed:"))
+                {
+                    var m = RxInstanceClosed.Match(line);
+                    if (m.Success) outp.Add(new GameLogLine("gl_instance_closed", ts, "Instance closed", m.Groups[1].Value));
+                    continue;
+                }
+                if (line.Contains("[VRC Camera] Took screenshot to:"))
+                {
+                    var m = RxScreenshot.Match(line);
+                    if (m.Success) { var p = m.Groups[1].Value.Trim(); outp.Add(new GameLogLine("gl_screenshot", ts, Path.GetFileName(p), p)); }
+                    continue;
+                }
+                if (line.Contains(RxPortalStr)) { outp.Add(new GameLogLine("gl_portal", ts, "Portal used", "")); continue; }
+                if (line.Contains(RxAvatarBlkStr)) { outp.Add(new GameLogLine("gl_avatar_blocked", ts, "Avatar blocked (perf limit)", "")); continue; }
+                if (line.Contains(RxConnLostStr)) { outp.Add(new GameLogLine("gl_connection_lost", ts, "Connection lost", "")); continue; }
+                if (line.Contains("web request exception occurred while loading image"))
+                {
+                    var m = RxImageError.Match(line);
+                    if (m.Success) { var url = m.Groups[1].Value; var host = Uri.TryCreate(url, UriKind.Absolute, out var u2) ? u2.Host : url; outp.Add(new GameLogLine("gl_image_error", ts, $"Image failed: {host}", url)); }
+                    continue;
+                }
+            }
+        }
+        catch { }
+        return outp;
     }
 
     private void FindLatestLogFile()
@@ -259,6 +379,7 @@ public class VRChatLogWatcher : IDisposable
                 lock (_lock) { _players.Clear(); _pastLefts.Clear(); _playerEventLog.Clear(); }
                 _totalRoomEvents++;
                 if (!catchUp) Log($"LogWatcher: 🌍 {PendingWorldName}");
+                EmitGameLog(catchUp, "gl_world_join", ParseLogTimestamp(line), PendingWorldName, _currentWorldId ?? "");
                 return;
             }
         }
@@ -285,6 +406,7 @@ public class VRChatLogWatcher : IDisposable
                 {
                     Log($"LogWatcher: ➕ {name} ({_players.Count} now)");
                     PlayerJoined?.Invoke(uid, name);
+                    EmitGameLog(catchUp, "gl_player_join", joinTs, name, uid);
                 }
                 return;
             }
@@ -316,6 +438,7 @@ public class VRChatLogWatcher : IDisposable
                 {
                     Log($"LogWatcher: ➖ {name} ({_players.Count} now)");
                     PlayerLeft?.Invoke(uid, name);
+                    EmitGameLog(catchUp, "gl_player_left", leftTs, name, uid);
                 }
                 return;
             }
@@ -325,7 +448,12 @@ public class VRChatLogWatcher : IDisposable
         {
             var m = RxVideoUrl.Match(line);
             if (m.Success && !catchUp)
+            {
                 VideoUrl?.Invoke(m.Groups[1].Value);
+                var url = m.Groups[1].Value;
+                var host = Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.Host : url;
+                EmitGameLog(catchUp, "gl_video_url", ParseLogTimestamp(line), host, url);
+            }
             return;
         }
 
@@ -345,6 +473,7 @@ public class VRChatLogWatcher : IDisposable
                 var loc = m.Groups[1].Value;
                 Log($"LogWatcher: 🔒 Instance closed: {loc}");
                 InstanceClosed?.Invoke(loc);
+                EmitGameLog(catchUp, "gl_instance_closed", ParseLogTimestamp(line), "Instance closed", loc);
             }
             return;
         }
@@ -353,25 +482,32 @@ public class VRChatLogWatcher : IDisposable
         {
             var m = RxScreenshot.Match(line);
             if (m.Success && !catchUp)
-                ScreenshotTaken?.Invoke(m.Groups[1].Value.Trim());
+            {
+                var p = m.Groups[1].Value.Trim();
+                ScreenshotTaken?.Invoke(p);
+                EmitGameLog(catchUp, "gl_screenshot", ParseLogTimestamp(line), Path.GetFileName(p), p);
+            }
             return;
         }
 
         if (line.Contains(RxPortalStr) && !catchUp)
         {
             PortalUsed?.Invoke();
+            EmitGameLog(catchUp, "gl_portal", ParseLogTimestamp(line), "Portal used", "");
             return;
         }
 
         if (line.Contains(RxAvatarBlkStr) && !catchUp)
         {
             AvatarBlockedPerf?.Invoke();
+            EmitGameLog(catchUp, "gl_avatar_blocked", ParseLogTimestamp(line), "Avatar blocked (perf limit)", "");
             return;
         }
 
         if (line.Contains(RxConnLostStr) && !catchUp)
         {
             ConnectionLost?.Invoke();
+            EmitGameLog(catchUp, "gl_connection_lost", ParseLogTimestamp(line), "Connection lost", "");
             return;
         }
 
@@ -379,7 +515,12 @@ public class VRChatLogWatcher : IDisposable
         {
             var m = RxImageError.Match(line);
             if (m.Success && !catchUp)
-                ImageLoadError?.Invoke(m.Groups[1].Value);
+            {
+                var url = m.Groups[1].Value;
+                ImageLoadError?.Invoke(url);
+                var host = Uri.TryCreate(url, UriKind.Absolute, out var u3) ? u3.Host : url;
+                EmitGameLog(catchUp, "gl_image_error", ParseLogTimestamp(line), $"Image failed: {host}", url);
+            }
             return;
         }
     }
