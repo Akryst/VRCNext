@@ -235,10 +235,12 @@ public class PhotosController
             IncludeSubdirectories = true,
             EnableRaisingEvents = true,
             NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime,
-            Filter = "VRChat_*.png"
+            Filter = "VRChat_*"
         };
         _vrcPhotoWatcher.Created += (s, e) =>
         {
+            var ext = Path.GetExtension(e.FullPath);
+            if (!_imgExts.Contains(ext) && !FileWatcherService.VidExt.Contains(ext)) return;
             // Small delay so file is fully written
             Task.Run(async () =>
             {
@@ -507,10 +509,11 @@ public class PhotosController
             var rel    = Path.GetRelativePath(folder, filePath).Replace('\\', '/');
             var url    = $"http://localhost:{_core.HttpPort}/media{folderIdx}/{Uri.EscapeDataString(rel).Replace("%2F", "/")}";
 
+            var isVid  = FileWatcherService.VidExt.Contains(fi.Extension);
             string? worldId = null;
             List<object>? players = null;
             string authorName = "", authorId = "";
-            if (isImg)
+            if (isImg || isVid)
             {
                 var rec = _core.PhotoPlayersStore.GetPhotoRecord(fi.Name);
                 if (rec != null)
@@ -556,7 +559,9 @@ public class PhotosController
     private void SnapshotPhotoPlayers(string filePath)
     {
         var fileName = Path.GetFileName(filePath);
-        if (!_imgExts.Contains(Path.GetExtension(filePath)))
+        var ext = Path.GetExtension(filePath);
+        var isImage = _imgExts.Contains(ext);
+        if (!isImage && !FileWatcherService.VidExt.Contains(ext))
             return;
         if (_core.PhotoPlayersStore.GetPhotoRecord(fileName) != null) return; // already recorded
 
@@ -634,6 +639,8 @@ public class PhotosController
             });
 
             _core.SendToJS("log", new { msg = $"\U0001f4f8 Captured {players.Count} players for {fileName}", color = "sec" });
+
+            if (!isImage) return;
 
             // Timeline: log photo event
             var photoUrl = GetVirtualMediaUrl(filePath);
@@ -736,9 +743,10 @@ public class PhotosController
             var rel    = Path.GetRelativePath(e.Folder, f.FullName).Replace('\\', '/');
             var url    = $"http://localhost:{_core.HttpPort}/media{e.FolderIndex}/{Uri.EscapeDataString(rel).Replace("%2F", "/")}";
 
+            var isVid  = FileWatcherService.VidExt.Contains(f.Extension);
             string? worldId = null;
             List<object>? players = null;
-            if (isImg)
+            if (isImg || isVid)
             {
                 var rec = _core.PhotoPlayersStore.GetPhotoRecord(f.Name); // O(1) dict lookup
                 if (rec != null)

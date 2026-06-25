@@ -993,12 +993,68 @@ public partial class AppShell
             ".webm" => "video/webm",
             _       => "application/octet-stream"
         };
-        ctx.Response.StatusCode = 200;
         ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-        // Stream directly — NEVER load full file into RAM (videos can be multiple gigabytes)
-        ctx.Response.ContentLength64 = new FileInfo(file).Length;
-        using var fs = File.OpenRead(file);
-        await fs.CopyToAsync(ctx.Response.OutputStream);
+        ctx.Response.Headers.Add("Accept-Ranges", "bytes");
+
+        var length = new FileInfo(file).Length;
+        long start = 0, end = length - 1;
+        var rangeHeader = ctx.Request.Headers["Range"];
+        var partial = false;
+        if (!string.IsNullOrEmpty(rangeHeader) && rangeHeader.StartsWith("bytes=", StringComparison.OrdinalIgnoreCase))
+        {
+            var spec = rangeHeader[6..].Split('-');
+            if (spec.Length == 2)
+            {
+                var hasStart = long.TryParse(spec[0], out var s);
+                var hasEnd   = long.TryParse(spec[1], out var e);
+                if (hasStart)            { start = s; end = hasEnd ? e : length - 1; partial = true; }
+                else if (hasEnd)         { start = Math.Max(0, length - e); end = length - 1; partial = true; }
+            }
+        }
+
+        try
+        {
+            if (partial)
+            {
+                if (start < 0) start = 0;
+                if (end >= length) end = length - 1;
+                if (start > end || start >= length)
+                {
+                    ctx.Response.StatusCode = 416;
+                    ctx.Response.Headers.Add("Content-Range", $"bytes */{length}");
+                    return;
+                }
+                ctx.Response.StatusCode = 206;
+                ctx.Response.Headers.Add("Content-Range", $"bytes {start}-{end}/{length}");
+                ctx.Response.ContentLength64 = end - start + 1;
+                using var fs = File.OpenRead(file);
+                fs.Seek(start, SeekOrigin.Begin);
+                await CopyRangeAsync(fs, ctx.Response.OutputStream, end - start + 1);
+            }
+            else
+            {
+                ctx.Response.StatusCode = 200;
+                // Stream directly — NEVER load full file into RAM (videos can be multiple gigabytes)
+                ctx.Response.ContentLength64 = length;
+                using var fs = File.OpenRead(file);
+                await fs.CopyToAsync(ctx.Response.OutputStream);
+            }
+        }
+        catch (System.Net.HttpListenerException) { }
+        catch (IOException) { }
+    }
+
+    private static async Task CopyRangeAsync(Stream src, Stream dst, long count)
+    {
+        var buffer = new byte[81920];
+        while (count > 0)
+        {
+            var toRead = (int)Math.Min(buffer.Length, count);
+            var read = await src.ReadAsync(buffer.AsMemory(0, toRead));
+            if (read == 0) break;
+            await dst.WriteAsync(buffer.AsMemory(0, read));
+            count -= read;
+        }
     }
 
     private static readonly SemaphoreSlim _thumbSem = new(2, 2);

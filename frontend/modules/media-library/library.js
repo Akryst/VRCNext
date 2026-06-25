@@ -576,39 +576,39 @@ function _buildLibCard(x) {
     const blurClass = iH ? ' lib-blurred' : '';
     const idx       = libraryFiles.indexOf(x);
 
+    let worldBadge = '';
+    if (x.worldId) {
+        const wInfo  = worldInfoCache[x.worldId];
+        const wName  = wInfo ? esc(wInfo.name) : t('library.view_world', 'View World');
+        const wThumb = wInfo?.thumbnailImageUrl || '';
+        worldBadge   = `<button class="lib-world-badge" data-wid="${esc(x.worldId)}" onclick="event.stopPropagation();openWorldSearchDetail('${esc(x.worldId)}')" title="${wName}"><span class="lib-world-badge-thumb" style="${wThumb ? `background-image:url('${cssUrl(wThumb)}')` : ''}"></span><span class="lib-world-badge-text">${wName}</span></button>`;
+    }
+    let playersOverlay = '';
+    const players = x.players || [];
+    if (players.length > 0) {
+        const show      = players.slice(0, 3);
+        const remaining = players.length - show.length;
+        playersOverlay  = `<div class="lib-players-overlay" onclick="event.stopPropagation();openPhotoDetail(${idx})">` +
+            show.map(p => {
+                const isOwn = currentVrcUser && p.userId === currentVrcUser.id;
+                const fr  = isOwn ? currentVrcUser : vrcFriendsData.find(f => f.id === p.userId);
+                const img = fr?.image || p.image || '';
+                return img
+                    ? `<div class="lib-player-av" style="background-image:url('${cssUrl(img)}')" title="${esc(p.displayName)}"></div>`
+                    : `<div class="lib-player-av lib-player-av-letter" title="${esc(p.displayName)}">${esc((p.displayName||'?')[0])}</div>`;
+            }).join('') +
+            (remaining > 0 ? `<div class="lib-player-av lib-player-av-more">+${remaining}</div>` : '') +
+            `</div>`;
+    }
+    const thumbSrc = suAttr ? suAttr + '?thumb=1' : '';
+
     if (x.type === 'image' || x.type === 'gif') {
-        let worldBadge = '';
-        if (x.worldId) {
-            const wInfo  = worldInfoCache[x.worldId];
-            const wName  = wInfo ? esc(wInfo.name) : t('library.view_world', 'View World');
-            const wThumb = wInfo?.thumbnailImageUrl || '';
-            worldBadge   = `<button class="lib-world-badge" data-wid="${esc(x.worldId)}" onclick="event.stopPropagation();openWorldSearchDetail('${esc(x.worldId)}')" title="${wName}"><span class="lib-world-badge-thumb" style="${wThumb ? `background-image:url('${cssUrl(wThumb)}')` : ''}"></span><span class="lib-world-badge-text">${wName}</span></button>`;
-        }
-        let playersOverlay = '';
-        const players = x.players || [];
-        if (players.length > 0) {
-            const show      = players.slice(0, 3);
-            const remaining = players.length - show.length;
-            playersOverlay  = `<div class="lib-players-overlay" onclick="event.stopPropagation();openPhotoDetail(${idx})">` +
-                show.map(p => {
-                    const isOwn = currentVrcUser && p.userId === currentVrcUser.id;
-                    const fr  = isOwn ? currentVrcUser : vrcFriendsData.find(f => f.id === p.userId);
-                    const img = fr?.image || p.image || '';
-                    return img
-                        ? `<div class="lib-player-av" style="background-image:url('${cssUrl(img)}')" title="${esc(p.displayName)}"></div>`
-                        : `<div class="lib-player-av lib-player-av-letter" title="${esc(p.displayName)}">${esc((p.displayName||'?')[0])}</div>`;
-                }).join('') +
-                (remaining > 0 ? `<div class="lib-player-av lib-player-av-more">+${remaining}</div>` : '') +
-                `</div>`;
-        }
-        const thumbSrc = suAttr ? suAttr + '?thumb=1' : '';
         const resTag   = _resTag(x);
         const resBadge = resTag ? `<span class="vrcn-badge accent" style="margin-left:4px;">${resTag}</span>` : '';
         return `<div class="lib-card" data-path="${esc(x.path||'')}" data-url="${suAttr}" data-type="${x.type}" data-name="${esc(x.name||'')}">${acts}<div class="lib-thumb-wrap${blurClass}" onclick="openPhotoDetail(${idx})"><img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px;font-weight:700\\'>${jsq(t('library.no_preview', 'No Preview'))}</div>'">${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}${worldBadge}${playersOverlay}</div><div class="lib-info" onclick="event.stopPropagation();openPhotoDetail(${idx})" style="cursor:pointer;"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span style="display:flex;align-items:center;">${x.size}${resBadge}</span><span>${x.time}</span></div></div></div>`;
     } else {
-        const thumbSrc = suAttr ? suAttr + '?thumb=1' : '';
         const th = `<img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div class=\\'lib-vid-thumb-fallback\\'>${jsq(t('library.video_badge', 'VIDEO'))}</div>'">`;
-        return `<div class="lib-card" data-path="${esc(x.path||'')}" data-url="${suAttr}" data-type="video" data-name="${esc(x.name||'')}">${acts}<div class="lib-thumb-wrap${blurClass}" onclick="openLightbox('${suJs}','video')">${th}<div class="lib-vid-overlay"><div class="lib-play-icon"><span class="msi" style="font-size:22px;">play_arrow</span></div></div><span class="lib-vid-badge">${t('library.video_badge', 'VIDEO')}</span>${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}</div><div class="lib-info"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span>${x.size}</span><span>${x.time}</span></div></div></div>`;
+        return `<div class="lib-card" data-path="${esc(x.path||'')}" data-url="${suAttr}" data-type="video" data-name="${esc(x.name||'')}">${acts}<div class="lib-thumb-wrap${blurClass}" onclick="openPhotoDetail(${idx})">${th}<div class="lib-vid-overlay"><div class="lib-play-icon"><span class="msi" style="font-size:22px;">play_arrow</span></div></div><span class="lib-vid-badge">${t('library.video_badge', 'VIDEO')}</span>${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}${worldBadge}${playersOverlay}</div><div class="lib-info" onclick="event.stopPropagation();openPhotoDetail(${idx})" style="cursor:pointer;"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span>${x.size}</span><span>${x.time}</span></div></div></div>`;
     }
 }
 
@@ -762,6 +762,8 @@ function _photoCreateModal(x) {
         <div class="fd-modal-actions"><button class="btn-notif fd-action-btn" onclick="closePhotoDetail()" title="${esc(t('common.close', 'Close'))}"><span class="msi" style="font-size:20px;">close</span></button></div>
         <div class="photo-detail-img-pane">
             <img class="photo-detail-img" alt="" draggable="false" style="display:none;" onerror="this.style.display='none'">
+            <video class="photo-detail-video" playsinline style="display:none;"></video>
+            <div class="pd-video-controls-mount"></div>
             <div class="photo-detail-toolbar-mount"></div>
         </div>
         <div class="photo-detail-info-pane"></div>
@@ -786,6 +788,10 @@ function _photoCreateModal(x) {
 }
 
 function _photoRenderContent(modal, x) {
+    const isVid = x.type === 'video';
+    const box = modal.querySelector('.photo-detail-box');
+    if (box) box.classList.toggle('pd-is-video', isVid);
+
     const imgPane = modal.querySelector('.photo-detail-img-pane');
     if (imgPane) {
         imgPane.dataset.path = x.path || '';
@@ -794,16 +800,37 @@ function _photoRenderContent(modal, x) {
         imgPane.dataset.name = x.name || '';
     }
 
-    const imgEl = modal.querySelector('.photo-detail-img');
-    if (imgEl) {
-        const url = x.url || '';
-        imgEl.style.transform = '';
-        if (url) {
-            imgEl.style.display = '';
-            if (imgEl.getAttribute('src') !== url) imgEl.src = url;
-        } else {
-            imgEl.style.display = 'none';
-            imgEl.removeAttribute('src');
+    const imgEl   = modal.querySelector('.photo-detail-img');
+    const vidEl   = modal.querySelector('.photo-detail-video');
+    const vcMount = modal.querySelector('.pd-video-controls-mount');
+
+    if (isVid) {
+        if (imgEl) { imgEl.style.display = 'none'; imgEl.removeAttribute('src'); }
+        if (vidEl) {
+            const url = x.url || '';
+            vidEl.style.display = '';
+            if (vidEl.getAttribute('src') !== url) vidEl.src = url;
+        }
+        if (vcMount) vcMount.innerHTML = _photoBuildVideoControls();
+        _photoSetupVideo(vidEl, vcMount);
+    } else {
+        if (vidEl) {
+            try { vidEl.pause(); } catch {}
+            if (vidEl._pdCleanup) { vidEl._pdCleanup(); vidEl._pdCleanup = null; }
+            vidEl.removeAttribute('src');
+            vidEl.style.display = 'none';
+        }
+        if (vcMount) vcMount.innerHTML = '';
+        if (imgEl) {
+            const url = x.url || '';
+            imgEl.style.transform = '';
+            if (url) {
+                imgEl.style.display = '';
+                if (imgEl.getAttribute('src') !== url) imgEl.src = url;
+            } else {
+                imgEl.style.display = 'none';
+                imgEl.removeAttribute('src');
+            }
         }
     }
 
@@ -814,10 +841,68 @@ function _photoRenderContent(modal, x) {
     if (infoPane) infoPane.innerHTML = _photoBuildInfoPaneContent(x);
 }
 
+function _photoBuildVideoControls() {
+    return `<div class="pd-video-controls" onmousedown="event.stopPropagation()">
+        <button class="pd-vc-btn pd-vc-play" title="${esc(t('library.detail.play', 'Play / Pause'))}"><span class="msi">play_arrow</span></button>
+        <span class="pd-vc-time pd-vc-cur">0:00</span>
+        <input type="range" class="pd-vc-seek" min="0" max="0" value="0" step="0.1">
+        <span class="pd-vc-time pd-vc-dur">0:00</span>
+        <button class="pd-vc-btn pd-vc-mute" title="${esc(t('library.detail.mute', 'Mute'))}"><span class="msi">volume_up</span></button>
+        <input type="range" class="pd-vc-vol" min="0" max="1" value="1" step="0.01">
+        <button class="pd-vc-btn pd-vc-full" title="${esc(t('library.detail.fullscreen', 'Fullscreen'))}"><span class="msi">fullscreen</span></button>
+    </div>`;
+}
+
+function _photoSetupVideo(video, mount) {
+    if (!video || !mount) return;
+    if (video._pdCleanup) { video._pdCleanup(); video._pdCleanup = null; }
+
+    const q = s => mount.querySelector(s);
+    const playBtn = q('.pd-vc-play'), seek = q('.pd-vc-seek'), curEl = q('.pd-vc-cur'),
+          durEl = q('.pd-vc-dur'), muteBtn = q('.pd-vc-mute'), volEl = q('.pd-vc-vol'), fullBtn = q('.pd-vc-full');
+
+    const fmt = s => { if (!isFinite(s) || s < 0) return '0:00'; s = Math.floor(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+    const setPlayIcon = () => { const i = playBtn?.querySelector('.msi'); if (i) i.textContent = video.paused ? 'play_arrow' : 'pause'; };
+    const setMuteIcon = () => { const i = muteBtn?.querySelector('.msi'); if (i) i.textContent = (video.muted || !video.volume) ? 'volume_off' : (video.volume < 0.5 ? 'volume_down' : 'volume_up'); };
+    const togglePlay = () => { if (video.paused) video.play().catch(() => {}); else video.pause(); };
+    const fill = (el, pct) => el && el.style.setProperty('--pd-fill', Math.max(0, Math.min(100, pct)) + '%');
+    const fillSeek = () => { const max = Number(seek?.max) || 0; fill(seek, max ? (Number(seek.value) / max) * 100 : 0); };
+    const fillVol  = () => fill(volEl, (video.muted ? 0 : video.volume) * 100);
+
+    let seeking = false;
+    const onMeta = () => { if (durEl) durEl.textContent = fmt(video.duration); if (seek) seek.max = String(Math.max(0, Math.floor(video.duration))); fillSeek(); };
+    const onTime = () => { if (seek && !seeking) seek.value = String(video.currentTime); if (curEl) curEl.textContent = fmt(video.currentTime); fillSeek(); };
+    const onVol  = () => { setMuteIcon(); if (volEl && !volEl.matches(':active')) volEl.value = String(video.muted ? 0 : video.volume); fillVol(); };
+
+    const handlers = [
+        [video,   'loadedmetadata', onMeta],
+        [video,   'durationchange', onMeta],
+        [video,   'timeupdate',     onTime],
+        [video,   'play',           setPlayIcon],
+        [video,   'pause',          setPlayIcon],
+        [video,   'ended',          setPlayIcon],
+        [video,   'volumechange',   onVol],
+        [video,   'click',          togglePlay],
+        [playBtn, 'click',          e => { e.stopPropagation(); togglePlay(); }],
+        [seek,    'input',          () => { seeking = true; video.currentTime = Number(seek.value); if (curEl) curEl.textContent = fmt(video.currentTime); fillSeek(); }],
+        [seek,    'change',         () => { seeking = false; }],
+        [muteBtn, 'click',          e => { e.stopPropagation(); video.muted = !video.muted; if (!video.muted && !video.volume) video.volume = 1; }],
+        [volEl,   'input',          () => { video.volume = Number(volEl.value); video.muted = Number(volEl.value) === 0; fillVol(); }],
+        [fullBtn, 'click',          e => { e.stopPropagation(); const tgt = video.closest('.photo-detail-img-pane') || video; if (document.fullscreenElement) document.exitFullscreen(); else (tgt.requestFullscreen || video.requestFullscreen)?.call(tgt.requestFullscreen ? tgt : video); }],
+    ];
+    handlers.forEach(([el, ev, fn]) => el && el.addEventListener(ev, fn));
+
+    onMeta(); onTime(); setPlayIcon(); setMuteIcon();
+    if (volEl) volEl.value = String(video.muted ? 0 : video.volume);
+    fillVol();
+
+    video._pdCleanup = () => handlers.forEach(([el, ev, fn]) => el && el.removeEventListener(ev, fn));
+}
+
 function _photoBuildToolbar(x) {
-    const isImg = f => f.type === 'image' || f.type === 'gif';
+    const sameKind = f => (f.type === 'video') === (x.type === 'video');
     const inFilt = x.path ? _libFiltered.some(f => f.path === x.path) : false;
-    const navList = x.path ? (inFilt ? _libFiltered : libraryFiles).filter(isImg) : [];
+    const navList = x.path ? (inFilt ? _libFiltered : libraryFiles).filter(sameKind) : [];
     const navIdx  = x.path ? navList.findIndex(f => f.path === x.path) : -1;
     const prevDisabled = (navIdx <= 0)                              ? ' disabled' : '';
     const nextDisabled = (navIdx < 0 || navIdx >= navList.length-1) ? ' disabled' : '';
@@ -910,6 +995,8 @@ function closePhotoDetail() {
     document.removeEventListener('mousemove', _photoOnMouseMove);
     document.removeEventListener('mouseup',   _photoOnMouseUp);
     _photoState.drag = null;
+    const vid = m.querySelector('.photo-detail-video');
+    if (vid) { try { vid.pause(); } catch {} if (vid._pdCleanup) vid._pdCleanup(); vid.removeAttribute('src'); }
     m.querySelectorAll('img').forEach(img => { img.src = PLACEHOLDER; });
     m.remove();
 }
@@ -952,9 +1039,9 @@ function photoNavNext() { _photoNav(1);  }
 function _photoNav(dir) {
     const it = _photoState.item;
     if (!it || !it.path) return;
-    const isImg = f => f.type === 'image' || f.type === 'gif';
+    const sameKind = f => (f.type === 'video') === (it.type === 'video');
     const inFilt = _libFiltered.some(f => f.path === it.path);
-    const list   = (inFilt ? _libFiltered : libraryFiles).filter(isImg);
+    const list   = (inFilt ? _libFiltered : libraryFiles).filter(sameKind);
     const idx    = list.findIndex(f => f.path === it.path);
     if (idx < 0) return;
     const next = list[idx + dir];
@@ -968,9 +1055,10 @@ function onLibraryFileDeleted(path) {
     // Pick the neighbour BEFORE removal, while the deleted item is still in the list.
     let neighbor = null;
     if (showingDeleted) {
-        const isImg  = f => f.type === 'image' || f.type === 'gif';
+        const delKind = _photoState.item?.type === 'video';
+        const sameKind = f => (f.type === 'video') === delKind;
         const inFilt = _libFiltered.some(f => f.path === path);
-        const list   = (inFilt ? _libFiltered : libraryFiles).filter(isImg);
+        const list   = (inFilt ? _libFiltered : libraryFiles).filter(sameKind);
         const idx    = list.findIndex(f => f.path === path);
         if (idx >= 0) neighbor = list[idx + 1] || list[idx - 1] || null;
     }
@@ -987,6 +1075,7 @@ function onLibraryFileDeleted(path) {
 }
 
 function _photoOnWheel(e) {
+    if (_photoState.item?.type === 'video') return;
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.15 : 1/1.15;
     const pane = e.currentTarget;
@@ -1006,6 +1095,7 @@ function _photoOnWheel(e) {
 
 function _photoOnMouseDown(e) {
     if (e.button !== 0) return; // left button only — right/middle pass through (e.g. for context menu)
+    if (_photoState.item?.type === 'video') return;
     if (e.target.closest('.photo-detail-toolbar')) return;
     _photoState.drag = { startX: e.clientX, startY: e.clientY, baseTx: _photoState.tx, baseTy: _photoState.ty };
     document.querySelector('#photoDetailModal .photo-detail-img-pane')?.classList.add('dragging');
