@@ -92,6 +92,29 @@
     position: relative;
 }
 
+.lib-edit-bar {
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    margin-top: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--brd);
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.lib-edit-count {
+    font-size: 12px;
+    color: var(--tx2);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.lib-edit-spacer { flex: 1; }
+
+.lib-card-edit:hover { transform: none; box-shadow: none; }
+
 .lib-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(0,0,0,.3);

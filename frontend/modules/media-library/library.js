@@ -13,6 +13,8 @@ let _libViewMode     = localStorage.getItem('libViewMode') || 'grid';
 let _libFolderPath   = null;
 let _libFriendFilter = '__all__';
 let _libWorldFilter  = '__all__';
+let _libEditMode     = false;
+let _libEditSelected = new Set();
 
 // Destroy / cleanup.
 function destroyLibrary() {
@@ -33,6 +35,7 @@ function destroyLibrary() {
     _libFolderPath   = null;
     _libFriendFilter = '__all__';
     _libWorldFilter  = '__all__';
+    if (_libEditMode) _exitLibEditModeUi();
     _renderLibIconSelects();
 }
 
@@ -576,6 +579,19 @@ function _buildLibCard(x) {
     const blurClass = iH ? ' lib-blurred' : '';
     const idx       = libraryFiles.indexOf(x);
 
+    if (_libEditMode) {
+        const isSel = _libEditSelected.has(x.path);
+        const checkIcon = isSel
+            ? `<span class="msi" style="font-size:22px;color:var(--accent);">check_circle</span>`
+            : `<span class="msi" style="font-size:22px;color:rgba(255,255,255,0.7);">radio_button_unchecked</span>`;
+        const thumbSrc = suAttr ? suAttr + '?thumb=1' : '';
+        const isVid = x.type === 'video';
+        const media = isVid
+            ? `<img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div class=\\'lib-vid-thumb-fallback\\'>${jsq(t('library.video_badge', 'VIDEO'))}</div>'"><span class="lib-vid-badge">${t('library.video_badge', 'VIDEO')}</span>`
+            : `<img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px;font-weight:700\\'>${jsq(t('library.no_preview', 'No Preview'))}</div>'">`;
+        return `<div class="lib-card lib-card-edit${isSel ? ' lib-card-selected' : ''}" data-path="${esc(x.path||'')}" onclick="toggleLibEditSelect('${sp}',this)" style="user-select:none;cursor:pointer;"><div class="lib-thumb-wrap${blurClass}">${media}<div class="wd-edit-check">${checkIcon}</div></div><div class="lib-info"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span>${x.size}</span><span>${x.time}</span></div></div>${isSel ? '<div class="wd-edit-sel-border"></div>' : ''}</div>`;
+    }
+
     let worldBadge = '';
     if (x.worldId) {
         const wInfo  = worldInfoCache[x.worldId];
@@ -610,6 +626,151 @@ function _buildLibCard(x) {
         const th = `<img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div class=\\'lib-vid-thumb-fallback\\'>${jsq(t('library.video_badge', 'VIDEO'))}</div>'">`;
         return `<div class="lib-card" data-path="${esc(x.path||'')}" data-url="${suAttr}" data-type="video" data-name="${esc(x.name||'')}">${acts}<div class="lib-thumb-wrap${blurClass}" onclick="openPhotoDetail(${idx})">${th}<div class="lib-vid-overlay"><div class="lib-play-icon"><span class="msi" style="font-size:22px;">play_arrow</span></div></div><span class="lib-vid-badge">${t('library.video_badge', 'VIDEO')}</span>${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}${worldBadge}${playersOverlay}</div><div class="lib-info" onclick="event.stopPropagation();openPhotoDetail(${idx})" style="cursor:pointer;"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span>${x.size}</span><span>${x.time}</span></div></div></div>`;
     }
+}
+
+function _libEditRerender() {
+    filterLibrary(true);
+}
+
+function _exitLibEditModeUi() {
+    _libEditMode = false;
+    _libEditSelected = new Set();
+    const btn = document.getElementById('libEditModeBtn');
+    if (btn) {
+        btn.innerHTML = `<span class="msi" style="font-size:16px;">edit</span> <span>${t('library.edit.button', 'Edit')}</span>`;
+        btn.classList.remove('active');
+    }
+    const bar = document.getElementById('libEditBar');
+    if (bar) bar.style.display = 'none';
+}
+
+function toggleLibEditMode() {
+    if (_libEditMode) { exitLibEditMode(); return; }
+    _libEditMode = true;
+    _libEditSelected = new Set();
+    const btn = document.getElementById('libEditModeBtn');
+    if (btn) {
+        btn.innerHTML = `<span class="msi" style="font-size:16px;">check</span> <span>${t('library.edit.done', 'Done')}</span>`;
+        btn.classList.add('active');
+    }
+    const bar = document.getElementById('libEditBar');
+    if (bar) bar.style.display = 'flex';
+    _libEditRerender();
+    updateLibEditBar();
+}
+
+function exitLibEditMode() {
+    _exitLibEditModeUi();
+    _libEditRerender();
+}
+
+function toggleLibEditSelect(path, el) {
+    if (_libEditSelected.has(path)) {
+        _libEditSelected.delete(path);
+        const chk = el?.querySelector('.wd-edit-check .msi');
+        if (chk) { chk.textContent = 'radio_button_unchecked'; chk.style.color = 'rgba(255,255,255,0.7)'; }
+        el?.querySelector('.wd-edit-sel-border')?.remove();
+        el?.classList.remove('lib-card-selected');
+    } else {
+        _libEditSelected.add(path);
+        const chk = el?.querySelector('.wd-edit-check .msi');
+        if (chk) { chk.textContent = 'check_circle'; chk.style.color = 'var(--accent)'; }
+        if (el && !el.querySelector('.wd-edit-sel-border')) el.insertAdjacentHTML('beforeend', '<div class="wd-edit-sel-border"></div>');
+        el?.classList.add('lib-card-selected');
+    }
+    updateLibEditBar();
+}
+
+function libEditSelectAll() {
+    const all = _libFiltered;
+    const allSel = all.length > 0 && all.every(x => _libEditSelected.has(x.path));
+    if (allSel) all.forEach(x => _libEditSelected.delete(x.path));
+    else        all.forEach(x => _libEditSelected.add(x.path));
+    _libEditRerender();
+    updateLibEditBar();
+}
+
+function updateLibEditBar() {
+    const sel   = [..._libEditSelected];
+    const count = sel.length;
+
+    const countEl = document.getElementById('libEditCount');
+    if (countEl) countEl.textContent = tf('library.edit.selected', { count }, '{count} selected');
+
+    const selAll = document.getElementById('libEditSelectAllBtn');
+    if (selAll) {
+        const all = _libFiltered;
+        const allSel = all.length > 0 && all.every(x => _libEditSelected.has(x.path));
+        selAll.textContent = allSel ? t('library.edit.deselect_all', 'Deselect All') : t('library.edit.select_all', 'Select All');
+    }
+
+    const setBtn = (id, icon, label) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        const ico = btn.querySelector('.msi');
+        const lbl = btn.querySelector('.lib-edit-action-label');
+        if (ico) ico.textContent = icon;
+        if (lbl) lbl.textContent = label;
+    };
+
+    const allFav = count > 0 && sel.every(p => favorites.has(p));
+    setBtn('libEditFavBtn', allFav ? 'star_border' : 'star',
+        allFav ? tf('library.edit.unfavorite', { count }, 'Unfavorite ({count})')
+               : tf('library.edit.favorite',   { count }, 'Favorite ({count})'));
+
+    const allHidden = count > 0 && sel.every(p => hiddenMedia.has(p));
+    setBtn('libEditHideBtn', allHidden ? 'visibility' : 'visibility_off',
+        allHidden ? tf('library.edit.unhide', { count }, 'Unhide ({count})')
+                  : tf('library.edit.hide',   { count }, 'Hide ({count})'));
+
+    setBtn('libEditDeleteBtn', 'delete', tf('library.edit.delete', { count }, 'Delete ({count})'));
+
+    document.querySelectorAll('.lib-edit-action').forEach(b => b.disabled = count === 0);
+}
+
+function libEditFavoriteSelected() {
+    if (_libEditSelected.size === 0) return;
+    const sel = [..._libEditSelected];
+    const allFav = sel.every(p => favorites.has(p));
+    sel.forEach(p => {
+        if (allFav) { favorites.delete(p); sendToCS({ action: 'removeFavorite', path: p }); }
+        else if (!favorites.has(p)) { favorites.add(p); sendToCS({ action: 'addFavorite', path: p }); }
+    });
+    _libEditRerender();
+    updateLibEditBar();
+    if (typeof _wdRenderPhotosPage === 'function') _wdRenderPhotosPage();
+}
+
+function libEditHideSelected() {
+    if (_libEditSelected.size === 0) return;
+    const sel = [..._libEditSelected];
+    const allHidden = sel.every(p => hiddenMedia.has(p));
+    sel.forEach(p => { if (allHidden) hiddenMedia.delete(p); else hiddenMedia.add(p); });
+    try { localStorage.setItem('vrcnext_hidden', JSON.stringify([...hiddenMedia])); } catch {}
+    _libEditRerender();
+    updateLibEditBar();
+    if (typeof renderDashRecentPhotos === 'function') renderDashRecentPhotos();
+    if (typeof _wdRenderPhotosPage === 'function') _wdRenderPhotosPage();
+}
+
+function libEditDeleteSelected() {
+    if (_libEditSelected.size === 0) return;
+    const count = _libEditSelected.size;
+    const x = document.getElementById('deleteModal');
+    if (x) x.remove();
+    const o = document.createElement('div');
+    o.className = 'modal-overlay';
+    o.id        = 'deleteModal';
+    o.onclick   = e => { if (e.target === o) closeDeleteModal(); };
+    o.innerHTML = `<div class="modal-box"><div class="modal-icon danger"><span class="msi" style="font-size:22px;">delete</span></div><div class="modal-title">${t('library.delete.title', 'Delete File')}</div><div class="modal-msg">${tf('library.edit.delete_confirm', { count }, 'Permanently delete {count} file(s) from disk?')}</div><div class="modal-btns"><button id="libDelCancelBtn" class="vrcn-button-round" onclick="closeDeleteModal()">${t('common.cancel', 'Cancel')}</button><button class="vrcn-button-round vrcn-btn-danger" onclick="confirmLibEditDelete()">${t('library.delete.confirm', 'Delete')}</button></div></div>`;
+    document.body.appendChild(o);
+    o.querySelector('#libDelCancelBtn')?.focus();
+}
+
+function confirmLibEditDelete() {
+    [..._libEditSelected].forEach(p => { sendToCS({ action: 'deleteLibraryFile', path: p }); favorites.delete(p); });
+    closeDeleteModal();
+    exitLibEditMode();
 }
 
 // World info.
