@@ -109,14 +109,21 @@ function kxdConnect() {
     const targetLang = tgtSel?.value || _kxdDevicesPayload.targetLang || 'en';
     const translateEnabled = document.getElementById('kxdTranslateToggle')?.checked ?? !!_kxdDevicesPayload.translateEnabled;
     const oscEnabled = document.getElementById('kxdOscToggle')?.checked ?? !!_kxdDevicesPayload.oscEnabled;
+    const model = document.getElementById('kxdModel')?.value || _kxdDevicesPayload.model || 'groq';
+    const googleApiKey = (document.getElementById('kxdGoogleApiKey')?.value || _kxdDevicesPayload.googleApiKey || '').trim();
 
-    if (!apiKey) {
+    if (model === 'google') {
+        if (!googleApiKey) {
+            alert('Please enter your Google API key.');
+            return;
+        }
+    } else if (!apiKey) {
         alert('Please enter your Groq API key.');
         return;
     }
 
     const personality = document.getElementById('kxdPersonality')?.value || _kxdDevicesPayload.personality || 'raw';
-    sendToCS({ action: 'kxdStart', deviceIndex, apiKey, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct, personality, blockWords: _kxdBlockWords, blockSentences: _kxdBlockSentences });
+    sendToCS({ action: 'kxdStart', deviceIndex, apiKey, googleApiKey, model, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct, personality, blockWords: _kxdBlockWords, blockSentences: _kxdBlockSentences });
 }
 
 function populateKxdDevices(p) {
@@ -148,6 +155,15 @@ function populateKxdDevices(p) {
 
     const apiKeyEl = document.getElementById('kxdApiKey');
     if (apiKeyEl && p.apiKey) apiKeyEl.value = p.apiKey;
+
+    const googleApiKeyEl = document.getElementById('kxdGoogleApiKey');
+    if (googleApiKeyEl && p.googleApiKey) googleApiKeyEl.value = p.googleApiKey;
+
+    const modelSel = document.getElementById('kxdModel');
+    if (modelSel) {
+        modelSel.value = p.model || 'groq';
+        if (modelSel._vnRefresh) modelSel._vnRefresh();
+    }
 
     const srcSel = document.getElementById('kxdSourceLang');
     if (srcSel) {
@@ -259,6 +275,8 @@ function kxdUpdateTranslateVisibility() {
 
 function kxdSaveSettings() {
     const apiKey = (document.getElementById('kxdApiKey')?.value || '').trim();
+    const googleApiKey = (document.getElementById('kxdGoogleApiKey')?.value || '').trim();
+    const model = document.getElementById('kxdModel')?.value || 'groq';
     const srcSel = document.getElementById('kxdSourceLang');
     const tgtSel = document.getElementById('kxdTargetLang');
     const sourceLang = srcSel ? srcSel.value : 'auto';
@@ -274,7 +292,7 @@ function kxdSaveSettings() {
     window._kxdApiKeyPresent = !!apiKey;
     const personality = document.getElementById('kxdPersonality')?.value || 'raw';
     const devSel = document.getElementById('kxdDeviceSelect');
-    const payload = { action: 'kxdSaveSettings', apiKey, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct, profileTranslationEnabled, profileTargetLang, personality, blockWords: _kxdBlockWords, blockSentences: _kxdBlockSentences };
+    const payload = { action: 'kxdSaveSettings', apiKey, googleApiKey, model, sourceLang, targetLang, translateEnabled, oscEnabled, noiseGatePct: kxdNoiseGatePct, profileTranslationEnabled, profileTargetLang, personality, blockWords: _kxdBlockWords, blockSentences: _kxdBlockSentences };
     if (devSel && devSel.value !== '' && !isNaN(parseInt(devSel.value, 10))) {
         payload.deviceIndex = parseInt(devSel.value, 10);
     }

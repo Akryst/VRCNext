@@ -10,6 +10,8 @@ public class KikitanXDSettings
         "VRCNext", "kikitan_xd.json");
 
     public string ApiKey { get; set; } = "";
+    public string GoogleApiKey { get; set; } = "";
+    public string Model { get; set; } = "groq";
     public int InputDeviceIndex { get; set; } = 0;
     public string SourceLang { get; set; } = "auto";
     public string TargetLang { get; set; } = "en";

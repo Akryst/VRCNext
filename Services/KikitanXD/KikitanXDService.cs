@@ -14,7 +14,7 @@ using NAudio.Wave;
 namespace VRCNext.Services.KikitanXD;
 
 #if !WINDOWS
-public sealed class KikitanXDService : IDisposable
+public sealed class KikitanXDService : IKikitanSpeechService
 {
     public event Action<string, bool>? OnRecognized;
     public event Action<string>? OnTranslated;
@@ -23,15 +23,15 @@ public sealed class KikitanXDService : IDisposable
     public bool IsRunning => false;
     public float MeterLevel => 0f;
     public static string[] GetInputDevices() => [];
-    public void Start(int deviceIndex, string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality, IEnumerable<string>? blockedWords = null, IEnumerable<string>? blockedSentences = null) { }
-    public void UpdateSettings(string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality, IEnumerable<string>? blockedWords = null, IEnumerable<string>? blockedSentences = null) { }
+    public void Start(int deviceIndex, KikitanXDSettings settings) { }
+    public void UpdateSettings(KikitanXDSettings settings) { }
     public void Stop() { }
     public void Dispose() { }
     public static Task<string> TranslateStandaloneAsync(string apiKey, string text, string sourceLang, string targetLang) => Task.FromResult("");
 }
 #else
 
-public sealed class KikitanXDService : IDisposable
+public sealed class KikitanXDService : IKikitanSpeechService
 {
     public event Action<string, bool>? OnRecognized;
     public event Action<string>? OnTranslated;
@@ -69,17 +69,17 @@ public sealed class KikitanXDService : IDisposable
     private const int MinSpeechMs = 250;
     private const int MaxSegmentMs = 10000;
 
-    public void UpdateSettings(string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality, IEnumerable<string>? blockedWords = null, IEnumerable<string>? blockedSentences = null)
+    public void UpdateSettings(KikitanXDSettings s)
     {
-        _apiKey = apiKey;
-        _sourceLang = sourceLang;
-        _targetLang = targetLang;
-        _translateEnabled = translate;
-        _oscEnabled = oscEnabled;
-        _personality = personality ?? "raw";
-        _silenceThreshold = Math.Clamp(noiseGatePct / 100f / 6f, 0.001f, 0.5f);
-        _blockedWords = NormalizeList(blockedWords);
-        _blockedSentences = NormalizeList(blockedSentences);
+        _apiKey = s.ApiKey;
+        _sourceLang = s.SourceLang;
+        _targetLang = s.TargetLang;
+        _translateEnabled = s.TranslateEnabled;
+        _oscEnabled = s.OscEnabled;
+        _personality = s.Personality ?? "raw";
+        _silenceThreshold = Math.Clamp(s.NoiseGatePercent / 100f / 6f, 0.001f, 0.5f);
+        _blockedWords = NormalizeList(s.BlockedWords);
+        _blockedSentences = NormalizeList(s.BlockedSentences);
     }
 
     private static string[] NormalizeList(IEnumerable<string>? items)
@@ -162,18 +162,18 @@ public sealed class KikitanXDService : IDisposable
         return names;
     }
 
-    public void Start(int deviceIndex, string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality, IEnumerable<string>? blockedWords = null, IEnumerable<string>? blockedSentences = null)
+    public void Start(int deviceIndex, KikitanXDSettings s)
     {
         Stop();
-        _apiKey = apiKey;
-        _sourceLang = sourceLang;
-        _targetLang = targetLang;
-        _translateEnabled = translate;
-        _oscEnabled = oscEnabled;
-        _personality = personality ?? "raw";
-        _silenceThreshold = Math.Clamp(noiseGatePct / 100f / 6f, 0.001f, 0.5f);
-        _blockedWords = NormalizeList(blockedWords);
-        _blockedSentences = NormalizeList(blockedSentences);
+        _apiKey = s.ApiKey;
+        _sourceLang = s.SourceLang;
+        _targetLang = s.TargetLang;
+        _translateEnabled = s.TranslateEnabled;
+        _oscEnabled = s.OscEnabled;
+        _personality = s.Personality ?? "raw";
+        _silenceThreshold = Math.Clamp(s.NoiseGatePercent / 100f / 6f, 0.001f, 0.5f);
+        _blockedWords = NormalizeList(s.BlockedWords);
+        _blockedSentences = NormalizeList(s.BlockedSentences);
 
         _waveIn = new WaveInEvent
         {

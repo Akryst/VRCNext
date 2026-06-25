@@ -7,7 +7,7 @@ namespace VRCNext;
 public class KikitanXDController : IDisposable
 {
     private readonly CoreLibrary _core;
-    private KikitanXDService? _service;
+    private IKikitanSpeechService? _service;
     private KikitanXDSettings _settings;
 
     public bool IsRunning => _service?.IsRunning ?? false;
@@ -40,46 +40,41 @@ public class KikitanXDController : IDisposable
                     profileTargetLang = _settings.ProfileTargetLang,
                     personality = _settings.Personality,
                     blockWords = _settings.BlockedWords,
-                    blockSentences = _settings.BlockedSentences
+                    blockSentences = _settings.BlockedSentences,
+                    model = _settings.Model,
+                    googleApiKey = _settings.GoogleApiKey
                 });
                 break;
             }
 
             case "kxdStart":
             {
-                int devIdx = msg["deviceIndex"]?.Value<int>() ?? 0;
-                string apiKey = msg["apiKey"]?.ToString() ?? _settings.ApiKey;
-                string srcLang = msg["sourceLang"]?.ToString() ?? _settings.SourceLang;
-                string tgtLang = msg["targetLang"]?.ToString() ?? _settings.TargetLang;
-                bool translate = msg["translateEnabled"]?.Value<bool>() ?? _settings.TranslateEnabled;
-                bool osc = msg["oscEnabled"]?.Value<bool>() ?? _settings.OscEnabled;
-                int gate = msg["noiseGatePct"]?.Value<int>() ?? _settings.NoiseGatePercent;
-                string personality = msg["personality"]?.ToString() ?? _settings.Personality;
-                var blockWords = msg["blockWords"]?.ToObject<List<string>>() ?? _settings.BlockedWords;
-                var blockSentences = msg["blockSentences"]?.ToObject<List<string>>() ?? _settings.BlockedSentences;
-
-                _settings.InputDeviceIndex = devIdx;
-                _settings.ApiKey = apiKey;
-                _settings.SourceLang = srcLang;
-                _settings.TargetLang = tgtLang;
-                _settings.TranslateEnabled = translate;
-                _settings.OscEnabled = osc;
-                _settings.NoiseGatePercent = gate;
-                _settings.Personality = personality;
-                _settings.BlockedWords = blockWords;
-                _settings.BlockedSentences = blockSentences;
+                if (msg["deviceIndex"] is JToken di0) _settings.InputDeviceIndex = di0.Value<int>();
+                if (msg["apiKey"] is JToken ak0) _settings.ApiKey = ak0.ToString();
+                if (msg["googleApiKey"] is JToken gk0) _settings.GoogleApiKey = gk0.ToString();
+                if (msg["sourceLang"] is JToken sl0) _settings.SourceLang = sl0.ToString();
+                if (msg["targetLang"] is JToken tl0) _settings.TargetLang = tl0.ToString();
+                if (msg["translateEnabled"] is JToken te0) _settings.TranslateEnabled = te0.Value<bool>();
+                if (msg["oscEnabled"] is JToken oe0) _settings.OscEnabled = oe0.Value<bool>();
+                if (msg["noiseGatePct"] is JToken ng0) _settings.NoiseGatePercent = ng0.Value<int>();
+                if (msg["personality"] is JToken pe0) _settings.Personality = pe0.ToString();
+                if (msg["model"] is JToken md0) _settings.Model = md0.ToString();
+                if (msg["blockWords"] is JToken bw0) _settings.BlockedWords = bw0.ToObject<List<string>>() ?? new();
+                if (msg["blockSentences"] is JToken bs0) _settings.BlockedSentences = bs0.ToObject<List<string>>() ?? new();
                 _settings.Save();
 
-                _service?.Dispose();
-                _service = new KikitanXDService();
-                _service.OnLog += s => Invoke(() => _core.SendToJS("log", new { msg = s, color = "sec" }));
-                _service.OnRecognized += (text, isPartial) =>
-                    Invoke(() => _core.SendToJS("kxdRecognized", new { text, isPartial }));
-                _service.OnTranslated += text =>
-                    Invoke(() => _core.SendToJS("kxdTranslated", new { text }));
-                _service.OnChatboxSent += () => _core.OnChatboxPauseRequest?.Invoke(15_000);
-                _service.Start(devIdx, apiKey, srcLang, tgtLang, translate, osc, gate, personality, blockWords, blockSentences);
-                _core.SendToJS("kxdState", new { running = true });
+                try
+                {
+                    StartServiceFromSettings();
+                }
+                catch (Exception ex)
+                {
+                    _service?.Dispose();
+                    _service = null;
+                    _core.SendToJS("kxdState", new { running = false });
+                    _core.SendToJS("toast", new { ok = false, msg = ex.Message });
+                    _core.SendToJS("log", new { msg = $"Kikitan XD: {ex.Message}", color = "err" });
+                }
                 break;
             }
 
@@ -93,6 +88,8 @@ public class KikitanXDController : IDisposable
             {
                 if (msg["deviceIndex"] is JToken di) _settings.InputDeviceIndex = di.Value<int>();
                 if (msg["apiKey"] is JToken ak) _settings.ApiKey = ak.ToString();
+                if (msg["googleApiKey"] is JToken gk) _settings.GoogleApiKey = gk.ToString();
+                if (msg["model"] is JToken md) _settings.Model = md.ToString();
                 if (msg["sourceLang"] is JToken sl) _settings.SourceLang = sl.ToString();
                 if (msg["targetLang"] is JToken tl) _settings.TargetLang = tl.ToString();
                 if (msg["translateEnabled"] is JToken te) _settings.TranslateEnabled = te.Value<bool>();
@@ -105,9 +102,7 @@ public class KikitanXDController : IDisposable
                 if (msg["blockSentences"] is JToken bs) _settings.BlockedSentences = bs.ToObject<List<string>>() ?? new();
                 _settings.Save();
                 _core.SendToJS("toast", new { ok = true, msg = "Saved" });
-                _service?.UpdateSettings(_settings.ApiKey, _settings.SourceLang, _settings.TargetLang,
-                    _settings.TranslateEnabled, _settings.OscEnabled, _settings.NoiseGatePercent, _settings.Personality,
-                    _settings.BlockedWords, _settings.BlockedSentences);
+                _service?.UpdateSettings(_settings);
                 break;
             }
 
@@ -146,18 +141,34 @@ public class KikitanXDController : IDisposable
         }
         else
         {
-            _service?.Dispose();
-            _service = new KikitanXDService();
-            _service.OnLog += s => Invoke(() => _core.SendToJS("log", new { msg = s, color = "sec" }));
-            _service.OnRecognized += (text, isPartial) =>
-                Invoke(() => _core.SendToJS("kxdRecognized", new { text, isPartial }));
-            _service.OnTranslated += text =>
-                Invoke(() => _core.SendToJS("kxdTranslated", new { text }));
-            _service.Start(_settings.InputDeviceIndex, _settings.ApiKey, _settings.SourceLang,
-                _settings.TargetLang, _settings.TranslateEnabled, _settings.OscEnabled, _settings.NoiseGatePercent, _settings.Personality,
-                _settings.BlockedWords, _settings.BlockedSentences);
-            _core.SendToJS("kxdState", new { running = true });
+            try
+            {
+                StartServiceFromSettings();
+            }
+            catch (Exception ex)
+            {
+                _service?.Dispose();
+                _service = null;
+                _core.SendToJS("kxdState", new { running = false });
+                _core.SendToJS("log", new { msg = $"Kikitan XD: {ex.Message}", color = "err" });
+            }
         }
+    }
+
+    private void StartServiceFromSettings()
+    {
+        _service?.Dispose();
+        _service = string.Equals(_settings.Model, "google", StringComparison.OrdinalIgnoreCase)
+            ? new GeminiLiveService()
+            : new KikitanXDService();
+        _service.OnLog += s => Invoke(() => _core.SendToJS("log", new { msg = s, color = "sec" }));
+        _service.OnRecognized += (text, isPartial) =>
+            Invoke(() => _core.SendToJS("kxdRecognized", new { text, isPartial }));
+        _service.OnTranslated += text =>
+            Invoke(() => _core.SendToJS("kxdTranslated", new { text }));
+        _service.OnChatboxSent += () => _core.OnChatboxPauseRequest?.Invoke(15_000);
+        _service.Start(_settings.InputDeviceIndex, _settings);
+        _core.SendToJS("kxdState", new { running = true });
     }
 
     public void Dispose()

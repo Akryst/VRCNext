@@ -7,12 +7,19 @@
                         </div>
                     </div>
                     <!-- API Key -->
-                    <div class="vrcn-panel-card">
+                    <div class="vrcn-panel-card" id="kxdGroqKeyCard">
                         <div class="vrcn-panel-card-header"><span class="msi">key</span> <span data-i18n="kikitan.api_key">Groq API Key</span></div>
                         <input id="kxdApiKey" type="password" class="vrcn-edit-field" style="width:100%;box-sizing:border-box;" placeholder="gsk_..." onblur="kxdSaveSettings()">
                         <div style="font-size:11px;color:var(--tx3);margin-top:8px;line-height:1.5;" data-i18n="kikitan.api_key.hint">Kikitan XD requires a free Groq API key for Speech-To-Text and live translation. Sign up with Google, GitHub, SSO or email at console.groq.com/keys, create a new API key, and paste it above.</div>
                         <a onclick="sendToCS({action:'openUrl',url:'https://console.groq.com/keys'})" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--accent);cursor:pointer;margin-top:6px;text-decoration:none;" data-i18n="kikitan.api_key.open_dashboard">Open Groq Key Dashboard</a>
                         <div style="font-size:11px;color:var(--tx3);margin-top:10px;padding-top:10px;border-top:1px solid var(--bg-line, rgba(255,255,255,.06));line-height:1.5;">Kikitan XD is based on <a onclick="sendToCS({action:'openUrl',url:'https://github.com/YusufOzmen01/kikitan-translator'})" style="color:var(--accent);cursor:pointer;">Kikitan by YusufOzmen01</a> (MIT License) <a onclick="sendToCS({action:'openUrl',url:'https://github.com/YusufOzmen01/kikitan-translator'})" style="color:var(--accent);cursor:pointer;">github.com/YusufOzmen01/kikitan-translator</a></div>
+                    </div>
+                    <!-- Google API Key -->
+                    <div class="vrcn-panel-card" id="kxdGoogleKeyCard">
+                        <div class="vrcn-panel-card-header"><span class="msi">key</span> <span data-i18n="kikitan.google_api_key">Google API Key</span></div>
+                        <input id="kxdGoogleApiKey" type="password" class="vrcn-edit-field" style="width:100%;box-sizing:border-box;" placeholder="AIza..." onblur="kxdSaveSettings()">
+                        <div style="font-size:11px;color:var(--tx3);margin-top:8px;line-height:1.5;" data-i18n="kikitan.google_api_key.hint">The Google Gemini Live model needs a free Google AI Studio API key for live speech translation. Sign in with your Google account at aistudio.google.com/apikey, create an API key, and paste it above. The free tier is enough for personal use.</div>
+                        <a onclick="sendToCS({action:'openUrl',url:'https://aistudio.google.com/apikey'})" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--accent);cursor:pointer;margin-top:6px;text-decoration:none;" data-i18n="kikitan.google_api_key.open_dashboard">Open Google AI Studio Keys</a>
                     </div>
                     <!-- Mic + Volume -->
                     <div class="vrcn-panel-card">
@@ -31,6 +38,12 @@
                     </div>
                     <!-- Language selectors -->
                     <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header" style="margin-bottom:6px;"><span class="msi">smart_toy</span> <span data-i18n="kikitan.model.title">Model</span></div>
+                        <select id="kxdModel" class="lib-filter-select" style="width:100%;margin-bottom:6px;" onchange="kxdSaveSettings()">
+                            <option value="groq" data-i18n="kikitan.model.groq">Groq Whisper v3</option>
+                            <option value="google" data-i18n="kikitan.model.google">Google Gemini Live Translate</option>
+                        </select>
+                        <div style="font-size:11px;color:var(--tx3);margin:0 0 12px;line-height:1.5;" data-i18n="kikitan.model.hint">Groq uses Whisper for transcription plus a separate translation step. Google Gemini Live translates speech directly in one streaming model and auto-detects the source language.</div>
                         <div style="display:flex;gap:12px;">
                             <div style="flex:1;">
                                 <div class="vrcn-panel-card-header" style="margin-bottom:6px;"><span class="msi">record_voice_over</span> <span data-i18n="kikitan.source_lang">Source Language</span></div>
@@ -63,6 +76,7 @@
                     <!-- Profile Translation -->
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">translate</span> <span data-i18n="kikitan.profile_translation.title">Profile Translation</span></div>
+                        <div style="font-size:11px;color:var(--warn);margin:4px 0 2px;display:flex;align-items:center;gap:4px;"><span class="msi" style="font-size:14px;">key</span> <span data-i18n="kikitan.profile_translation.requires_groq">Requires Groq API key</span></div>
                         <div class="sf-toggle-row" style="margin-top:8px;">
                             <span><span class="msi" style="font-size:16px;vertical-align:middle;">translate</span> <span data-i18n="kikitan.profile_translation.enable">Enable Profile Translation</span></span>
                             <label class="toggle"><input type="checkbox" id="kxdProfileTransToggle" checked onchange="kxdSaveSettings()"><div class="toggle-track"><div class="toggle-knob"></div></div></label>
