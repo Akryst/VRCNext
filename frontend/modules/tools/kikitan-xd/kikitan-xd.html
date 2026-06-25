@@ -51,6 +51,15 @@
                         </select>
                         <div style="font-size:11px;color:var(--tx3);margin-top:8px;line-height:1.5;" data-i18n="kikitan.personality.hint">Kawai appends one mood-matching kaomoji at the end of every translated sentence. Affects only speech translation — not profile, world or group description translations.</div>
                     </div>
+                    <!-- Blocked Words and Sentences -->
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">block</span> <span data-i18n="kikitan.blocked.title">Blocked Words and Sentences</span></div>
+                        <div style="font-size:11px;color:var(--tx3);margin:6px 0 12px;line-height:1.5;" data-i18n="kikitan.blocked.hint">Words are stripped from recognition wherever they appear. Sentences are only blocked when the whole recognized text matches exactly, so similar phrases still go through.</div>
+                        <div class="vrcn-panel-card-header" style="margin-bottom:6px;"><span class="msi">match_word</span> <span data-i18n="kikitan.blocked.words">Blocked Words</span></div>
+                        <div class="vf-block-chips" id="kxdBlockWordChips" onclick="document.getElementById('kxdBlockWordInput')?.focus()"></div>
+                        <div class="vrcn-panel-card-header" style="margin:14px 0 6px;"><span class="msi">format_quote</span> <span data-i18n="kikitan.blocked.sentences">Blocked Sentences</span></div>
+                        <div class="vf-block-chips" id="kxdBlockSentenceChips" onclick="document.getElementById('kxdBlockSentenceInput')?.focus()"></div>
+                    </div>
                     <!-- Profile Translation -->
                     <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">translate</span> <span data-i18n="kikitan.profile_translation.title">Profile Translation</span></div>

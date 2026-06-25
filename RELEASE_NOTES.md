@@ -1,5 +1,9 @@
 **2026.31.5**
 
+**Kikitan XD**
+* Added a word and sentence filter to prevent WhisperV3 from sending words or phrases that were never actually said. WhisperV3 sometimes has an issue where it randomly outputs phrases like “Thank you” or “Thanks for watching.” You can now block sentences such as “Thank you” so they no longer show up randomly. The drawback is that if you actually want to say “Thank you,” you may need to phrase it differently, such as “Thanks a lot.”
+
+
 **Media Library**
 
 * Videos created with FrameShot now save the player list, instance info, and world location.

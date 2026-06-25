@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace VRCNext.Services.KikitanXD;
@@ -18,6 +19,8 @@ public class KikitanXDSettings
     public bool ProfileTranslationEnabled { get; set; } = true;
     public string ProfileTargetLang { get; set; } = "en";
     public string Personality { get; set; } = "raw";
+    public List<string> BlockedWords { get; set; } = new();
+    public List<string> BlockedSentences { get; set; } = new();
 
     public static KikitanXDSettings Load()
     {

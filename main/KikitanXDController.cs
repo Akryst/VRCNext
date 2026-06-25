@@ -38,7 +38,9 @@ public class KikitanXDController : IDisposable
                     noiseGatePct = _settings.NoiseGatePercent,
                     profileTranslationEnabled = _settings.ProfileTranslationEnabled,
                     profileTargetLang = _settings.ProfileTargetLang,
-                    personality = _settings.Personality
+                    personality = _settings.Personality,
+                    blockWords = _settings.BlockedWords,
+                    blockSentences = _settings.BlockedSentences
                 });
                 break;
             }
@@ -53,6 +55,8 @@ public class KikitanXDController : IDisposable
                 bool osc = msg["oscEnabled"]?.Value<bool>() ?? _settings.OscEnabled;
                 int gate = msg["noiseGatePct"]?.Value<int>() ?? _settings.NoiseGatePercent;
                 string personality = msg["personality"]?.ToString() ?? _settings.Personality;
+                var blockWords = msg["blockWords"]?.ToObject<List<string>>() ?? _settings.BlockedWords;
+                var blockSentences = msg["blockSentences"]?.ToObject<List<string>>() ?? _settings.BlockedSentences;
 
                 _settings.InputDeviceIndex = devIdx;
                 _settings.ApiKey = apiKey;
@@ -62,6 +66,8 @@ public class KikitanXDController : IDisposable
                 _settings.OscEnabled = osc;
                 _settings.NoiseGatePercent = gate;
                 _settings.Personality = personality;
+                _settings.BlockedWords = blockWords;
+                _settings.BlockedSentences = blockSentences;
                 _settings.Save();
 
                 _service?.Dispose();
@@ -72,7 +78,7 @@ public class KikitanXDController : IDisposable
                 _service.OnTranslated += text =>
                     Invoke(() => _core.SendToJS("kxdTranslated", new { text }));
                 _service.OnChatboxSent += () => _core.OnChatboxPauseRequest?.Invoke(15_000);
-                _service.Start(devIdx, apiKey, srcLang, tgtLang, translate, osc, gate, personality);
+                _service.Start(devIdx, apiKey, srcLang, tgtLang, translate, osc, gate, personality, blockWords, blockSentences);
                 _core.SendToJS("kxdState", new { running = true });
                 break;
             }
@@ -95,10 +101,13 @@ public class KikitanXDController : IDisposable
                 if (msg["profileTranslationEnabled"] is JToken pte) _settings.ProfileTranslationEnabled = pte.Value<bool>();
                 if (msg["profileTargetLang"] is JToken ptl) _settings.ProfileTargetLang = ptl.ToString();
                 if (msg["personality"] is JToken pers) _settings.Personality = pers.ToString();
+                if (msg["blockWords"] is JToken bw) _settings.BlockedWords = bw.ToObject<List<string>>() ?? new();
+                if (msg["blockSentences"] is JToken bs) _settings.BlockedSentences = bs.ToObject<List<string>>() ?? new();
                 _settings.Save();
                 _core.SendToJS("toast", new { ok = true, msg = "Saved" });
                 _service?.UpdateSettings(_settings.ApiKey, _settings.SourceLang, _settings.TargetLang,
-                    _settings.TranslateEnabled, _settings.OscEnabled, _settings.NoiseGatePercent, _settings.Personality);
+                    _settings.TranslateEnabled, _settings.OscEnabled, _settings.NoiseGatePercent, _settings.Personality,
+                    _settings.BlockedWords, _settings.BlockedSentences);
                 break;
             }
 
@@ -145,7 +154,8 @@ public class KikitanXDController : IDisposable
             _service.OnTranslated += text =>
                 Invoke(() => _core.SendToJS("kxdTranslated", new { text }));
             _service.Start(_settings.InputDeviceIndex, _settings.ApiKey, _settings.SourceLang,
-                _settings.TargetLang, _settings.TranslateEnabled, _settings.OscEnabled, _settings.NoiseGatePercent, _settings.Personality);
+                _settings.TargetLang, _settings.TranslateEnabled, _settings.OscEnabled, _settings.NoiseGatePercent, _settings.Personality,
+                _settings.BlockedWords, _settings.BlockedSentences);
             _core.SendToJS("kxdState", new { running = true });
         }
     }

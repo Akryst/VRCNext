@@ -23,8 +23,8 @@ public sealed class KikitanXDService : IDisposable
     public bool IsRunning => false;
     public float MeterLevel => 0f;
     public static string[] GetInputDevices() => [];
-    public void Start(int deviceIndex, string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality) { }
-    public void UpdateSettings(string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality) { }
+    public void Start(int deviceIndex, string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality, IEnumerable<string>? blockedWords = null, IEnumerable<string>? blockedSentences = null) { }
+    public void UpdateSettings(string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality, IEnumerable<string>? blockedWords = null, IEnumerable<string>? blockedSentences = null) { }
     public void Stop() { }
     public void Dispose() { }
     public static Task<string> TranslateStandaloneAsync(string apiKey, string text, string sourceLang, string targetLang) => Task.FromResult("");
@@ -54,6 +54,8 @@ public sealed class KikitanXDService : IDisposable
     private bool _translateEnabled;
     private bool _oscEnabled;
     private string _personality = "raw";
+    private volatile string[] _blockedWords = Array.Empty<string>();
+    private volatile string[] _blockedSentences = Array.Empty<string>();
 
     private static readonly HttpClient _http = new();
 
@@ -67,7 +69,7 @@ public sealed class KikitanXDService : IDisposable
     private const int MinSpeechMs = 250;
     private const int MaxSegmentMs = 10000;
 
-    public void UpdateSettings(string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality)
+    public void UpdateSettings(string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality, IEnumerable<string>? blockedWords = null, IEnumerable<string>? blockedSentences = null)
     {
         _apiKey = apiKey;
         _sourceLang = sourceLang;
@@ -76,6 +78,55 @@ public sealed class KikitanXDService : IDisposable
         _oscEnabled = oscEnabled;
         _personality = personality ?? "raw";
         _silenceThreshold = Math.Clamp(noiseGatePct / 100f / 6f, 0.001f, 0.5f);
+        _blockedWords = NormalizeList(blockedWords);
+        _blockedSentences = NormalizeList(blockedSentences);
+    }
+
+    private static string[] NormalizeList(IEnumerable<string>? items)
+    {
+        if (items == null) return Array.Empty<string>();
+        var list = new List<string>();
+        foreach (var i in items)
+            if (!string.IsNullOrWhiteSpace(i)) list.Add(i.Trim());
+        return list.ToArray();
+    }
+
+    private static string NormalizeSentence(string s)
+    {
+        return s.Trim().Trim(' ', '.', ',', '!', '?', ';', ':', '"', '\'', '。', '！', '？', '、', '…').Trim();
+    }
+
+    private string ApplyBlockFilters(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return text;
+
+        var sentences = _blockedSentences;
+        if (sentences.Length > 0)
+        {
+            string norm = NormalizeSentence(text);
+            foreach (var s in sentences)
+            {
+                if (norm.Equals(NormalizeSentence(s), StringComparison.OrdinalIgnoreCase))
+                    return "";
+            }
+        }
+
+        var words = _blockedWords;
+        if (words.Length > 0)
+        {
+            foreach (var w in words)
+            {
+                if (string.IsNullOrWhiteSpace(w)) continue;
+                text = System.Text.RegularExpressions.Regex.Replace(
+                    text,
+                    $@"\b{System.Text.RegularExpressions.Regex.Escape(w)}\b",
+                    "",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            }
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"\s{2,}", " ").Trim();
+        }
+
+        return text;
     }
 
     private const string TranslateSystemPromptRaw =
@@ -111,7 +162,7 @@ public sealed class KikitanXDService : IDisposable
         return names;
     }
 
-    public void Start(int deviceIndex, string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality)
+    public void Start(int deviceIndex, string apiKey, string sourceLang, string targetLang, bool translate, bool oscEnabled, int noiseGatePct, string personality, IEnumerable<string>? blockedWords = null, IEnumerable<string>? blockedSentences = null)
     {
         Stop();
         _apiKey = apiKey;
@@ -121,6 +172,8 @@ public sealed class KikitanXDService : IDisposable
         _oscEnabled = oscEnabled;
         _personality = personality ?? "raw";
         _silenceThreshold = Math.Clamp(noiseGatePct / 100f / 6f, 0.001f, 0.5f);
+        _blockedWords = NormalizeList(blockedWords);
+        _blockedSentences = NormalizeList(blockedSentences);
 
         _waveIn = new WaveInEvent
         {
@@ -257,6 +310,9 @@ public sealed class KikitanXDService : IDisposable
         {
             var wavBytes = PcmToWav(pcm, SampleRate, Channels, BitsPerSample);
             string srcText = TranscribeAsync(wavBytes).GetAwaiter().GetResult();
+            if (string.IsNullOrWhiteSpace(srcText)) return;
+
+            srcText = ApplyBlockFilters(srcText);
             if (string.IsNullOrWhiteSpace(srcText)) return;
 
             OnRecognized?.Invoke(srcText, false);
