@@ -480,8 +480,7 @@ function _buildWdPhotoCard(x) {
             `</div>`;
     }
     const thumbSrc = suAttr ? suAttr + '?thumb=1' : '';
-    const h        = x.imgH || 0;
-    const resTag   = !h ? '' : h <= 720 ? 'SD' : h <= 1080 ? 'HD' : h <= 1440 ? '2K' : h <= 2160 ? '4K' : '8K';
+    const resTag   = (typeof _resTag === 'function') ? _resTag(x) : '';
     const resBadge = resTag ? `<span class="vrcn-badge accent" style="margin-left:4px;">${resTag}</span>` : '';
     return `<div class="lib-card" data-path="${esc(x.path||'')}" style="cursor:pointer;" onclick="_wdOpenInLibrary('${sp}')"><div class="lib-thumb-wrap${blurClass}"><img class="lib-thumb" src="${thumbSrc}" loading="lazy" onerror="this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px;font-weight:700\\'>${jsq(t('library.no_preview', 'No Preview'))}</div>'">${iH ? '<div class="lib-blur-hint"><span class="msi" style="font-size:18px;">visibility_off</span></div>' : ''}${playersOverlay}</div><div class="lib-info"><div class="lib-name">${esc(x.name)}</div><div class="lib-meta"><span style="display:flex;align-items:center;">${x.size}${resBadge}</span><span>${x.time}</span></div></div></div>`;
 }

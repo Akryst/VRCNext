@@ -13,3 +13,4 @@
 * Fixed friends being shown as **Non-Friends** in the Mutual Network.
 * Fixed an bug that caused "User Avatars" in Content tab not to be updated after changes.
 * Fixed only the first 20 avatars showing under a user's Content > Avatars. All of the user's avatars are now listed.
+* Fixed #102 Media Library was showing wrong resolution tags when the image was an portrait photo.

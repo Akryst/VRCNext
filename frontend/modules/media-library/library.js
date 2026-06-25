@@ -542,14 +542,24 @@ function _renderFolderContents() {
 }
 
 // Resolution tag.
+const _RES_PRESETS = [
+    ['SD', 1280 * 720],
+    ['HD', 1920 * 1080],
+    ['2K', 2560 * 1440],
+    ['4K', 3840 * 2160],
+    ['8K', 7680 * 4320],
+];
+
 function _resTag(x) {
-    const h = x.imgH || 0;
-    if (!h) return '';
-    if (h <= 720)  return 'SD';
-    if (h <= 1080) return 'HD';
-    if (h <= 1440) return '2K';
-    if (h <= 2160) return '4K';
-    return '8K';
+    const px = (x.imgW || 0) * (x.imgH || 0);
+    if (!px) return '';
+    let best = _RES_PRESETS[0][0];
+    let bestDiff = Infinity;
+    for (const [label, presetPx] of _RES_PRESETS) {
+        const diff = Math.abs(Math.log(px / presetPx));
+        if (diff < bestDiff) { bestDiff = diff; best = label; }
+    }
+    return best;
 }
 
 // Card building.
