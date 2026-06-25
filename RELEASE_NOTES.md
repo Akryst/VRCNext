@@ -1,3 +1,9 @@
+**2026.31.6** HOTFIX
+
+* Fixed Google Gemini Transcription not sending data to OSC.
+* Fixed Google Gemini Translation/Source Lang not working.
+* Fixed some other small issues with Gemini.
+
 **2026.31.5**
 
 **Kikitan XD**

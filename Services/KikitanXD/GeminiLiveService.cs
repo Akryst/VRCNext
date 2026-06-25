@@ -55,9 +55,15 @@ public sealed class GeminiLiveService : IKikitanSpeechService
 
     private readonly StringBuilder _turnInput = new();
     private readonly StringBuilder _turnOutput = new();
+    private readonly object _turnLock = new();
+    private DateTime _lastDeltaUtc = DateTime.MinValue;
+    private bool _turnDirty;
+    private int _debugMsgsLeft;
+    private const int TurnFlushMs = 1200;
 
     private string _apiKey = "";
     private string _targetLang = "en";
+    private int _deviceIndex;
     private volatile bool _translateEnabled = true;
     private volatile bool _oscEnabled = true;
     private volatile string[] _blockedWords = Array.Empty<string>();
@@ -72,7 +78,7 @@ public sealed class GeminiLiveService : IKikitanSpeechService
     {
         Stop();
         _apiKey = s.GoogleApiKey ?? "";
-        _targetLang = string.IsNullOrWhiteSpace(s.TargetLang) ? "en" : s.TargetLang;
+        _targetLang = MapTargetLang(s.TargetLang);
         _translateEnabled = s.TranslateEnabled;
         _oscEnabled = s.OscEnabled;
         _blockedWords = NormalizeList(s.BlockedWords);
@@ -82,6 +88,8 @@ public sealed class GeminiLiveService : IKikitanSpeechService
             throw new InvalidOperationException("Google API key is missing.");
 
         _running = true;
+        _deviceIndex = deviceIndex;
+        _debugMsgsLeft = 6;
         _cts = new CancellationTokenSource();
 
         // Start the microphone immediately so the level meter works right away,
@@ -114,6 +122,7 @@ public sealed class GeminiLiveService : IKikitanSpeechService
             await SendSetupAsync();
             Log("Kikitan XD (Google Gemini Live): connected");
             _senderTask = Task.Run(() => SenderLoop(token));
+            _ = Task.Run(() => FlushLoop(token));
             await ReceiveLoop(token);
         }
         catch (OperationCanceledException) { }
@@ -126,12 +135,17 @@ public sealed class GeminiLiveService : IKikitanSpeechService
 
     public void UpdateSettings(KikitanXDSettings s)
     {
-        // Target language / API key changes require a fresh session and take
-        // effect on the next Start. Live toggles are applied immediately.
         _translateEnabled = s.TranslateEnabled;
         _oscEnabled = s.OscEnabled;
         _blockedWords = NormalizeList(s.BlockedWords);
         _blockedSentences = NormalizeList(s.BlockedSentences);
+
+        // Target language / API key are fixed for the lifetime of a Live
+        // session, so reconnect when either changes while running.
+        if (!_running) return;
+        if (MapTargetLang(s.TargetLang) == _targetLang && (s.GoogleApiKey ?? "") == _apiKey) return;
+        try { Start(_deviceIndex, s); }
+        catch (Exception ex) { Log($"Kikitan XD (Google): could not apply new settings — {ex.Message}"); }
     }
 
     public void Stop()
@@ -170,8 +184,12 @@ public sealed class GeminiLiveService : IKikitanSpeechService
         _cts = null;
 
         while (_pcmQueue.TryDequeue(out _)) { }
-        _turnInput.Clear();
-        _turnOutput.Clear();
+        lock (_turnLock)
+        {
+            _turnInput.Clear();
+            _turnOutput.Clear();
+            _turnDirty = false;
+        }
         _meterLevel = 0f;
         Log("Kikitan XD (Google Gemini Live): stopped");
     }
@@ -315,30 +333,65 @@ public sealed class GeminiLiveService : IKikitanSpeechService
             return;
         }
 
+        if (_debugMsgsLeft > 0)
+        {
+            _debugMsgsLeft--;
+            var raw = text.Length > 400 ? text[..400] : text;
+            Log($"Kikitan XD (Google) raw: {raw}");
+        }
+
         var inText = sc["inputTranscription"]?["text"]?.ToString();
-        if (!string.IsNullOrEmpty(inText))
-        {
-            _turnInput.Append(inText);
-            OnRecognized?.Invoke(_turnInput.ToString(), true);
-        }
-
         var outText = sc["outputTranscription"]?["text"]?.ToString();
-        if (!string.IsNullOrEmpty(outText))
+
+        if (!string.IsNullOrEmpty(inText) || !string.IsNullOrEmpty(outText))
         {
-            _turnOutput.Append(outText);
-            if (_translateEnabled) OnTranslated?.Invoke(_turnOutput.ToString());
+            string inSnap, outSnap;
+            lock (_turnLock)
+            {
+                if (!string.IsNullOrEmpty(inText)) _turnInput.Append(inText);
+                if (!string.IsNullOrEmpty(outText)) _turnOutput.Append(outText);
+                _lastDeltaUtc = DateTime.UtcNow;
+                _turnDirty = true;
+                inSnap = _turnInput.ToString();
+                outSnap = _turnOutput.ToString();
+            }
+            if (!string.IsNullOrEmpty(inText)) OnRecognized?.Invoke(inSnap, true);
+            if (!string.IsNullOrEmpty(outText) && _translateEnabled) OnTranslated?.Invoke(outSnap);
         }
 
-        if (sc["turnComplete"]?.Value<bool>() == true)
+        // The translate model does not reliably send turnComplete, so a turn is
+        // also flushed by FlushLoop after a short pause in incoming text.
+        if (sc["turnComplete"]?.Value<bool>() == true || sc["generationComplete"]?.Value<bool>() == true)
             FinishTurn();
+    }
+
+    private async Task FlushLoop(CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                await Task.Delay(200, token);
+                bool flush;
+                lock (_turnLock)
+                    flush = _turnDirty && (DateTime.UtcNow - _lastDeltaUtc).TotalMilliseconds > TurnFlushMs;
+                if (flush) FinishTurn();
+            }
+        }
+        catch (OperationCanceledException) { }
     }
 
     private void FinishTurn()
     {
-        string src = _turnInput.ToString().Trim();
-        string translated = _turnOutput.ToString().Trim();
-        _turnInput.Clear();
-        _turnOutput.Clear();
+        string src, translated;
+        lock (_turnLock)
+        {
+            src = _turnInput.ToString().Trim();
+            translated = _turnOutput.ToString().Trim();
+            _turnInput.Clear();
+            _turnOutput.Clear();
+            _turnDirty = false;
+        }
 
         if (src.Length == 0 && translated.Length == 0) return;
 
@@ -367,6 +420,20 @@ public sealed class GeminiLiveService : IKikitanSpeechService
             sum += v * v;
         }
         _meterLevel = Math.Min(1f, (float)Math.Sqrt(sum / samples) * 6f);
+    }
+
+    // Maps Kikitan's internal language codes to the BCP-47 codes Gemini Live
+    // Translation expects. https://ai.google.dev/gemini-api/docs/live-api/live-translate
+    private static readonly Dictionary<string, string> TargetLangMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["zh"] = "zh-Hans",
+        ["pt"] = "pt-BR"
+    };
+
+    private static string MapTargetLang(string? lang)
+    {
+        if (string.IsNullOrWhiteSpace(lang)) return "en";
+        return TargetLangMap.TryGetValue(lang, out var mapped) ? mapped : lang;
     }
 
     private static string[] NormalizeList(IEnumerable<string>? items)
