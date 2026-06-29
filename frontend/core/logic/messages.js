@@ -816,6 +816,15 @@ case 'vrcNews':
             case 'recentWorlds':
                 onRecentWorlds(payload.worlds);
                 break;
+            case 'visitedWorlds':
+                if (typeof renderVisitedWorlds === 'function') renderVisitedWorlds(payload.worlds);
+                break;
+            case 'recentSeenPlayers':
+                if (typeof renderRecentSeen === 'function') renderRecentSeen(payload.players);
+                break;
+            case 'recentAvatars':
+                if (typeof renderRecentAvatars === 'function') renderRecentAvatars(payload.avatars);
+                break;
             case 'vrcWorldDetailError':
                 document.getElementById('detailModalContent').innerHTML = `<div style="padding:30px;text-align:center;color:var(--err);">${esc(payload.error || t('worlds.error.loading_detail', 'Error loading world'))}</div><div style="text-align:center;margin-top:10px;"><button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${t('common.close', 'Close')}</button></div>`;
                 break;

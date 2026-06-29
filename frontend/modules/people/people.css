@@ -9,6 +9,7 @@
 
 #peopleFavArea,
 #peopleAllArea,
+#peopleRecentArea,
 #peopleSearchArea,
 #peopleBlockedArea,
 #peopleMutedArea {
@@ -20,6 +21,7 @@
 
 #peopleFavArea .search-bar-row,
 #peopleAllArea .search-bar-row,
+#peopleRecentArea .search-bar-row,
 #peopleSearchArea .search-bar-row,
 #peopleBlockedArea .search-bar-row,
 #peopleMutedArea .search-bar-row {
@@ -28,6 +30,7 @@
 
 #allFriendsGrid,
 #favFriendsGrid,
+#recentSeenGrid,
 #blockedList,
 #mutedList,
 #searchPeopleResults {

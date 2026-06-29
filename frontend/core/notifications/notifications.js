@@ -365,12 +365,15 @@ function renderCurrentInstance(data) {
     function renderSidebarRow(u, isFriend) {
         const hasImg = u.image && u.image.length > 5;
         const initial = (u.displayName || '?')[0].toUpperCase();
-        const avatar = hasImg
+        const avInner = hasImg
             ? `<div class="inst-user-av" style="background-image:url('${cssUrl(u.image)}')"></div>`
             : `<div class="inst-user-av inst-user-av-letter">${esc(initial)}</div>`;
+        const dotShape = u.presence === 'web' ? 'vrc-status-ring' : 'vrc-status-dot';
+        const avDot = u.status ? `<span class="inst-user-av-dot ${dotShape} ${statusDotClass(u.status)}"></span>` : '';
+        const avatar = `<div class="inst-user-av-wrap">${avInner}${avDot}</div>`;
         const click = u.id ? ` onclick="openFriendDetail('${esc(u.id)}')"` : '';
         const statusLine = u.status
-            ? `<span class="vrc-status-dot ${statusDotClass(u.status)}" style="width:6px;height:6px;flex-shrink:0;margin-right:3px;"></span><span class="inst-user-status">${esc(u.statusDescription || statusLabel(u.status))}</span>`
+            ? `<span class="inst-user-status">${esc(u.statusDescription || statusLabel(u.status))}</span>`
             : '';
         return `<div class="inst-user-row"${click}>${avatar}<div class="inst-user-info"><span class="inst-user-name">${esc(u.displayName)}</span>${statusLine ? `<div class="inst-user-status-row">${statusLine}</div>` : ''}</div></div>`;
     }

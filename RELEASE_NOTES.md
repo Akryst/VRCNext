@@ -1,37 +1,36 @@
-**2026.31.7** HOTFIX
-* Fixed an issue where Google Gemini loses connection and never reconnects.
+**2026.32.0**
 
-**2026.31.6** HOTFIX
+**Worlds Tab**
+* Added a **Recently Visited** button. This shows the latest 32 worlds you have visited.
 
-* Fixed Google Gemini Transcription not sending data to OSC.
-* Fixed Google Gemini Translation/Source Lang not working.
-* Fixed some other small issues with Gemini.
+**People Tab**
+* Added a **Recently Seen** button. This shows the latest 64 people you have seen.
 
-**2026.31.5**
+**Avatars Tab**
+* Added a **Recently Used** button. This shows the latest 32 avatars you have used.
+* Added "Public Filter" to avatar tab. you can now filter by Public or Private Avatars
+* Added "Platform Filter" to avatar tab. you can now filter by PC or Android platform.
+Note: We are aware that "iOS" exists for Worlds and Avatars and we will add that in future.
 
-**Kikitan XD**
-* Added Google Gemini Live Transcription.
-* Added Google Gemini Live Translation.
-* Added a word and sentence filter to block random WhisperV3 phrases like “Thank you” or “Thanks for watching.” Note: blocked phrases will also be blocked when you actually say them.
+**Note**
+* The **Recently X** features are meant as nice-to-have shortcuts. To view more than the 32–64 item limit, you can use the Timeline.
 
-**Media Library**
-* Videos created with FrameShot now save the player list, instance info, and world location.
-* Added a custom video player to the Media Library that uses the same modal as photos.
-* Added #101: Media Library edit mode. You can now select multiple images or videos and delete, hide, favorite, or unfavorite them.
+**Friends Sidebar**
+* Updated the round instance user profile icons to the new square icons.
 
-**Starting Page**
-* You can now choose which page opens when you start VRCN. Simply right-click any tab in the sidebar, click **Edit Navigation**, and then click the House icon on the tab you want to use as your starting page.
+**Settings**
+* Added **Use Trusted Rank as Text**.
+* When enabled, this removes the Trusted Rank badges from the Friends Sidebar and colors usernames based on their Trusted Rank instead.
+* Removed the navbar in "Appearance". Background, Colors, Other and Themes use their own Card now.
 
-**World Modal**
-* Added an Instance History card showing the last 10 instances you joined.
+**Dashboard**
+* Updated the VRChat News widget design.
+* Updated Upcoming Events with a new design.
+* Updated the Recent Photos widget to a new mosaic-style layout showing the latest 18 images.
 
-**Game Log**
-* Game Log now always shows the latest available log data.
+**Themes**
+* Added PC, Web, Android/Quest, and Friends badges to the Theme Editor.
+* Added Visitor, New User, User, Known User, and Trusted User badges to the Theme Editor.
 
-**Fixes**
-* Fixed friends being shown as **Non-Friends** in the Mutual Network.
-* Fixed a bug that caused **User Avatars** in the Content tab to not update after changes.
-* Fixed only the first 20 avatars showing under a user's **Content > Avatars**. All of the user's avatars are now listed.
-* Fixed #102: Media Library showed incorrect resolution tags when the image was a portrait photo.
-* Fixed some minor issues with the VRC API.
-* Fixed an issue where Kikitan XD would not load the correct microphone.
+**Improvements**
+* Buttons now use the Google font family like the rest of the app.

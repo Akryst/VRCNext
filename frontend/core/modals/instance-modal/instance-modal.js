@@ -95,7 +95,7 @@ function openInstanceInfoModal() {
             ? `<div class="iim-cell iim-cell-right iim-muted-cell">${esc(fmtTimer(u.joinedAt))}</div>`
             : '';
         const trust = getTrustRank(tags);
-        const rankCell = `<div class="iim-cell">${trust ? `<span class="vrcn-badge" style="color:${trust.color};border-color:${trust.color}20;background:${trust.color}18;font-size:10px;">${esc(trust.label)}</span>` : ''}</div>`;
+        const rankCell = `<div class="iim-cell">${trust ? `<span class="vrcn-badge ${trust.cls}" style="font-size:10px;">${esc(trust.label)}</span>` : ''}</div>`;
         const dotCls = statusDotClass(status);
         const statusCell = `<div class="iim-cell"><div class="iim-status-cell">
             ${status ? `<span class="vrc-status-dot ${dotCls}" style="width:7px;height:7px;flex-shrink:0;"></span>` : ''}

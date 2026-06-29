@@ -1,3 +1,16 @@
+:root {
+    --bdg-user-pc: #64AAFF;
+    --bdg-user-quest: #38DC78;
+    --bdg-user-web: #FFA726;
+    --bdg-user-friend: #2DD48C;
+
+    --bdg-rank-visitor: #CCCCCC;
+    --bdg-rank-new: #1778FF;
+    --bdg-rank-user: #2BCF5C;
+    --bdg-rank-known: #FF7B42;
+    --bdg-rank-trusted: #8143E6;
+}
+
 .vrcn-badge {
     display: inline-flex;
     align-items: center;
@@ -18,7 +31,16 @@
 .vrcn-badge.group      { background: rgba(255,167,38,.12);  color: #FFA726; }
 .vrcn-badge.hidden     { background: rgba(120,140,175,.12); color: var(--tx2); }
 
-.vrcn-badge.platform-web { background: rgba(255,167,38,.18); color: #FFA726; }
+.vrcn-badge.platform-pc    { color: var(--bdg-user-pc);    background: color-mix(in srgb, var(--bdg-user-pc) 16%, transparent); }
+.vrcn-badge.platform-quest { color: var(--bdg-user-quest); background: color-mix(in srgb, var(--bdg-user-quest) 16%, transparent); }
+.vrcn-badge.platform-web   { color: var(--bdg-user-web);   background: color-mix(in srgb, var(--bdg-user-web) 18%, transparent); }
+.vrcn-badge.bdg-friend     { color: var(--bdg-user-friend);background: color-mix(in srgb, var(--bdg-user-friend) 14%, transparent); }
+
+.vrcn-badge.rank-visitor   { color: var(--bdg-rank-visitor);background: color-mix(in srgb, var(--bdg-rank-visitor) 14%, transparent); }
+.vrcn-badge.rank-new       { color: var(--bdg-rank-new);    background: color-mix(in srgb, var(--bdg-rank-new) 14%, transparent); }
+.vrcn-badge.rank-user      { color: var(--bdg-rank-user);   background: color-mix(in srgb, var(--bdg-rank-user) 14%, transparent); }
+.vrcn-badge.rank-known     { color: var(--bdg-rank-known);  background: color-mix(in srgb, var(--bdg-rank-known) 14%, transparent); }
+.vrcn-badge.rank-trusted   { color: var(--bdg-rank-trusted);background: color-mix(in srgb, var(--bdg-rank-trusted) 14%, transparent); }
 .vrcn-badge.accent       { background: rgba(56,132,255,.18); color: var(--accent); }
 
 .vrcn-badge.ok   { background: rgba(45,212,140,.12);  color: var(--ok); }

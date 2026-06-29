@@ -115,13 +115,15 @@ function renderVrcFriends(friends, counts) {
             : `<div class="vrc-friend-avatar" style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--tx3)">${esc((f.displayName || '?')[0])}</div>`;
         const statusCls = presenceType === 'offline' ? 's-offline' : statusDotClass(f.status);
         const rank = getTrustRank(f.tags || []);
-        const rankBadge = rank ? `<span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color};">${rank.label}</span>` : '';
+        const useRankColor = (typeof settings !== 'undefined') && settings.friendsSidebarRankColor === true;
+        const rankBadge = (rank && !useRankColor) ? `<span class="vrcn-badge ${rank.cls}">${rank.label}</span>` : '';
+        const nameColorStyle = (useRankColor && rank) ? `color:${rank.color};` : '';
         const fid = (f.id || '').replace(/'/g, "\\'");
         const statusText = f.statusDescription || statusLabel(f.status);
         const locationText = getFriendLocationLabel(presenceType, f.location);
         const badgeDotCls = presenceType === 'web' ? 'vrc-status-ring' : 'vrc-status-dot';
         const avatarWrap = `<div class="vrc-friend-avatar-wrap">${imgTag}<span class="vrc-friend-status-badge ${badgeDotCls} ${statusCls}"></span></div>`;
-        return `<div class="vrc-friend-card" data-uid="${fid}" data-status="${statusCls}" onclick="openFriendDetail('${fid}')">${avatarWrap}<div class="vrc-friend-info"><div class="vrc-friend-name"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.displayName)}</span>${rankBadge}</div><div class="vrc-friend-loc">${_friendLocLineInner(f, presenceType, statusText, locationText)}</div></div></div>`;
+        return `<div class="vrc-friend-card" data-uid="${fid}" data-status="${statusCls}" onclick="openFriendDetail('${fid}')">${avatarWrap}<div class="vrc-friend-info"><div class="vrc-friend-name"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${nameColorStyle}">${esc(f.displayName)}</span>${rankBadge}</div><div class="vrc-friend-loc">${_friendLocLineInner(f, presenceType, statusText, locationText)}</div></div></div>`;
     };
 
     const favIds = new Set(favFriendsData.map(f => f.favoriteId));
@@ -299,13 +301,15 @@ function filterFriendsList() {
         const presenceType = f.presence || 'offline';
         const statusCls = presenceType === 'offline' ? 's-offline' : statusDotClass(f.status);
         const rank = getTrustRank(f.tags || []);
-        const rankBadge = rank ? `<span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color};">${rank.label}</span>` : '';
+        const useRankColor = (typeof settings !== 'undefined') && settings.friendsSidebarRankColor === true;
+        const rankBadge = (rank && !useRankColor) ? `<span class="vrcn-badge ${rank.cls}">${rank.label}</span>` : '';
+        const nameColorStyle = (useRankColor && rank) ? `color:${rank.color};` : '';
         const fid = (f.id || '').replace(/'/g, "\\'");
         const statusText = f.statusDescription || statusLabel(f.status);
         const locationText = getFriendLocationLabel(presenceType, f.location);
         const badgeDotCls = presenceType === 'web' ? 'vrc-status-ring' : 'vrc-status-dot';
         const avatarWrap = `<div class="vrc-friend-avatar-wrap">${imgTag}<span class="vrc-friend-status-badge ${badgeDotCls} ${statusCls}"></span></div>`;
-        h += `<div class="vrc-friend-card" data-uid="${fid}" data-status="${statusCls}" onclick="openFriendDetail('${fid}')">${avatarWrap}<div class="vrc-friend-info"><div class="vrc-friend-name"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.displayName)}</span>${rankBadge}</div><div class="vrc-friend-loc">${_friendLocLineInner(f, presenceType, statusText, locationText)}</div></div></div>`;
+        h += `<div class="vrc-friend-card" data-uid="${fid}" data-status="${statusCls}" onclick="openFriendDetail('${fid}')">${avatarWrap}<div class="vrc-friend-info"><div class="vrc-friend-name"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${nameColorStyle}">${esc(f.displayName)}</span>${rankBadge}</div><div class="vrc-friend-loc">${_friendLocLineInner(f, presenceType, statusText, locationText)}</div></div></div>`;
     });
     h += `</div>`;
     el.innerHTML = h;

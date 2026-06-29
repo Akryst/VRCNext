@@ -94,7 +94,7 @@ function renderSearchResults(type, results, offset, hasMore) {
     } else if (type === 'users') {
         html = state.results.map(u => {
             const trailing = u.isFriend
-                ? `<span class="vrcn-badge ok" style="margin-left:auto;flex-shrink:0;"><span class="msi" style="font-size:10px;">check_circle</span>${esc(t('profiles.badges.friend', 'Friend'))}</span>`
+                ? `<span class="vrcn-badge bdg-friend" style="margin-left:auto;flex-shrink:0;"><span class="msi" style="font-size:10px;">check_circle</span>${esc(t('profiles.badges.friend', 'Friend'))}</span>`
                 : '';
             return renderUserItem(u, `openFriendDetail('${esc(u.id)}')`, { trailing });
         }).join('');

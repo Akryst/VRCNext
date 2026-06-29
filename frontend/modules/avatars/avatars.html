@@ -2,6 +2,7 @@
                     <div id="avatarFilterBtns" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                         <button class="vrcn-button sub-tab-btn active" id="avatarFilterOwn" onclick="setAvatarFilter('own')"><span class="msi" style="font-size:16px;">person</span> <span data-i18n="avatars.filters.own">My Avatars</span></button>
                         <button class="vrcn-button sub-tab-btn" id="avatarFilterFav" onclick="setAvatarFilter('favorites')"><span class="msi" style="font-size:16px;">star</span> <span data-i18n="avatars.filters.favorites">Favorites</span></button>
+                        <button class="vrcn-button sub-tab-btn" id="avatarFilterRecent" onclick="setAvatarFilter('recent')"><span class="msi" style="font-size:16px;">history</span> <span data-i18n="avatars.filters.recent">Recently Used</span></button>
                         <button class="vrcn-button sub-tab-btn" id="avatarFilterRose" onclick="setAvatarFilter('rose')"><span class="msi" style="font-size:16px;">local_florist</span> <span data-i18n="avatars.filters.rose">Rose Database</span></button>
                         <button class="vrcn-button sub-tab-btn" id="avatarFilterSearch" onclick="setAvatarFilter('search')"><span class="msi" style="font-size:16px;">search</span> <span data-i18n="common.search">Search</span></button>
                         <select id="avatarSearchDbDrop" class="vrcn-dropdown" onchange="setAvatarSearchDb(this.value)" style="min-width:120px;"><option value="avtrdb">Avtrdb</option><option value="avtricu">Avtr.icu</option><option value="all">Search all</option></select>
@@ -36,6 +37,16 @@
                 <div id="avatarOwnArea">
                     <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
                         <div class="search-bar-row" style="margin-bottom:0;flex:1;min-width:140px;"><span class="msi search-ico">search</span><input type="text" id="ownAvatarSearchInput" class="vrcn-input" placeholder="Filter my avatars..." data-i18n-placeholder="avatars.own.filter_placeholder" oninput="filterOwnAvatars()"></div>
+                        <select class="vrcn-dropdown av-publish-filter" onchange="setAvPublishFilter(this.value)" style="min-width:130px;flex-shrink:0;">
+                            <option value="all" data-i18n="avatars.filter.publish_all">All Status</option>
+                            <option value="public" data-i18n="avatars.labels.public">Public</option>
+                            <option value="private" data-i18n="avatars.labels.private">Private</option>
+                        </select>
+                        <select class="vrcn-dropdown av-platform-filter" onchange="setAvPlatformFilter(this.value)" style="min-width:140px;flex-shrink:0;">
+                            <option value="all" data-i18n="avatars.filter.platform_all">All Platforms</option>
+                            <option value="pc">PC</option>
+                            <option value="quest">Quest</option>
+                        </select>
                         <button id="ownAvatarsRefreshBtn" class="vrcn-button" onclick="refreshAvatars()" title="Refresh" data-i18n-title="common.refresh"><span class="msi" style="font-size:16px;">refresh</span> <span data-i18n="common.refresh">Refresh</span></button>
                     </div>
                     <div id="avatarGrid" class="avatar-grid"><div class="empty-msg" data-i18n="avatars.empty.login_prompt">Login to VRChat to see your avatars</div></div>
@@ -59,9 +70,36 @@
                             <option value="" data-i18n="avatars.favorites.group.all">All Favorites</option>
                         </select>
                         <div class="search-bar-row" style="margin-bottom:0;flex:1;min-width:140px;"><span class="msi search-ico">search</span><input type="text" id="favAvatarSearchInput" class="vrcn-input" placeholder="Filter favorite avatars..." data-i18n-placeholder="avatars.favorites.filter_placeholder" oninput="filterFavAvatars()"></div>
+                        <select class="vrcn-dropdown av-publish-filter" onchange="setAvPublishFilter(this.value)" style="min-width:130px;flex-shrink:0;">
+                            <option value="all" data-i18n="avatars.filter.publish_all">All Status</option>
+                            <option value="public" data-i18n="avatars.labels.public">Public</option>
+                            <option value="private" data-i18n="avatars.labels.private">Private</option>
+                        </select>
+                        <select class="vrcn-dropdown av-platform-filter" onchange="setAvPlatformFilter(this.value)" style="min-width:140px;flex-shrink:0;">
+                            <option value="all" data-i18n="avatars.filter.platform_all">All Platforms</option>
+                            <option value="pc">PC</option>
+                            <option value="quest">Quest</option>
+                        </select>
                         <button id="favAvatarsRefreshBtn" class="vrcn-button" onclick="refreshFavAvatars()" title="Refresh" data-i18n-title="common.refresh"><span class="msi" style="font-size:16px;">refresh</span> <span data-i18n="common.refresh">Refresh</span></button>
                     </div>
                     <div id="favAvatarsGrid" class="avatar-grid"><div class="empty-msg" data-i18n="avatars.favorites.loading">Loading favorite avatars...</div></div>
+                </div>
+                <!-- Recently Used -->
+                <div id="avatarRecentArea" style="display:none;">
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+                        <div class="search-bar-row" style="margin-bottom:0;flex:1;min-width:140px;"><span class="msi search-ico">search</span><input type="text" id="recentAvatarSearchInput" class="vrcn-input" placeholder="Filter recently used..." data-i18n-placeholder="avatars.recent.filter_placeholder" oninput="filterRecentAvatars()"></div>
+                        <select class="vrcn-dropdown av-publish-filter" onchange="setAvPublishFilter(this.value)" style="min-width:130px;flex-shrink:0;">
+                            <option value="all" data-i18n="avatars.filter.publish_all">All Status</option>
+                            <option value="public" data-i18n="avatars.labels.public">Public</option>
+                            <option value="private" data-i18n="avatars.labels.private">Private</option>
+                        </select>
+                        <select class="vrcn-dropdown av-platform-filter" onchange="setAvPlatformFilter(this.value)" style="min-width:140px;flex-shrink:0;">
+                            <option value="all" data-i18n="avatars.filter.platform_all">All Platforms</option>
+                            <option value="pc">PC</option>
+                            <option value="quest">Quest</option>
+                        </select>
+                    </div>
+                    <div id="avatarRecentGrid" class="avatar-grid"><div class="empty-msg" data-i18n="common.loading">Loading...</div></div>
                 </div>
                 <!-- Rose Database -->
                 <div id="avatarRoseArea" style="display:none;">
@@ -73,6 +111,6 @@
                 </div>
                 <!-- Search -->
                 <div id="avatarSearchArea" style="display:none;">
-                    <div class="search-bar-row" style="margin-bottom:14px;"><span class="msi search-ico">search</span><input type="text" id="avatarSearchInput" class="vrcn-input" placeholder="Search public avatars..." data-i18n-placeholder="avatars.search.placeholder" onkeydown="if(event.key==='Enter')doAvatarSearch()"><button class="vrcn-button" onclick="doAvatarSearch()" data-i18n="common.search">Search</button></div>
+                    <div class="search-bar-row" style="margin-bottom:14px;"><span class="msi search-ico">search</span><input type="text" id="avatarSearchInput" class="vrcn-input" placeholder="Search public avatars..." data-i18n-placeholder="avatars.search.placeholder" onkeydown="if(event.key==='Enter')doAvatarSearch()"><select class="vrcn-dropdown av-publish-filter" onchange="setAvPublishFilter(this.value)" style="min-width:130px;flex-shrink:0;"><option value="all" data-i18n="avatars.filter.publish_all">All Status</option><option value="public" data-i18n="avatars.labels.public">Public</option><option value="private" data-i18n="avatars.labels.private">Private</option></select><select class="vrcn-dropdown av-platform-filter" onchange="setAvPlatformFilter(this.value)" style="min-width:140px;flex-shrink:0;"><option value="all" data-i18n="avatars.filter.platform_all">All Platforms</option><option value="pc">PC</option><option value="quest">Quest</option></select><button class="vrcn-button" onclick="doAvatarSearch()" data-i18n="common.search">Search</button></div>
                     <div id="avatarSearchGrid" class="avatar-grid"><div class="empty-msg" data-i18n="avatars.search.empty_prompt">Search for public avatars</div></div>
                 </div>

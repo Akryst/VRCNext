@@ -135,59 +135,55 @@
                         </div>
                     </div>
 
-                    <!-- DESIGN -->
+                    <!-- BACKGROUND -->
                     <div class="vrcn-panel-card" data-section="appearance" style="display:none;">
-                        <div class="vrcn-panel-card-header"><span class="msi">palette</span> <span data-i18n="settings.design.title">Design</span></div>
-                        <div class="fd-tabs" style="margin-top:10px;">
-                            <button class="fd-tab active" onclick="switchDesignTab('background',this)" data-i18n="settings.design.tabs.background">Background</button>
-                            <button class="fd-tab" onclick="switchDesignTab('colors',this)" data-i18n="settings.design.tabs.colors">Colors</button>
-                            <button class="fd-tab" onclick="switchDesignTab('other',this)" data-i18n="settings.design.tabs.other">Other</button>
-                            <button class="fd-tab" onclick="switchDesignTab('themes',this)" data-i18n="settings.design.tabs.themes">Themes</button>
+                        <div class="vrcn-panel-card-header"><span class="msi">wallpaper</span> <span data-i18n="settings.design.tabs.background">Background</span></div>
+                        <div class="sf-section-label" style="margin-top:14px;" data-i18n="settings.design.dashboard_background">Dashboard Background</div>
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                            <button class="vrcn-button" onclick="browseDashBg()"><span class="msi" style="font-size:16px;">perm_media</span> <span data-i18n="settings.design.choose_background">Choose Image / Video</span></button>
+                            <span id="dashBgName" style="font-size:11px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;"></span>
                         </div>
+                        <div class="sf-toggle-row"><span data-i18n="settings.design.random_background">Random background from watch folders on launch</span><label class="toggle"><input type="checkbox" id="setRandomBg" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                    </div>
 
-                        <div id="designTabBackground">
-                            <div class="sf-section-label" style="margin-top:14px;" data-i18n="settings.design.dashboard_background">Dashboard Background</div>
-                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-                                <button class="vrcn-button" onclick="browseDashBg()"><span class="msi" style="font-size:16px;">perm_media</span> <span data-i18n="settings.design.choose_background">Choose Image / Video</span></button>
-                                <span id="dashBgName" style="font-size:11px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;"></span>
-                            </div>
-
-                            <div class="sf-toggle-row"><span data-i18n="settings.design.random_background">Random background from watch folders on launch</span><label class="toggle"><input type="checkbox" id="setRandomBg" onchange="autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                    <!-- COLORS -->
+                    <div class="vrcn-panel-card" data-section="appearance" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">palette</span> <span data-i18n="settings.design.tabs.colors">Colors</span></div>
+                        <div class="sf-section-label" style="margin-top:14px;" data-i18n="settings.design.theme">Theme</div>
+                        <div class="theme-grid" id="themeGrid"></div>
+                        <div id="customThemeSection" style="display:none;">
+                            <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.custom_theme">Custom Theme</div>
+                            <div class="theme-grid" id="customThemeGrid"></div>
                         </div>
-
-                        <div id="designTabColors" style="display:none;">
-                            <div class="sf-section-label" style="margin-top:14px;" data-i18n="settings.design.theme">Theme</div>
-                            <div class="theme-grid" id="themeGrid"></div>
-                            <div id="customThemeSection" style="display:none;">
-                                <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.custom_theme">Custom Theme</div>
-                                <div class="theme-grid" id="customThemeGrid"></div>
-                            </div>
-                            <div style="margin-top:12px;margin-bottom:4px;">
-                                <button class="vrcn-button" onclick="openThemeEditor()">
-                                    <span class="msi" style="font-size:15px;">palette</span>
-                                    <span data-i18n="settings.design.theme_editor">Theme Editor</span>
-                                </button>
-                            </div>
-                            <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.special_themes">Special Themes</div>
-                            <div class="theme-grid" id="specialThemeGrid"></div>
-                            <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.custom_cursor">Custom Cursor</div>
-                            <div class="theme-grid" id="cursorThemeGrid"></div>
-                            <div class="sf-row" id="autoAccuracyRow" style="margin-top:8px;display:none;">
-                                <label style="font-size:12px;color:var(--tx2);" data-i18n="settings.design.color_accuracy">Color Accuracy</label>
-                                <input type="range" id="setAutoAccuracy" min="0" max="100" value="50" style="flex:1;accent-color:var(--accent);" oninput="document.getElementById('autoAccuracyVal').textContent=this.value+'%';setAutoColorAccuracy(this.value);autoSave()">
-                                <span id="autoAccuracyVal" style="font-size:12px;color:var(--tx2);margin-left:8px;min-width:35px;text-align:right;">50%</span>
-                            </div>
+                        <div style="margin-top:12px;margin-bottom:4px;">
+                            <button class="vrcn-button" onclick="openThemeEditor()">
+                                <span class="msi" style="font-size:15px;">palette</span>
+                                <span data-i18n="settings.design.theme_editor">Theme Editor</span>
+                            </button>
                         </div>
-
-                        <div id="designTabOther" style="display:none;">
-                            <div class="sf-toggle-row" style="margin-top:14px;"><span data-i18n="settings.design.clock_enabled">Enable Clock</span><label class="toggle"><input type="checkbox" id="setClockEnabled" checked onchange="applyClockSettings();autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
-                            <div class="sf-toggle-row" style="margin-top:8px;"><span data-i18n="settings.design.clock_ampm">Use AM/PM</span><label class="toggle"><input type="checkbox" id="setClockAmPm" onchange="applyClockSettings();autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.special_themes">Special Themes</div>
+                        <div class="theme-grid" id="specialThemeGrid"></div>
+                        <div class="sf-section-label" style="margin-top:16px;" data-i18n="settings.design.custom_cursor">Custom Cursor</div>
+                        <div class="theme-grid" id="cursorThemeGrid"></div>
+                        <div class="sf-row" id="autoAccuracyRow" style="margin-top:8px;display:none;">
+                            <label style="font-size:12px;color:var(--tx2);" data-i18n="settings.design.color_accuracy">Color Accuracy</label>
+                            <input type="range" id="setAutoAccuracy" min="0" max="100" value="50" style="flex:1;accent-color:var(--accent);" oninput="document.getElementById('autoAccuracyVal').textContent=this.value+'%';setAutoColorAccuracy(this.value);autoSave()">
+                            <span id="autoAccuracyVal" style="font-size:12px;color:var(--tx2);margin-left:8px;min-width:35px;text-align:right;">50%</span>
                         </div>
+                    </div>
 
-                        <div id="designTabThemes" style="display:none;">
-                            <div class="set-desc" style="margin-top:12px;" data-i18n="settings.design.themes.desc">Drop theme folders into the <code>custom-themes</code> folder next to VRCNext. Each folder can contain any number of CSS files.</div>
-                            <div id="customThemesList" style="margin-top:10px;display:flex;flex-direction:column;gap:6px;"></div>
-                        </div>
+                    <!-- OTHER -->
+                    <div class="vrcn-panel-card" data-section="appearance" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">tune</span> <span data-i18n="settings.design.tabs.other">Other</span></div>
+                        <div class="sf-toggle-row" style="margin-top:14px;"><span data-i18n="settings.design.clock_enabled">Enable Clock</span><label class="toggle"><input type="checkbox" id="setClockEnabled" checked onchange="applyClockSettings();autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="sf-toggle-row" style="margin-top:8px;"><span data-i18n="settings.design.clock_ampm">Use AM/PM</span><label class="toggle"><input type="checkbox" id="setClockAmPm" onchange="applyClockSettings();autoSave()"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                    </div>
+
+                    <!-- THEMES -->
+                    <div class="vrcn-panel-card" data-section="appearance" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">brush</span> <span data-i18n="settings.design.tabs.themes">Themes</span></div>
+                        <div class="set-desc" style="margin-top:12px;" data-i18n="settings.design.themes.desc">Drop theme folders into the <code>custom-themes</code> folder next to VRCNext. Each folder can contain any number of CSS files.</div>
+                        <div id="customThemesList" style="margin-top:10px;display:flex;flex-direction:column;gap:6px;"></div>
                     </div>
 
                     <!-- WINDOW BEHAVIOR -->
@@ -244,6 +240,8 @@
                         <div class="vrcn-panel-card-header"><span class="msi">groups</span> <span data-i18n="settings.sidebar.title">Friends Sidebar</span></div>
                         <div class="sf-toggle-row"><span data-i18n="settings.sidebar.location_only">Show only location when available</span><label class="toggle"><input type="checkbox" id="setFriendsSidebarLocationOnly" onchange="settings.friendsSidebarLocationOnly=this.checked;autoSave();if(typeof renderVrcFriends==='function'&&typeof vrcFriendsData!=='undefined'&&vrcFriendsData?.length)renderVrcFriends(vrcFriendsData);"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
                         <div class="set-desc" data-i18n="settings.sidebar.location_only_desc">When enabled, friends who are in a world show the instance's region flag and world name instead of their status. Friends who aren't in a world keep showing their status text.</div>
+                        <div class="sf-toggle-row"><span data-i18n="settings.sidebar.rank_color">Use Trusted Rank Color instead of Badge</span><label class="toggle"><input type="checkbox" id="setFriendsSidebarRankColor" onchange="settings.friendsSidebarRankColor=this.checked;autoSave();if(typeof renderVrcFriends==='function'&&typeof vrcFriendsData!=='undefined'&&vrcFriendsData?.length)renderVrcFriends(vrcFriendsData);"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="set-desc" data-i18n="settings.sidebar.rank_color_desc">When enabled, the friend's username will have the color of their Trusted rank and the Trusted badge will be removed from the sidebar.</div>
                     </div>
 
                     <!-- NAVIGATION SIDEBAR -->

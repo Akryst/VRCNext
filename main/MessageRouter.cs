@@ -460,6 +460,50 @@ public partial class AppShell
                     });
                     break;
 
+                case "vrcGetVisitedWorlds":
+                    _ = Task.Run(async () =>
+                    {
+                        var ids = _core.Timeline.GetRecentVisitedWorldIds(32);
+                        var worlds = await _core.World.GetWorldsByIdsAsync(ids);
+                        foreach (JObject w in worlds.OfType<JObject>())
+                        {
+                            var url = ImageCacheHelper.GetWorldUrl(w["id"]?.ToString(), w["imageUrl"]?.ToString() ?? w["thumbnailImageUrl"]?.ToString());
+                            w["imageUrl"] = url; w["thumbnailImageUrl"] = url;
+                        }
+                        Invoke(() => SendToJS("visitedWorlds", new { worlds }));
+                    });
+                    break;
+
+                case "vrcGetRecentSeen":
+                    _ = Task.Run(() =>
+                    {
+                        var players = _core.Timeline.GetRecentSeenPlayers(64, _core.CurrentVrcUserId);
+                        foreach (JObject p in players)
+                            p["image"] = ImageCacheHelper.GetUserUrl(p["id"]?.ToString(), p["image"]?.ToString());
+                        Invoke(() => SendToJS("recentSeenPlayers", new { players }));
+                    });
+                    break;
+
+                case "vrcGetRecentAvatars":
+                    _ = Task.Run(async () =>
+                    {
+                        var minimal = _core.Timeline.GetRecentUsedAvatars(32);
+                        var resolved = await Task.WhenAll(minimal.Select(async m =>
+                        {
+                            var id = m["id"]?.ToString() ?? "";
+                            JObject? full = null;
+                            try { full = await _core.Avatars.GetAvatarAsync(id); } catch { }
+                            var a = full ?? m;
+                            var img = a["thumbnailImageUrl"]?.ToString() ?? a["imageUrl"]?.ToString() ?? m["thumbnailImageUrl"]?.ToString();
+                            a["thumbnailImageUrl"] = ImageCacheHelper.GetAvatarUrl(id, img);
+                            return a;
+                        }));
+                        var avatars = new JArray();
+                        foreach (var a in resolved) avatars.Add(a);
+                        Invoke(() => SendToJS("recentAvatars", new { avatars }));
+                    });
+                    break;
+
                 case "vrcGetPopularWorlds":
                     _ = Task.Run(async () =>
                     {

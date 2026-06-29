@@ -425,14 +425,36 @@
     background: var(--bg-hover);
 }
 
+.inst-user-av-wrap {
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+}
+
 .inst-user-av {
     width: 26px;
     height: 26px;
-    border-radius: 50%;
+    border-radius: 7px;
     background-size: cover;
     background-position: center;
     background-color: var(--bg-input);
     flex-shrink: 0;
+}
+
+.inst-user-av-dot {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    box-shadow: 0 0 0 2px var(--bg-card);
+}
+.inst-user-av-dot.vrc-status-ring {
+    background: var(--bg-card);
+}
+.inst-user-row:hover .inst-user-av-dot {
+    box-shadow: 0 0 0 2px var(--bg-hover);
+}
+.inst-user-row:hover .inst-user-av-dot.vrc-status-ring {
+    background: var(--bg-hover);
 }
 
 

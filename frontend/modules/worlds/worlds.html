@@ -1,6 +1,7 @@
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
                     <div id="worldFilterBtns" style="display:flex;gap:8px;align-items:center;">
                         <button class="vrcn-button sub-tab-btn active" id="worldFilterFav" onclick="setWorldFilter('favorites')"><span class="msi" style="font-size:16px;">star</span> <span data-i18n="worlds.filters.favorites">Favorites</span></button>
+                        <button class="vrcn-button sub-tab-btn" id="worldFilterRecent" onclick="setWorldFilter('recent')"><span class="msi" style="font-size:16px;">history</span> <span data-i18n="worlds.filters.recent">Recently Visited</span></button>
                         <button class="vrcn-button sub-tab-btn" id="worldFilterMine" onclick="setWorldFilter('mine')"><span class="msi" style="font-size:16px;">cloud_upload</span> <span data-i18n="worlds.filters.mine">My Worlds</span></button>
                         <button class="vrcn-button sub-tab-btn" id="worldFilterSearch" onclick="setWorldFilter('search')"><span class="msi" style="font-size:16px;">search</span> <span data-i18n="worlds.filters.search">Search</span></button>
                     </div>
@@ -31,6 +32,9 @@
                 </div>
                 <div id="worldMineArea" style="display:none;">
                     <div id="worldMineGrid" class="search-grid"><div class="empty-msg" data-i18n="worlds.mine.loading">Loading your worlds...</div></div>
+                </div>
+                <div id="worldRecentArea" style="display:none;">
+                    <div id="worldRecentGrid" class="search-grid"><div class="empty-msg" data-i18n="common.loading">Loading...</div></div>
                 </div>
                 <div id="worldSearchArea" style="display:none;">
                     <div class="search-bar-row">

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.Sqlite;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace VRCNext.Services;
 
@@ -1501,6 +1502,80 @@ public class TimelineService : IDisposable
                     LeftAt      = r.IsDBNull(19) ? "" : r.GetString(19),
                     Tracked     = r.GetInt32(20),
                     Players     = playerMap.TryGetValue(id, out var pl) ? pl : new(),
+                });
+            }
+        }
+        catch { }
+        return result;
+    }
+
+    // Distinct world IDs ordered by most recent visit (instance_join events).
+    public List<string> GetRecentVisitedWorldIds(int limit = 32)
+    {
+        var ids = new List<string>();
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT world_id, MAX(timestamp) AS ts FROM events
+                WHERE type='instance_join' AND world_id LIKE 'wrld_%'
+                GROUP BY world_id ORDER BY ts DESC LIMIT $limit";
+            cmd.Parameters.AddWithValue("$limit", limit);
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) ids.Add(r.GetString(0));
+        }
+        catch { }
+        return ids;
+    }
+
+    // Distinct players ordered by most recently seen (from instance_join event_players).
+    public List<JObject> GetRecentSeenPlayers(int limit = 64, string excludeUserId = "")
+    {
+        var result = new List<JObject>();
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT ep.user_id, ep.display_name, ep.image, MAX(e.timestamp) AS ts
+                FROM event_players ep JOIN events e ON e.id = ep.event_id
+                WHERE e.type='instance_join' AND ep.user_id != '' AND ep.user_id != $self
+                GROUP BY ep.user_id ORDER BY ts DESC LIMIT $limit";
+            cmd.Parameters.AddWithValue("$limit", limit);
+            cmd.Parameters.AddWithValue("$self", excludeUserId ?? "");
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var uid = r.IsDBNull(0) ? "" : r.GetString(0);
+                if (string.IsNullOrEmpty(uid)) continue;
+                result.Add(new JObject {
+                    ["id"]          = uid,
+                    ["displayName"] = r.IsDBNull(1) ? "" : r.GetString(1),
+                    ["image"]       = r.IsDBNull(2) ? "" : r.GetString(2),
+                });
+            }
+        }
+        catch { }
+        return result;
+    }
+
+    // Distinct avatars ordered by most recently worn (avatar_switch events).
+    public List<JObject> GetRecentUsedAvatars(int limit = 32)
+    {
+        var result = new List<JObject>();
+        try
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = @"SELECT user_id, user_name, user_image, MAX(timestamp) AS ts
+                FROM events WHERE type='avatar_switch' AND user_id != ''
+                GROUP BY user_id ORDER BY ts DESC LIMIT $limit";
+            cmd.Parameters.AddWithValue("$limit", limit);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var aid = r.IsDBNull(0) ? "" : r.GetString(0);
+                if (string.IsNullOrEmpty(aid)) continue;
+                result.Add(new JObject {
+                    ["id"]                = aid,
+                    ["name"]              = r.IsDBNull(1) ? "" : r.GetString(1),
+                    ["thumbnailImageUrl"] = r.IsDBNull(2) ? "" : r.GetString(2),
                 });
             }
         }

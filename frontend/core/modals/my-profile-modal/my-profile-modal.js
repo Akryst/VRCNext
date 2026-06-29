@@ -69,7 +69,7 @@ function renderMyProfileContent() {
     let badgesRowHtml = '<div class="fd-badges-row">';
     if (platBadge) badgesRowHtml += platBadge;
     if (u.ageVerified) badgesRowHtml += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">verified</span>18+</span>`;
-    if (rank) badgesRowHtml += `<span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>`;
+    if (rank) badgesRowHtml += `<span class="vrcn-badge ${rank.cls}">${esc(rank.label)}</span>`;
     if (u.id) badgesRowHtml += idBadge(u.id);
     badgesRowHtml += `<span class="vrcn-keybind" style="margin-left:auto;border-radius:5px;">CTRL P</span>`;
     badgesRowHtml += '</div>';
@@ -194,7 +194,7 @@ function renderMyProfileContent() {
     // Trust & Safety card (right)
     const _trustCard = rank ? `<div class="fd-info-card">
         <div class="fd-group-rep-label">${t('profiles.trust.title', 'Trust &amp; Safety')}</div>
-        <span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>
+        <span class="vrcn-badge ${rank.cls}">${esc(rank.label)}</span>
         <p style="margin:10px 0 0;font-size:12px;color:var(--tx3);line-height:1.45;">${t('profiles.trust.description', 'This user has a trusted user standing within the community.')}</p>
     </div>` : '';
 
