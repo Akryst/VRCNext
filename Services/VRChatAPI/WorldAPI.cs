@@ -271,6 +271,20 @@ public class WorldAPI
         return new JArray();
     }
 
+    // Resolve a list of world IDs to full world objects (order preserved), using the world cache.
+    public async Task<JArray> GetWorldsByIdsAsync(IEnumerable<string> ids)
+    {
+        var arr = new JArray();
+        if (!ctx.IsLoggedIn) return arr;
+        var list = ids.Where(id => !string.IsNullOrEmpty(id)).ToList();
+        var fetched = await Task.WhenAll(list.Select(async id =>
+        {
+            try { return await GetWorldAsync(id); } catch { return null; }
+        }));
+        foreach (var w in fetched) if (w != null) arr.Add(w);
+        return arr;
+    }
+
     private static JArray BuildFromCache(Dictionary<string, JObject> cache)
     {
         var arr = new JArray();

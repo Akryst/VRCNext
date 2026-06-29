@@ -45,9 +45,11 @@ function setWorldFilter(filter) {
     if (_worldEditMode) exitWorldEditMode();
     worldFilter = filter;
     document.getElementById('worldFilterFav').classList.toggle('active', filter === 'favorites');
+    document.getElementById('worldFilterRecent').classList.toggle('active', filter === 'recent');
     document.getElementById('worldFilterMine').classList.toggle('active', filter === 'mine');
     document.getElementById('worldFilterSearch').classList.toggle('active', filter === 'search');
     document.getElementById('worldFavArea').style.display    = filter === 'favorites' ? '' : 'none';
+    document.getElementById('worldRecentArea').style.display = filter === 'recent'    ? '' : 'none';
     document.getElementById('worldMineArea').style.display   = filter === 'mine'      ? '' : 'none';
     document.getElementById('worldSearchArea').style.display = filter === 'search'    ? '' : 'none';
     const editBtn = document.getElementById('worldEditModeBtn');
@@ -57,6 +59,17 @@ function setWorldFilter(filter) {
         _myWorldsLoaded = true;
         sendToCS({ action: 'vrcGetMyWorlds' });
     }
+    if (filter === 'recent') sendToCS({ action: 'vrcGetVisitedWorlds' });
+}
+
+function renderVisitedWorlds(worlds) {
+    const el = document.getElementById('worldRecentGrid');
+    if (!el) return;
+    if (!Array.isArray(worlds) || worlds.length === 0) {
+        el.innerHTML = `<div class="empty-msg">${t('worlds.recent.empty', 'No recently visited worlds')}</div>`;
+        return;
+    }
+    el.innerHTML = worlds.map(w => renderWorldCard(w)).join('');
 }
 
 function renderMyWorlds(worlds) {

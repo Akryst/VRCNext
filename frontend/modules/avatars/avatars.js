@@ -97,17 +97,19 @@ function setAvatarFilter(filter) {
     if (_avEditMode) exitAvEditMode();
     avatarFilter = filter;
     document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
-    const btnMap = { own: 'avatarFilterOwn', favorites: 'avatarFilterFav', rose: 'avatarFilterRose', search: 'avatarFilterSearch' };
+    const btnMap = { own: 'avatarFilterOwn', favorites: 'avatarFilterFav', recent: 'avatarFilterRecent', rose: 'avatarFilterRose', search: 'avatarFilterSearch' };
     const btn = document.getElementById(btnMap[filter]);
     if (btn) btn.classList.add('active');
 
     const ownArea    = document.getElementById('avatarOwnArea');
     const favArea    = document.getElementById('avatarFavArea');
+    const recentArea = document.getElementById('avatarRecentArea');
     const roseArea   = document.getElementById('avatarRoseArea');
     const searchArea = document.getElementById('avatarSearchArea');
 
     if (ownArea)    ownArea.style.display    = filter === 'own'       ? '' : 'none';
     if (favArea)    favArea.style.display    = filter === 'favorites' ? '' : 'none';
+    if (recentArea) recentArea.style.display = filter === 'recent'    ? '' : 'none';
     if (roseArea)   roseArea.style.display   = filter === 'rose'      ? '' : 'none';
     if (searchArea) searchArea.style.display = filter === 'search'    ? '' : 'none';
 
@@ -129,6 +131,10 @@ function setAvatarFilter(filter) {
     } else if (filter === 'favorites') {
         if (favAvatarsData.length === 0) sendToCS({ action: 'vrcGetAvatars', filter: 'favorites' });
         else { updateFavAvatarGroupHeader(); filterFavAvatars(); }
+    } else if (filter === 'recent') {
+        const inp = document.getElementById('recentAvatarSearchInput');
+        if (inp) inp.value = '';
+        sendToCS({ action: 'vrcGetRecentAvatars' });
     } else if (filter === 'rose') {
         loadRoseDatabase();
     } else {
@@ -146,9 +152,9 @@ function filterOwnAvatars() {
         el.innerHTML = avatarEmptyMessage('avatars.empty.login_prompt', 'Login to VRChat to see your avatars');
         return;
     }
-    const filtered = q
+    const filtered = (q
         ? avatarsData.filter(a => (a.name || '').toLowerCase().includes(q) || (a.authorName || '').toLowerCase().includes(q))
-        : avatarsData;
+        : avatarsData).filter(_avPassesFilters);
     document.getElementById('avatarCount').textContent = filtered.length ? avatarCountText(filtered.length) : '';
     el.innerHTML = filtered.length
         ? filtered.map(a => renderAvatarCard(a, 'own')).join('')
@@ -175,8 +181,13 @@ function renderSearchGrid() {
         el.innerHTML = avatarEmptyMessage('avatars.search.no_results', 'No results found');
         return;
     }
-    document.getElementById('avatarCount').textContent = avatarResultCountText(avatarSearchResults.length);
-    let html = avatarSearchResults.map(a => renderAvatarCard(a, 'search')).join('');
+    const results = avatarSearchResults.filter(_avPassesFilters);
+    document.getElementById('avatarCount').textContent = avatarResultCountText(results.length);
+    if (results.length === 0) {
+        el.innerHTML = avatarEmptyMessage('avatars.empty.no_match', 'No avatars match your filter');
+        return;
+    }
+    let html = results.map(a => renderAvatarCard(a, 'search')).join('');
     if (avatarSearchHasMore) {
         html += `<div style="grid-column:1/-1;text-align:center;margin-top:6px;">
             <button class="vrcn-button" onclick="doAvatarSearch(true)">${t('avatars.search.load_more', 'Load More')}</button>
@@ -252,6 +263,58 @@ function _avPlatformBadges(a) {
     return `<div style="display:flex;gap:3px;">${hasPC ? '<span class="vrcn-badge platform-pc">PC</span>' : ''}${hasQuest ? '<span class="vrcn-badge platform-quest">Quest</span>' : ''}</div>`;
 }
 
+/* === Publish / Platform filters (shared across avatar sub-tabs) === */
+let avatarPublishFilter  = 'all';
+let avatarPlatformFilter = 'all';
+
+function _avPlatformInfo(a) {
+    let hasPC = false, hasQuest = false;
+    if (a.compatibility && a.compatibility.length > 0) {
+        hasPC    = a.compatibility.includes('pc') || a.compatibility.includes('standalonewindows');
+        hasQuest = a.compatibility.includes('android');
+    } else if (a.unityPackages && a.unityPackages.length > 0) {
+        const real = a.unityPackages.filter(p => p.variant !== 'impostor');
+        hasPC    = real.some(p => p.platform === 'standalonewindows');
+        hasQuest = real.some(p => p.platform === 'android');
+    }
+    return { hasPC, hasQuest };
+}
+
+// An avatar passes when the data is unknown (lenient) or it matches the active filter.
+function _avPassesFilters(a) {
+    if (avatarPublishFilter !== 'all' && a.releaseStatus) {
+        const isPub = a.releaseStatus === 'public';
+        if (avatarPublishFilter === 'public'  && !isPub) return false;
+        if (avatarPublishFilter === 'private' &&  isPub) return false;
+    }
+    if (avatarPlatformFilter !== 'all') {
+        const { hasPC, hasQuest } = _avPlatformInfo(a);
+        if (hasPC || hasQuest) {
+            if (avatarPlatformFilter === 'pc'    && !hasPC)    return false;
+            if (avatarPlatformFilter === 'quest' && !hasQuest) return false;
+        }
+    }
+    return true;
+}
+
+function setAvPublishFilter(v) {
+    avatarPublishFilter = v;
+    document.querySelectorAll('select.av-publish-filter').forEach(s => { if (s.value !== v) { s.value = v; s._vnRefresh && s._vnRefresh(); } });
+    _rerenderAvatarFilter();
+}
+function setAvPlatformFilter(v) {
+    avatarPlatformFilter = v;
+    document.querySelectorAll('select.av-platform-filter').forEach(s => { if (s.value !== v) { s.value = v; s._vnRefresh && s._vnRefresh(); } });
+    _rerenderAvatarFilter();
+}
+function _rerenderAvatarFilter() {
+    if      (avatarFilter === 'own')       filterOwnAvatars();
+    else if (avatarFilter === 'favorites') filterFavAvatars();
+    else if (avatarFilter === 'recent')    filterRecentAvatars();
+    else if (avatarFilter === 'search')    renderSearchGrid();
+    else if (avatarFilter === 'rose')      filterRoseDb();
+}
+
 function _avDbBadge(context, a) {
     if (context !== 'search') return '';
     const srcs = a.sources || [avatarSearchDb];
@@ -283,6 +346,25 @@ function renderAvatarCard(a, context) {
             <div class="cc-meta">${esc(a.authorName || '')}</div>
         </div>
     </div>`;
+}
+
+/* === Recently Used Avatars === */
+let _recentAvatarsData = [];
+function renderRecentAvatars(avatars) {
+    _recentAvatarsData = Array.isArray(avatars) ? avatars : [];
+    filterRecentAvatars();
+}
+
+function filterRecentAvatars() {
+    const el = document.getElementById('avatarRecentGrid');
+    if (!el) return;
+    const q = (document.getElementById('recentAvatarSearchInput')?.value || '').toLowerCase();
+    const list = (q
+        ? _recentAvatarsData.filter(a => (a.name || '').toLowerCase().includes(q) || (a.authorName || '').toLowerCase().includes(q))
+        : _recentAvatarsData).filter(_avPassesFilters);
+    el.innerHTML = list.length
+        ? list.map(a => renderAvatarCard(a, 'recent')).join('')
+        : avatarEmptyMessage(q ? 'avatars.empty.no_match' : 'avatars.recent.empty', q ? 'No avatars match your filter' : 'No recently used avatars');
 }
 
 function selectAvatar(avatarId) {
@@ -467,6 +549,7 @@ function filterFavAvatars() {
     let filtered = favAvatarsData;
     if (favAvatarGroupFilter) filtered = filtered.filter(a => a.favoriteGroup === favAvatarGroupFilter);
     if (q) filtered = filtered.filter(a => (a.name || '').toLowerCase().includes(q) || (a.authorName || '').toLowerCase().includes(q));
+    filtered = filtered.filter(_avPassesFilters);
     const el = document.getElementById('favAvatarsGrid');
     if (!el) return;
     if (!filtered.length) {
@@ -607,6 +690,7 @@ function avEditSelectAll() {
     let filtered = favAvatarsData;
     if (favAvatarGroupFilter) filtered = filtered.filter(a => a.favoriteGroup === favAvatarGroupFilter);
     if (q) filtered = filtered.filter(a => (a.name || '').toLowerCase().includes(q) || (a.authorName || '').toLowerCase().includes(q));
+    filtered = filtered.filter(_avPassesFilters);
     const allSelected = filtered.length > 0 && filtered.every(a => _avEditSelected.has(a.id));
     if (allSelected) filtered.forEach(a => _avEditSelected.delete(a.id));
     else filtered.forEach(a => _avEditSelected.add(a.id));
@@ -623,6 +707,7 @@ function updateAvEditBar() {
         let filtered = favAvatarsData;
         if (favAvatarGroupFilter) filtered = filtered.filter(a => a.favoriteGroup === favAvatarGroupFilter);
         if (q) filtered = filtered.filter(a => (a.name || '').toLowerCase().includes(q) || (a.authorName || '').toLowerCase().includes(q));
+        filtered = filtered.filter(_avPassesFilters);
         const allSel = filtered.length > 0 && filtered.every(a => _avEditSelected.has(a.id));
         selectAllBtn.textContent = allSel ? t('avatars.edit.deselect_all', 'Deselect All') : t('avatars.edit.select_all', 'Select All');
     }

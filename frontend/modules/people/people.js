@@ -136,12 +136,12 @@ function formatLastSeen(apiLastLogin, localLastSeen) {
 function getTrustRank(tags) {
     if (!tags || !Array.isArray(tags)) return null;
     // Order matters: check highest first
-    if (tags.includes('system_trust_legend')) return { label: t('profiles.trust.trusted', 'Trusted User'), color: '#8143E6' };
-    if (tags.includes('system_trust_veteran')) return { label: t('profiles.trust.trusted', 'Trusted User'), color: '#8143E6' };
-    if (tags.includes('system_trust_trusted')) return { label: t('profiles.trust.known', 'Known User'), color: '#FF7B42' };
-    if (tags.includes('system_trust_known'))   return { label: t('profiles.trust.user', 'User'), color: '#2BCF5C' };
-    if (tags.includes('system_trust_basic'))   return { label: t('profiles.trust.new', 'New User'), color: '#1778FF' };
-    return { label: t('profiles.trust.visitor', 'Visitor'), color: '#CCCCCC' };
+    if (tags.includes('system_trust_legend')) return { label: t('profiles.trust.trusted', 'Trusted User'), color: 'var(--bdg-rank-trusted)', cls: 'rank-trusted' };
+    if (tags.includes('system_trust_veteran')) return { label: t('profiles.trust.trusted', 'Trusted User'), color: 'var(--bdg-rank-trusted)', cls: 'rank-trusted' };
+    if (tags.includes('system_trust_trusted')) return { label: t('profiles.trust.known', 'Known User'), color: 'var(--bdg-rank-known)', cls: 'rank-known' };
+    if (tags.includes('system_trust_known'))   return { label: t('profiles.trust.user', 'User'), color: 'var(--bdg-rank-user)', cls: 'rank-user' };
+    if (tags.includes('system_trust_basic'))   return { label: t('profiles.trust.new', 'New User'), color: 'var(--bdg-rank-new)', cls: 'rank-new' };
+    return { label: t('profiles.trust.visitor', 'Visitor'), color: 'var(--bdg-rank-visitor)', cls: 'rank-visitor' };
 }
 
 
@@ -197,14 +197,16 @@ function setPeopleFilter(filter) {
     peopleFilter = filter;
     document.getElementById('peopleFilterFav').classList.toggle('active', filter === 'favorites');
     document.getElementById('peopleFilterAll').classList.toggle('active', filter === 'all');
+    document.getElementById('peopleFilterRecent').classList.toggle('active', filter === 'recentseen');
     document.getElementById('peopleFilterSearch').classList.toggle('active', filter === 'search');
     document.getElementById('peopleFilterBlocked').classList.toggle('active', filter === 'blocked');
     document.getElementById('peopleFilterMuted').classList.toggle('active', filter === 'muted');
-    document.getElementById('peopleFavArea').style.display     = filter === 'favorites' ? '' : 'none';
-    document.getElementById('peopleAllArea').style.display     = filter === 'all'       ? '' : 'none';
-    document.getElementById('peopleSearchArea').style.display  = filter === 'search'    ? '' : 'none';
-    document.getElementById('peopleBlockedArea').style.display = filter === 'blocked'   ? '' : 'none';
-    document.getElementById('peopleMutedArea').style.display   = filter === 'muted'     ? '' : 'none';
+    document.getElementById('peopleFavArea').style.display     = filter === 'favorites'  ? '' : 'none';
+    document.getElementById('peopleAllArea').style.display     = filter === 'all'        ? '' : 'none';
+    document.getElementById('peopleRecentArea').style.display  = filter === 'recentseen' ? '' : 'none';
+    document.getElementById('peopleSearchArea').style.display  = filter === 'search'     ? '' : 'none';
+    document.getElementById('peopleBlockedArea').style.display = filter === 'blocked'    ? '' : 'none';
+    document.getElementById('peopleMutedArea').style.display   = filter === 'muted'      ? '' : 'none';
     ['peopleAllPaginatorBar', 'peopleBlockedPaginatorBar', 'peopleMutedPaginatorBar'].forEach(id => {
         const bar = document.getElementById(id);
         if (bar) bar.innerHTML = '';
@@ -215,10 +217,31 @@ function setPeopleFilter(filter) {
 }
 
 function refreshPeopleTab() {
-    if (peopleFilter === 'favorites') sendToCS({ action: 'vrcGetFavoriteFriends' });
-    if (peopleFilter === 'all')       filterAllFriends();
-    if (peopleFilter === 'blocked')   sendToCS({ action: 'vrcGetBlocked' });
-    if (peopleFilter === 'muted')     sendToCS({ action: 'vrcGetMuted' });
+    if (peopleFilter === 'favorites')  sendToCS({ action: 'vrcGetFavoriteFriends' });
+    if (peopleFilter === 'all')        filterAllFriends();
+    if (peopleFilter === 'recentseen') sendToCS({ action: 'vrcGetRecentSeen' });
+    if (peopleFilter === 'blocked')    sendToCS({ action: 'vrcGetBlocked' });
+    if (peopleFilter === 'muted')      sendToCS({ action: 'vrcGetMuted' });
+}
+
+let _recentSeenData = [];
+function renderRecentSeen(players) {
+    _recentSeenData = Array.isArray(players) ? players : [];
+    filterRecentSeen();
+}
+
+function filterRecentSeen() {
+    const el = document.getElementById('recentSeenGrid');
+    if (!el) return;
+    const q = (document.getElementById('recentSeenSearchInput')?.value || '').toLowerCase();
+    const list = q
+        ? _recentSeenData.filter(p => (p.displayName || '').toLowerCase().includes(q) || (p.id || '').toLowerCase().includes(q))
+        : _recentSeenData;
+    if (!list.length) {
+        el.innerHTML = `<div class="empty-msg">${q ? t('profiles.people.no_results', 'No results') : t('profiles.people.recent_seen.empty', 'No recently seen players')}</div>`;
+        return;
+    }
+    el.innerHTML = list.map(p => renderUserItem(p, `openFriendDetail('${jsq(p.id)}')`)).join('');
 }
 
 function _allFriendCategory(f) {

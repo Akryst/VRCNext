@@ -348,7 +348,7 @@ function tsRenderPersonItems() {
             ? `<img class="ts-item-avatar" src="${esc(person.image)}" onerror="this.style.display='none'">`
             : `<div class="ts-item-avatar ts-avatar-placeholder"><span class="msi" style="font-size:16px;color:var(--tx3);">person</span></div>`;
         const badge = isFriend
-            ? `<span class="vrcn-badge ok">${esc(t('timespent.badge.friend', 'Friend'))}</span>`
+            ? `<span class="vrcn-badge bdg-friend">${esc(t('timespent.badge.friend', 'Friend'))}</span>`
             : `<span class="vrcn-badge cyan">${esc(t('timespent.badge.new', 'New'))}</span>`;
         const encounters = tf(`timespent.encounter.${person.meets === 1 ? 'one' : 'other'}`, { count: person.meets }, `${person.meets} encounter${person.meets === 1 ? '' : 's'}`);
 

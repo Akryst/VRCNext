@@ -1133,7 +1133,7 @@ function _photoBuildInfoPaneContent(x) {
             const av      = image
                 ? `<div class="tl-player-card-av" style="background-image:url('${cssUrl(image)}')"></div>`
                 : `<div class="tl-player-card-av">${esc(name[0].toUpperCase())}</div>`;
-            const badge   = live ? `<span class="vrcn-badge ok"><span class="msi" style="font-size:10px;">check_circle</span>${t('profiles.badges.friend', 'Friend')}</span>` : '';
+            const badge   = live ? `<span class="vrcn-badge bdg-friend"><span class="msi" style="font-size:10px;">check_circle</span>${t('profiles.badges.friend', 'Friend')}</span>` : '';
             const onclick = p.userId ? `onclick="closePhotoDetail();openFriendDetail('${jsq(p.userId)}')"` : '';
             const clickCls = p.userId ? ' clickable' : '';
             grid += `<div class="tl-player-card${clickCls}" ${onclick}>${av}<div class="tl-player-card-info"><div class="tl-player-card-name"><span>${esc(name)}</span>${badge}</div></div></div>`;

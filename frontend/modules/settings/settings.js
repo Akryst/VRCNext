@@ -113,6 +113,7 @@ function saveSettings() {
             friendOnlineToastEnabled: document.getElementById('setFriendOnlineToastEnabled')?.checked ?? false,
             friendOnlineToastFavOnly: document.getElementById('setFriendOnlineToastFavOnly')?.checked ?? false,
             friendsSidebarLocationOnly: document.getElementById('setFriendsSidebarLocationOnly')?.checked ?? true,
+            friendsSidebarRankColor: document.getElementById('setFriendsSidebarRankColor')?.checked ?? false,
             modernFolderLayout: document.getElementById('setModernFolderLayout')?.checked ?? true,
             directModalNav: document.getElementById('setDirectModalNav')?.checked ?? false,
             profileModalStyle: settings.profileModalStyle || 'classic',
@@ -306,7 +307,7 @@ function autoSave() {
 function initAutoSave() {
     const ids = ['setBotName','setBotAvatar','setVrcPath','setStartWithWindows','setMinimizeToTray','setTrayNotifications',
         'setNotifySoundEnabled','setMessageSoundEnabled','setMediaRelaySoundEnabled','setSteamOverlaySoundEnabled',
-        'setFriendsSidebarLocationOnly','setDirectModalNav',
+        'setFriendsSidebarLocationOnly','setFriendsSidebarRankColor','setDirectModalNav',
         'setRandomBg','setClockEnabled','setClockAmPm',
         'setAutoStartVR','setAutoStartDesktop',
         'setCloseWithVrc','setStartAlwaysWithVrc',
@@ -358,6 +359,9 @@ function loadSettingsToUI(s) {
     settings.friendsSidebarLocationOnly = s.FriendsSidebarLocationOnly ?? s.friendsSidebarLocationOnly ?? true;
     const _fslEl = document.getElementById('setFriendsSidebarLocationOnly');
     if (_fslEl) _fslEl.checked = settings.friendsSidebarLocationOnly;
+    settings.friendsSidebarRankColor = s.FriendsSidebarRankColor ?? s.friendsSidebarRankColor ?? false;
+    const _fsrcEl = document.getElementById('setFriendsSidebarRankColor');
+    if (_fsrcEl) _fsrcEl.checked = settings.friendsSidebarRankColor;
     settings.modernFolderLayout = s.ModernFolderLayout ?? s.modernFolderLayout ?? true;
     const _mflEl = document.getElementById('setModernFolderLayout');
     if (_mflEl) _mflEl.checked = settings.modernFolderLayout;
@@ -985,15 +989,6 @@ function vrcxShowError(err) {
 }
 
 // === Design Tabs ===
-
-function switchDesignTab(tab, btn) {
-    document.getElementById('designTabBackground').style.display = tab === 'background' ? '' : 'none';
-    document.getElementById('designTabColors').style.display    = tab === 'colors'     ? '' : 'none';
-    document.getElementById('designTabOther').style.display     = tab === 'other'      ? '' : 'none';
-    document.getElementById('designTabThemes').style.display    = tab === 'themes'     ? '' : 'none';
-    btn.closest('.fd-tabs').querySelectorAll('.fd-tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-}
 
 // === Avtrdb Community Support ===
 

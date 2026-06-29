@@ -459,14 +459,25 @@ document.documentElement.addEventListener('tabchange', function () {
 
 // Theme Editor.
 
-const _TE_VARS = [
-    ['bg-base',   'Base BG'],   ['bg-side',  'Sidebar BG'], ['bg-card',  'Card BG'],
-    ['bg-hover',  'Hover BG'],  ['bg-input', 'Input BG'],
-    ['accent',    'Accent'],    ['accent-lt','Accent Light'],['cyan',     'Highlight'],
-    ['ok',        'Success'],   ['warn',     'Warning'],     ['err',      'Error'],
-    ['tx0',       'Text 0'],    ['tx1',      'Text 1'],      ['tx2',      'Text 2'],    ['tx3','Text 3'],
-    ['brd',       'Border'],    ['brd-lt',   'Border Light'],
+const _TE_GROUPS = [
+    { title: 'Theme', vars: [
+        ['bg-base',   'Base BG'],   ['bg-side',  'Sidebar BG'], ['bg-card',  'Card BG'],
+        ['bg-hover',  'Hover BG'],  ['bg-input', 'Input BG'],
+        ['accent',    'Accent'],    ['accent-lt','Accent Light'],['cyan',     'Highlight'],
+        ['ok',        'Success'],   ['warn',     'Warning'],     ['err',      'Error'],
+        ['tx0',       'Text 0'],    ['tx1',      'Text 1'],      ['tx2',      'Text 2'],    ['tx3','Text 3'],
+        ['brd',       'Border'],    ['brd-lt',   'Border Light'],
+    ]},
+    { title: 'Users', vars: [
+        ['bdg-user-pc', 'PC Badge'], ['bdg-user-quest', 'Quest Badge'],
+        ['bdg-user-web', 'Web Badge'], ['bdg-user-friend', 'Friend Badge'],
+    ]},
+    { title: 'Trusted Ranks', vars: [
+        ['bdg-rank-visitor', 'Visitor Badge'], ['bdg-rank-new', 'New User Badge'], ['bdg-rank-user', 'User Badge'],
+        ['bdg-rank-known', 'Known Badge'], ['bdg-rank-trusted', 'Trusted Badge'],
+    ]},
 ];
+const _TE_VARS = _TE_GROUPS.flatMap(g => g.vars);
 
 let _teColors = {}, _teOrigColors = {}, _teSaved = false;
 let _teLightOn = false, _teLightColors = {}, _teOrigLightOn = false, _teOrigLightColors = {};
@@ -535,33 +546,40 @@ function _teRenderRows() {
     });
     container.appendChild(toggleRow);
 
-    for (const [v, label] of _TE_VARS) {
-        const hex = _teColors[v];
-        const showLight = _teLightOn && _LIGHT_VARS.includes(v);
-        const lightHex = _teLightColors[v] || hex;
-        const row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:5px;';
-        const lightSwatch = showLight
-            ? `<div id="teSwatch_lt:${v}" data-var="lt:${v}" title="Light color (top of dashboard)" style="width:22px;height:22px;flex-shrink:0;border-radius:5px;border:1px solid var(--brd);background:${lightHex};cursor:pointer;"></div>`
-            : '';
-        row.innerHTML =
-            `<span style="font-size:11px;color:var(--tx2);width:84px;flex-shrink:0;">${label}</span>` +
-            lightSwatch +
-            `<div id="teSwatch_${v}" data-var="${v}" style="width:22px;height:22px;flex-shrink:0;border-radius:5px;border:1px solid var(--brd);background:${hex};cursor:pointer;"></div>` +
-            `<input type="text" class="vrcn-input" id="teHex_${v}" value="${hex}" maxlength="7"` +
-                ` style="flex:1;font-size:11px;font-family:'Google Sans Mono',monospace;"` +
-                ` oninput="teSetColorFromHex('${v}',this.value)">`;
-        row.querySelector(`#teSwatch_${v}`).addEventListener('click', function(e) {
-            e.stopPropagation();
-            _tePickerOpen(v, this);
-        });
-        if (showLight) {
-            row.querySelector(`[data-var="lt:${v}"]`).addEventListener('click', function(e) {
+    for (const group of _TE_GROUPS) {
+        const header = document.createElement('div');
+        header.style.cssText = 'font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--tx3);margin:12px 0 6px;padding-bottom:3px;border-bottom:1px solid var(--brd);';
+        header.textContent = group.title;
+        container.appendChild(header);
+
+        for (const [v, label] of group.vars) {
+            const hex = _teColors[v];
+            const showLight = _teLightOn && _LIGHT_VARS.includes(v);
+            const lightHex = _teLightColors[v] || hex;
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:5px;';
+            const lightSwatch = showLight
+                ? `<div id="teSwatch_lt:${v}" data-var="lt:${v}" title="Light color (top of dashboard)" style="width:22px;height:22px;flex-shrink:0;border-radius:5px;border:1px solid var(--brd);background:${lightHex};cursor:pointer;"></div>`
+                : '';
+            row.innerHTML =
+                `<span style="font-size:11px;color:var(--tx2);width:84px;flex-shrink:0;">${label}</span>` +
+                lightSwatch +
+                `<div id="teSwatch_${v}" data-var="${v}" style="width:22px;height:22px;flex-shrink:0;border-radius:5px;border:1px solid var(--brd);background:${hex};cursor:pointer;"></div>` +
+                `<input type="text" class="vrcn-input" id="teHex_${v}" value="${hex}" maxlength="7"` +
+                    ` style="flex:1;font-size:11px;font-family:'Google Sans Mono',monospace;"` +
+                    ` oninput="teSetColorFromHex('${v}',this.value)">`;
+            row.querySelector(`#teSwatch_${v}`).addEventListener('click', function(e) {
                 e.stopPropagation();
-                _tePickerOpen('lt:' + v, this);
+                _tePickerOpen(v, this);
             });
+            if (showLight) {
+                row.querySelector(`[data-var="lt:${v}"]`).addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    _tePickerOpen('lt:' + v, this);
+                });
+            }
+            container.appendChild(row);
         }
-        container.appendChild(row);
     }
 }
 

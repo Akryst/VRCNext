@@ -123,7 +123,7 @@ function _tlPlayerCard(p, instanceStart, instanceEnd) {
     const av     = image
         ? `<div class="tl-player-card-av" style="background-image:url('${cssUrl(image)}')"></div>`
         : `<div class="tl-player-card-av">${esc(name[0].toUpperCase())}</div>`;
-    const badge  = live ? `<span class="vrcn-badge ok"><span class="msi" style="font-size:10px;">check_circle</span>${t('profiles.badges.friend', 'Friend')}</span>` : '';
+    const badge  = live ? `<span class="vrcn-badge bdg-friend"><span class="msi" style="font-size:10px;">check_circle</span>${t('profiles.badges.friend', 'Friend')}</span>` : '';
     const onclick = p.userId ? `onclick="document.getElementById('${_tlMid}').style.display='none';openFriendDetail('${jsq(p.userId)}')"` : '';
     const clickCls = p.userId ? ' clickable' : '';
 

@@ -437,12 +437,13 @@ function renderDashVrcNews() {
         return;
     }
     el.innerHTML = _vrcNewsCache.items.map(item => `
-        <div class="dash-news-card" onclick="openNewsArticle('${jsq(String(item.id || ''))}','${jsq(item.link)}','${jsq(item.title)}')">
-            ${item.img ? `<div class="dash-news-img-wrap"><img class="dash-news-img" src="${esc(item.img)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'"></div>` : ''}
+        <div class="dash-news-card${item.img ? ' has-img' : ''}" onclick="openNewsArticle('${jsq(String(item.id || ''))}','${jsq(item.link)}','${jsq(item.title)}')">
+            ${item.img ? `<img class="dash-news-img" src="${esc(item.img)}" alt="" loading="lazy" onerror="this.closest('.dash-news-card').classList.remove('has-img')">` : ''}
             <div class="dash-news-body">
+                <div class="dash-news-meta">${esc(_fmtNewsDate(item.pubDate))}</div>
                 <div class="dash-news-title">${esc(item.title)}</div>
                 ${item.excerpt ? `<div class="dash-news-excerpt">${esc(item.excerpt)}</div>` : ''}
-                <div class="dash-news-meta">${esc(_fmtNewsDate(item.pubDate))}</div>
+                <button class="vrcn-button active" type="button">${t('dashboard.news.show_more', 'Show more')}</button>
             </div>
         </div>
     `).join('');
@@ -833,7 +834,7 @@ function renderDashRecentPhotos() {
         return;
     }
     const files = (typeof libraryFiles !== 'undefined') ? libraryFiles : [];
-    const photos = files.filter(f => f.type === 'image' && f.url).slice(0, 32);
+    const photos = files.filter(f => f.type === 'image' && f.url).slice(0, 20);
     if (!photos.length) {
         if (!_dashPhotosRequested) {
             if (_dashLayout.hidden.includes('recent_photos')) return;
@@ -843,17 +844,23 @@ function renderDashRecentPhotos() {
         }
         return;
     }
-    el.innerHTML = photos.map(f => {
+    const renderPhoto = (f, extraCls) => {
         const thumbUrl  = f.url ? f.url + '?thumb=1' : '';
         const dateMatch = (f.name || '').match(/(\d{4}-\d{2}-\d{2})/);
         const dateStr   = dateMatch ? fmtShortDate(new Date(dateMatch[1] + 'T00:00:00')) : (f.time || '');
         const isHidden  = (typeof hiddenMedia !== 'undefined') && hiddenMedia.has(f.path);
         const pathJs    = jsq(f.path || '');
-        return `<div class="dash-photo-item${isHidden ? ' dpi-hidden' : ''}" onclick="openPhotoDetail('${pathJs}')" title="${esc(f.name || '')}" data-path="${esc(f.path || '')}" data-url="${esc(f.url || '')}" data-type="image" data-name="${esc(f.name || '')}">
+        return `<div class="dash-photo-item${extraCls ? ' ' + extraCls : ''}${isHidden ? ' dpi-hidden' : ''}" onclick="openPhotoDetail('${pathJs}')" title="${esc(f.name || '')}" data-path="${esc(f.path || '')}" data-url="${esc(f.url || '')}" data-type="image" data-name="${esc(f.name || '')}">
             <div class="dpi-img"${thumbUrl ? ` style="background-image:url('${cssUrl(thumbUrl)}')"` : ''}></div>
             <div class="dpi-date">${esc(dateStr)}</div>
         </div>`;
-    }).join('');
+    };
+    const big1   = renderPhoto(photos[0], 'dash-photo-big-1');
+    const big2   = photos[1] ? renderPhoto(photos[1], 'dash-photo-big-2') : '';
+    const big3   = photos[2] ? renderPhoto(photos[2], 'dash-photo-big-3') : '';
+    const big4   = photos[3] ? renderPhoto(photos[3], 'dash-photo-big-4') : '';
+    const smalls = photos.slice(4).map(f => renderPhoto(f)).join('');
+    el.innerHTML = `${big1}${big2}${big3}${big4}${smalls}`;
 }
 
 /* === Dashboard — Avatar card (shared by fav + own shelves) === */
@@ -1486,7 +1493,7 @@ function saveDashLayoutFromModal() {
     let _shelf = null, _startX = 0, _scrollStart = 0, _dragging = false;
 
     document.addEventListener('mousedown', e => {
-        const shelf = e.target.closest('.vrcn-dash-fav-shelf, .dash-photo-grid');
+        const shelf = e.target.closest('.vrcn-dash-fav-shelf');
         if (!shelf) return;
         _shelf       = shelf;
         _startX      = e.clientX;
@@ -1692,7 +1699,7 @@ function renderDashUpcomingEvents() {
 
     const myGroupsList = (typeof myGroups !== 'undefined') ? myGroups : [];
 
-    const cards = _dashUpcomingEvents.slice(0, 4).map(evt => {
+    const evtFields = (evt) => {
         const groupId = jsq(evt.ownerId || evt.groupId || '');
         const eventId = jsq(evt.id || '');
         const title   = esc(evt.title || evt.name || t('calendar.untitled_event', 'Untitled Event'));
@@ -1707,33 +1714,52 @@ function renderDashUpcomingEvents() {
         const whenStr   = [dateStr, timeStr].filter(Boolean).join(' · ');
 
         const imgSrc = evt.imageUrl || '';
-        const imgHtml = imgSrc
-            ? `<img class="dash-evt-img" src="${imgSrc}" alt="" loading="lazy" onerror="this.style.display='none'">`
-            : `<div class="dash-evt-img dash-evt-img-placeholder"><span class="msi">event</span></div>`;
-
         const desc = esc(evt.description || '');
-        const featuredBadge = featured
-            ? `<span class="dash-evt-featured"><span class="msi">star</span>${esc(t('dashboard.upcoming.featured', 'Featured'))}</span>`
-            : '';
 
         const gid = evt.ownerId || evt.groupId || '';
         const groupData = myGroupsList.find(g => g.id === gid) || {};
         const groupName = evt.group?.name || groupData.name || '';
-        const groupMeta = groupName
-            ? `<div class="dash-evt-group"><span class="msi">group</span>${esc(groupName)}</div>`
-            : '';
 
-        return `<div class="dash-evt-card" onclick="openEventDetail('${groupId}','${eventId}')">
-            ${imgHtml}
-            <div class="dash-evt-body">
-                <div class="dash-evt-title">${title}${featuredBadge}</div>
-                ${whenStr ? `<div class="dash-evt-when"><span class="msi">calendar_today</span>${esc(whenStr)}</div>` : ''}
-                ${desc ? `<div class="dash-evt-desc">${desc}</div>` : ''}
-                ${groupMeta}
+        return { groupId, eventId, title, featured, whenStr, imgSrc, desc, groupName };
+    };
+
+    const events = _dashUpcomingEvents.slice(0, 4);
+
+    const feat = evtFields(events[0]);
+    const featImg = feat.imgSrc
+        ? `<img class="dash-evt-img" src="${feat.imgSrc}" alt="" loading="lazy" onerror="this.closest('.dash-evt-feature').classList.remove('has-img')">`
+        : '';
+    const featBadge = feat.featured
+        ? `<span class="dash-evt-featured"><span class="msi">star</span>${esc(t('dashboard.upcoming.featured', 'Featured'))}</span>`
+        : '';
+    const featGroup = feat.groupName
+        ? `<div class="dash-evt-group"><span class="msi">group</span>${esc(feat.groupName)}</div>`
+        : '';
+    const featureHtml = `<div class="dash-evt-feature${feat.imgSrc ? ' has-img' : ''}" onclick="openEventDetail('${feat.groupId}','${feat.eventId}')">
+        ${featImg}
+        <div class="dash-evt-feature-body">
+            ${featGroup}
+            <div class="dash-evt-title">${feat.title}${featBadge}</div>
+            ${feat.whenStr ? `<div class="dash-evt-when"><span class="msi">calendar_today</span>${esc(feat.whenStr)}</div>` : ''}
+            ${feat.desc ? `<div class="dash-evt-desc">${feat.desc}</div>` : ''}
+            <button class="vrcn-button active" type="button">${esc(t('dashboard.upcoming.view', 'View Event'))}</button>
+        </div>
+    </div>`;
+
+    const minis = events.slice(1).map(evt => {
+        const f = evtFields(evt);
+        const thumb = f.imgSrc
+            ? `<img class="dash-evt-mini-thumb" src="${f.imgSrc}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'dash-evt-mini-thumb dash-evt-mini-thumb-ph\\'><span class=\\'msi\\'>event</span></div>'">`
+            : `<div class="dash-evt-mini-thumb dash-evt-mini-thumb-ph"><span class="msi">event</span></div>`;
+        return `<div class="dash-evt-mini" onclick="openEventDetail('${f.groupId}','${f.eventId}')">
+            ${thumb}
+            <div class="dash-evt-mini-info">
+                <div class="dash-evt-mini-title">${f.title}</div>
+                ${f.whenStr ? `<div class="dash-evt-mini-when"><span class="msi">calendar_today</span>${esc(f.whenStr)}</div>` : ''}
             </div>
         </div>`;
     }).join('');
 
-    grid.innerHTML = `<div class="dash-evt-grid">${cards}</div>`;
+    grid.innerHTML = `<div class="dash-evt-layout${minis ? '' : ' no-list'}">${featureHtml}${minis ? `<div class="dash-evt-list">${minis}</div>` : ''}</div>`;
 }
 

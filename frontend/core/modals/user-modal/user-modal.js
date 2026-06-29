@@ -730,10 +730,10 @@ function renderFriendDetail(d) {
     let badgesHtml = '<div class="fd-badges-row">';
     const platBadge = getPlatformBadgeHtml(d.platform || d.lastPlatform || '');
     if (platBadge) badgesHtml += platBadge;
-    if (d.isFriend) badgesHtml += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">check_circle</span>${t('profiles.badges.friend', 'Friend')}</span>`;
+    if (d.isFriend) badgesHtml += `<span class="vrcn-badge bdg-friend"><span class="msi" style="font-size:11px;">check_circle</span>${t('profiles.badges.friend', 'Friend')}</span>`;
     if (d.ageVerified) badgesHtml += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">verified</span>18+</span>`;
     const rank = getTrustRank(d.tags || []);
-    if (rank) badgesHtml += `<span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>`;
+    if (rank) badgesHtml += `<span class="vrcn-badge ${rank.cls}">${esc(rank.label)}</span>`;
     if (d.id) badgesHtml += idBadge(d.id);
     badgesHtml += '</div>';
 
@@ -929,7 +929,7 @@ function renderFriendDetail(d) {
     const fdStatusDotCls = fdIsOffline ? 's-offline' : statusDotClass(d.status);
 
     const trustSideHtml = rank ? `<div class="fd-group-rep-label">${t('profiles.trust.title', 'Trust &amp; Safety')}</div>
-        <span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>
+        <span class="vrcn-badge ${rank.cls}">${esc(rank.label)}</span>
         <p style="margin:10px 0 0;font-size:12px;color:var(--tx3);line-height:1.45;">${t('profiles.trust.description', 'This user has a trusted user standing within the community.')}</p>` : '';
 
     const _fdInstFriends = (_worldPartHtml && d.location && d.location !== 'private' && d.location !== 'traveling')
@@ -1223,9 +1223,9 @@ function patchFriendDetailLive(f) {
             const ageVerified = f.ageVerified ?? currentFriendDetail.ageVerified;
             let html = '';
             if (platBadge) html += platBadge;
-            if (currentFriendDetail.isFriend) html += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">check_circle</span>${t('profiles.badges.friend', 'Friend')}</span>`;
+            if (currentFriendDetail.isFriend) html += `<span class="vrcn-badge bdg-friend"><span class="msi" style="font-size:11px;">check_circle</span>${t('profiles.badges.friend', 'Friend')}</span>`;
             if (ageVerified) html += `<span class="vrcn-badge ok"><span class="msi" style="font-size:11px;">verified</span>18+</span>`;
-            if (rank) html += `<span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>`;
+            if (rank) html += `<span class="vrcn-badge ${rank.cls}">${esc(rank.label)}</span>`;
             if (f.id) html += idBadge(f.id);
             badgesRow.innerHTML = html;
         }

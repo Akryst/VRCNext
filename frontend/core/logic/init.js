@@ -6,9 +6,9 @@ function setGridSize(tab, size) {
     localStorage.setItem('vrcn_gridSize_' + tab, size);
     const compact = size === 'compact';
     const gridIds = {
-        worlds:  ['favWorldsGrid', 'worldMineGrid', 'searchWorldsResults'],
+        worlds:  ['favWorldsGrid', 'worldMineGrid', 'worldRecentGrid', 'searchWorldsResults'],
         groups:  ['myGroupsGrid', 'searchGroupsResults'],
-        avatars: ['avatarGrid', 'favAvatarsGrid', 'roseDbGrid', 'avatarSearchGrid'],
+        avatars: ['avatarGrid', 'favAvatarsGrid', 'avatarRecentGrid', 'roseDbGrid', 'avatarSearchGrid'],
     };
     (gridIds[tab] || []).forEach(id => {
         const el = document.getElementById(id);

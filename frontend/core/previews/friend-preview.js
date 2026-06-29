@@ -147,14 +147,14 @@
             .map(tag => (typeof LANG_MAP !== 'undefined' && LANG_MAP[tag]) || tag.replace('language_', '').toUpperCase());
 
         const rankBadge = rank
-            ? `<span class="vrcn-badge" style="background:${rank.color}22;color:${rank.color}">${esc(rank.label)}</span>`
+            ? `<span class="vrcn-badge ${rank.cls}">${esc(rank.label)}</span>`
             : '';
         const ageBadge = f.ageVerified
             ? `<span class="vrcn-badge ok"><span class="msi" style="font-size:10px;">verified</span>18+</span>`
             : '';
         const platBadge = typeof getPlatformBadgeHtml === 'function' ? getPlatformBadgeHtml(f.platform || '') : '';
         const vrcPlusBadge = isSupporter ? `<span class="vrcn-supporter-badge">VRC+</span>` : '';
-        const friendBadge = `<span class="vrcn-badge ok"><span class="msi" style="font-size:10px;">check_circle</span>${typeof t === 'function' ? t('profiles.badges.friend', 'Friend') : 'Friend'}</span>`;
+        const friendBadge = `<span class="vrcn-badge bdg-friend"><span class="msi" style="font-size:10px;">check_circle</span>${typeof t === 'function' ? t('profiles.badges.friend', 'Friend') : 'Friend'}</span>`;
 
         const truncBio = bio.length > 60 ? bio.slice(0, 60) + '…' : bio;
         const bioHtml = truncBio ? `<div class="fd-bio">${esc(truncBio)}</div>` : '';

@@ -1,7 +1,5 @@
 /* === Avatars Module === */
 
-.vrcn-badge.platform-pc    { background: rgba(100,170,255,.18); color: #64aaff; }
-.vrcn-badge.platform-quest { background: rgba(56,220,120,.18);  color: #38dc78; }
 .vrcn-badge.current        { background: rgba(0,214,143,.2);    color: var(--ok); }
 
 .avatar-grid {
