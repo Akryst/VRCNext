@@ -103,6 +103,10 @@
             const fd = document.querySelector('#modalFriendDetail .modal-box');
             if (fd) vrcnPlusApplyThemeToElement(fd, colors);
         }
+        const fp = document.getElementById('fpPreview');
+        if (fp && fp.dataset.uid === userId && fp.classList.contains('visible')) {
+            vrcnPlusApplyThemeToElement(fp, colors);
+        }
     }
 
     function vrcnPlusRequestTheme(userId) {

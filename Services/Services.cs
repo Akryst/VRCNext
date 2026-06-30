@@ -262,9 +262,16 @@ public class AppSettings
     public bool FriendOnlineToastFavOnly { get; set; }
     public bool FriendsSidebarLocationOnly { get; set; } = true;
     public bool FriendsSidebarRankColor { get; set; } = false;
+    public bool FriendsSidebarPreviewCollapsed { get; set; } = true;
+    public bool FriendsSidebarPreviewOpen { get; set; } = false;
+    public bool PeopleAlwaysStats { get; set; } = false;
     public bool ModernFolderLayout { get; set; } = true;
+    public bool NavSidebarHoverText { get; set; } = true;
     public bool DirectModalNav { get; set; }
     public string ProfileModalStyle { get; set; } = "classic";
+    public string WorldModalStyle { get; set; } = "classic";
+    public string GroupModalStyle { get; set; } = "classic";
+    public string AvatarModalStyle { get; set; } = "classic";
     public bool MinimizeToTray { get; set; }
     public bool TrayNotificationsEnabled { get; set; }
     public string Language { get; set; } = "en";

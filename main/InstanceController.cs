@@ -564,6 +564,40 @@ public class InstanceController
                 });
                 break;
 
+            case "vrcGetPeopleStats":
+            {
+                var psMyId = _core.VrcApi.CurrentUserId ?? "";
+                _ = Task.Run(() =>
+                {
+                    var stats = _core.Timeline.GetTimeSpentStats(psMyId);
+                    var tlPersons = stats.Persons.ToDictionary(p => p.UserId);
+
+                    var vrcRunning = _core.IsVrcRunning?.Invoke() ?? false;
+                    var logPlayerIds = vrcRunning
+                        ? new HashSet<string>(_core.LogWatcher.GetCurrentPlayers()
+                            .Where(p => !string.IsNullOrEmpty(p.UserId)).Select(p => p.UserId))
+                        : new HashSet<string>();
+
+                    var psList = _core.TimeEngine.Users
+                        .Where(kv => kv.Key != psMyId)
+                        .Select(kv =>
+                        {
+                            var isCoPresent = logPlayerIds.Contains(kv.Key);
+                            var (sec, _) = _core.TimeEngine.GetUserStats(kv.Key, isCoPresent);
+                            tlPersons.TryGetValue(kv.Key, out var tl);
+                            return (UserId: kv.Key, Seconds: sec, Meets: tl?.Meets ?? 0);
+                        })
+                        .Where(p => p.Seconds > 0)
+                        .ToList();
+
+                    Invoke(() => _core.SendToJS("vrcPeopleStatsData", new
+                    {
+                        stats = psList.Select(p => new { userId = p.UserId, seconds = p.Seconds, meets = p.Meets }),
+                    }));
+                });
+                break;
+            }
+
             case "vrcGetTimeSpent":
             {
                 var tsMyId    = _core.VrcApi.CurrentUserId ?? "";

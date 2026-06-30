@@ -51,6 +51,7 @@ function openTlDetail(id) {
 
     const _mb = document.querySelector(`#${_tlMid} .modal-box`);
     if (_mb) _mb.classList.add('narrow');
+    document.getElementById(_tlMid).classList.remove('wd-style-compact', 'gd-style-compact');
     document.getElementById(_tlMid).style.display = 'flex';
 }
 

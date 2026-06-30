@@ -24,7 +24,11 @@ function openGroupDetail(groupId) {
     if (typeof navSetCurrent === 'function') navSetCurrent('group', groupId);
     const _gpMb = document.querySelector('#modalDetail .modal-box');
     if (_gpMb) _gpMb.classList.remove('narrow');
-    document.getElementById('modalDetail').style.display = 'flex';
+    const _gpCompact = (typeof settings !== 'undefined' && settings.groupModalStyle === 'compact');
+    const _gpMod = document.getElementById('modalDetail');
+    _gpMod.classList.remove('wd-style-compact', 'gd-style-compact');
+    if (_gpCompact) _gpMod.classList.add('gd-style-compact');
+    _gpMod.style.display = 'flex';
     const cached = _groupDetailCache[groupId];
     if (cached) {
         renderGroupDetail(cached);
@@ -35,13 +39,14 @@ function openGroupDetail(groupId) {
                 posts: [], groupEvents: [], groupInstances: [], galleryImages: [], groupMembers: [], roles: [],
                 languages: [], links: [], rules: '', ownerId: '', ownerDisplayName: '' });
         } else {
-            document.getElementById('detailModalContent').innerHTML = sk('content-modal');
+            document.getElementById('detailModalContent').innerHTML = sk(_gpCompact ? 'content-modal-compact' : 'content-modal');
         }
     }
     sendToCS({ action: 'vrcGetGroup', groupId });
 }
 
 function closeGroupDetail(fromNav = false) {
+    document.getElementById('modalDetail').classList.remove('gd-style-compact');
     document.getElementById('modalDetail').style.display = 'none';
     if (!fromNav && typeof navClear === 'function') navClear();
 }
@@ -461,8 +466,9 @@ function renderGroupDetail(g) {
     const rolesTab   = g.canManageRoles ? _buildRolesTab(g) : '';
     const bannedTab  = g.canBan ? _buildBannedTab() : '';
 
-    el.innerHTML = `${headerActions}${bannerHtml}${headerHtml}${tabsHtml}
-        <div id="gdTabInfo">${infoTab}</div>
+    const useGdCompact = (typeof settings !== 'undefined' && settings.groupModalStyle === 'compact');
+
+    const gdTabsContent = `<div id="gdTabInfo">${infoTab}</div>
         <div id="gdTabPosts" style="display:none;">${postsTab}</div>
         <div id="gdTabEvents" style="display:none;">${eventsTab}</div>
         <div id="gdTabInstances" style="display:none;">${instancesTab}</div>
@@ -470,9 +476,56 @@ function renderGroupDetail(g) {
         <div id="gdTabMembers" style="display:none;">${membersTab}</div>
         ${g.canManageRoles ? `<div id="gdTabRoles" style="display:none;">${rolesTab}</div>` : ''}
         ${g.canBan ? `<div id="gdTabBanned" style="display:none;">${bannedTab}</div>` : ''}
-        <div id="gdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((g.id && _gdRawJsonCache[g.id]) || {})}</div></div>
+        <div id="gdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((g.id && _gdRawJsonCache[g.id]) || {})}</div></div>`;
+
+    if (useGdCompact) {
+        const gdLeftHtml = `<div class="fd-left">
+            <div class="fd-left-banner">${banner ? `<img src="${banner}" onerror="this.src='fallback_cover.png'"><div class="fd-banner-fade"></div>` : ''}</div>
+            <div class="fd-left-body">
+                <div class="fd-left-id">${iconHtml}<div class="fd-left-name-wrap"><div class="fd-name">${esc(g.name)}</div>${ownerHtml}<div class="fd-status">${headerMeta}</div></div></div>
+            </div>
+        </div>`;
+        el.innerHTML = `${headerActions}<div class="fd-layout">${gdLeftHtml}<div class="fd-right"><div class="fd-right-scroll">${tabsHtml}${gdTabsContent}</div></div></div>`;
+    } else {
+        el.innerHTML = `${headerActions}${bannerHtml}${headerHtml}${tabsHtml}
+        ${gdTabsContent}
     </div>`;
+    }
+
+    const _gdModal = document.getElementById('modalDetail');
+    if (_gdModal) {
+        _gdModal.classList.remove('wd-style-compact', 'gd-style-compact');
+        if (useGdCompact) _gdModal.classList.add('gd-style-compact');
+    }
     applyGroupDetailTranslations(g);
+    if (useGdCompact) _gdCompactReflow(g);
+}
+
+function _gdCompactReflow(g) {
+    const el = document.getElementById('detailModalContent');
+    if (!el) return;
+    const leftBody  = el.querySelector('.fd-left-body');
+    const infoRight = el.querySelector('#gdTabInfo .fd-info-right');
+    if (leftBody && infoRight) {
+        [...infoRight.children].forEach(card => {
+            const oc = card.getAttribute('onclick') || '';
+            if (!oc.includes("_switchGdTabByKey('instances')")) leftBody.appendChild(card);
+        });
+        if (!infoRight.children.length) {
+            const cols = el.querySelector('#gdTabInfo .fd-info-cols');
+            if (cols) cols.style.gridTemplateColumns = '1fr';
+            infoRight.remove();
+        }
+    }
+    const descCard = el.querySelector('#gdTabInfo .fd-info-left > .fd-info-card');
+    if (descCard && !descCard.querySelector('.fd-bio-badges-row')) {
+        const idRow = document.createElement('div');
+        idRow.className = 'fd-badges-row fd-bio-badges-row';
+        idRow.style.margin = '0 0 10px';
+        idRow.innerHTML = idBadge(g.id);
+        const header = descCard.querySelector('.myp-section-header');
+        if (header) header.after(idRow); else descCard.prepend(idRow);
+    }
 }
 
 function renderGroupEmptyMessage(key, fallback) {

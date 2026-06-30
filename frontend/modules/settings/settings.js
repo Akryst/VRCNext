@@ -114,9 +114,16 @@ function saveSettings() {
             friendOnlineToastFavOnly: document.getElementById('setFriendOnlineToastFavOnly')?.checked ?? false,
             friendsSidebarLocationOnly: document.getElementById('setFriendsSidebarLocationOnly')?.checked ?? true,
             friendsSidebarRankColor: document.getElementById('setFriendsSidebarRankColor')?.checked ?? false,
+            friendsSidebarPreviewCollapsed: document.getElementById('setFriendsSidebarPreviewCollapsed')?.checked ?? true,
+            friendsSidebarPreviewOpen: document.getElementById('setFriendsSidebarPreviewOpen')?.checked ?? false,
+            peopleAlwaysStats: document.getElementById('setPeopleAlwaysStats')?.checked ?? false,
             modernFolderLayout: document.getElementById('setModernFolderLayout')?.checked ?? true,
+            navSidebarHoverText: document.getElementById('setNavSidebarHoverText')?.checked ?? true,
             directModalNav: document.getElementById('setDirectModalNav')?.checked ?? false,
             profileModalStyle: settings.profileModalStyle || 'classic',
+            worldModalStyle: settings.worldModalStyle || 'classic',
+            groupModalStyle: settings.groupModalStyle || 'classic',
+            avatarModalStyle: settings.avatarModalStyle || 'classic',
             language: currentLanguage,
             theme: currentTheme,
             specialTheme: currentSpecialTheme,
@@ -307,7 +314,7 @@ function autoSave() {
 function initAutoSave() {
     const ids = ['setBotName','setBotAvatar','setVrcPath','setStartWithWindows','setMinimizeToTray','setTrayNotifications',
         'setNotifySoundEnabled','setMessageSoundEnabled','setMediaRelaySoundEnabled','setSteamOverlaySoundEnabled',
-        'setFriendsSidebarLocationOnly','setFriendsSidebarRankColor','setDirectModalNav',
+        'setFriendsSidebarLocationOnly','setFriendsSidebarRankColor','setFriendsSidebarPreviewCollapsed','setFriendsSidebarPreviewOpen','setPeopleAlwaysStats','setDirectModalNav',
         'setRandomBg','setClockEnabled','setClockAmPm',
         'setAutoStartVR','setAutoStartDesktop',
         'setCloseWithVrc','setStartAlwaysWithVrc',
@@ -362,15 +369,34 @@ function loadSettingsToUI(s) {
     settings.friendsSidebarRankColor = s.FriendsSidebarRankColor ?? s.friendsSidebarRankColor ?? false;
     const _fsrcEl = document.getElementById('setFriendsSidebarRankColor');
     if (_fsrcEl) _fsrcEl.checked = settings.friendsSidebarRankColor;
+    settings.friendsSidebarPreviewCollapsed = s.FriendsSidebarPreviewCollapsed ?? s.friendsSidebarPreviewCollapsed ?? true;
+    const _fspcEl = document.getElementById('setFriendsSidebarPreviewCollapsed');
+    if (_fspcEl) _fspcEl.checked = settings.friendsSidebarPreviewCollapsed;
+    settings.friendsSidebarPreviewOpen = s.FriendsSidebarPreviewOpen ?? s.friendsSidebarPreviewOpen ?? false;
+    const _fspoEl = document.getElementById('setFriendsSidebarPreviewOpen');
+    if (_fspoEl) _fspoEl.checked = settings.friendsSidebarPreviewOpen;
+    settings.peopleAlwaysStats = s.PeopleAlwaysStats ?? s.peopleAlwaysStats ?? false;
+    const _pasEl = document.getElementById('setPeopleAlwaysStats');
+    if (_pasEl) _pasEl.checked = settings.peopleAlwaysStats;
+    if (typeof applyPeopleAlwaysStats === 'function') applyPeopleAlwaysStats();
     settings.modernFolderLayout = s.ModernFolderLayout ?? s.modernFolderLayout ?? true;
     const _mflEl = document.getElementById('setModernFolderLayout');
     if (_mflEl) _mflEl.checked = settings.modernFolderLayout;
+    settings.navSidebarHoverText = s.NavSidebarHoverText ?? s.navSidebarHoverText ?? true;
+    const _nshtEl = document.getElementById('setNavSidebarHoverText');
+    if (_nshtEl) _nshtEl.checked = settings.navSidebarHoverText;
     if (typeof applyNavFolderMode === 'function') applyNavFolderMode();
     settings.directModalNav = s.DirectModalNav ?? s.directModalNav ?? false;
     const _dmnEl = document.getElementById('setDirectModalNav');
     if (_dmnEl) _dmnEl.checked = settings.directModalNav;
     settings.profileModalStyle = s.ProfileModalStyle ?? s.profileModalStyle ?? 'classic';
     if (typeof _applyProfileModalStyleUI === 'function') _applyProfileModalStyleUI(settings.profileModalStyle);
+    settings.worldModalStyle = s.WorldModalStyle ?? s.worldModalStyle ?? 'classic';
+    if (typeof _applyWorldModalStyleUI === 'function') _applyWorldModalStyleUI(settings.worldModalStyle);
+    settings.groupModalStyle = s.GroupModalStyle ?? s.groupModalStyle ?? 'classic';
+    if (typeof _applyGroupModalStyleUI === 'function') _applyGroupModalStyleUI(settings.groupModalStyle);
+    settings.avatarModalStyle = s.AvatarModalStyle ?? s.avatarModalStyle ?? 'classic';
+    if (typeof _applyAvatarModalStyleUI === 'function') _applyAvatarModalStyleUI(settings.avatarModalStyle);
     settings.folders = s.WatchFolders || s.watchFolders || s.folders || [];
     settings.relayEnabledFolders = s.RelayEnabledFolders ?? s.relayEnabledFolders ?? null;
     settings.extraExe = s.ExtraExe || s.extraExe || [];
@@ -1530,10 +1556,70 @@ function setProfileModalStyle(style) {
     settings.profileModalStyle = style;
     _applyProfileModalStyleUI(style);
     if (typeof autoSave === 'function') autoSave();
-    // Live-re-render the friend detail modal if it's currently open.
     const m = document.getElementById('modalFriendDetail');
     if (m && m.style.display !== 'none' && typeof currentFriendDetail !== 'undefined' && currentFriendDetail
         && typeof renderFriendDetail === 'function') {
         renderFriendDetail(currentFriendDetail);
+    }
+}
+
+function _applyWorldModalStyleUI(style) {
+    const picker = document.getElementById('worldStylePicker');
+    if (!picker) return;
+    picker.querySelectorAll('.profile-style-option').forEach(el => {
+        el.classList.toggle('active', el.dataset.style === style);
+    });
+}
+
+function setWorldModalStyle(style) {
+    if (style !== 'classic' && style !== 'compact') style = 'classic';
+    settings.worldModalStyle = style;
+    _applyWorldModalStyleUI(style);
+    if (typeof autoSave === 'function') autoSave();
+    const m = document.getElementById('modalDetail');
+    if (m && m.style.display !== 'none' && typeof _wdCurrentWorldId !== 'undefined' && _wdCurrentWorldId
+        && typeof worldInfoCache !== 'undefined' && worldInfoCache[_wdCurrentWorldId]
+        && typeof renderWorldSearchDetail === 'function') {
+        renderWorldSearchDetail(worldInfoCache[_wdCurrentWorldId]);
+    }
+}
+
+function _applyGroupModalStyleUI(style) {
+    const picker = document.getElementById('groupStylePicker');
+    if (!picker) return;
+    picker.querySelectorAll('.profile-style-option').forEach(el => {
+        el.classList.toggle('active', el.dataset.style === style);
+    });
+}
+
+function setGroupModalStyle(style) {
+    if (style !== 'classic' && style !== 'compact') style = 'classic';
+    settings.groupModalStyle = style;
+    _applyGroupModalStyleUI(style);
+    if (typeof autoSave === 'function') autoSave();
+    const m = document.getElementById('modalDetail');
+    if (m && m.style.display !== 'none' && typeof window._currentGroupDetailFull !== 'undefined' && window._currentGroupDetailFull
+        && typeof renderGroupDetail === 'function') {
+        renderGroupDetail(window._currentGroupDetailFull);
+    }
+}
+
+function _applyAvatarModalStyleUI(style) {
+    const picker = document.getElementById('avatarStylePicker');
+    if (!picker) return;
+    picker.querySelectorAll('.profile-style-option').forEach(el => {
+        el.classList.toggle('active', el.dataset.style === style);
+    });
+}
+
+function setAvatarModalStyle(style) {
+    if (style !== 'classic' && style !== 'compact') style = 'classic';
+    settings.avatarModalStyle = style;
+    _applyAvatarModalStyleUI(style);
+    if (typeof autoSave === 'function') autoSave();
+    const m = document.getElementById('modalAvatarDetail');
+    if (m && m.style.display !== 'none' && typeof _avDetailData !== 'undefined' && _avDetailData
+        && typeof renderAvatarDetail === 'function') {
+        renderAvatarDetail(_avDetailData);
     }
 }

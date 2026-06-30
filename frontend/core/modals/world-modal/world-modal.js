@@ -25,10 +25,14 @@ function openWorldSearchDetail(id) {
     if (typeof navSetCurrent === 'function') navSetCurrent('worldSearch', id);
     _wdCurrentId = id;
     const el = document.getElementById('detailModalContent');
-    el.innerHTML = sk('content-modal');
+    const _wdCompact = (typeof settings !== 'undefined' && settings.worldModalStyle === 'compact');
+    el.innerHTML = sk(_wdCompact ? 'content-modal-compact' : 'content-modal');
     const _wdMb = document.querySelector('#modalDetail .modal-box');
     if (_wdMb) _wdMb.classList.remove('narrow');
-    document.getElementById('modalDetail').style.display = 'flex';
+    const _wdMod = document.getElementById('modalDetail');
+    _wdMod.classList.remove('wd-style-compact', 'gd-style-compact');
+    if (_wdCompact) _wdMod.classList.add('wd-style-compact');
+    _wdMod.style.display = 'flex';
     sendToCS({ action: 'vrcGetWorldDetail', worldId: id });
 }
 
@@ -269,55 +273,102 @@ function renderWorldSearchDetail(w) {
         { icon: 'link_2', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/world/${esc(wid)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
         { icon: 'close', title: t('common.close', 'Close'), onclick: `closeWorldSearchDetail()`, header: true },
     ]);
-    el.innerHTML = `${wdHeaderActions}${thumb ? `<div class="fd-banner" id="wd-banner-slot"><div class="fd-banner-fade"></div></div>` : ''}
-        <div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:20px 0;">
-        <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(w.name)}</h2>
-        <div style="font-size:12px;color:var(--tx3);margin-bottom:12px;">${t('worlds.meta.by', 'by')} ${w.authorId ? `<span onclick="navOpenModal('friend','${jsq(w.authorId)}','${jsq(w.authorName || '')}')" style="display:inline-flex;align-items:center;padding:1px 8px;border-radius:20px;background:var(--bg-hover);font-size:11px;font-weight:600;color:var(--tx1);cursor:pointer;line-height:1.8;">${esc(w.authorName)}</span>` : esc(w.authorName)}</div>
-        ${tabsHtml}
-        <div id="wdTabInfo">
-        <div class="fd-badges-row">
-            <span class="vrcn-badge"><span class="msi" style="font-size:11px;">person</span> ${w.occupants} ${t('worlds.meta.active', 'Active')}</span>
+    const useWdCompact = (typeof settings !== 'undefined' && settings.worldModalStyle === 'compact');
+
+    const wdStatsBadges = `<span class="vrcn-badge"><span class="msi" style="font-size:11px;">person</span> ${w.occupants} ${t('worlds.meta.active', 'Active')}</span>
             <span class="vrcn-badge"><span class="msi" style="font-size:11px;">star</span> ${w.favorites}</span>
             <span class="vrcn-badge"><span class="msi" style="font-size:11px;">visibility</span> ${w.visits}</span>
             ${w.pcSize > 0 ? `<span class="vrcn-badge"><span class="msi" style="font-size:11px;">computer</span> ${formatFileSize(w.pcSize)}</span>` : ''}
             ${w.androidSize > 0 ? `<span class="vrcn-badge"><span class="msi" style="font-size:11px;">android</span> ${formatFileSize(w.androidSize)}</span>` : ''}
-            ${w.iosSize > 0 ? `<span class="vrcn-badge"><span class="msi" style="font-size:11px;">phone_iphone</span> ${formatFileSize(w.iosSize)}</span>` : ''}
-            ${idBadge(wid)}
-        </div>
-        <div style="margin:10px 0 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            ${w.iosSize > 0 ? `<span class="vrcn-badge"><span class="msi" style="font-size:11px;">phone_iphone</span> ${formatFileSize(w.iosSize)}</span>` : ''}`;
+    const wdBadgesRow = `<div class="fd-badges-row">${wdStatsBadges}${idBadge(wid)}</div>`;
+    const wdActions = `<div style="margin:10px 0 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <button class="vrcn-button-round" onclick="openCreateInstanceModal()"><span class="msi" style="font-size:14px;">add_circle_outline</span> ${t('worlds.instances.create_title', 'Create Instance')}</button>
             <button class="vrcn-button-round${isFavWorld ? ' active' : ''}" id="wdFavBtn" onclick="toggleWorldFavPicker('${wid}')" style="margin-left:auto;">${favBtnLabel}</button>
-        </div>
-        <div id="wdFavPicker" style="display:none;margin-bottom:14px;">
+        </div>`;
+    const wdFavPickerHtml = `<div id="wdFavPicker" style="display:none;margin-bottom:14px;">
             <div class="wd-section-label" style="margin-bottom:6px;">${t('worlds.favorites.add_group_title', 'ADD TO FAVORITE GROUP')}</div>
             <div class="ci-group-list" id="wdFavGroupList"><div style="font-size:11px;color:var(--tx3);padding:8px 0;">${t('worlds.favorites.loading_groups', 'Loading groups...')}</div></div>
-        </div>
-        <div class="fd-info-cols" style="margin-top:10px;">
-            <div class="fd-info-left">
-                ${tagsHtml ? `<div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.tags_title', 'Tags')}</div>${tagsHtml}</div>` : ''}
-                ${(w.worldTimeSeconds > 0 || currentInstanceData?.worldId === wid) ? `<div class="fd-info-card"><div class="wd-your-time"><span class="msi" style="font-size:15px;">schedule</span><div><div style="font-size:12px;font-weight:600;color:var(--tx1);">${t('worlds.time_spent.label', 'Your Time Spent')}</div><div style="font-size:11px;color:var(--tx3);"><span id="wdTimeSpent">${formatDuration(w.worldTimeSeconds || 0)}</span>${w.worldVisitCount > 0 ? ' &middot; ' + getWorldVisitCountLabel(w.worldVisitCount) : ''}</div></div></div></div>` : ''}
-                ${desc ? `<div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.description_title', 'Description')}${window._kxdProfileTranslationEnabled !== false ? `<button class="fd-bio-translate myp-edit-btn" onclick="fdTranslateBio(this)" title="${esc(t('profiles.bio.translate', 'Translate'))}"><span class="msi" style="font-size:14px;">translate</span></button>` : ''}</div><div class="fd-bio" style="font-size:12px;color:var(--tx2);max-height:150px;overflow-y:auto;line-height:1.5;white-space:pre-wrap;margin-bottom:0;">${esc(desc)}</div></div>` : ''}
-            </div>
-            <div class="fd-info-right">
-                <div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.infos_title', 'Infos')}</div><div style="display:grid;gap:6px;">${wdInfosRows}</div></div>
-                ${wdCommunityRows ? `<div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.community_title', 'Community')}</div><div style="display:grid;gap:6px;">${wdCommunityRows}</div></div>` : ''}
-                ${wdPopularityRows ? `<div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.popularity_title', 'Popularity')}</div><div style="display:grid;gap:6px;">${wdPopularityRows}</div></div>` : ''}
-            </div>
-        </div>
-        <div class="fd-info-card" style="margin-top:10px;">
-            <div class="fd-group-rep-label">${t('worlds.instance_history.title', 'Instance History')}</div>
-            <div id="wdInstanceHistory" style="max-height:160px;overflow-y:auto;"><div style="padding:4px 0;font-size:12px;color:var(--tx3);">${t('profiles.insights.loading', 'Loading...')}</div></div>
-        </div>
-        </div>
-        <div id="wdTabInstances" style="display:none;">
+        </div>`;
+    const wdTagsCard = tagsHtml ? `<div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.tags_title', 'Tags')}</div>${tagsHtml}</div>` : '';
+    const wdTimeCard = (w.worldTimeSeconds > 0 || currentInstanceData?.worldId === wid) ? `<div class="fd-info-card"><div class="wd-your-time"><span class="msi" style="font-size:15px;">schedule</span><div><div style="font-size:12px;font-weight:600;color:var(--tx1);">${t('worlds.time_spent.label', 'Your Time Spent')}</div><div style="font-size:11px;color:var(--tx3);"><span id="wdTimeSpent">${formatDuration(w.worldTimeSeconds || 0)}</span>${w.worldVisitCount > 0 ? ' &middot; ' + getWorldVisitCountLabel(w.worldVisitCount) : ''}</div></div></div></div>` : '';
+    const wdDescCard = desc ? `<div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.description_title', 'Description')}${window._kxdProfileTranslationEnabled !== false ? `<button class="fd-bio-translate myp-edit-btn" onclick="fdTranslateBio(this)" title="${esc(t('profiles.bio.translate', 'Translate'))}"><span class="msi" style="font-size:14px;">translate</span></button>` : ''}</div><div class="fd-bio" style="font-size:12px;color:var(--tx2);max-height:150px;overflow-y:auto;line-height:1.5;white-space:pre-wrap;margin-bottom:0;">${esc(desc)}</div></div>` : '';
+    const wdInfosCard = `<div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.infos_title', 'Infos')}</div><div style="display:grid;gap:6px;">${wdInfosRows}</div></div>`;
+    const wdCommunityCard = wdCommunityRows ? `<div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.community_title', 'Community')}</div><div style="display:grid;gap:6px;">${wdCommunityRows}</div></div>` : '';
+    const wdPopularityCard = wdPopularityRows ? `<div class="fd-info-card"><div class="fd-group-rep-label">${t('worlds.meta.popularity_title', 'Popularity')}</div><div style="display:grid;gap:6px;">${wdPopularityRows}</div></div>` : '';
+    const wdHistoryInner = `<div class="fd-group-rep-label">${t('worlds.instance_history.title', 'Instance History')}</div>
+            <div id="wdInstanceHistory" style="max-height:160px;overflow-y:auto;"><div style="padding:4px 0;font-size:12px;color:var(--tx3);">${t('profiles.insights.loading', 'Loading...')}</div></div>`;
+    const wdHistoryCard = `<div class="fd-info-card" style="margin-top:10px;">${wdHistoryInner}</div>`;
+    const wdNameAuthor = `<h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(w.name)}</h2>
+        <div style="font-size:12px;color:var(--tx3);margin-bottom:12px;">${t('worlds.meta.by', 'by')} ${w.authorId ? `<span onclick="navOpenModal('friend','${jsq(w.authorId)}','${jsq(w.authorName || '')}')" style="display:inline-flex;align-items:center;padding:1px 8px;border-radius:20px;background:var(--bg-hover);font-size:11px;font-weight:600;color:var(--tx1);cursor:pointer;line-height:1.8;">${esc(w.authorName)}</span>` : esc(w.authorName)}</div>`;
+    const wdStatsBadgesRow = `<div class="fd-badges-row">${wdStatsBadges}</div>`;
+    const wdActionsCompact = `<div class="fd-actions">
+            <button class="vrcn-button-round" onclick="openCreateInstanceModal()" title="${esc(t('worlds.instances.create_title', 'Create Instance'))}"><span class="msi" style="font-size:16px;">add_circle_outline</span></button>
+            <button class="vrcn-button-round${isFavWorld ? ' active' : ''}" id="wdFavBtn" onclick="toggleWorldFavPicker('${wid}')" title="${isFavWorld ? esc(t('worlds.favorites.unfavorite', 'Unfavorite')) : esc(t('worlds.favorites.favorite', 'Favorite'))}"><span class="msi" style="font-size:16px;">${isFavWorld ? 'star' : 'star_outline'}</span></button>
+        </div>`;
+    const wdDescTransBtn = (desc && window._kxdProfileTranslationEnabled !== false) ? `<button class="fd-bio-translate myp-edit-btn" onclick="fdTranslateBio(this)" title="${esc(t('profiles.bio.translate', 'Translate'))}"><span class="msi" style="font-size:14px;">translate</span></button>` : '';
+    const wdDescCardCompact = `<div class="fd-info-card">
+            <div class="fd-group-rep-label">${t('worlds.meta.description_title', 'Description')}${wdDescTransBtn}</div>
+            <div class="fd-badges-row fd-bio-badges-row" style="margin-bottom:10px;">${idBadge(wid)}</div>
+            ${desc ? `<div class="fd-bio" style="font-size:12px;color:var(--tx2);max-height:150px;overflow-y:auto;line-height:1.5;white-space:pre-wrap;margin-bottom:0;">${esc(desc)}</div>` : ''}
+        </div>`;
+    const wdComPopRow = (wdCommunityCard && wdPopularityCard)
+        ? `<div class="wd-compact-row">${wdCommunityCard}${wdPopularityCard}</div>`
+        : `${wdCommunityCard}${wdPopularityCard}`;
+    const wdInfoCompactRight = `<div class="fd-info-wrap">${wdDescCardCompact}${wdComPopRow}<div class="fd-info-card">${wdHistoryInner}</div></div>`;
+
+    const wdInstancesTab = `<div id="wdTabInstances" style="display:none;">
             <div class="wd-section-label wd-instances-label" style="margin-top:4px;"><span>${t('worlds.instances.active_title_label', 'ACTIVE INSTANCES')} <span class="vrcn-badge" style="background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;margin-left:4px;">${allInstances.length}</span></span><button class="mi-refresh-btn" id="wdInstancesRefreshBtn" onclick="refreshWorldInstances()" title="Refresh instances">&#8635;</button></div>
             ${instancesHtml}
-        </div>
-        <div id="wdTabPhotos" style="display:none;"><div id="wdPhotosGrid"></div><div id="wdPhotosPaginatorBar" class="mini-paginator"></div></div>
-        ${isOwnWorld ? `<div id="wdTabInsights" style="display:none;"><div id="wiContainer"></div></div>` : ''}
-        <div id="wdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((w.id && _wdRawJsonCache[w.id]) || {})}</div></div>
         </div>`;
+    const wdPhotosTab = `<div id="wdTabPhotos" style="display:none;"><div id="wdPhotosGrid"></div><div id="wdPhotosPaginatorBar" class="mini-paginator"></div></div>`;
+    const wdInsightsTab = isOwnWorld ? `<div id="wdTabInsights" style="display:none;"><div id="wiContainer"></div></div>` : '';
+    const wdJsonTab = `<div id="wdTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((w.id && _wdRawJsonCache[w.id]) || {})}</div></div>`;
 
+    const wdInfoClassic = `
+        ${wdBadgesRow}
+        ${wdActions}
+        ${wdFavPickerHtml}
+        <div class="fd-info-cols" style="margin-top:10px;">
+            <div class="fd-info-left">${wdTagsCard}${wdTimeCard}${wdDescCard}</div>
+            <div class="fd-info-right">${wdInfosCard}${wdCommunityCard}${wdPopularityCard}</div>
+        </div>
+        ${wdHistoryCard}`;
+
+    if (useWdCompact) {
+        const wdLeftHtml = `<div class="fd-left">
+            <div class="fd-left-banner" id="wd-banner-slot">${thumb ? '<div class="fd-banner-fade"></div>' : ''}</div>
+            <div class="fd-left-body">
+                <div>${wdNameAuthor}</div>
+                ${wdStatsBadgesRow}
+                ${wdActionsCompact}
+                ${wdFavPickerHtml}
+                ${wdTimeCard}
+                ${wdInfosCard}
+                ${wdTagsCard}
+            </div>
+        </div>`;
+        const wdRightHtml = `<div class="fd-right"><div class="fd-right-scroll">
+            ${tabsHtml}
+            <div id="wdTabInfo">${wdInfoCompactRight}</div>
+            ${wdInstancesTab}${wdPhotosTab}${wdInsightsTab}${wdJsonTab}
+        </div></div>`;
+        el.innerHTML = `${wdHeaderActions}<div class="fd-layout">${wdLeftHtml}${wdRightHtml}</div>`;
+    } else {
+        el.innerHTML = `${wdHeaderActions}${thumb ? `<div class="fd-banner" id="wd-banner-slot"><div class="fd-banner-fade"></div></div>` : ''}
+        <div class="fd-content${thumb ? ' fd-has-banner' : ''}" style="padding:20px 0;">
+        ${wdNameAuthor}
+        ${tabsHtml}
+        <div id="wdTabInfo">${wdInfoClassic}</div>
+        ${wdInstancesTab}${wdPhotosTab}${wdInsightsTab}${wdJsonTab}
+        </div>`;
+    }
+
+    const _wdModal = document.getElementById('modalDetail');
+    if (_wdModal) {
+        _wdModal.classList.remove('wd-style-compact', 'gd-style-compact');
+        if (useWdCompact) _wdModal.classList.add('wd-style-compact');
+    }
     if (thumb) { const s = document.getElementById('wd-banner-slot'); const bi = _getWorldBannerImg(wid, thumb); if (s && bi) s.insertBefore(bi, s.firstChild); }
     if (hasWorldPhotos) { _wdPreloadPhotos(wid); _wdLoadPhotos(wid); }
     if (wid) { _wdInstanceHistory = []; sendToCS({ action: 'getTimelineForWorld', worldId: wid }); }
@@ -514,6 +565,7 @@ function closeWorldSearchDetail(fromNav = false) {
     _wdCurrentWorldId = '';
     _wdCurrentTab = 'info';
     if (typeof _wiReset === 'function') _wiReset();
+    document.getElementById('modalDetail').classList.remove('wd-style-compact');
     document.getElementById('modalDetail').style.display = 'none';
     if (!fromNav && typeof navClear === 'function') navClear();
 }

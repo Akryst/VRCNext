@@ -2,6 +2,7 @@
                     <nav class="settings-nav">
                         <button class="settings-nav-item active" onclick="switchSettingsSection('general',this)"><span class="msi">tune</span><span data-i18n="settings.nav.general">General</span></button>
                         <button class="settings-nav-item" onclick="switchSettingsSection('appearance',this)"><span class="msi">palette</span><span data-i18n="settings.nav.appearance">Appearance</span></button>
+                        <button class="settings-nav-item" onclick="switchSettingsSection('friends',this)"><span class="msi">group</span><span data-i18n="settings.nav.friends">Friends</span></button>
                         <button class="settings-nav-item" onclick="switchSettingsSection('sidebar',this)"><span class="msi">view_sidebar</span><span data-i18n="settings.nav.sidebar">Sidebar</span></button>
                         <button class="settings-nav-item" onclick="switchSettingsSection('navigation',this)"><span class="msi">alt_route</span><span data-i18n="settings.nav.navigation">Navigation</span></button>
                         <button class="settings-nav-item" onclick="switchSettingsSection('notifications',this)"><span class="msi">notifications</span><span data-i18n="settings.nav.notifications">Notifications</span></button>
@@ -236,12 +237,22 @@
                     </div>
 
                     <!-- FRIENDS SIDEBAR -->
+                    <div class="vrcn-panel-card" data-section="friends" style="display:none;">
+                        <div class="vrcn-panel-card-header"><span class="msi">group</span> <span data-i18n="settings.friends.title">Friends And User Settings</span></div>
+                        <div class="sf-toggle-row"><span data-i18n="settings.friends.always_stats">Show Always Stats</span><label class="toggle"><input type="checkbox" id="setPeopleAlwaysStats" onchange="settings.peopleAlwaysStats=this.checked;autoSave();if(typeof applyPeopleAlwaysStats==='function'){if(!this.checked)window._peopleStatsMode=false;applyPeopleAlwaysStats();}"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="set-desc" data-i18n="settings.friends.always_stats_desc">When enabled, every person in the People tab always shows a bar with how much time you spent with them and how many meets you have, instead of clicking the "Stats" button. While this is on, the Stats button is hidden because it is always active.</div>
+                    </div>
+
                     <div class="vrcn-panel-card" data-section="sidebar" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">groups</span> <span data-i18n="settings.sidebar.title">Friends Sidebar</span></div>
                         <div class="sf-toggle-row"><span data-i18n="settings.sidebar.location_only">Show only location when available</span><label class="toggle"><input type="checkbox" id="setFriendsSidebarLocationOnly" onchange="settings.friendsSidebarLocationOnly=this.checked;autoSave();if(typeof renderVrcFriends==='function'&&typeof vrcFriendsData!=='undefined'&&vrcFriendsData?.length)renderVrcFriends(vrcFriendsData);"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
                         <div class="set-desc" data-i18n="settings.sidebar.location_only_desc">When enabled, friends who are in a world show the instance's region flag and world name instead of their status. Friends who aren't in a world keep showing their status text.</div>
                         <div class="sf-toggle-row"><span data-i18n="settings.sidebar.rank_color">Use Trusted Rank Color instead of Badge</span><label class="toggle"><input type="checkbox" id="setFriendsSidebarRankColor" onchange="settings.friendsSidebarRankColor=this.checked;autoSave();if(typeof renderVrcFriends==='function'&&typeof vrcFriendsData!=='undefined'&&vrcFriendsData?.length)renderVrcFriends(vrcFriendsData);"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
                         <div class="set-desc" data-i18n="settings.sidebar.rank_color_desc">When enabled, the friend's username will have the color of their Trusted rank and the Trusted badge will be removed from the sidebar.</div>
+                        <div class="sf-toggle-row"><span data-i18n="settings.sidebar.preview_collapsed">Show Preview Profile when collapsed</span><label class="toggle"><input type="checkbox" id="setFriendsSidebarPreviewCollapsed" onchange="settings.friendsSidebarPreviewCollapsed=this.checked;autoSave();"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="set-desc" data-i18n="settings.sidebar.preview_collapsed_desc">Shows a friend's profile as a small preview when you hover over them while the friends sidebar is collapsed.</div>
+                        <div class="sf-toggle-row"><span data-i18n="settings.sidebar.preview_open">Show Preview Profile when sidebar is open</span><label class="toggle"><input type="checkbox" id="setFriendsSidebarPreviewOpen" onchange="settings.friendsSidebarPreviewOpen=this.checked;autoSave();"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="set-desc" data-i18n="settings.sidebar.preview_open_desc">Shows the profile preview even when the sidebar is open. You have to hover over the profile image for at least 1.5 seconds; it will not appear when hovering any other part of the friend entry.</div>
                     </div>
 
                     <!-- NAVIGATION SIDEBAR -->
@@ -249,6 +260,8 @@
                         <div class="vrcn-panel-card-header"><span class="msi">folder</span> <span data-i18n="settings.navsidebar.title">Navigation Sidebar</span></div>
                         <div class="sf-toggle-row"><span data-i18n="settings.navsidebar.modern_folders">Use Modern Folder Layout</span><label class="toggle"><input type="checkbox" id="setModernFolderLayout" onchange="settings.modernFolderLayout=this.checked;autoSave();if(typeof applyNavFolderMode==='function')applyNavFolderMode();if(typeof closeNavFolderPopout==='function')closeNavFolderPopout();"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
                         <div class="set-desc" data-i18n="settings.navsidebar.modern_folders_desc">When enabled, clicking a folder (like "Tools" or your own custom folders) opens a compact pop-out grid right next to the sidebar instead of expanding a long list of items inline so you don't have to scroll through the whole sidebar. Turn this off to use the classic layout where folder items expand directly inside the sidebar.</div>
+                        <div class="sf-toggle-row"><span data-i18n="settings.navsidebar.hover_text">Show Hover Text on Collapsed Navigation</span><label class="toggle"><input type="checkbox" id="setNavSidebarHoverText" onchange="settings.navSidebarHoverText=this.checked;autoSave();"><div class="toggle-track"><div class="toggle-knob"></div></div></label></div>
+                        <div class="set-desc" data-i18n="settings.navsidebar.hover_text_desc">When enabled, the navigation sidebar shows a hover text when collapsed. This makes it easier to navigate and is especially useful when you want to know which menu entry you are hovering over.</div>
                     </div>
 
                     <!-- MODAL NAVIGATION -->
@@ -258,8 +271,9 @@
                         <div class="set-desc" data-i18n="settings.navigation.direct_desc">When enabled, the breadcrumb history and all modal actions are shown in a bar at the top of the modal instead of in the taskbar. This makes navigating easier in fullscreen or on larger screens. It's recommended to leave this off when not running VRCNext in fullscreen.</div>
                     </div>
 
-                    <!-- PROFILE MODAL STYLE -->
-                    <div class="vrcn-panel-card" data-section="navigation" style="display:none;">
+                    <!-- PROFILE / WORLD MODAL STYLE -->
+                    <div class="vrcn-panel-card-pair" data-section="navigation" style="display:none;">
+                    <div class="vrcn-panel-card">
                         <div class="vrcn-panel-card-header"><span class="msi">badge</span> <span data-i18n="settings.navigation.profile_style.title">Profile Modal Style</span></div>
                         <div class="set-desc" style="margin-bottom:14px;" data-i18n="settings.navigation.profile_style.desc">Choose how user profiles are laid out. Classic shows a wide top banner with a single column below. Compact splits identity onto a left sidebar with the content area on the right.</div>
                         <div class="profile-style-picker" id="profileStylePicker">
@@ -321,6 +335,202 @@
                                 <div class="profile-style-label" data-i18n="settings.navigation.profile_style.compact">Compact</div>
                             </button>
                         </div>
+                    </div>
+
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">travel_explore</span> <span data-i18n="settings.navigation.world_style.title">World Modal Style</span></div>
+                        <div class="set-desc" style="margin-bottom:14px;" data-i18n="settings.navigation.world_style.desc">Choose how world details are laid out. Classic shows a wide top banner with a single column below. Compact splits the world image and key info onto a left column with description, history and stats next to it.</div>
+                        <div class="profile-style-picker" id="worldStylePicker">
+                            <button type="button" class="profile-style-option" data-style="classic" onclick="setWorldModalStyle('classic')">
+                                <div class="profile-style-skeleton sk-classic">
+                                    <div class="sk-banner"></div>
+                                    <div class="sk-row sk-row-header">
+                                        <div class="sk-avatar"></div>
+                                        <div class="sk-name-block">
+                                            <div class="sk-name"></div>
+                                            <div class="sk-line short"></div>
+                                        </div>
+                                    </div>
+                                    <div class="sk-badges">
+                                        <div class="sk-chip"></div>
+                                        <div class="sk-chip"></div>
+                                        <div class="sk-chip"></div>
+                                    </div>
+                                    <div class="sk-tabs">
+                                        <div class="sk-tab"></div>
+                                        <div class="sk-tab"></div>
+                                        <div class="sk-tab"></div>
+                                    </div>
+                                    <div class="sk-content">
+                                        <div class="sk-block"></div>
+                                        <div class="sk-block short"></div>
+                                    </div>
+                                </div>
+                                <div class="profile-style-label" data-i18n="settings.navigation.profile_style.classic">Classic</div>
+                            </button>
+                            <button type="button" class="profile-style-option" data-style="compact" onclick="setWorldModalStyle('compact')">
+                                <div class="profile-style-skeleton sk-compact">
+                                    <div class="sk-left">
+                                        <div class="sk-banner sk-banner-left"></div>
+                                        <div class="sk-row sk-row-tight">
+                                            <div class="sk-avatar small"></div>
+                                            <div class="sk-name-block">
+                                                <div class="sk-name short"></div>
+                                                <div class="sk-line tiny"></div>
+                                            </div>
+                                        </div>
+                                        <div class="sk-mini-card"></div>
+                                        <div class="sk-mini-card short"></div>
+                                        <div class="sk-mini-card"></div>
+                                    </div>
+                                    <div class="sk-right">
+                                        <div class="sk-tabs">
+                                            <div class="sk-tab"></div>
+                                            <div class="sk-tab"></div>
+                                            <div class="sk-tab"></div>
+                                        </div>
+                                        <div class="sk-content">
+                                            <div class="sk-block"></div>
+                                            <div class="sk-block short"></div>
+                                            <div class="sk-block"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="profile-style-label" data-i18n="settings.navigation.profile_style.compact">Compact</div>
+                            </button>
+                        </div>
+                    </div>
+                    </div>
+
+                    <!-- GROUP / AVATAR MODAL STYLE -->
+                    <div class="vrcn-panel-card-pair" data-section="navigation" style="display:none;">
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">groups</span> <span data-i18n="settings.navigation.group_style.title">Group Modal Style</span></div>
+                        <div class="set-desc" style="margin-bottom:14px;" data-i18n="settings.navigation.group_style.desc">Choose how group details are laid out. Classic shows a wide top banner with a single column below. Compact splits the group identity onto a left column with the tabs and content next to it.</div>
+                        <div class="profile-style-picker" id="groupStylePicker">
+                            <button type="button" class="profile-style-option" data-style="classic" onclick="setGroupModalStyle('classic')">
+                                <div class="profile-style-skeleton sk-classic">
+                                    <div class="sk-banner"></div>
+                                    <div class="sk-row sk-row-header">
+                                        <div class="sk-avatar"></div>
+                                        <div class="sk-name-block">
+                                            <div class="sk-name"></div>
+                                            <div class="sk-line short"></div>
+                                        </div>
+                                    </div>
+                                    <div class="sk-badges">
+                                        <div class="sk-chip"></div>
+                                        <div class="sk-chip"></div>
+                                        <div class="sk-chip"></div>
+                                    </div>
+                                    <div class="sk-tabs">
+                                        <div class="sk-tab"></div>
+                                        <div class="sk-tab"></div>
+                                        <div class="sk-tab"></div>
+                                    </div>
+                                    <div class="sk-content">
+                                        <div class="sk-block"></div>
+                                        <div class="sk-block short"></div>
+                                    </div>
+                                </div>
+                                <div class="profile-style-label" data-i18n="settings.navigation.profile_style.classic">Classic</div>
+                            </button>
+                            <button type="button" class="profile-style-option" data-style="compact" onclick="setGroupModalStyle('compact')">
+                                <div class="profile-style-skeleton sk-compact">
+                                    <div class="sk-left">
+                                        <div class="sk-banner sk-banner-left"></div>
+                                        <div class="sk-row sk-row-tight">
+                                            <div class="sk-avatar small"></div>
+                                            <div class="sk-name-block">
+                                                <div class="sk-name short"></div>
+                                                <div class="sk-line tiny"></div>
+                                            </div>
+                                        </div>
+                                        <div class="sk-mini-card"></div>
+                                        <div class="sk-mini-card short"></div>
+                                        <div class="sk-mini-card"></div>
+                                    </div>
+                                    <div class="sk-right">
+                                        <div class="sk-tabs">
+                                            <div class="sk-tab"></div>
+                                            <div class="sk-tab"></div>
+                                            <div class="sk-tab"></div>
+                                        </div>
+                                        <div class="sk-content">
+                                            <div class="sk-block"></div>
+                                            <div class="sk-block short"></div>
+                                            <div class="sk-block"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="profile-style-label" data-i18n="settings.navigation.profile_style.compact">Compact</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="vrcn-panel-card">
+                        <div class="vrcn-panel-card-header"><span class="msi">checkroom</span> <span data-i18n="settings.navigation.avatar_style.title">Avatar Modal Style</span></div>
+                        <div class="set-desc" style="margin-bottom:14px;" data-i18n="settings.navigation.avatar_style.desc">Choose how avatar details are laid out. Classic shows a wide top banner with a single column below. Compact splits the avatar image and the Infos/Visibility card onto a left column, with description and tags next to it.</div>
+                        <div class="profile-style-picker" id="avatarStylePicker">
+                            <button type="button" class="profile-style-option" data-style="classic" onclick="setAvatarModalStyle('classic')">
+                                <div class="profile-style-skeleton sk-classic">
+                                    <div class="sk-banner"></div>
+                                    <div class="sk-row sk-row-header">
+                                        <div class="sk-avatar"></div>
+                                        <div class="sk-name-block">
+                                            <div class="sk-name"></div>
+                                            <div class="sk-line short"></div>
+                                        </div>
+                                    </div>
+                                    <div class="sk-badges">
+                                        <div class="sk-chip"></div>
+                                        <div class="sk-chip"></div>
+                                        <div class="sk-chip"></div>
+                                    </div>
+                                    <div class="sk-tabs">
+                                        <div class="sk-tab"></div>
+                                        <div class="sk-tab"></div>
+                                        <div class="sk-tab"></div>
+                                    </div>
+                                    <div class="sk-content">
+                                        <div class="sk-block"></div>
+                                        <div class="sk-block short"></div>
+                                    </div>
+                                </div>
+                                <div class="profile-style-label" data-i18n="settings.navigation.profile_style.classic">Classic</div>
+                            </button>
+                            <button type="button" class="profile-style-option" data-style="compact" onclick="setAvatarModalStyle('compact')">
+                                <div class="profile-style-skeleton sk-compact">
+                                    <div class="sk-left">
+                                        <div class="sk-banner sk-banner-left"></div>
+                                        <div class="sk-row sk-row-tight">
+                                            <div class="sk-avatar small"></div>
+                                            <div class="sk-name-block">
+                                                <div class="sk-name short"></div>
+                                                <div class="sk-line tiny"></div>
+                                            </div>
+                                        </div>
+                                        <div class="sk-mini-card"></div>
+                                        <div class="sk-mini-card short"></div>
+                                        <div class="sk-mini-card"></div>
+                                    </div>
+                                    <div class="sk-right">
+                                        <div class="sk-tabs">
+                                            <div class="sk-tab"></div>
+                                            <div class="sk-tab"></div>
+                                            <div class="sk-tab"></div>
+                                        </div>
+                                        <div class="sk-content">
+                                            <div class="sk-block"></div>
+                                            <div class="sk-block short"></div>
+                                            <div class="sk-block"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="profile-style-label" data-i18n="settings.navigation.profile_style.compact">Compact</div>
+                            </button>
+                        </div>
+                    </div>
                     </div>
 
                     <!-- SOUNDS -->
@@ -660,12 +870,7 @@
                     <!-- ACCOUNTS -->
                     <div class="vrcn-panel-card" data-section="accounts" style="display:none;">
                         <div class="vrcn-panel-card-header"><span class="msi">account_circle</span> <span data-i18n="settings.accounts.title">Accounts</span></div>
-                        <div class="set-desc" style="margin-bottom:12px;" data-i18n="settings.accounts.desc">Manage your VRChat accounts. The primary account uses the main database, secondary accounts each get their own database. Credentials are stored locally and encrypted.</div>
-
-                        <div style="background:rgba(255,180,0,.08);border:1px solid rgba(255,180,0,.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
-                            <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--warn);margin-bottom:6px;"><span class="msi" style="font-size:16px;">warning</span><span data-i18n="settings.accounts.warning.title">Experimental Feature</span></div>
-                            <div class="set-desc" style="margin:0;color:var(--tx2);" data-i18n="settings.accounts.warning.body">Switching Accounts is an experimental feature. It creates a separate database for each secondary account so the main database is not overloaded with data. Things might not work correctly on secondary accounts, expect bugs here and there. Secondary accounts do not get auto-backups, only your main account does. Some settings might not work as intended. Be warned.</div>
-                        </div>
+                        <div class="set-desc" style="margin-bottom:14px;"><span data-i18n="settings.accounts.desc">Manage your VRChat accounts. The primary account uses the main database, secondary accounts each get their own database. Credentials are stored locally and encrypted.</span> <span data-i18n="settings.accounts.warning.body">Switching Accounts is an experimental feature. It creates a separate database for each secondary account so the main database is not overloaded with data. Things might not work correctly on secondary accounts, expect bugs here and there. Secondary accounts do not get auto-backups, only your main account does. Some settings might not work as intended. Be warned.</span></div>
 
                         <div id="accountsList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
 

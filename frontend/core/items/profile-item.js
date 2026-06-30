@@ -38,12 +38,17 @@ function renderUserItem(user, onclick, opts) {
     const idAttr = id ? ` data-uid="${esc(id)}"` : '';
     const trailing = opts.trailing || '';
 
+    const statsRow = (id && typeof window !== 'undefined' && window._peopleStatsMode && typeof buildPeopleStatsRow === 'function')
+        ? buildPeopleStatsRow(id)
+        : '';
+
     return `<div class="vrcn-user-item${cls}"${idAttr}${attrs} onclick="${onclick}">
         <div class="vrcn-user-item-avatar-wrap">${avatar}${dot}</div>
         <div class="vrcn-user-item-info">
             <div class="vrcn-user-item-name">${esc(name)}${platBadge ? `<span class="vrcn-user-item-plat">${platBadge}</span>` : ''}</div>
             ${secondRow}
         </div>
+        ${statsRow}
         ${trailing}
     </div>`;
 }

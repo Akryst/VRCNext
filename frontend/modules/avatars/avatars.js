@@ -96,7 +96,7 @@ function refreshFavAvatars() {
 function setAvatarFilter(filter) {
     if (_avEditMode) exitAvEditMode();
     avatarFilter = filter;
-    document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#avatarFilterBtns .sub-tab-btn').forEach(b => b.classList.remove('active'));
     const btnMap = { own: 'avatarFilterOwn', favorites: 'avatarFilterFav', recent: 'avatarFilterRecent', rose: 'avatarFilterRose', search: 'avatarFilterSearch' };
     const btn = document.getElementById(btnMap[filter]);
     if (btn) btn.classList.add('active');

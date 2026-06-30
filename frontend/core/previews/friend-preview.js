@@ -5,9 +5,19 @@
     let _fpFetchTimer = null;
     let _fpCurrentUid = null;
     let _mouseOverPopup = false;
+    let _fpHoverDelayTimer = null;
+    let _fpDelayUid = null;
+    const OPEN_HOVER_DELAY = 1500;
 
     function isSidebarCollapsed() {
         return document.getElementById('rsidebar')?.classList.contains('collapsed') ?? false;
+    }
+
+    function previewCollapsedEnabled() {
+        return (typeof settings === 'undefined') || settings.friendsSidebarPreviewCollapsed !== false;
+    }
+    function previewOpenEnabled() {
+        return (typeof settings !== 'undefined') && settings.friendsSidebarPreviewOpen === true;
     }
 
     function getPopup() {
@@ -164,28 +174,49 @@
             : '';
 
         const instanceHtml = buildInstanceHtml(f);
+        const statsHtml = buildStatsRow(f.id);
+        const avatarInner = img
+            ? `<img class="fp-av" src="${esc(img)}" onerror="this.style.display='none'">`
+            : `<div class="fp-av fp-av-letter">${esc((f.displayName || '?')[0].toUpperCase())}</div>`;
 
         popup.innerHTML = `
             <div class="fd-banner">
                 ${banner ? `<div class="fp-banner-bg" style="background-image:url('${cssUrl(banner)}')"></div>` : ''}
                 <div class="fd-banner-fade"></div>
             </div>
-            ${img ? `<img class="fd-avatar" src="${esc(img)}" onerror="this.style.display='none'">` : '<div class="fd-avatar"></div>'}
             <div class="fp-body">
-                <div class="fp-name-row">
-                    <span class="fd-name">${esc(f.displayName)}</span>${vrcPlusBadge}
-                </div>
-                <div class="fp-status-row">
-                    <span class="${dotCls} ${statusCls}" style="width:7px;height:7px;flex-shrink:0;"></span>
-                    <span>${esc(statusTxt)}</span>
+                <div class="fp-header">
+                    <div class="fp-av-wrap">
+                        ${avatarInner}
+                        <span class="fp-av-dot ${dotCls} ${statusCls}"></span>
+                    </div>
+                    <div class="fp-header-info">
+                        <div class="fp-name-row">
+                            <span class="fd-name">${esc(f.displayName)}</span>${vrcPlusBadge}
+                        </div>
+                        <div class="fp-status-row"><span>${esc(statusTxt)}</span></div>
+                        ${statsHtml}
+                    </div>
                 </div>
                 <div class="fd-badges-row">${rankBadge}${friendBadge}${ageBadge}${platBadge}</div>
                 ${instanceHtml}${bioHtml}${langsHtml}
             </div>`;
     }
 
+    function buildStatsRow(uid) {
+        const st = (typeof window.getPeopleStat === 'function') ? window.getPeopleStat(uid) : null;
+        if (typeof window.requestPeopleStats === 'function') window.requestPeopleStats();
+        if (!st || ((st.seconds || 0) <= 0 && (st.meets || 0) <= 0)) return '';
+        const timeStr = (typeof window.fmtPeopleStatTime === 'function')
+            ? window.fmtPeopleStatTime(st.seconds || 0) : '';
+        return `<div class="fp-stats-row">
+            <span class="msi">schedule</span><span>${esc(timeStr)}</span>
+            <span class="fp-stats-dot">&middot;</span>
+            <span class="msi">handshake</span><span>${st.meets || 0}</span>
+        </div>`;
+    }
+
     function showPreview(uid, cardEl) {
-        if (!isSidebarCollapsed()) return;
         const f = (typeof vrcFriendsData !== 'undefined' ? vrcFriendsData : []).find(x => x.id === uid);
         if (!f) return;
 
@@ -194,7 +225,10 @@
 
         const popup = getPopup();
         renderPopup(popup, f, _fpCache[uid] || null);
+        popup.dataset.uid = uid;
         popup.classList.add('visible');
+        if (typeof window.vrcnPlusApplyThemeToElement === 'function') window.vrcnPlusApplyThemeToElement(popup, null);
+        if (typeof window.vrcnPlusRequestTheme === 'function') window.vrcnPlusRequestTheme(uid);
         positionPopup(popup, cardEl);
 
         // Fetch bio/banner immediately if not cached
@@ -230,6 +264,17 @@
         }
     };
 
+    window._fpOnStatsLoaded = function () {
+        if (!_fpCurrentUid) return;
+        const popup = document.getElementById('fpPreview');
+        if (!popup || !popup.classList.contains('visible')) return;
+        const f = (typeof vrcFriendsData !== 'undefined' ? vrcFriendsData : []).find(x => x.id === _fpCurrentUid);
+        if (!f) return;
+        renderPopup(popup, f, _fpCache[_fpCurrentUid] || null);
+        const card = document.querySelector(`.vrc-friend-card[data-uid="${CSS.escape(_fpCurrentUid)}"]`);
+        if (card) positionPopup(popup, card);
+    };
+
     // Cache bio/banner whenever a full friend detail is opened
     const _origRender = window.renderFriendDetail;
     if (typeof _origRender === 'function') {
@@ -244,24 +289,44 @@
         if (!sidebar) { setTimeout(init, 500); return; }
 
         sidebar.addEventListener('mouseover', function (e) {
-            if (!isSidebarCollapsed()) return;
-            const card = e.target.closest('.vrc-friend-card');
-            if (!card) {
-                if (_fpCurrentUid) {
-                    clearTimeout(_fpHideTimer);
-                    _fpHideTimer = setTimeout(hidePreview, 150);
+            if (isSidebarCollapsed()) {
+                if (!previewCollapsedEnabled()) return;
+                const card = e.target.closest('.vrc-friend-card');
+                if (!card) {
+                    if (_fpCurrentUid) {
+                        clearTimeout(_fpHideTimer);
+                        _fpHideTimer = setTimeout(hidePreview, 150);
+                    }
+                    return;
                 }
+                const uid = card.dataset.uid;
+                if (!uid || _fpCurrentUid === uid) return;
+                clearTimeout(_fpHideTimer);
+                showPreview(uid, card);
+                return;
+            }
+
+            // Expanded sidebar: only when hovering the avatar, after a 1.5s delay.
+            if (!previewOpenEnabled()) return;
+            const avatar = e.target.closest('.vrc-friend-avatar-wrap, .vrc-friend-avatar');
+            const card = avatar ? avatar.closest('.vrc-friend-card') : null;
+            if (!card) {
+                clearTimeout(_fpHoverDelayTimer);
+                _fpDelayUid = null;
                 return;
             }
             const uid = card.dataset.uid;
-            if (!uid || _fpCurrentUid === uid) return;
+            if (!uid || _fpCurrentUid === uid || _fpDelayUid === uid) return;
+            clearTimeout(_fpHoverDelayTimer);
             clearTimeout(_fpHideTimer);
-            showPreview(uid, card);
+            _fpDelayUid = uid;
+            _fpHoverDelayTimer = setTimeout(() => { _fpDelayUid = null; showPreview(uid, card); }, OPEN_HOVER_DELAY);
         });
 
-        // When mouse leaves sidebar, start hide timer unless going to popup
+        // When mouse leaves sidebar, cancel any pending hover and start hide timer unless going to popup
         sidebar.addEventListener('mouseleave', function (e) {
-            if (!isSidebarCollapsed()) return;
+            clearTimeout(_fpHoverDelayTimer);
+            _fpDelayUid = null;
             if (e.relatedTarget?.closest?.('#fpPreview')) return;
             _fpHideTimer = setTimeout(hidePreview, 150);
         });
