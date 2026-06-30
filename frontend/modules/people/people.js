@@ -278,7 +278,12 @@ function onPeopleStatsData(payload) {
     _peopleStatsMax = max;
     _peopleStatsLoaded = true;
     if (window._peopleStatsMode) applyPeopleStatsBars();
+    if (typeof window._fpOnStatsLoaded === 'function') window._fpOnStatsLoaded();
 }
+
+window.getPeopleStat = function (userId) { return _peopleStatsMap[userId] || null; };
+window.requestPeopleStats = function () { if (!_peopleStatsLoaded) sendToCS({ action: 'vrcGetPeopleStats' }); };
+window.fmtPeopleStatTime = function (seconds) { return _peopleStatsFmtTime(seconds); };
 
 function setPeopleFilter(filter) {
     if (_favFriendEditMode) exitFriendEditMode();

@@ -23,8 +23,12 @@
 /* Override fd-banner modal margins/size for preview */
 .fp-preview .fd-banner {
     margin: 0;
-    height: 82px;
+    height: 109px;
     border-radius: 0;
+}
+
+.fp-preview .fd-banner-fade {
+    background: linear-gradient(to top, var(--bg-card) 0%, rgba(0,0,0,.18) 55%, transparent 100%);
 }
 
 /* Background layer inside banner */
@@ -36,24 +40,56 @@
     filter: brightness(0.55);
 }
 
-/* Avatar pulled out of banner overflow, positioned on popup */
-.fp-preview .fd-avatar {
-    position: absolute;
-    top: 54px;
-    left: 12px;
+.fp-body {
+    padding: 10px 12px;
+    margin-top: -56px;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fp-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+.fp-av-wrap { position: relative; flex-shrink: 0; }
+.fp-av {
     width: 44px;
     height: 44px;
     border-radius: 10px;
+    object-fit: cover;
+    display: block;
+    background: var(--bg-hover);
     border: 2px solid var(--bg-card);
-    z-index: 2;
-    flex-shrink: unset;
 }
-
-.fp-body {
-    padding: 16px 12px 10px;
+.fp-av-letter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--tx2);
+}
+.fp-av-dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 11px !important;
+    height: 11px !important;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--bg-card);
+}
+.fp-av-dot.vrc-status-ring { background: var(--bg-card); }
+.fp-header-info {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 2px;
 }
 
 .fp-name-row {
@@ -62,6 +98,18 @@
     gap: 6px;
     min-width: 0;
 }
+
+.fp-stats-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--tx2);
+    white-space: nowrap;
+    margin-top: 1px;
+}
+.fp-stats-row .msi { font-size: 12px; color: var(--tx3); }
+.fp-stats-dot { color: var(--tx3); margin: 0 1px; }
 
 /* Override fd-name size for preview */
 .fp-preview .fd-name {

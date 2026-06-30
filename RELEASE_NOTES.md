@@ -10,6 +10,8 @@
 * Updated the profile preview icon to match all other profile styles, now using the new square profile icon with a status dot.
 * Added **Time Spent** information to the profile preview, showing how much time you spent together and how many times you met.
 * Added an option to copy the instance link from the right-click menu.
+* Changed the size of the profile banner.
+* Profile Previews now also show the custom colors of an user with VRCN+
 
 **Modals**
 * Added **Classic** and **Compact** modal styles to **Settings > Navigation > World Modal Style**.
@@ -27,6 +29,9 @@
 * Added an option to enable or disable profile previews in the expanded Friends Sidebar.
 * Added an option to show hover text when hovering over tabs/modules in the collapsed sidebar. This is enabled by default.
 
+**Changes**
+* Removed the orange "Experimental Feature" Warning in Accounts and moved the info text.
+
 **Fixes**
 * Fixed an issue where opening the Avatars tab and switching sub-tabs could clear the highlighted sub-tab button in other tabs, such as Worlds, Groups, and People.
 * Added missing i18n for Profile Modals.
@@ -36,6 +41,7 @@
 * Fixed an issue where Auto-Start Up apps don't open at some cases like the path requires admin rights to execute the file.
 * Fixed some issues that could cause VRCN to crash when using the VR Overlay.
 * Fixed some notification breadcrumb/toast issues when a friend comes online.
+* Fixed some Z-Layer index of some hover modals.
 
 **Visual Fixes**
 * Fixed the loading skeleton for World, Group, and Avatar Modals.
