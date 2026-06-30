@@ -35,7 +35,7 @@ body:has(.rsidebar.collapsed) .dash-hero { margin-right: calc(-1 * (var(--rsideb
 .dash-hero-content {
     position: relative;
     z-index: 1;
-    padding: 40px calc(var(--rsidebar-w) + 40px) 0 calc(var(--sidebar-w) + 40px);
+    padding: 40px calc(var(--rsidebar-w) + 28px) 0 calc(var(--sidebar-w) + 28px);
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -45,8 +45,8 @@ body:has(.rsidebar.collapsed) .dash-hero { margin-right: calc(-1 * (var(--rsideb
 }
 
 body:has(.sidebar.collapsed) .dash-hero-content,
-body:has(.sidebar.collapsing) .dash-hero-content { padding-left:  calc(var(--sidebar-c)  + 40px); }
-body:has(.rsidebar.collapsed) .dash-hero-content { padding-right: calc(var(--rsidebar-c) + 40px); }
+body:has(.sidebar.collapsing) .dash-hero-content { padding-left:  calc(var(--sidebar-c)  + 28px); }
+body:has(.rsidebar.collapsed) .dash-hero-content { padding-right: calc(var(--rsidebar-c) + 28px); }
 
 .dash-welcome {
     font-size: 37px;

@@ -100,6 +100,40 @@
     text-overflow: ellipsis;
 }
 
+.vrcn-user-item-stats {
+    flex-shrink: 0;
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+.vrcn-user-item-stats-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--tx2);
+    white-space: nowrap;
+}
+.vrcn-user-item-stats-meta .msi { font-size: 12px; color: var(--tx3); }
+.vrcn-user-item-stats-dot { color: var(--tx3); margin: 0 1px; }
+.vrcn-user-item-stats-bar-wrap {
+    width: 84px;
+    height: 4px;
+    background: var(--bg-hover);
+    border-radius: 2px;
+    overflow: hidden;
+}
+.vrcn-user-item-stats-bar {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: width .3s ease;
+}
+.vrcn-user-item-stats-empty .vrcn-user-item-stats-meta,
+.vrcn-user-item-stats-empty .vrcn-user-item-stats-meta .msi { color: var(--tx3); }
+
 .fd-profile-item-small {
     display: flex;
     align-items: center;

@@ -1,36 +1,45 @@
-**2026.32.0**
+**2026.33.0**
 
-**Worlds Tab**
-* Added a **Recently Visited** button. This shows the latest 32 worlds you have visited.
+**Advanced Friend Management**
+* Added a new **Stats** button to the People Tab. When enabled, it shows additional information on each friend or user item.
+* It displays a bar showing how much time you spent together and how many times you met, without needing to open their profile.
+* Added a new **Always Show Stats** setting to **Settings > Friends**. When enabled, these stats will always be shown across VRCNext.
 
-**People Tab**
-* Added a **Recently Seen** button. This shows the latest 64 people you have seen.
+**Profile Preview**
+* Changed the profile preview layout to show the username and status text next to the profile icon.
+* Updated the profile preview icon to match all other profile styles, now using the new square profile icon with a status dot.
+* Added **Time Spent** information to the profile preview, showing how much time you spent together and how many times you met.
+* Added an option to copy the instance link from the right-click menu.
 
-**Avatars Tab**
-* Added a **Recently Used** button. This shows the latest 32 avatars you have used.
-* Added "Public Filter" to avatar tab. you can now filter by Public or Private Avatars
-* Added "Platform Filter" to avatar tab. you can now filter by PC or Android platform.
-Note: We are aware that "iOS" exists for Worlds and Avatars and we will add that in future.
+**Modals**
+* Added **Classic** and **Compact** modal styles to **Settings > Navigation > World Modal Style**.
+* The new Compact style uses a 3-row layout, similar to the new Profile Compact style.
+* Added **Classic** and **Compact** modal styles to **Settings > Navigation > Group Modal Style**.
+* The new Compact style uses a 3-row layout, similar to the new Profile Compact style.
+* Added **Classic** and **Compact** modal styles to **Settings > Navigation > Avatar Modal Style**.
+* The new Compact style uses a 3-row layout, similar to the new Profile Compact style.
 
-**Note**
-* The **Recently X** features are meant as nice-to-have shortcuts. To view more than the 32–64 item limit, you can use the Timeline.
+**Group Activity**
+* Added an option to copy the instance link from the right-click menu.
 
-**Friends Sidebar**
-* Updated the round instance user profile icons to the new square icons.
+**Friends And Navigation Sidebars**
+* Added an option to enable or disable profile previews in the collapsed Friends Sidebar.
+* Added an option to enable or disable profile previews in the expanded Friends Sidebar.
+* Added an option to show hover text when hovering over tabs/modules in the collapsed sidebar. This is enabled by default.
 
-**Settings**
-* Added **Use Trusted Rank as Text**.
-* When enabled, this removes the Trusted Rank badges from the Friends Sidebar and colors usernames based on their Trusted Rank instead.
-* Removed the navbar in "Appearance". Background, Colors, Other and Themes use their own Card now.
+**Fixes**
+* Fixed an issue where opening the Avatars tab and switching sub-tabs could clear the highlighted sub-tab button in other tabs, such as Worlds, Groups, and People.
+* Added missing i18n for Profile Modals.
+* Added missing i18n for World Modals.
+* Fixed some small modal issues for Worlds and Groups.
+* Fixed "Time Spent" now showing in "My Worlds" and "Recently Visited" sub tab inside the world tab.
+* Fixed an issue where Auto-Start Up apps don't open at some cases like the path requires admin rights to execute the file.
+* Fixed some issues that could cause VRCN to crash when using the VR Overlay.
+* Fixed some notification breadcrumb/toast issues when a friend comes online.
 
-**Dashboard**
-* Updated the VRChat News widget design.
-* Updated Upcoming Events with a new design.
-* Updated the Recent Photos widget to a new mosaic-style layout showing the latest 18 images.
-
-**Themes**
-* Added PC, Web, Android/Quest, and Friends badges to the Theme Editor.
-* Added Visitor, New User, User, Known User, and Trusted User badges to the Theme Editor.
-
-**Improvements**
-* Buttons now use the Google font family like the rest of the app.
+**Visual Fixes**
+* Fixed the loading skeleton for World, Group, and Avatar Modals.
+* Fixed important modal-box CSS issues that caused layout problems.
+* Fixed a visual alignment issue on the dashboard hero where the text content was slightly shifted to the right.
+* Fixed minor dashboard issues that caused visual bugs.
+* Fixed some dashboard badges having incorrect alignment in certain elements and widgets.

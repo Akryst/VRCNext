@@ -529,6 +529,18 @@
             if (path) return buildLibCardItems(path, url, type, name);
         }
 
+        const previewInst = el.closest('#fpPreview .fd-group-card');
+        if (previewInst) {
+            const loc = (previewInst.getAttribute('onclick') || '').match(/location:'([^']+)'/)?.[1];
+            if (loc) return buildInstanceLinkItems(loc);
+        }
+
+        const groupActInst = el.closest('#dashGroupActivityCards .vrcn-content-card, #dashGroupActivityShelf .dash-flocs-card');
+        if (groupActInst) {
+            const loc = (groupActInst.getAttribute('onclick') || '').match(/openGroupInstanceDetail\('([^']+)'\)/)?.[1];
+            if (loc) return buildInstanceLinkItems(loc);
+        }
+
         const groupCard = el.closest('#myGroupsGrid .vrcn-content-card, #dashGroupActivityGrid .dash-group-card, #searchGroupsResults .vrcn-content-card, .fd-group-card');
         if (groupCard) {
             const id = extractGroupId(groupCard);
@@ -1047,6 +1059,14 @@
             items.push({ icon: 'star', label: cm('avatar.add_favorites', 'Add to Favorites'), submenuFn: btn => showAvFavGroupSubmenu(id, btn) });
         }
         return items;
+    }
+
+    function buildInstanceLinkItems(loc) {
+        return [{
+            icon: 'link',
+            label: cm('context_menu.copy_instance_link', 'Copy Instance Link'),
+            action: () => copyInstanceLink(loc)
+        }];
     }
 
     function buildMyInstanceItems(loc) {

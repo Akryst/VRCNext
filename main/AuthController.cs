@@ -1663,9 +1663,16 @@ public class AuthController
             _core.Settings.FriendOnlineToastFavOnly = data["friendOnlineToastFavOnly"]?.Value<bool>() ?? false;
             _core.Settings.FriendsSidebarLocationOnly = data["friendsSidebarLocationOnly"]?.Value<bool>() ?? true;
             _core.Settings.FriendsSidebarRankColor = data["friendsSidebarRankColor"]?.Value<bool>() ?? false;
+            _core.Settings.FriendsSidebarPreviewCollapsed = data["friendsSidebarPreviewCollapsed"]?.Value<bool>() ?? true;
+            _core.Settings.FriendsSidebarPreviewOpen = data["friendsSidebarPreviewOpen"]?.Value<bool>() ?? false;
+            _core.Settings.PeopleAlwaysStats = data["peopleAlwaysStats"]?.Value<bool>() ?? false;
             _core.Settings.ModernFolderLayout = data["modernFolderLayout"]?.Value<bool>() ?? true;
+            _core.Settings.NavSidebarHoverText = data["navSidebarHoverText"]?.Value<bool>() ?? true;
             _core.Settings.DirectModalNav = data["directModalNav"]?.Value<bool>() ?? false;
             _core.Settings.ProfileModalStyle = data["profileModalStyle"]?.ToString() ?? "classic";
+            _core.Settings.WorldModalStyle = data["worldModalStyle"]?.ToString() ?? "classic";
+            _core.Settings.GroupModalStyle = data["groupModalStyle"]?.ToString() ?? "classic";
+            _core.Settings.AvatarModalStyle = data["avatarModalStyle"]?.ToString() ?? "classic";
             _core.Settings.MinimizeToTray = data["minimizeToTray"]?.Value<bool>() ?? false;
             _core.Settings.TrayNotificationsEnabled = data["trayNotificationsEnabled"]?.Value<bool>() ?? false;
 #if WINDOWS

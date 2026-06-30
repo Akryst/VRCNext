@@ -15,18 +15,22 @@ const _avRawJsonCache = {};
 
 function openAvatarDetail(avatarId) {
     if (typeof navSetCurrent === 'function') navSetCurrent('avatar', avatarId);
-    document.getElementById('modalAvatarDetail').style.display = 'flex';
+    const _avCompact = (typeof settings !== 'undefined' && settings.avatarModalStyle === 'compact');
+    const _avMod = document.getElementById('modalAvatarDetail');
+    _avMod.classList.toggle('av-style-compact', _avCompact);
+    _avMod.style.display = 'flex';
     const cached = _avatarDetailCache[avatarId];
     if (cached) {
         renderAvatarDetail(cached);
     } else {
         const c = document.getElementById('avatarDetailContent');
-        if (c) c.innerHTML = sk('detail');
+        if (c) c.innerHTML = sk(_avCompact ? 'content-modal-compact' : 'detail');
     }
     sendToCS({ action: 'vrcGetAvatarDetail', avatarId });
 }
 
 function closeAvatarDetail(fromNav = false) {
+    document.getElementById('modalAvatarDetail').classList.remove('av-style-compact');
     document.getElementById('modalAvatarDetail').style.display = 'none';
     _avDetailData = null;
     if (!fromNav && typeof navClear === 'function') navClear();
@@ -150,11 +154,15 @@ function renderAvatarDetail(a) {
         ? `<div class="fd-lang-tags">${a.tags.map(tag => `<span class="vrcn-badge">${esc(fmtAvatarTag(tag))}</span>`).join('')}</div>`
         : `<div class="myp-empty">${t('avatars.detail.empty_tags', 'No tags')}</div>`;
 
+    const useAvCompact = (typeof settings !== 'undefined' && settings.avatarModalStyle === 'compact');
+    const _avIdRow = useAvCompact ? `<div class="fd-badges-row fd-bio-badges-row" style="margin:0 0 10px;">${idBadge(a.id)}</div>` : '';
+
     const _descCard = `<div class="fd-info-card">
         <div class="myp-section-header">
             <span class="myp-section-title">${t('avatars.detail.sections.description', 'Description')}</span>
             ${isOwn ? `<button class="myp-edit-btn" onclick="editAvField('desc')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
         </div>
+        ${_avIdRow}
         <div id="avfDescView">${a.description ? `<div class="fd-bio">${esc(a.description)}</div>` : `<div class="myp-empty">${t('avatars.detail.empty_description', 'No description')}</div>`}</div>
         ${isOwn ? `<div id="avfDescEdit" style="display:none;">
             <textarea id="avDescInput" class="myp-textarea" rows="4" maxlength="2000" placeholder="${esc(t('avatars.detail.description_placeholder', 'Avatar description...'))}">${esc(a.description || '')}</textarea>
@@ -223,12 +231,7 @@ function renderAvatarDetail(a) {
         { icon: 'link_2', title: t('common.share', 'Share'), onclick: `navigator.clipboard.writeText('https://vrchat.com/home/avatar/${esc(a.id)}').then(()=>showToast(true,t('common.link_copied','Link copied!')))` },
         { icon: 'close', title: t('common.close', 'Close'), onclick: `closeAvatarDetail()`, header: true },
     ]);
-    c.innerHTML = `${avHeaderActions}
-        ${thumb ? `<div class="fd-banner"><img src="${thumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>` : ''}
-        <div class="fd-content${thumb ? ' fd-has-banner' : ''}">
-            <div class="fd-header">
-                <div style="flex:1;min-width:0;">
-                    <div id="avfNameView" style="display:flex;align-items:center;gap:6px;">
+    const _avNameAuthor = `<div id="avfNameView" style="display:flex;align-items:center;gap:6px;">
                         <div class="fd-name">${esc(a.name || t('avatars.detail.unnamed', 'Unnamed Avatar'))}</div>
                         ${isOwn ? `<button class="myp-edit-btn" onclick="editAvField('name')"><span class="msi" style="font-size:14px;">edit</span></button>` : ''}
                     </div>
@@ -239,15 +242,46 @@ function renderAvatarDetail(a) {
                             <button class="vrcn-button vrcn-btn-primary" onclick="saveAvField('name','${aid}')">${t('common.save', 'Save')}</button>
                         </div>
                     </div>` : ''}
-                    <div style="font-size:12px;color:var(--tx3);margin-top:4px;">${t('avatars.detail.by', 'by')} ${authorHtml}</div>
-                </div>
-            </div>
-            <div class="fd-badges-row" style="margin-bottom:10px;">${statusBadge}${idBadge(a.id)}</div>
-            <div class="fd-tabs" style="margin-bottom:14px;">
+                    <div style="font-size:12px;color:var(--tx3);margin-top:4px;">${t('avatars.detail.by', 'by')} ${authorHtml}</div>`;
+
+    const _avTabsHtml = `<div class="fd-tabs" style="margin-bottom:14px;">
                 <button class="fd-tab active" onclick="switchAvTab('info',this)">${t('profiles.tabs.info', 'Info')}</button>
                 <button class="fd-tab" onclick="switchAvTab('gallery',this)">${t('avatars.tabs.gallery', 'Gallery')}</button>
                 <button class="fd-tab" onclick="switchAvTab('json',this)">Json</button>
+            </div>`;
+
+    const _avGalleryTab = `<div id="avTabGallery" style="display:none;">
+                ${isOwn ? `<div style="margin-bottom:10px;"><button class="vrcn-button" id="avGalleryUploadBtn" onclick="avUploadGalleryImage('${aid}')"><span class="msi" style="font-size:16px;">upload</span> ${esc(t('avatars.gallery.upload_image', 'Upload Image'))}</button></div>` : ''}
+                <div id="avGalleryContent" style="min-height:60px;"></div>
+            </div>`;
+    const _avJsonTab = `<div id="avTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((a.id && _avRawJsonCache[a.id]) || {})}</div></div>`;
+
+    if (useAvCompact) {
+        c.innerHTML = `${avHeaderActions}<div class="fd-layout">
+            <div class="fd-left">
+                <div class="fd-left-banner" id="av-banner-slot">${thumb ? `<img src="${thumb}" onerror="this.style.display='none'"><div class="fd-banner-fade"></div>` : ''}</div>
+                <div class="fd-left-body">
+                    <div class="fd-left-id"><div class="fd-left-name-wrap">${_avNameAuthor}</div></div>
+                    ${_infosCard}
+                    ${_tagsCard}
+                </div>
             </div>
+            <div class="fd-right"><div class="fd-right-scroll">
+                ${_avTabsHtml}
+                <div id="avTabInfo"><div class="fd-info-wrap">${_descCard}</div></div>
+                ${_avGalleryTab}
+                ${_avJsonTab}
+            </div></div>
+        </div>`;
+    } else {
+        c.innerHTML = `${avHeaderActions}
+        ${thumb ? `<div class="fd-banner"><img src="${thumb}" onerror="this.parentElement.style.display='none'"><div class="fd-banner-fade"></div></div>` : ''}
+        <div class="fd-content${thumb ? ' fd-has-banner' : ''}">
+            <div class="fd-header">
+                <div style="flex:1;min-width:0;">${_avNameAuthor}</div>
+            </div>
+            <div class="fd-badges-row" style="margin-bottom:10px;">${statusBadge}${idBadge(a.id)}</div>
+            ${_avTabsHtml}
             <div id="avTabInfo">
                 <div class="fd-info-wrap">
                     <div class="fd-info-cols">
@@ -256,12 +290,13 @@ function renderAvatarDetail(a) {
                     </div>
                 </div>
             </div>
-            <div id="avTabGallery" style="display:none;">
-                ${isOwn ? `<div style="margin-bottom:10px;"><button class="vrcn-button" id="avGalleryUploadBtn" onclick="avUploadGalleryImage('${aid}')"><span class="msi" style="font-size:16px;">upload</span> ${esc(t('avatars.gallery.upload_image', 'Upload Image'))}</button></div>` : ''}
-                <div id="avGalleryContent" style="min-height:60px;"></div>
-            </div>
-            <div id="avTabJson" style="display:none;"><div class="json-viewer">${jsonHighlight((a.id && _avRawJsonCache[a.id]) || {})}</div></div>
+            ${_avGalleryTab}
+            ${_avJsonTab}
         </div>`;
+    }
+
+    const _avModal = document.getElementById('modalAvatarDetail');
+    if (_avModal) _avModal.classList.toggle('av-style-compact', useAvCompact);
 }
 
 function saveAvField(field, avatarId) {

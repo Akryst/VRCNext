@@ -5,9 +5,19 @@
     let _fpFetchTimer = null;
     let _fpCurrentUid = null;
     let _mouseOverPopup = false;
+    let _fpHoverDelayTimer = null;
+    let _fpDelayUid = null;
+    const OPEN_HOVER_DELAY = 1500;
 
     function isSidebarCollapsed() {
         return document.getElementById('rsidebar')?.classList.contains('collapsed') ?? false;
+    }
+
+    function previewCollapsedEnabled() {
+        return (typeof settings === 'undefined') || settings.friendsSidebarPreviewCollapsed !== false;
+    }
+    function previewOpenEnabled() {
+        return (typeof settings !== 'undefined') && settings.friendsSidebarPreviewOpen === true;
     }
 
     function getPopup() {
@@ -185,7 +195,6 @@
     }
 
     function showPreview(uid, cardEl) {
-        if (!isSidebarCollapsed()) return;
         const f = (typeof vrcFriendsData !== 'undefined' ? vrcFriendsData : []).find(x => x.id === uid);
         if (!f) return;
 
@@ -244,24 +253,44 @@
         if (!sidebar) { setTimeout(init, 500); return; }
 
         sidebar.addEventListener('mouseover', function (e) {
-            if (!isSidebarCollapsed()) return;
-            const card = e.target.closest('.vrc-friend-card');
-            if (!card) {
-                if (_fpCurrentUid) {
-                    clearTimeout(_fpHideTimer);
-                    _fpHideTimer = setTimeout(hidePreview, 150);
+            if (isSidebarCollapsed()) {
+                if (!previewCollapsedEnabled()) return;
+                const card = e.target.closest('.vrc-friend-card');
+                if (!card) {
+                    if (_fpCurrentUid) {
+                        clearTimeout(_fpHideTimer);
+                        _fpHideTimer = setTimeout(hidePreview, 150);
+                    }
+                    return;
                 }
+                const uid = card.dataset.uid;
+                if (!uid || _fpCurrentUid === uid) return;
+                clearTimeout(_fpHideTimer);
+                showPreview(uid, card);
+                return;
+            }
+
+            // Expanded sidebar: only when hovering the avatar, after a 1.5s delay.
+            if (!previewOpenEnabled()) return;
+            const avatar = e.target.closest('.vrc-friend-avatar-wrap, .vrc-friend-avatar');
+            const card = avatar ? avatar.closest('.vrc-friend-card') : null;
+            if (!card) {
+                clearTimeout(_fpHoverDelayTimer);
+                _fpDelayUid = null;
                 return;
             }
             const uid = card.dataset.uid;
-            if (!uid || _fpCurrentUid === uid) return;
+            if (!uid || _fpCurrentUid === uid || _fpDelayUid === uid) return;
+            clearTimeout(_fpHoverDelayTimer);
             clearTimeout(_fpHideTimer);
-            showPreview(uid, card);
+            _fpDelayUid = uid;
+            _fpHoverDelayTimer = setTimeout(() => { _fpDelayUid = null; showPreview(uid, card); }, OPEN_HOVER_DELAY);
         });
 
-        // When mouse leaves sidebar, start hide timer unless going to popup
+        // When mouse leaves sidebar, cancel any pending hover and start hide timer unless going to popup
         sidebar.addEventListener('mouseleave', function (e) {
-            if (!isSidebarCollapsed()) return;
+            clearTimeout(_fpHoverDelayTimer);
+            _fpDelayUid = null;
             if (e.relatedTarget?.closest?.('#fpPreview')) return;
             _fpHideTimer = setTimeout(hidePreview, 150);
         });

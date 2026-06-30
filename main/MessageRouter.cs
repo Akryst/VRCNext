@@ -467,8 +467,12 @@ public partial class AppShell
                         var worlds = await _core.World.GetWorldsByIdsAsync(ids);
                         foreach (JObject w in worlds.OfType<JObject>())
                         {
-                            var url = ImageCacheHelper.GetWorldUrl(w["id"]?.ToString(), w["imageUrl"]?.ToString() ?? w["thumbnailImageUrl"]?.ToString());
+                            var wid = w["id"]?.ToString() ?? "";
+                            var url = ImageCacheHelper.GetWorldUrl(wid, w["imageUrl"]?.ToString() ?? w["thumbnailImageUrl"]?.ToString());
                             w["imageUrl"] = url; w["thumbnailImageUrl"] = url;
+                            var stats = _core.TimeEngine.GetWorldStats(wid);
+                            w["worldTimeSeconds"] = stats.totalSeconds;
+                            w["worldVisitCount"]  = stats.visitCount;
                         }
                         Invoke(() => SendToJS("visitedWorlds", new { worlds }));
                     });
@@ -1687,8 +1691,12 @@ public partial class AppShell
                         var worlds = await _core.World.GetMyWorldsAsync();
                         foreach (JObject w in worlds.OfType<JObject>())
                         {
-                            var url = ImageCacheHelper.GetWorldUrl(w["id"]?.ToString(), w["imageUrl"]?.ToString() ?? w["thumbnailImageUrl"]?.ToString());
+                            var wid = w["id"]?.ToString() ?? "";
+                            var url = ImageCacheHelper.GetWorldUrl(wid, w["imageUrl"]?.ToString() ?? w["thumbnailImageUrl"]?.ToString());
                             w["imageUrl"] = url; w["thumbnailImageUrl"] = url;
+                            var stats = _core.TimeEngine.GetWorldStats(wid);
+                            w["worldTimeSeconds"] = stats.totalSeconds;
+                            w["worldVisitCount"]  = stats.visitCount;
                         }
                         Invoke(() => SendToJS("vrcMyWorlds", worlds));
                     });
@@ -2145,6 +2153,7 @@ public partial class AppShell
                     break;
 
                 case "vrcGetTimeSpent":
+                case "vrcGetPeopleStats":
                     await _instance.HandleMessage(action, msg);
                     break;
 

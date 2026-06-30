@@ -191,6 +191,95 @@ function renderBioLink(url) {
 // People Tab: Favorites / Search / Blocked / Muted
 
 
+// === People Stats Overlay (time spent + meets bar on every user item) ===
+window._peopleStatsMode = false;
+let _peopleStatsMap = {};
+let _peopleStatsMax = 1;
+let _peopleStatsLoaded = false;
+
+const PEOPLE_STATS_AREAS = ['peopleFavArea', 'peopleAllArea', 'peopleRecentArea', 'peopleSearchArea', 'peopleBlockedArea', 'peopleMutedArea'];
+
+function _peopleStatsFmtTime(seconds) {
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const ds = t('timespent.unit.day_short', 'd');
+    const hs = t('timespent.unit.hour_short', 'h');
+    const ms = t('timespent.unit.minute_short', 'm');
+    if (d > 0) return `${d}${ds}`;
+    if (h > 0) return `${h}${hs}`;
+    return `${m}${ms}`;
+}
+
+function buildPeopleStatsRow(userId) {
+    if (!_peopleStatsLoaded) {
+        return `<div class="vrcn-user-item-stats vrcn-user-item-stats-pending"><div class="vrcn-user-item-stats-bar-wrap"><div class="vrcn-user-item-stats-bar" style="width:0%"></div></div></div>`;
+    }
+    const st = _peopleStatsMap[userId];
+    const sec = st ? st.seconds : 0;
+    const meets = st ? st.meets : 0;
+    if (sec <= 0) {
+        return `<div class="vrcn-user-item-stats vrcn-user-item-stats-empty"><div class="vrcn-user-item-stats-meta"><span class="msi">schedule</span><span>${t('profiles.people.stats.no_data', 'No data')}</span></div><div class="vrcn-user-item-stats-bar-wrap"><div class="vrcn-user-item-stats-bar" style="width:0%"></div></div></div>`;
+    }
+    const maxSec = _peopleStatsMax > 0 ? _peopleStatsMax : 1;
+    const pct = Math.max(3, Math.round((sec / maxSec) * 100));
+    return `<div class="vrcn-user-item-stats">
+        <div class="vrcn-user-item-stats-meta">
+            <span class="msi">schedule</span><span>${_peopleStatsFmtTime(sec)}</span>
+            <span class="vrcn-user-item-stats-dot">&middot;</span>
+            <span class="msi">handshake</span><span>${meets}</span>
+        </div>
+        <div class="vrcn-user-item-stats-bar-wrap"><div class="vrcn-user-item-stats-bar" style="width:${pct}%"></div></div>
+    </div>`;
+}
+
+function applyPeopleStatsBars() {
+    PEOPLE_STATS_AREAS.forEach(cid => {
+        const c = document.getElementById(cid);
+        if (!c) return;
+        c.querySelectorAll('.vrcn-user-item[data-uid]').forEach(item => {
+            const existing = item.querySelector('.vrcn-user-item-stats');
+            if (existing) existing.remove();
+            if (!window._peopleStatsMode) return;
+            const info = item.querySelector('.vrcn-user-item-info');
+            if (info) info.insertAdjacentHTML('afterend', buildPeopleStatsRow(item.getAttribute('data-uid')));
+        });
+    });
+}
+
+function togglePeopleStats() {
+    window._peopleStatsMode = !window._peopleStatsMode;
+    const btn = document.getElementById('peopleStatsBtn');
+    if (btn) btn.classList.toggle('active', window._peopleStatsMode);
+    if (window._peopleStatsMode && !_peopleStatsLoaded) sendToCS({ action: 'vrcGetPeopleStats' });
+    applyPeopleStatsBars();
+}
+
+function applyPeopleAlwaysStats() {
+    const always = (typeof settings !== 'undefined' && settings) ? !!settings.peopleAlwaysStats : false;
+    const btn = document.getElementById('peopleStatsBtn');
+    if (btn) btn.style.display = always ? 'none' : '';
+    if (always) {
+        window._peopleStatsMode = true;
+        if (btn) btn.classList.add('active');
+        if (!_peopleStatsLoaded) sendToCS({ action: 'vrcGetPeopleStats' });
+    }
+    applyPeopleStatsBars();
+}
+
+function onPeopleStatsData(payload) {
+    const list = (payload && payload.stats) || [];
+    _peopleStatsMap = {};
+    let max = 1;
+    list.forEach(s => {
+        _peopleStatsMap[s.userId] = { seconds: s.seconds || 0, meets: s.meets || 0 };
+        if ((s.seconds || 0) > max) max = s.seconds;
+    });
+    _peopleStatsMax = max;
+    _peopleStatsLoaded = true;
+    if (window._peopleStatsMode) applyPeopleStatsBars();
+}
+
 function setPeopleFilter(filter) {
     if (_favFriendEditMode) exitFriendEditMode();
     _peopleAllPage = 0; _peopleBlockedPage = 0; _peopleMutedPage = 0;
@@ -217,6 +306,7 @@ function setPeopleFilter(filter) {
 }
 
 function refreshPeopleTab() {
+    if (typeof applyPeopleAlwaysStats === 'function') applyPeopleAlwaysStats();
     if (peopleFilter === 'favorites')  sendToCS({ action: 'vrcGetFavoriteFriends' });
     if (peopleFilter === 'all')        filterAllFriends();
     if (peopleFilter === 'recentseen') sendToCS({ action: 'vrcGetRecentSeen' });
