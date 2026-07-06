@@ -2388,6 +2388,7 @@
   "settings.accounts.badge.primary": "PRIMARY",
   "settings.accounts.badge.active": "ACTIVE",
   "settings.accounts.badge.logged_out": "LOGGED OUT",
+  "settings.accounts.badge.profile": "GAME PROFILE {n}",
   "settings.accounts.remove_confirm": "Remove this account from the list? Its database file stays on disk and can be re-linked by adding the same account again.",
   "settings.accounts.add_error_required": "Username and password required",
   "settings.accounts.add_error_duplicate": "Account already added",

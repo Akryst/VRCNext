@@ -74,7 +74,7 @@ let _lazyUnloadTimer = null;
 let hiddenMedia = new Set();
 try { hiddenMedia = new Set(JSON.parse(localStorage.getItem('vrcnext_hidden') || '[]')); } catch {}
 const thumbCache = {};
-let currentTheme = 'slates', currentSpecialTheme = '', autoColorAccuracy = 50, notifyAudio = null, messageAudio = null, mediaRelayAudio = null, steamOverlayAudio = null, waterAudio = null, currentVrcUser = null;
+let currentTheme = 'vrcn', currentSpecialTheme = '', autoColorAccuracy = 50, notifyAudio = null, messageAudio = null, mediaRelayAudio = null, steamOverlayAudio = null, waterAudio = null, currentVrcUser = null;
 let customThemes = []; // user-saved themes from auto color
 let currentPlayBtnTheme = '';
 let currentCursorTheme = '';
@@ -332,6 +332,7 @@ function sk(type, n = 1) {
 
 
 const THEMES = {
+    vrcn:      { label: 'VRCN',      dot: '#5C76FF', c: { 'bg-base': '#0A0A0A', 'bg-side': '#0A0A0A', 'bg-card': '#0F0F0F', 'bg-hover': '#1C1C1F', 'bg-input': '#141414', 'accent': '#5C76FF', 'accent-lt': '#9797B1', 'cyan': '#8CA5FF', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#EBEBFF', 'tx1': '#EBEBFF', 'tx2': '#B7B7C3', 'tx3': '#FFFFFF', 'brd': '#1C1C1F', 'brd-lt': '#1C1C1F', 'bdg-user-pc': '#9797B1', 'bdg-user-quest': '#9797B1', 'bdg-user-web': '#9797B1', 'bdg-user-friend': '#2DD48C', 'bdg-rank-visitor': '#CCCCCC', 'bdg-rank-new': '#1778FF', 'bdg-rank-user': '#2BCF5C', 'bdg-rank-known': '#FF7B42', 'bdg-rank-trusted': '#8143E6' } },
     slates:    { label: 'Slates',    dot: '#6F6CFF', c: { 'bg-base': '#090814', 'bg-side': '#090814', 'bg-card': '#131125', 'bg-hover': '#4B4998', 'bg-input': '#0E0C1E', 'accent': '#6F6CFF', 'accent-lt': '#6F6CFF', 'cyan': '#8CA5FF', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#FFFFFF', 'tx1': '#FFFFFF', 'tx2': '#FFFFFF', 'tx3': '#FFFFFF', 'brd': '#1A1833', 'brd-lt': '#1F2357' } },
     blood:     { label: 'Blood',     dot: '#DF2A4E', c: { 'bg-base': '#0B0611', 'bg-side': '#10091A', 'bg-card': '#190F26', 'bg-hover': '#251936', 'bg-input': '#130B1E', 'accent': '#DF2A4E', 'accent-lt': '#E16B82', 'cyan': '#DC7A56', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#F2EFF5', 'tx1': '#D2CCDB', 'tx2': '#D2CCDB', 'tx3': '#D2CCDB', 'brd': '#291B3C', 'brd-lt': '#38284D' } },
     halloween: { label: 'Halloween', dot: '#DF462A', c: { 'bg-base': '#0B091A', 'bg-side': '#0B091A', 'bg-card': '#110F26', 'bg-hover': '#1B1936', 'bg-input': '#0D0B1E', 'accent': '#DF462A', 'accent-lt': '#E17D6B', 'cyan': '#DCA956', 'ok': '#2DD48C', 'warn': '#FFBA37', 'err': '#FF4B55', 'tx0': '#F0EFF5', 'tx1': '#F0EFF5', 'tx2': '#F0EFF5', 'tx3': '#F0EFF5', 'brd': '#1E1B3C', 'brd-lt': '#2B284D' } },
@@ -351,6 +352,9 @@ let _activePrimaryColors = {};
 
 function applyColors(c, light) {
     if (!c) return;
+    for (const k of Object.keys(_activePrimaryColors)) {
+        if (!(k in c)) document.documentElement.style.removeProperty('--' + k);
+    }
     _activePrimaryColors = { ...c };
     _activeLightOn = !!(light && light.on);
     _activeLightColors = (light && light.colors) ? { ...light.colors } : {};
@@ -887,7 +891,7 @@ function selectCustomTheme(key) {
 
 function deleteCustomTheme(key) {
     customThemes = customThemes.filter(t => t.key !== key);
-    if (currentTheme === key) { currentTheme = 'slates'; applyColors(THEMES.slates.c); }
+    if (currentTheme === key) { currentTheme = 'vrcn'; applyColors(THEMES.vrcn.c); }
     renderThemeChips();
     saveCustomColors();
 }
@@ -943,7 +947,7 @@ function loadCustomThemes(data) {
     if (currentTheme && currentTheme.startsWith('custom_')) {
         const t = customThemes.find(x => x.key === currentTheme);
         if (t) applyColors(t.c, t.light ? { on: true, colors: t.cLight } : null);
-        else { currentTheme = 'midnight'; applyColors(THEMES.midnight.c); renderThemeChips(); }
+        else { currentTheme = 'vrcn'; applyColors(THEMES.vrcn.c); renderThemeChips(); }
     }
 }
 

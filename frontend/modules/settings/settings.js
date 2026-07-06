@@ -447,7 +447,7 @@ function loadSettingsToUI(s) {
     renderExtraExeDesktop(settings.extraExeDesktop);
     renderExtraExeVR(settings.extraExeVR);
     updateFolderFilterOptions(settings.folders);
-    currentTheme = s.Theme || s.theme || 'slates';
+    currentTheme = s.Theme || s.theme || 'vrcn';
     currentSpecialTheme = s.SpecialTheme || s.specialTheme || '';
     autoColorAccuracy = s.AutoColorAccuracy ?? s.autoColorAccuracy ?? 50;
     const accSlider = document.getElementById('setAutoAccuracy');
@@ -455,7 +455,7 @@ function loadSettingsToUI(s) {
     const accRow = document.getElementById('autoAccuracyRow');
     if (accRow) accRow.style.display = currentSpecialTheme === 'auto' ? 'flex' : 'none';
     if (THEMES[currentTheme]) applyColors(THEMES[currentTheme].c, THEMES[currentTheme].light ? { on: true, colors: THEMES[currentTheme].cLight } : null);
-    else if (!currentTheme.startsWith('custom_')) { currentTheme = 'slates'; applyColors(THEMES.slates.c); }
+    else if (!currentTheme.startsWith('custom_')) { currentTheme = 'vrcn'; applyColors(THEMES.vrcn.c); }
     // custom_ themes are applied later when customColors loads
     renderThemeChips();
     renderSpecialThemeChips();

@@ -2305,6 +2305,7 @@
   "settings.accounts.badge.primary": "Основной",
   "settings.accounts.badge.active": "Активный",
   "settings.accounts.badge.logged_out": "Вышел",
+  "settings.accounts.badge.profile": "Игровой профиль {n}",
   "settings.accounts.remove_confirm": "Удалить аккаунт?",
   "settings.accounts.add_error_required": "Все поля обязательны",
   "settings.accounts.add_error_duplicate": "Аккаунт уже существует",

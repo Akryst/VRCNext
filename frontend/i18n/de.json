@@ -2356,6 +2356,7 @@
   "settings.accounts.badge.primary": "PRIMÄR",
   "settings.accounts.badge.active": "AKTIV",
   "settings.accounts.badge.logged_out": "AUSGELOGGT",
+  "settings.accounts.badge.profile": "SPIEL-PROFIL {n}",
   "settings.accounts.remove_confirm": "Diesen Account aus der Liste entfernen? Die Datenbank-Datei bleibt auf der Festplatte und kann durch erneutes Hinzufügen desselben Accounts wieder verbunden werden.",
   "settings.accounts.add_error_required": "Benutzername und Passwort erforderlich",
   "settings.accounts.add_error_duplicate": "Account wurde bereits hinzugefügt",

@@ -20,6 +20,7 @@ function renderAccountsList(payload) {
         primary:    t('settings.accounts.badge.primary',    'PRIMARY'),
         active:     t('settings.accounts.badge.active',     'ACTIVE'),
         loggedOut:  t('settings.accounts.badge.logged_out', 'LOGGED OUT'),
+        profile:    t('settings.accounts.badge.profile',    'GAME PROFILE {n}'),
         switchBtn:  t('settings.accounts.btn.switch',       'Switch'),
         disconnect: t('settings.accounts.btn.disconnect',   'Disconnect'),
         signin:     t('settings.accounts.btn.signin',       'Sign In'),
@@ -34,6 +35,7 @@ function renderAccountsList(payload) {
         if (a.isPrimary) badges.push(`<span class="vrcn-badge accent" style="margin-left:6px;">${lbl.primary}</span>`);
         if (isActive)    badges.push(`<span class="vrcn-badge ok" style="margin-left:6px;">${lbl.active}</span>`);
         if (!a.hasSession && !isActive) badges.push(`<span class="vrcn-badge warn" style="margin-left:6px;">${lbl.loggedOut}</span>`);
+        if (!a.isPrimary && a.profileIndex > 0) badges.push(`<span class="vrcn-badge hidden" style="margin-left:6px;">${lbl.profile.replace('{n}', a.profileIndex)}</span>`);
 
         const buttons = [];
         if (!isActive) {

@@ -2351,6 +2351,7 @@
   "settings.accounts.badge.primary": "プライマリ",
   "settings.accounts.badge.active": "アクティブ",
   "settings.accounts.badge.logged_out": "ログアウト",
+  "settings.accounts.badge.profile": "ゲームプロファイル {n}",
   "settings.accounts.remove_confirm": "このアカウントをリストから削除しますか？データベースファイルはディスクに残り、同じアカウントを再度追加することで再リンクできます。",
   "settings.accounts.add_error_required": "ユーザー名とパスワードが必要です",
   "settings.accounts.add_error_duplicate": "アカウントは既に追加されています",

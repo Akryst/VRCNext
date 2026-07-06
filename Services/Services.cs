@@ -213,6 +213,7 @@ public class VrcAccount
     public string Username { get; set; } = "";
     public string AvatarImageUrl { get; set; } = "";
     public bool IsPrimary { get; set; } = false;
+    public int ProfileIndex { get; set; } = 0;
 
     // Encrypted on disk via DPAPI, read decrypted values from Password/AuthCookie/TwoFactorCookie at runtime.
     public string PasswordEnc { get; set; } = "";
@@ -275,7 +276,7 @@ public class AppSettings
     public bool MinimizeToTray { get; set; }
     public bool TrayNotificationsEnabled { get; set; }
     public string Language { get; set; } = "en";
-    public string Theme { get; set; } = "midnight";
+    public string Theme { get; set; } = "vrcn";
     public string SpecialTheme { get; set; } = "";
     public int AutoColorAccuracy { get; set; } = 50;
     public string PlayBtnTheme { get; set; } = "";
@@ -333,6 +334,17 @@ public class AppSettings
         Accounts.Add(primary);
         if (string.IsNullOrEmpty(ActiveAccountId)) ActiveAccountId = primary.AccountId;
         return primary;
+    }
+
+    public int EnsureProfileIndex(VrcAccount acc)
+    {
+        if (acc.IsPrimary) return 0;
+        if (acc.ProfileIndex > 0) return acc.ProfileIndex;
+        var used = Accounts.Where(a => a.ProfileIndex > 0).Select(a => a.ProfileIndex).ToHashSet();
+        var next = 1;
+        while (used.Contains(next)) next++;
+        acc.ProfileIndex = next;
+        return next;
     }
 
     private static string Protect(string plain)

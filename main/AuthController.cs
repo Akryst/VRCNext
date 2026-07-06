@@ -1036,7 +1036,8 @@ public class AuthController
         if (!_instance.LogWatcherBootstrapped)
         {
             _instance.LogWatcherBootstrapped = true;
-            if (!string.IsNullOrEmpty(_core.LogWatcher.CurrentWorldId) && _instance.PendingInstanceEventId == null)
+            var vrcRunning = _core.IsVrcRunning?.Invoke() ?? false;
+            if (vrcRunning && !string.IsNullOrEmpty(_core.LogWatcher.CurrentWorldId) && _instance.PendingInstanceEventId == null)
             {
                 var loc = _core.LogWatcher.CurrentLocation ?? _core.LogWatcher.CurrentWorldId;
                 var lastJoin = _core.Timeline.GetEvents().FirstOrDefault(e => e.Type == "instance_join");
@@ -1357,6 +1358,7 @@ public class AuthController
                 isPrimary      = a.IsPrimary,
                 isActive       = a.AccountId == _core.Settings.ActiveAccountId,
                 hasSession     = !string.IsNullOrEmpty(a.AuthCookie),
+                profileIndex   = a.IsPrimary ? 0 : a.ProfileIndex,
             }).ToList()
         };
         _core.SendToJS("accountsList", payload);
@@ -1474,6 +1476,7 @@ public class AuthController
             };
             newAccountId = newAcc.AccountId;
             _core.Settings.Accounts.Add(newAcc);
+            _core.Settings.EnsureProfileIndex(newAcc);
             _core.Settings.Save();
         }
         finally { _core.AccountMutationLock.Release(); }
@@ -1679,7 +1682,7 @@ public class AuthController
             _core.OnTraySettingChanged?.Invoke(_core.Settings.MinimizeToTray, false);
 #endif
             _core.Settings.Language = NormalizeLanguage(data["language"]?.ToString());
-            _core.Settings.Theme = data["theme"]?.ToString() ?? "midnight";
+            _core.Settings.Theme = data["theme"]?.ToString() ?? "vrcn";
             _core.Settings.SpecialTheme = data["specialTheme"]?.ToString() ?? "";
 #if WINDOWS
             // Theme colors are always pushed from JS via overlayThemeColors

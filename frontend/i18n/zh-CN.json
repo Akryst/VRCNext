@@ -2352,6 +2352,7 @@
   "settings.accounts.badge.primary": "主账户",
   "settings.accounts.badge.active": "活动",
   "settings.accounts.badge.logged_out": "已退出",
+  "settings.accounts.badge.profile": "游戏配置 {n}",
   "settings.accounts.remove_confirm": "从列表中移除此账户？其数据库文件保留在磁盘上，可通过重新添加同一账户重新链接。",
   "settings.accounts.add_error_required": "需要用户名和密码",
   "settings.accounts.add_error_duplicate": "账户已添加",

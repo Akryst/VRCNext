@@ -2352,6 +2352,7 @@
   "settings.accounts.badge.primary": "PRINCIPAL",
   "settings.accounts.badge.active": "ACTIVA",
   "settings.accounts.badge.logged_out": "DESCONECTADA",
+  "settings.accounts.badge.profile": "PERFIL DE JUEGO {n}",
   "settings.accounts.remove_confirm": "¿Eliminar esta cuenta de la lista? Su archivo de base de datos permanece en el disco y puede volver a vincularse añadiendo la misma cuenta de nuevo.",
   "settings.accounts.add_error_required": "Usuario y contraseña requeridos",
   "settings.accounts.add_error_duplicate": "La cuenta ya fue añadida",

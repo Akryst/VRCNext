@@ -159,6 +159,7 @@ public class RelayController : IDisposable
                     var joinUri2 = !string.IsNullOrEmpty(llLoc) ? VRChatApiService.BuildLaunchUri(llLoc) : "";
                     var noVrFlag = llVr ? "" : "--no-vr";
                     var llExtraArgs = (_core.Settings.VrcLaunchArgs ?? "").Trim();
+                    var llProfileArg = GetVrcProfileArg();
 
                     // Always prefer steam.exe -applaunch so --no-vr is passed correctly.
                     // steam:// URL does NOT forward args to VRChat, causing SteamVR to open in Desktop mode.
@@ -167,8 +168,8 @@ public class RelayController : IDisposable
                     if (steamExe != null)
                     {
                         var applaunchArgs = string.IsNullOrEmpty(joinUri2)
-                            ? $"-applaunch 438100 {noVrFlag} {llExtraArgs}".Trim()
-                            : $"-applaunch 438100 {noVrFlag} {llExtraArgs} \"{joinUri2}\"".Trim();
+                            ? $"-applaunch 438100 {noVrFlag} {llProfileArg} {llExtraArgs}".Trim()
+                            : $"-applaunch 438100 {noVrFlag} {llProfileArg} {llExtraArgs} \"{joinUri2}\"".Trim();
                         applaunchArgs = System.Text.RegularExpressions.Regex.Replace(applaunchArgs, "\\s+", " ");
                         try
                         {
@@ -188,8 +189,8 @@ public class RelayController : IDisposable
                         if (!string.IsNullOrWhiteSpace(vrcExe) && File.Exists(vrcExe))
                         {
                             var llArgs = string.IsNullOrEmpty(joinUri2)
-                                ? $"{noVrFlag} {llExtraArgs}".Trim()
-                                : $"{noVrFlag} {llExtraArgs} \"{joinUri2}\"".Trim();
+                                ? $"{noVrFlag} {llProfileArg} {llExtraArgs}".Trim()
+                                : $"{noVrFlag} {llProfileArg} {llExtraArgs} \"{joinUri2}\"".Trim();
                             llArgs = System.Text.RegularExpressions.Regex.Replace(llArgs, "\\s+", " ");
                             Process.Start(new ProcessStartInfo
                             {
@@ -408,21 +409,33 @@ public class RelayController : IDisposable
 
     // Launch VRChat + extra apps
 
+    private string GetVrcProfileArg()
+    {
+        var acc = _core.Settings.ActiveAccount;
+        if (acc == null || acc.IsPrimary) return "";
+        var extra = _core.Settings.VrcLaunchArgs ?? "";
+        if (extra.IndexOf("--profile", StringComparison.OrdinalIgnoreCase) >= 0) return "";
+        var before = acc.ProfileIndex;
+        var idx = _core.Settings.EnsureProfileIndex(acc);
+        if (idx != before) _core.Settings.Save();
+        return $"--profile={idx}";
+    }
+
     private void LaunchVRChat()
     {
         try
         {
 #if WINDOWS
             var extraLaunchArgs = (_core.Settings.VrcLaunchArgs ?? "").Trim();
+            var lvProfileArg = GetVrcProfileArg();
             var lvSteamExe = FindSteamExe();
             bool launched = false;
             if (lvSteamExe != null)
             {
                 try
                 {
-                    var steamArgs = string.IsNullOrEmpty(extraLaunchArgs)
-                        ? "-applaunch 438100 --no-vr"
-                        : $"-applaunch 438100 --no-vr {extraLaunchArgs}";
+                    var steamArgs = System.Text.RegularExpressions.Regex.Replace(
+                        $"-applaunch 438100 --no-vr {lvProfileArg} {extraLaunchArgs}", "\\s+", " ").Trim();
                     Process.Start(new ProcessStartInfo
                     {
                         FileName = lvSteamExe, Arguments = steamArgs,
@@ -440,7 +453,8 @@ public class RelayController : IDisposable
                     _core.SendToJS("log", new { msg = "Could not launch VRChat: Steam not found and no exe path configured.", color = "err" });
                     return;
                 }
-                var exeArgs = string.IsNullOrEmpty(extraLaunchArgs) ? "--no-vr" : $"--no-vr {extraLaunchArgs}";
+                var exeArgs = System.Text.RegularExpressions.Regex.Replace(
+                    $"--no-vr {lvProfileArg} {extraLaunchArgs}", "\\s+", " ").Trim();
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = vrcPath, Arguments = exeArgs,
