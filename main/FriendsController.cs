@@ -90,6 +90,64 @@ public class FriendsController
         return ResolvePlayerImage(userId, storedImage);
     }
 
+    private readonly Dictionary<string, DateTime> _recentMod = new();
+
+    private void LogModerationEvent(string userId, string modType, bool active)
+    {
+        if (string.IsNullOrEmpty(userId)) return;
+        var (mname, mimg) = _friendNameImg.GetValueOrDefault(userId, ("", ""));
+        LogModeration(userId, mname, mimg, modType, active);
+    }
+
+    public void LogModeration(string userId, string name, string image, string modType, bool active)
+    {
+        if (string.IsNullOrEmpty(modType)) return;
+        if (string.IsNullOrEmpty(userId) && string.IsNullOrEmpty(name)) return;
+
+        var now      = DateTime.UtcNow;
+        var stateKey = modType + "|" + (active ? "1" : "0");
+        var keys     = new List<string>();
+        if (!string.IsNullOrEmpty(userId)) keys.Add(stateKey + "|u:" + userId);
+        if (!string.IsNullOrEmpty(name))   keys.Add(stateKey + "|n:" + name.ToLowerInvariant());
+
+        lock (_recentMod)
+        {
+            if (_recentMod.Count > 256)
+                foreach (var k in _recentMod.Where(kv => (now - kv.Value).TotalSeconds > 30).Select(kv => kv.Key).ToList())
+                    _recentMod.Remove(k);
+
+            foreach (var k in keys)
+                if (_recentMod.TryGetValue(k, out var ts) && (now - ts).TotalSeconds < 6)
+                {
+                    foreach (var kk in keys) _recentMod[kk] = now;
+                    return;
+                }
+            foreach (var k in keys) _recentMod[k] = now;
+        }
+
+        var ev = new TimelineService.TimelineEvent
+        {
+            Type      = "moderation",
+            UserId    = userId,
+            UserName  = name,
+            UserImage = image,
+            NotifType = modType,
+            Message   = active ? "on" : "off",
+        };
+        _core.Timeline.AddEvent(ev);
+        _core.SendToJS("timelineEvent", new
+        {
+            id        = ev.Id,
+            type      = ev.Type,
+            timestamp = ev.Timestamp,
+            userId    = ev.UserId,
+            userName  = ev.UserName,
+            userImage = ResolveWithDiskFallback(ev.UserId, ev.UserImage),
+            notifType = ev.NotifType,
+            message   = ev.Message,
+        });
+    }
+
     // Constructor
 
     public FriendsController(CoreLibrary core) => _core = core;
@@ -708,7 +766,7 @@ public class FriendsController
                         var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "block");
                         _core.SendToJS("vrcActionResult", new { action = "block", success = ok,
                             message = ok ? "Blocked" : "Failed to block" });
-                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "block", active = true });
+                        if (ok) { _core.SendToJS("vrcModDone", new { userId = uid, type = "block", active = true }); LogModerationEvent(uid, "block", true); }
                     });
                 }
                 break;
@@ -724,7 +782,7 @@ public class FriendsController
                         var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "mute");
                         _core.SendToJS("vrcActionResult", new { action = "mute", success = ok,
                             message = ok ? "Muted" : "Failed to mute" });
-                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "mute", active = true });
+                        if (ok) { _core.SendToJS("vrcModDone", new { userId = uid, type = "mute", active = true }); LogModerationEvent(uid, "mute", true); }
                     });
                 }
                 break;
@@ -740,7 +798,7 @@ public class FriendsController
                         var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "block");
                         _core.SendToJS("vrcActionResult", new { action = "unblock", success = ok,
                             message = ok ? "Unblocked" : "Failed to unblock" });
-                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "block", active = false });
+                        if (ok) { _core.SendToJS("vrcModDone", new { userId = uid, type = "block", active = false }); LogModerationEvent(uid, "block", false); }
                     });
                 }
                 break;
@@ -756,7 +814,7 @@ public class FriendsController
                         var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "mute");
                         _core.SendToJS("vrcActionResult", new { action = "unmute", success = ok,
                             message = ok ? "Unmuted" : "Failed to unmute" });
-                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "mute", active = false });
+                        if (ok) { _core.SendToJS("vrcModDone", new { userId = uid, type = "mute", active = false }); LogModerationEvent(uid, "mute", false); }
                     });
                 }
                 break;
@@ -769,7 +827,7 @@ public class FriendsController
                     _ = Task.Run(async () =>
                     {
                         var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "hideAvatar");
-                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "hideAvatar", active = true });
+                        if (ok) { _core.SendToJS("vrcModDone", new { userId = uid, type = "hideAvatar", active = true }); LogModerationEvent(uid, "hideAvatar", true); }
                     });
                 break;
             }
@@ -781,7 +839,7 @@ public class FriendsController
                     _ = Task.Run(async () =>
                     {
                         var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "hideAvatar");
-                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "hideAvatar", active = false });
+                        if (ok) { _core.SendToJS("vrcModDone", new { userId = uid, type = "hideAvatar", active = false }); LogModerationEvent(uid, "hideAvatar", false); }
                     });
                 break;
             }
@@ -793,7 +851,7 @@ public class FriendsController
                     _ = Task.Run(async () =>
                     {
                         var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "interactOff");
-                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "interactOff", active = true });
+                        if (ok) { _core.SendToJS("vrcModDone", new { userId = uid, type = "interactOff", active = true }); LogModerationEvent(uid, "interactOff", true); }
                     });
                 break;
             }
@@ -805,7 +863,7 @@ public class FriendsController
                     _ = Task.Run(async () =>
                     {
                         var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "interactOff");
-                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "interactOff", active = false });
+                        if (ok) { _core.SendToJS("vrcModDone", new { userId = uid, type = "interactOff", active = false }); LogModerationEvent(uid, "interactOff", false); }
                     });
                 break;
             }
@@ -817,7 +875,7 @@ public class FriendsController
                     _ = Task.Run(async () =>
                     {
                         var ok = await _core.PlayerModeration.ModerateUserAsync(uid, "muteChat");
-                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "muteChat", active = true });
+                        if (ok) { _core.SendToJS("vrcModDone", new { userId = uid, type = "muteChat", active = true }); LogModerationEvent(uid, "muteChat", true); }
                     });
                 break;
             }
@@ -829,7 +887,7 @@ public class FriendsController
                     _ = Task.Run(async () =>
                     {
                         var ok = await _core.PlayerModeration.UnmoderateUserAsync(uid, "muteChat");
-                        if (ok) _core.SendToJS("vrcModDone", new { userId = uid, type = "muteChat", active = false });
+                        if (ok) { _core.SendToJS("vrcModDone", new { userId = uid, type = "muteChat", active = false }); LogModerationEvent(uid, "muteChat", false); }
                     });
                 break;
             }

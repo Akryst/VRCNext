@@ -27,14 +27,16 @@ static class Program
             return;
         }
 
+        bool isRelaunch = false;
         int waitPidIdx = Array.IndexOf(args, "--waitpid");
         if (waitPidIdx >= 0 && waitPidIdx + 1 < args.Length &&
             int.TryParse(args[waitPidIdx + 1], out int waitPid))
         {
-            try { System.Diagnostics.Process.GetProcessById(waitPid).WaitForExit(5000); } catch { }
+            isRelaunch = true;
+            try { System.Diagnostics.Process.GetProcessById(waitPid).WaitForExit(10000); } catch { }
         }
 
-        if (!AcquireMutex("Global\\VRCNext", out var mainMutex, showError: true)) return;
+        if (!AcquireMutex("Global\\VRCNext", out var mainMutex, showError: true, waitMs: isRelaunch ? 10000 : 0)) return;
         using (mainMutex)
         {
             if (OperatingSystem.IsWindows())
@@ -45,10 +47,16 @@ static class Program
         }
     }
 
-    static bool AcquireMutex(string name, out Mutex mutex, bool showError = false)
+    static bool AcquireMutex(string name, out Mutex mutex, bool showError = false, int waitMs = 0)
     {
         mutex = new Mutex(initiallyOwned: true, name: name, out bool createdNew);
         if (createdNew) return true;
+
+        if (waitMs > 0)
+        {
+            try { if (mutex.WaitOne(waitMs)) return true; }
+            catch (AbandonedMutexException) { return true; }
+        }
 
         mutex.Dispose();
         if (showError)

@@ -53,6 +53,7 @@ public class VRChatLogWatcher : IDisposable
     public event Action<string>? ImageLoadError;
     public event Action? AvatarBlockedPerf;
     public event Action? ConnectionLost;
+    public event Action<string, string, bool>? PlayerModerated;
 
     public event Action<GameLogLine>? GameLogEntry;
 
@@ -347,6 +348,35 @@ public class VRChatLogWatcher : IDisposable
         catch (Exception ex) { Log($"LogWatcher: Read error: {ex.Message}"); }
     }
 
+    private static bool TryParseModeration(string rest, out string name, out string modType, out bool active)
+    {
+        name = ""; modType = ""; active = false;
+        static string Pre(string s, string p) => s.Substring(p.Length).Trim();
+        static string Suf(string s, string x)
+        {
+            var n = s.Substring(0, s.Length - x.Length).Trim();
+            if (n.EndsWith("'s", StringComparison.Ordinal)) n = n.Substring(0, n.Length - 2).Trim();
+            return n;
+        }
+
+        if (rest.StartsWith("Requesting block on ",   StringComparison.Ordinal)) { name = Pre(rest, "Requesting block on ");   modType = "block"; active = true;  return name.Length > 0; }
+        if (rest.StartsWith("Requesting unblock on ", StringComparison.Ordinal)) { name = Pre(rest, "Requesting unblock on "); modType = "block"; active = false; return name.Length > 0; }
+
+        if (rest.EndsWith(" is now Chatbox Muted", StringComparison.Ordinal)) { name = Suf(rest, " is now Chatbox Muted"); modType = "muteChat"; active = true;  return name.Length > 0; }
+        if (rest.EndsWith("Chatbox Shown",         StringComparison.Ordinal)) { name = Suf(rest, "Chatbox Shown");         modType = "muteChat"; active = false; return name.Length > 0; }
+
+        if (rest.EndsWith(" is now Drone Hidden", StringComparison.Ordinal)) { name = Suf(rest, " is now Drone Hidden"); modType = "drone"; active = true;  return name.Length > 0; }
+        if (rest.EndsWith("Drone Shown",          StringComparison.Ordinal)) { name = Suf(rest, "Drone Shown");          modType = "drone"; active = false; return name.Length > 0; }
+
+        if (rest.EndsWith(" avatar is hidden",  StringComparison.Ordinal)) { name = Suf(rest, " avatar is hidden");  modType = "hideAvatar"; active = true;  return name.Length > 0; }
+        if (rest.EndsWith(" avatar is enabled", StringComparison.Ordinal)) { name = Suf(rest, " avatar is enabled"); modType = "hideAvatar"; active = false; return name.Length > 0; }
+
+        if (rest.EndsWith(" is no longer Muted", StringComparison.Ordinal)) { name = Suf(rest, " is no longer Muted"); modType = "mute"; active = false; return name.Length > 0; }
+        if (rest.EndsWith(" is now Muted",       StringComparison.Ordinal)) { name = Suf(rest, " is now Muted");       modType = "mute"; active = true;  return name.Length > 0; }
+
+        return false;
+    }
+
     private void ParseLine(string line, bool catchUp)
     {
         if (line.Length < 30) return;
@@ -462,6 +492,16 @@ public class VRChatLogWatcher : IDisposable
             var m = RxAvatarSwitch.Match(line);
             if (m.Success && !catchUp)
                 AvatarChanged?.Invoke(m.Groups[1].Value.Trim(), m.Groups[2].Value.Trim());
+            return;
+        }
+
+        if (line.Contains("[ModerationManager]"))
+        {
+            if (catchUp) return;
+            var mi = line.IndexOf("[ModerationManager]", StringComparison.Ordinal);
+            var rest = line.Substring(mi + "[ModerationManager]".Length).Trim();
+            if (TryParseModeration(rest, out var mn, out var mt, out var ma))
+                PlayerModerated?.Invoke(mn, mt, ma);
             return;
         }
 

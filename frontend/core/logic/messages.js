@@ -687,7 +687,7 @@ window.external.receiveMessage(rawMsg => {
                 handleGroupInviteProgress(payload);
                 break;
             case 'vrcGroupDetailError':
-                document.getElementById('modalDetail').classList.remove('wd-style-compact', 'gd-style-compact');
+                document.getElementById('modalDetail').classList.remove('wd-style-compact', 'gd-style-compact', 'tl-style-compact');
                 document.getElementById('detailModalContent').innerHTML = `<div style="padding:30px;text-align:center;color:var(--err);">${esc(payload.error || t('groups.error.loading_detail', 'Error loading group'))}</div><div style="text-align:center;margin-top:10px;"><button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${t('common.close', 'Close')}</button></div>`;
                 break;
             case 'vrcGroupMembersPage':
@@ -827,7 +827,7 @@ case 'vrcNews':
                 if (typeof renderRecentAvatars === 'function') renderRecentAvatars(payload.avatars);
                 break;
             case 'vrcWorldDetailError':
-                document.getElementById('modalDetail').classList.remove('wd-style-compact', 'gd-style-compact');
+                document.getElementById('modalDetail').classList.remove('wd-style-compact', 'gd-style-compact', 'tl-style-compact');
                 document.getElementById('detailModalContent').innerHTML = `<div style="padding:30px;text-align:center;color:var(--err);">${esc(payload.error || t('worlds.error.loading_detail', 'Error loading world'))}</div><div style="text-align:center;margin-top:10px;"><button class="vrcn-button-round" onclick="document.getElementById('modalDetail').style.display='none'">${t('common.close', 'Close')}</button></div>`;
                 break;
             case 'vrcChatHistory':

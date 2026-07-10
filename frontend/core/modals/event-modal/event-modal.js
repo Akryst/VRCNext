@@ -7,7 +7,7 @@ function openEventDetail(groupId, calendarId) {
     el.innerHTML = sk('detail');
     const _evMb = document.querySelector('#modalDetail .modal-box');
     if (_evMb) _evMb.classList.remove('narrow');
-    document.getElementById('modalDetail').classList.remove('wd-style-compact', 'gd-style-compact');
+    document.getElementById('modalDetail').classList.remove('wd-style-compact', 'gd-style-compact', 'tl-style-compact');
     document.getElementById('modalDetail').style.display = 'flex';
     sendToCS({ action: 'vrcGetCalendarEvent', groupId, calendarId });
 }

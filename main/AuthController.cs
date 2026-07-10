@@ -719,6 +719,21 @@ public class AuthController
             }
             catch { }
         };
+        _core.LogWatcher.PlayerModerated += (name, modType, active) =>
+        {
+            try
+            {
+                var uid = "";
+                try
+                {
+                    var pl = _core.LogWatcher.GetCurrentPlayers().FirstOrDefault(p => p.DisplayName == name);
+                    if (pl != null) uid = pl.UserId ?? "";
+                }
+                catch { }
+                _friends.LogModeration(uid, name, "", modType, active);
+            }
+            catch { }
+        };
         _core.LogWatcher.GameLogEntry += gle =>
         {
             try
@@ -998,9 +1013,68 @@ public class AuthController
         finally { _core.AccountMutationLock.Release(); }
     }
 
+    private string _selfLastStatus     = "";
+    private string _selfLastStatusDesc = "";
+    private string _selfLastBio        = "";
+    private bool   _selfProfileSeeded;
+
+    public void LogSelfProfileEvent(string subKind, string oldValue, string newValue)
+    {
+        try
+        {
+            var uid  = _core.CurrentVrcUserId ?? "";
+            var raw  = _core.VrcApi.CurrentUserRaw;
+            var name = raw?["displayName"]?.ToString() ?? _core.Settings.ActiveAccount?.DisplayName ?? "";
+            var img  = raw != null ? VRChatApiService.GetUserImage(raw) : (_core.Settings.ActiveAccount?.AvatarImageUrl ?? "");
+            var ev = new TimelineService.TimelineEvent
+            {
+                Type       = "profile",
+                UserId     = uid,
+                UserName   = name,
+                UserImage  = img,
+                NotifType  = subKind,
+                NotifTitle = oldValue.Length > 500 ? oldValue[..500] : oldValue,
+                Message    = newValue.Length > 500 ? newValue[..500] : newValue,
+            };
+            _core.Timeline.AddEvent(ev);
+            _core.SendToJS("timelineEvent", _instance.BuildTimelinePayload(ev));
+        }
+        catch { }
+    }
+
+    private void DetectSelfProfileChanges(JObject user, bool loginFlow)
+    {
+        var newStatus = user["status"]?.ToString() ?? "";
+        var newDesc   = (user["statusDescription"]?.ToString() ?? "").Trim();
+        var newBio    = (user["bio"]?.ToString() ?? "").Trim();
+
+        if (!_selfProfileSeeded || loginFlow)
+        {
+            _selfLastStatus     = newStatus;
+            _selfLastStatusDesc = newDesc;
+            _selfLastBio        = newBio;
+            _selfProfileSeeded  = true;
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(newStatus) && newStatus != _selfLastStatus && !string.IsNullOrEmpty(_selfLastStatus))
+            LogSelfProfileEvent("status", _selfLastStatus, newStatus);
+        if (!string.IsNullOrEmpty(newStatus)) _selfLastStatus = newStatus;
+
+        if (newDesc != _selfLastStatusDesc && !string.IsNullOrEmpty(_selfLastStatusDesc))
+            LogSelfProfileEvent("statusdesc", _selfLastStatusDesc, newDesc);
+        _selfLastStatusDesc = newDesc;
+
+        if (!string.IsNullOrEmpty(newBio) && newBio != _selfLastBio && !string.IsNullOrEmpty(_selfLastBio))
+            LogSelfProfileEvent("bio", _selfLastBio, newBio);
+        if (!string.IsNullOrEmpty(newBio)) _selfLastBio = newBio;
+    }
+
     public void SendVrcUserDataUnlocked(JObject user, bool loginFlow = false)
     {
         _core.CurrentVrcUserId = user["id"]?.ToString() ?? "";
+
+        DetectSelfProfileChanges(user, loginFlow);
 
         TryCleanMutualCaches(user);
 

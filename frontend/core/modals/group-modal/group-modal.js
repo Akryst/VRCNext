@@ -26,7 +26,7 @@ function openGroupDetail(groupId) {
     if (_gpMb) _gpMb.classList.remove('narrow');
     const _gpCompact = (typeof settings !== 'undefined' && settings.groupModalStyle === 'compact');
     const _gpMod = document.getElementById('modalDetail');
-    _gpMod.classList.remove('wd-style-compact', 'gd-style-compact');
+    _gpMod.classList.remove('wd-style-compact', 'gd-style-compact', 'tl-style-compact');
     if (_gpCompact) _gpMod.classList.add('gd-style-compact');
     _gpMod.style.display = 'flex';
     const cached = _groupDetailCache[groupId];
@@ -494,7 +494,7 @@ function renderGroupDetail(g) {
 
     const _gdModal = document.getElementById('modalDetail');
     if (_gdModal) {
-        _gdModal.classList.remove('wd-style-compact', 'gd-style-compact');
+        _gdModal.classList.remove('wd-style-compact', 'gd-style-compact', 'tl-style-compact');
         if (useGdCompact) _gdModal.classList.add('gd-style-compact');
     }
     applyGroupDetailTranslations(g);

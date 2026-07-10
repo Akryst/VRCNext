@@ -76,6 +76,8 @@ const TL_FILTER_IDS = {
     notification:  'tlFNotif',
     avatar_switch: 'tlFAvatar',
     video_url:     'tlFUrl',
+    moderation:    'tlFModeration',
+    profile:       'tlFProfile',
 };
 
 // Type colours
@@ -87,6 +89,8 @@ const TL_TYPE_COLOR = {
     notification:  'var(--warn)',
     avatar_switch: '#FF7043',
     video_url:     '#29B6F6',
+    moderation:    '#EF5350',
+    profile:       '#5C6BC0',
 };
 
 function getTlEventColor(ev) {
@@ -95,6 +99,9 @@ function getTlEventColor(ev) {
         if (!ev.tracked)                   return '#FF9800';     // Legacy
         if (!ev.leftAt)                    return 'var(--ok)';   // Ongoing
         return 'var(--accent)';                                  // Abgeschlossen
+    }
+    if (ev.type === 'profile' && ev.notifType === 'launch') {
+        return (ev.message === 'start') ? 'var(--ok)' : 'var(--tx3)';
     }
     return TL_TYPE_COLOR[ev.type] ?? 'var(--tx3)';
 }
@@ -108,7 +115,28 @@ const TL_TYPE_META = {
     notification:  { icon: 'notifications',  key: 'timeline.types.notification',  fallback: 'Notification' },
     avatar_switch: { icon: 'checkroom',      key: 'timeline.types.avatar_switch', fallback: 'Avatar Switch' },
     video_url:     { icon: 'link',           key: 'timeline.types.video_url',     fallback: 'URL' },
+    moderation:    { icon: 'gavel',          key: 'timeline.types.moderation',    fallback: 'Moderation' },
+    profile:       { icon: 'account_circle', key: 'timeline.types.profile',       fallback: 'Profile' },
 };
+
+const TL_MOD_TYPE_META = {
+    block:       { on: 'timeline.moderation.blocked',        onFb: 'Blocked',          off: 'timeline.moderation.unblocked',       offFb: 'Unblocked' },
+    mute:        { on: 'timeline.moderation.muted',          onFb: 'Muted',            off: 'timeline.moderation.unmuted',         offFb: 'Unmuted' },
+    muteChat:    { on: 'timeline.moderation.chat_muted',     onFb: 'Chat Muted',       off: 'timeline.moderation.chat_unmuted',    offFb: 'Chat Unmuted' },
+    hideAvatar:  { on: 'timeline.moderation.avatar_hidden',  onFb: 'Avatar Hidden',    off: 'timeline.moderation.avatar_shown',    offFb: 'Avatar Shown' },
+    interactOff: { on: 'timeline.moderation.interactions_off', onFb: 'Interactions Off', off: 'timeline.moderation.interactions_on', offFb: 'Interactions On' },
+    drone:       { on: 'timeline.moderation.drone_hidden',      onFb: 'Drone Hidden',     off: 'timeline.moderation.drone_shown',      offFb: 'Drone Shown' },
+};
+
+function tlModTypeLabel(kind, active) {
+    const meta = TL_MOD_TYPE_META[kind];
+    if (!meta) return kind || t('timeline.types.moderation', 'Moderation');
+    return active ? t(meta.on, meta.onFb) : t(meta.off, meta.offFb);
+}
+
+function tlModIsActive(ev) {
+    return (ev.message || 'on') !== 'off';
+}
 
 const TL_NOTIF_TYPE_META = {
     friendRequest: { key: 'timeline.notif.friend_request', fallback: 'Friend Request' },
@@ -1000,6 +1028,8 @@ function renderTlCard(ev) {
         case 'notification':  body = renderTlNotifBody(ev);     break;
         case 'avatar_switch': body = renderTlAvatarBody(ev);    break;
         case 'video_url':     body = renderTlUrlBody(ev);       break;
+        case 'moderation':    body = renderTlModerationBody(ev); break;
+        case 'profile':       body = renderTlProfileBody(ev);   break;
     }
 
     return `<div class="tl-card" data-tlid="${esc(ev.id)}" onclick="openTlDetail('${ei}')">${header}${body}</div>`;
@@ -1099,6 +1129,52 @@ function renderTlAvatarBody(ev) {
         ? `<div class="tl-av" style="background-image:url('${cssUrl(ev.userImage)}')"></div>`
         : `<div class="tl-av tl-av-letter"><span class="msi" style="font-size:18px;">checkroom</span></div>`;
     return `<div class="tl-card-body">${thumb}<div class="tl-card-info"><div class="tl-main-label">${esc(ev.userName || t('timeline.unknown_avatar', 'Unknown Avatar'))}</div></div></div>`;
+}
+
+function renderTlModerationBody(ev) {
+    const active = tlModIsActive(ev);
+    const av  = ev.userImage
+        ? `<div class="tl-av" style="background-image:url('${cssUrl(ev.userImage)}')"></div>`
+        : `<div class="tl-av tl-av-letter">${esc((ev.userName || '?')[0].toUpperCase())}</div>`;
+    const label = tlModTypeLabel(ev.notifType, active);
+    return `<div class="tl-card-body">${av}<div class="tl-card-info"><div class="tl-main-label">${esc(ev.userName || t('timeline.unknown', 'Unknown'))}</div><div class="tl-type-chip" style="color:${active ? 'var(--err)' : 'var(--ok)'}">${esc(label)}</div></div></div>`;
+}
+
+function tlProfileMeta(ev) {
+    switch (ev.notifType) {
+        case 'launch': {
+            const started = ev.message === 'start';
+            return {
+                icon:  started ? 'rocket_launch' : 'power_settings_new',
+                label: started ? t('timeline.profile.game_started', 'VRChat Started') : t('timeline.profile.game_closed', 'VRChat Closed'),
+                color: started ? 'var(--ok)' : 'var(--tx3)',
+            };
+        }
+        case 'status':     return { icon: 'circle',              label: t('timeline.friend_types.friend_status', 'Status'),          color: 'var(--warn)' };
+        case 'statusdesc': return { icon: 'chat_bubble_outline', label: t('timeline.friend_types.friend_statusdesc', 'Status Text'), color: 'var(--cyan)' };
+        case 'bio':        return { icon: 'edit_note',           label: t('timeline.friend_types.friend_bio', 'Bio Change'),         color: '#AB47BC' };
+        default:           return { icon: 'account_circle',      label: t('timeline.types.profile', 'Profile'),                      color: '#5C6BC0' };
+    }
+}
+
+function renderTlProfileBody(ev) {
+    const meta = tlProfileMeta(ev);
+    const av = ev.userImage
+        ? `<div class="tl-av" style="background-image:url('${cssUrl(ev.userImage)}')"></div>`
+        : `<div class="tl-av" style="display:flex;align-items:center;justify-content:center;background:var(--bg2);"><span class="msi" style="font-size:20px;color:${meta.color};">${meta.icon}</span></div>`;
+    let sub = '';
+    if (ev.notifType === 'status') {
+        const oldCls = statusCssClass(ev.notifTitle);
+        const newCls = statusCssClass(ev.message);
+        sub = `<div style="display:flex;align-items:center;gap:6px;margin-top:3px;"><span class="ft-status-chip ${oldCls}">${esc(statusLabel(ev.notifTitle) || '?')}</span><span class="msi" style="font-size:12px;color:var(--tx3);">arrow_forward</span><span class="ft-status-chip ${newCls}">${esc(statusLabel(ev.message) || '?')}</span></div>`;
+    } else if (ev.notifType === 'statusdesc') {
+        sub = ev.message
+            ? `<div class="tl-sub-label">${esc(ev.message.slice(0, 60))}${ev.message.length > 60 ? '…' : ''}</div>`
+            : `<div class="tl-sub-label">${esc(t('timeline.value.cleared', '(cleared)'))}</div>`;
+    } else if (ev.notifType === 'bio') {
+        sub = ev.message ? `<div class="tl-sub-label">${esc(ev.message.slice(0, 60))}${ev.message.length > 60 ? '…' : ''}</div>` : '';
+    }
+    return `<div class="tl-card-body">${av}<div class="tl-card-info"><div class="tl-main-label" style="color:${meta.color}">${esc(meta.label)}</div>${sub}</div></div>`;
 }
 
 function tlPlayerAvatars(players, max) {
@@ -1604,4 +1680,41 @@ function renderFtAvatarBody(ev) {
 }
 
 // Detail modals
+
+// Drag-to-scroll on the sub-category filter rows (Personal / Friends / Game Log)
+(function () {
+    let _row = null, _startX = 0, _scrollStart = 0, _dragging = false;
+
+    document.addEventListener('mousedown', e => {
+        const row = e.target.closest('.tl-filter-row');
+        if (!row) return;
+        _row         = row;
+        _startX      = e.clientX;
+        _scrollStart = row.scrollLeft;
+        _dragging    = false;
+        row.style.cursor = 'grabbing';
+    });
+
+    document.addEventListener('mousemove', e => {
+        if (!_row) return;
+        const dx = e.clientX - _startX;
+        if (!_dragging && Math.abs(dx) > 4) _dragging = true;
+        if (_dragging) { _row.scrollLeft = _scrollStart - dx; e.preventDefault(); }
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (!_row) return;
+        _row.style.cursor = '';
+        if (_dragging) _row.addEventListener('click', ev => ev.stopPropagation(), { capture: true, once: true });
+        _row = null;
+        _dragging = false;
+    });
+
+    document.addEventListener('wheel', e => {
+        const row = e.target.closest('.tl-filter-row');
+        if (!row || e.deltaX !== 0) return;
+        row.scrollLeft += e.deltaY;
+        e.preventDefault();
+    }, { passive: false });
+})();
 

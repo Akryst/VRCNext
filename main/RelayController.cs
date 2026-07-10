@@ -585,6 +585,8 @@ public class RelayController : IDisposable
         if (running == _vrcWasRunning) return;
         _vrcWasRunning = running;
 
+        LogVrcLaunchState(running);
+
         if (running)
         {
             // VRChat just started. If we launched it ourselves the startup apps
@@ -613,6 +615,11 @@ public class RelayController : IDisposable
                 Invoke(() => _core.SendToJS("vrcClosed", new { }));
             }
         }
+    }
+
+    private void LogVrcLaunchState(bool running)
+    {
+        Invoke(() => _core.LogSelfProfile?.Invoke("launch", "", running ? "start" : "stop"));
     }
 
     private void CloseTrackedExtraApps()

@@ -76,6 +76,11 @@
     width: 130px;
     overflow: hidden;
     text-overflow: ellipsis;
+    padding-left: 28px;
+}
+
+.tl-list-table thead th:nth-child(4) {
+    padding-left: 28px;
 }
 
 .tl-list-detail {
@@ -250,8 +255,16 @@
     gap: 6px;
     padding: 4px 0 12px;
     flex-shrink: 0;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    cursor: grab;
+    overscroll-behavior-x: contain;
 }
+.tl-filter-row::-webkit-scrollbar { display: none; }
+.tl-filter-row .sub-tab-btn { flex-shrink: 0; white-space: nowrap; }
 
 #tab12.active {
     display: flex;

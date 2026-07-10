@@ -47,12 +47,16 @@ function openTlDetail(id) {
         case 'notification':  renderTlDetailNotif(ev, el);     break;
         case 'avatar_switch': renderTlDetailAvatar(ev, el);    break;
         case 'video_url':     renderTlDetailUrl(ev, el);       break;
+        case 'moderation':    renderTlDetailModeration(ev, el); break;
+        case 'profile':       renderTlDetailProfile(ev, el);   break;
     }
 
     const _mb = document.querySelector(`#${_tlMid} .modal-box`);
-    if (_mb) _mb.classList.add('narrow');
-    document.getElementById(_tlMid).classList.remove('wd-style-compact', 'gd-style-compact');
-    document.getElementById(_tlMid).style.display = 'flex';
+    if (_mb) _mb.classList.toggle('narrow', ev.type !== 'instance_join');
+    const _ov = document.getElementById(_tlMid);
+    _ov.classList.remove('wd-style-compact', 'gd-style-compact');
+    _ov.classList.toggle('tl-style-compact', ev.type === 'instance_join');
+    _ov.style.display = 'flex';
 }
 
 // Navigate to a specific event in the Timeline tab
@@ -185,24 +189,44 @@ function _tlPlayerCard(p, instanceStart, instanceEnd) {
         if (segments) barHtml = `<div class="tl-player-bar-wrap">${segments}</div>`;
     }
 
-    return `<div class="tl-player-card${clickCls}" ${onclick} style="flex-wrap:wrap;">${av}<div class="tl-player-card-info"><div class="tl-player-card-name"><span>${esc(name)}</span>${badge}</div><div class="tl-player-card-times">${timesHtml}</div></div>${barHtml ? `<div style="flex-basis:100%;padding:0 2px;">${barHtml}</div>` : ''}</div>`;
+    return `<div class="tl-player-card${clickCls}" data-pname="${esc(name.toLowerCase())}" data-visits="${joins.length}" data-secs="${totalSecs}" data-friend="${live ? 1 : 0}" ${onclick} style="flex-wrap:wrap;">${av}<div class="tl-player-card-info"><div class="tl-player-card-name"><span>${esc(name)}</span>${badge}</div><div class="tl-player-card-times">${timesHtml}</div></div>${barHtml ? `<div style="flex-basis:100%;padding:0 2px;">${barHtml}</div>` : ''}</div>`;
+}
+
+function _tlSortPlayers(sel) {
+    const grid = document.getElementById('tlPlayersGrid');
+    if (!grid || !sel.value) return;
+    const mode = sel.value;
+    const num = (c, k) => parseFloat(c.dataset[k]) || 0;
+    const cards = Array.from(grid.querySelectorAll('.tl-player-card'));
+    cards.sort((a, b) => {
+        if (mode === 'visits')      return num(b, 'visits') - num(a, 'visits');
+        if (mode === 'time')        return num(b, 'secs') - num(a, 'secs');
+        if (mode === 'visits_time') return (num(b, 'visits') - num(a, 'visits')) || (num(b, 'secs') - num(a, 'secs'));
+        if (mode === 'friends')     return num(b, 'friend') - num(a, 'friend');
+        return 0;
+    });
+    cards.forEach(c => grid.appendChild(c));
+}
+
+function _tlFilterPlayers(inp) {
+    const q = (inp.value || '').toLowerCase().trim();
+    const grid = document.getElementById('tlPlayersGrid');
+    if (!grid) return;
+    let visible = 0;
+    grid.querySelectorAll('.tl-player-card').forEach(c => {
+        const show = !q || (c.dataset.pname || '').includes(q);
+        c.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    const empty = document.getElementById('tlPlayersEmpty');
+    if (empty) empty.style.display = visible ? 'none' : '';
 }
 
 function renderTlDetailJoin(ev, el) {
-    const banner  = _tlBanner(!!ev.worldThumb);
     const players = ev.players || [];
-
-    let playersHtml = '';
-    if (players.length > 0) {
-        const instEnd = ev.leftAt || new Date().toISOString();
-        let grid = '';
-        players.forEach(p => { grid += _tlPlayerCard(p, ev.timestamp, instEnd); });
-        playersHtml = `<div class="fd-info-card tl-players-card">
-            <div class="fd-group-rep-label">${esc(tf('timeline.detail.players_in_instance', { count: players.length }, `Players in instance (${players.length})`))}</div>
-            <div style="font-size:10.5px;color:var(--tx3);margin-bottom:8px;line-height:1.4;">${esc(t('timeline.detail.players_disclaimer', 'Shows when each player was tracked while you were in the instance. This does not mean they joined or left at those exact times.'))}</div>
-            <div class="tl-players-grid">${grid}</div>
-        </div>`;
-    }
+    const instEnd = ev.leftAt || new Date().toISOString();
+    let grid = '';
+    players.forEach(p => { grid += _tlPlayerCard(p, ev.timestamp, instEnd); });
 
     const dateStr = tlFormatLongDate(ev.timestamp);
     const fromStr = ev.timestamp ? tlFormatTime(ev.timestamp) : null;
@@ -216,7 +240,6 @@ function renderTlDetailJoin(ev, el) {
 
     const worldRowClick = ev.worldId ? ` onclick="document.getElementById('${_tlMid}').style.display='none';openWorldSearchDetail('${esc(ev.worldId)}')" style="cursor:pointer;"` : '';
     const infoRows = [
-        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
         fromStr ? _tlMr(esc(t('timeline.detail.from', 'From')), esc(fromStr)) : '',
         (fromStr && ev.tracked) ? _tlMr(esc(t('timeline.detail.to', 'To')), toStr ? esc(toStr) : `<span style="color:var(--ok);">&#9679;&nbsp;${esc(t('timeline.detail.ongoing', 'Ongoing'))}</span>`) : '',
         (ev.tracked && ev.leftAt && ev.timestamp) ? _tlMr(esc(t('nav.time_spent', 'Time Spent')), esc(formatDuration(Math.floor((new Date(ev.leftAt) - new Date(ev.timestamp)) / 1000)))) : '',
@@ -225,16 +248,46 @@ function renderTlDetailJoin(ev, el) {
         instanceId ? _tlMr(esc(t('timeline.detail.instance_id', 'Instance ID')), `<span style="font-family:monospace;font-size:12px;color:var(--tx2);">#${esc(instanceId)}</span>`) : '',
     ].filter(Boolean).join('');
 
-    el.innerHTML = `${banner}<div class="fd-content${banner ? ' fd-has-banner' : ''}" style="padding:20px 0;">
-        <h2 style="margin:0 0 12px;color:var(--tx0);font-size:18px;">${esc(ev.worldName || ev.worldId || t('timeline.unknown_world', 'Unknown World'))}</h2>
-        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
-        ${playersHtml}
-        <div style="margin-top:14px;display:flex;gap:8px;">
-            <button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('${_tlMid}').style.display='none';sendToCS({action:'vrcJoinFriend',location:'${jsq(ev.location)}'});">${esc(t('instance.actions.force_join', 'Force-Join'))}</button>
-            ${_instanceLinkBtn(ev.location, '')}
-            ${_tlClose()}
+    const canCopyLink = !!(ev.location && ev.location.indexOf(':') > 0 && ev.location.startsWith('wrld_'));
+    const leftHtml = `<div class="fd-left">
+        <div class="fd-left-banner" id="tl-banner-slot">${ev.worldThumb ? '<div class="fd-banner-fade"></div>' : ''}</div>
+        <div class="fd-left-body">
+            <div>
+                <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(ev.worldName || ev.worldId || t('timeline.unknown_world', 'Unknown World'))}</h2>
+                <div style="font-size:12px;color:var(--tx3);margin-bottom:12px;">${esc(dateStr)}</div>
+            </div>
+            <div class="fd-actions">
+                <button class="vrcn-button-round vrcn-btn-join" title="${esc(t('instance.actions.force_join', 'Force-Join'))}" onclick="document.getElementById('${_tlMid}').style.display='none';sendToCS({action:'vrcJoinFriend',location:'${jsq(ev.location)}'});"><span class="msi" style="font-size:16px;">play_arrow</span></button>
+                ${canCopyLink ? `<button class="vrcn-button-round" title="${esc(t('timeline.actions.copy_instance_link', 'Copy Instance Link'))}" onclick="copyInstanceLink('${jsq(ev.location)}')"><span class="msi" style="font-size:16px;">content_copy</span></button>` : ''}
+                <button class="vrcn-button-round" title="${esc(t('common.close', 'Close'))}" onclick="document.getElementById('${_tlMid}').style.display='none'"><span class="msi" style="font-size:16px;">close</span></button>
+            </div>
+            ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
         </div>
     </div>`;
+
+    const rightHtml = `<div class="fd-right">
+        <div class="tl-players-head">
+            <div class="fd-group-rep-label" style="margin-bottom:6px;">${esc(tf('timeline.detail.players_in_instance', { count: players.length }, `Players in instance (${players.length})`))}</div>
+            <div style="font-size:10.5px;color:var(--tx3);line-height:1.4;${players.length ? 'margin-bottom:10px;' : ''}">${esc(t('timeline.detail.players_disclaimer', 'Shows when each player was tracked while you were in the instance. This does not mean they joined or left at those exact times.'))}</div>
+            ${players.length ? `<div class="search-bar-row" style="margin-bottom:0;"><span class="msi search-ico">search</span><input type="text" id="tlPlayersSearch" class="vrcn-input" placeholder="${esc(t('timeline.detail.search_players', 'Search players...'))}" style="background:var(--bg-input);" oninput="_tlFilterPlayers(this)"><select id="tlPlayersSort" class="vrcn-dropdown" style="min-width:150px;" onchange="_tlSortPlayers(this)">
+                <option value="">${esc(t('timeline.detail.sort_placeholder', 'Sort...'))}</option>
+                <option value="visits">${esc(t('timeline.detail.sort_visits', 'Visits'))}</option>
+                <option value="time">${esc(t('timeline.detail.sort_time', 'Overall Time'))}</option>
+                <option value="visits_time">${esc(t('timeline.detail.sort_visits_time', 'Visits and Time'))}</option>
+                <option value="friends">${esc(t('timeline.detail.sort_friends', 'Friends'))}</option>
+            </select></div>` : ''}
+        </div>
+        <div class="fd-right-scroll">
+            ${players.length
+                ? `<div class="tl-players-grid" id="tlPlayersGrid" style="margin-top:0;">${grid}</div>
+                   <div id="tlPlayersEmpty" style="display:none;font-size:12px;color:var(--tx3);padding:12px 2px;">${esc(t('timeline.detail.no_players_match', 'No players match your search.'))}</div>`
+                : `<div style="font-size:12px;color:var(--tx3);padding:12px 2px;">${esc(t('timeline.detail.no_players', 'No players tracked in this instance.'))}</div>`}
+        </div>
+    </div>`;
+
+    el.innerHTML = `<div class="fd-layout">${leftHtml}${rightHtml}</div>`;
+    const _tlSortSel = el.querySelector('#tlPlayersSort');
+    if (_tlSortSel && typeof initVnSelect === 'function') initVnSelect(_tlSortSel);
     _tlInsertBanner(el, ev.worldId || ev.id, ev.worldThumb);
 }
 
@@ -357,6 +410,75 @@ function renderTlDetailUrl(ev, el) {
     </div>`;
 }
 
+// Detail: moderation
+
+function renderTlDetailModeration(ev, el) {
+    const dateStr = tlFormatLongDate(ev.timestamp);
+    const timeStr = tlFormatTime(ev.timestamp);
+    const active  = (ev.message || 'on') !== 'off';
+    const label   = (typeof tlModTypeLabel === 'function') ? tlModTypeLabel(ev.notifType, active) : (ev.notifType || '');
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+        _tlMr(esc(t('timeline.detail.moderation_type', 'Moderation Type')), `<span style="color:${active ? 'var(--err)' : 'var(--ok)'};font-weight:600;">${esc(label)}</span>`),
+    ].filter(Boolean).join('');
+    el.innerHTML = `<div class="fd-content" style="padding:20px 0;">
+        ${_tlAvRow(ev.userImage, ev.userName, t('timeline.detail.moderation', 'MODERATION'), 'var(--err)')}
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoRows)}
+        <div style="margin-top:14px;display:flex;gap:8px;">
+            ${ev.userId ? `<button class="vrcn-button-round vrcn-btn-join" onclick="document.getElementById('${_tlMid}').style.display='none';openFriendDetail('${esc(ev.userId)}')">${esc(t('timeline.actions.view_profile', 'View Profile'))}</button>` : ''}
+            ${_tlClose()}
+        </div>
+    </div>`;
+}
+
+// Detail: profile (own status / status text / bio / game start-close)
+
+function renderTlDetailProfile(ev, el) {
+    const dateStr = tlFormatLongDate(ev.timestamp);
+    const timeStr = tlFormatTime(ev.timestamp);
+    const meta    = (typeof tlProfileMeta === 'function') ? tlProfileMeta(ev) : { icon: 'account_circle', label: t('timeline.types.profile', 'Profile'), color: '#5C6BC0' };
+
+    const infoRows = [
+        _tlMr(esc(t('timeline.detail.date', 'Date')), esc(dateStr)),
+        _tlMr(esc(t('timeline.detail.time', 'Time')), esc(timeStr)),
+    ];
+    if (ev.notifType === 'status') {
+        const oldCls = statusCssClass(ev.notifTitle);
+        const newCls = statusCssClass(ev.message);
+        infoRows.push(_tlMr(esc(t('timeline.detail.change', 'Change')), `<span style="display:flex;align-items:center;gap:6px;justify-content:flex-end;"><span class="ft-status-chip ${oldCls}">${esc(statusLabel(ev.notifTitle) || '?')}</span><span class="msi" style="font-size:12px;color:var(--tx3);">arrow_forward</span><span class="ft-status-chip ${newCls}">${esc(statusLabel(ev.message) || '?')}</span></span>`));
+    } else if (ev.notifType === 'launch') {
+        infoRows.push(_tlMr(esc(t('timeline.detail.event', 'Event')), `<span style="color:${meta.color};font-weight:600;">${esc(meta.label)}</span>`));
+    }
+    const infoHtml = infoRows.filter(Boolean).join('');
+
+    let extraCards = '';
+    if (ev.notifType === 'statusdesc') {
+        extraCards = `${ev.notifTitle ? `<div class="fd-info-card" style="margin-top:10px;"><div class="fd-group-rep-label">${esc(t('timeline.detail.previous_status_text', 'PREVIOUS STATUS TEXT'))}</div><div style="font-size:12px;color:var(--tx2);white-space:pre-wrap;">${esc(ev.notifTitle)}</div></div>` : ''}
+        <div class="fd-info-card" style="margin-top:10px;"><div class="fd-group-rep-label">${esc(t('timeline.detail.new_status_text', 'NEW STATUS TEXT'))}</div><div style="font-size:12px;color:var(--tx1);white-space:pre-wrap;">${ev.message ? esc(ev.message) : tlDetailClearedHtml()}</div></div>`;
+    } else if (ev.notifType === 'bio') {
+        extraCards = `${ev.notifTitle ? `<div class="fd-info-card" style="margin-top:10px;"><div class="fd-group-rep-label">${esc(t('timeline.detail.previous_bio', 'PREVIOUS BIO'))}</div><div style="font-size:12px;color:var(--tx2);white-space:pre-wrap;">${esc(ev.notifTitle)}</div></div>` : ''}
+        ${ev.message ? `<div class="fd-info-card" style="margin-top:10px;"><div class="fd-group-rep-label">${esc(t('timeline.detail.new_bio', 'NEW BIO'))}</div><div style="font-size:12px;color:var(--tx1);white-space:pre-wrap;">${esc(ev.message)}</div></div>` : ''}`;
+    }
+
+    el.innerHTML = `<div class="fd-content" style="padding:20px 0;">
+        <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px;">
+            ${ev.userImage
+                ? `<div class="tl-detail-av" style="background-image:url('${cssUrl(ev.userImage)}')"></div>`
+                : `<div style="display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:12px;background:var(--bg2);"><span class="msi" style="font-size:30px;color:${meta.color};">${meta.icon}</span></div>`}
+            <div>
+                <h2 style="margin:0 0 4px;color:var(--tx0);font-size:18px;">${esc(meta.label)}</h2>
+                <div style="font-size:11px;color:${meta.color};font-weight:700;letter-spacing:.05em;">${esc(t('timeline.detail.profile', 'PROFILE'))}</div>
+            </div>
+        </div>
+        ${_tlInfoCard(esc(t('timeline.detail.info', 'Info')), infoHtml)}
+        ${extraCards}
+        <div style="margin-top:14px;display:flex;gap:8px;">
+            ${_tlClose()}
+        </div>
+    </div>`;
+}
+
 
 /* === Friend GPS Instance Log Modal === */
 function openFtGpsDetail(evId) {
@@ -474,6 +596,7 @@ function openFtDetail(id) {
 
     const _mb2 = document.querySelector('#modalDetail .modal-box');
     if (_mb2) _mb2.classList.add('narrow');
+    document.getElementById('modalDetail').classList.remove('wd-style-compact', 'gd-style-compact', 'tl-style-compact');
     document.getElementById('modalDetail').style.display = 'flex';
 }
 
@@ -501,6 +624,7 @@ function openFdActivityDetail(id) {
     }
     const _mb3 = document.querySelector('#modalDetail .modal-box');
     if (_mb3) _mb3.classList.add('narrow');
+    document.getElementById('modalDetail').classList.remove('wd-style-compact', 'gd-style-compact', 'tl-style-compact');
     document.getElementById('modalDetail').style.display = 'flex';
 }
 
@@ -693,7 +817,7 @@ function _tlPersonalProfHtml(ev) {
         if (players.length > 0) return _tlListPlayerAvatars(players, 3);
         return _tlListProfHtml(currentVrcUser?.image, currentVrcUser?.displayName);
     }
-    if (ev.type === 'photo') return _tlListProfHtml(currentVrcUser?.image, currentVrcUser?.displayName);
+    if (ev.type === 'photo' || ev.type === 'profile') return _tlListProfHtml(ev.userImage || currentVrcUser?.image, ev.userName || currentVrcUser?.displayName);
     return _tlListProfHtml(ev.userImage, ev.userName);
 }
 
@@ -765,11 +889,34 @@ function _tlListData(ev) {
             return { userHtml: ev.senderName ? esc(ev.senderName) : '', detail: esc(typeLabel) + sender + msg };
         }
         case 'avatar_switch':
-            return { userHtml: '', detail: esc(ev.userName || '') };
+            return { userHtml: esc(currentVrcUser?.displayName || t('timeline.unknown', 'Unknown')), detail: esc(ev.userName || '') };
         case 'video_url': {
             const url = ev.message || '';
             const short = url.length > 60 ? url.slice(0, 60) + '...' : url;
             return { userHtml: '', detail: esc(short) };
+        }
+        case 'moderation': {
+            const active = (ev.message || 'on') !== 'off';
+            const label  = (typeof tlModTypeLabel === 'function') ? tlModTypeLabel(ev.notifType, active) : (ev.notifType || '');
+            return { userHtml: esc(ev.userName || t('timeline.unknown', 'Unknown')), detail: `<span style="color:${active ? 'var(--err)' : 'var(--ok)'}">${esc(label)}</span>` };
+        }
+        case 'profile': {
+            const meta = (typeof tlProfileMeta === 'function') ? tlProfileMeta(ev) : { label: t('timeline.types.profile', 'Profile') };
+            const uh = esc(ev.userName || currentVrcUser?.displayName || t('timeline.unknown', 'Unknown'));
+            let detail;
+            if (ev.notifType === 'status') {
+                const oldCls = statusCssClass(ev.notifTitle);
+                const newCls = statusCssClass(ev.message);
+                detail = `<span class="ft-status-chip ${oldCls}">${esc(statusLabel(ev.notifTitle) || '?')}</span>`
+                       + `<span class="msi" style="font-size:12px;color:var(--tx3);vertical-align:middle;margin:0 4px;">arrow_forward</span>`
+                       + `<span class="ft-status-chip ${newCls}">${esc(statusLabel(ev.message) || '?')}</span>`;
+            } else if (ev.notifType === 'statusdesc' || ev.notifType === 'bio') {
+                const v = (ev.message || '').slice(0, 80);
+                detail = v ? esc(v) + ((ev.message || '').length > 80 ? '...' : '') : tlClearedHtml();
+            } else {
+                detail = `<span style="color:${meta.color || 'var(--tx2)'}">${esc(meta.label)}</span>`;
+            }
+            return { userHtml: uh, detail };
         }
         default:
             return { userHtml: '', detail: '' };

@@ -199,6 +199,7 @@ public partial class AppShell
         WindowController.OnMinimized = () => _memTrim.TrimNow();
 #endif
         _authCtrl = new AuthController(_core, _friends, _instance, _photos, _relayCtrl, _groups, _discordCtrl);
+        _core.LogSelfProfile = _authCtrl.LogSelfProfileEvent;
         _relayCtrl.OnOwnUserUpdated = user =>
         {
             _authCtrl.SendVrcUserData(user);

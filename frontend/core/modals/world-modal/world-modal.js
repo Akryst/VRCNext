@@ -30,7 +30,7 @@ function openWorldSearchDetail(id) {
     const _wdMb = document.querySelector('#modalDetail .modal-box');
     if (_wdMb) _wdMb.classList.remove('narrow');
     const _wdMod = document.getElementById('modalDetail');
-    _wdMod.classList.remove('wd-style-compact', 'gd-style-compact');
+    _wdMod.classList.remove('wd-style-compact', 'gd-style-compact', 'tl-style-compact');
     if (_wdCompact) _wdMod.classList.add('wd-style-compact');
     _wdMod.style.display = 'flex';
     sendToCS({ action: 'vrcGetWorldDetail', worldId: id });
@@ -366,7 +366,7 @@ function renderWorldSearchDetail(w) {
 
     const _wdModal = document.getElementById('modalDetail');
     if (_wdModal) {
-        _wdModal.classList.remove('wd-style-compact', 'gd-style-compact');
+        _wdModal.classList.remove('wd-style-compact', 'gd-style-compact', 'tl-style-compact');
         if (useWdCompact) _wdModal.classList.add('wd-style-compact');
     }
     if (thumb) { const s = document.getElementById('wd-banner-slot'); const bi = _getWorldBannerImg(wid, thumb); if (s && bi) s.insertBefore(bi, s.firstChild); }
